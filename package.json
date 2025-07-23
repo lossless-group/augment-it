@@ -1,0 +1,48 @@
+{
+  "name": "ai-customer-data-manager",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.17.1",
+    "@codemirror/lang-javascript": "^6.2.1",
+    "@codemirror/lang-json": "^6.0.1",
+    "@codemirror/lang-markdown": "^6.2.3",
+    "@codemirror/lint": "^6.4.2",
+    "@codemirror/state": "^6.4.0",
+    "@codemirror/theme-one-dark": "^6.1.2",
+    "@codemirror/view": "^6.24.0",
+    "@mdx-js/mdx": "^3.0.1",
+    "@mdx-js/react": "^3.0.1",
+    "@mdx-js/rollup": "^3.0.1",
+    "@supabase/supabase-js": "^2.39.3",
+    "@tailwindcss/typography": "^0.5.10",
+    "codemirror": "^6.0.1",
+    "lucide-react": "^0.344.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^8.56.0",
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "eslint": "^8.56.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "globals": "^13.24.0",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^7.0.1",
+    "vite": "^5.1.1"
+  }
+}
