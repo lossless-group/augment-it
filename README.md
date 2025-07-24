@@ -7,6 +7,7 @@ A web app with tooling to augment data with AI.
 
 ### Build
 
+- [x] Docker
 - [x] Turbo
 - [x] RS Build
     - [x] Module Federation
