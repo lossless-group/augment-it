@@ -1,3 +1,5 @@
+![Augment-It Working Banner Image](https://i.imgur.com/JFdSlQt.png)
+***
 
 # Augment It
 
