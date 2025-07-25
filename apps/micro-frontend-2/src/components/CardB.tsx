@@ -1,0 +1,32 @@
+import React from 'react'
+import { Button } from '@module-federation-vite/ui'
+import './CardB.css'
+
+export interface CardBProps {
+  title?: string
+  description?: string
+}
+
+const CardB: React.FC<CardBProps> = ({ 
+  title = "Card B Component", 
+  description = "This is a federated component from micro-frontend-2" 
+}) => {
+  return (
+    <div className="card-b">
+      <div className="card-header">
+        <h3>{title}</h3>
+        <span className="badge">Card B</span>
+      </div>
+      <div className="card-content">
+        <p>{description}</p>
+        <div className="card-actions">
+          <Button onClick={() => alert('Card B button clicked!')}>
+            Card B Action
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default CardB 
