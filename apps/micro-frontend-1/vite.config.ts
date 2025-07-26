@@ -7,6 +7,7 @@ export default defineConfig({
     react(),
     federation({
       name: 'cardA',
+      filename: 'remoteEntry.js',
       exposes: {
         './Card': './src/components/CardA.tsx',
       },
@@ -21,6 +22,13 @@ export default defineConfig({
   },
   server: {
     port: 4173,
+    cors: true,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+    },
+    fs: {
+      allow: ['..']
+    }
   },
   preview: {
     port: 4173,

@@ -1,0 +1,9 @@
+[submodule "apps/record-collector"]
+	path = apps/record-collector
+	url = https://github.com/lossless-group/record-collector
+[submodule "apps/prompt-manager"]
+	path = apps/prompt-manager
+	url = https://github.com/lossless-group/prompt-manager
+[submodule "apps/request-reviewer"]
+	path = apps/request-reviewer
+	url = https://github.com/lossless-group/request-reviewer

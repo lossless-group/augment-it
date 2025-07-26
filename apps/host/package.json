@@ -14,7 +14,9 @@
   "dependencies": {
     "@module-federation-vite/ui": "*",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "zustand": "^4.4.7",
+    "lucide-react": "^0.525.0"
   },
   "devDependencies": {
     "@originjs/vite-plugin-federation": "^1.4.1",

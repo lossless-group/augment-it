@@ -1,5 +1,5 @@
 import { importShared } from './__federation_fn_import-CPTB00SE.js';
-import CardA, { j as jsxRuntimeExports } from './__federation_expose_Card-_QxxMH0_.js';
+import CardB, { j as jsxRuntimeExports } from './__federation_expose_Card-C5cNr7_n.js';
 import { r as requireReact, g as getDefaultExportFromCjs } from './index-B1hOKVPw.js';
 import { r as requireReactDom } from './index-7SrgunHe.js';
 
@@ -15803,7 +15803,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       marginBottom: "30px",
       color: "#333",
       fontSize: "2rem"
-    }, children: "Card A - Local Preview" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(CardA, {})
+    }, children: "Card B - Local Preview" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(CardB, {})
   ] }) }) })
 );

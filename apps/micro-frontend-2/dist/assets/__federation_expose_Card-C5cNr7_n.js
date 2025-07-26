@@ -118,20 +118,18 @@ const se = ({
   );
 };
 
-const CardA = ({
-  title = "Card A Component",
-  description = "This is a federated component from micro-frontend-1"
+const CardB = ({
+  title = "Card B Component",
+  description = "This is a federated component from micro-frontend-2"
 }) => {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-a", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-header", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { children: title }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "badge", children: "Card A" })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-content", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: description }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "card-actions", children: /* @__PURE__ */ jsxRuntimeExports.jsx(se, { onClick: () => alert("Card A button clicked!"), children: "Card A Action" }) })
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "card-b", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-content", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: description }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Demonstrates Module Federation capabilities with clean, modern styling and seamless integration." }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-actions", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(se, { onClick: () => alert("Card B button clicked!"), children: "Card B Action" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(se, { variant: "secondary", onClick: () => alert("Secondary action triggered!"), children: "Learn More" })
     ] })
-  ] });
+  ] }) });
 };
 
-export { CardA as default, jsxRuntimeExports as j };
+export { CardB as default, jsxRuntimeExports as j };

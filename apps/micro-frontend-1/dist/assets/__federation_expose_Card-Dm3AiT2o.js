@@ -118,62 +118,18 @@ const se = ({
   );
 };
 
-const CardB = ({
-  title = "Card B Component",
-  description = "This is a federated component from micro-frontend-2"
+const CardA = ({
+  title = "Card A Component",
+  description = "This is a federated component from micro-frontend-1"
 }) => {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-b", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-header", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { children: title }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "badge", children: "Card B" })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-content", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: description }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "card-actions", children: /* @__PURE__ */ jsxRuntimeExports.jsx(se, { onClick: () => alert("Card B button clicked!"), children: "Card B Action" }) })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("style", { jsx: true, children: `
-        .card-b {
-          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-          color: white;
-          border-radius: 12px;
-          padding: 20px;
-          box-shadow: 0 8px 32px rgba(240, 147, 251, 0.3);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-        }
-        
-        .card-header h3 {
-          margin: 0;
-          font-size: 1.5rem;
-          font-weight: 600;
-        }
-        
-        .badge {
-          background: rgba(255, 255, 255, 0.2);
-          padding: 4px 12px;
-          border-radius: 20px;
-          font-size: 0.8rem;
-          font-weight: 500;
-        }
-        
-        .card-content p {
-          margin: 0 0 20px 0;
-          line-height: 1.6;
-          opacity: 0.9;
-        }
-        
-        .card-actions {
-          display: flex;
-          gap: 10px;
-        }
-      ` })
-  ] });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "card-a", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-content", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: description }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Demonstrates Module Federation capabilities with clean, modern styling and seamless integration." }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-actions", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(se, { onClick: () => alert("Card A button clicked!"), children: "Card A Action" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(se, { variant: "secondary", onClick: () => alert("Secondary action triggered!"), children: "Learn More" })
+    ] })
+  ] }) });
 };
 
-export { CardB as default, jsxRuntimeExports as j };
+export { CardA as default, jsxRuntimeExports as j };

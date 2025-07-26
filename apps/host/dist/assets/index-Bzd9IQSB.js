@@ -16270,7 +16270,7 @@ const ReactDOM = /*@__PURE__*/getDefaultExportFromCjs(clientExports);
 
 const remotesMap = {
 'cardA':{url:'http://localhost:4173/assets/remoteEntry.js',format:'esm',from:'vite'},
-  'cardB':{url:'http://localhost:4174/assets/remoteEntry.js',format:'esm',from:'vite'}
+  'promptManager':{url:'http://localhost:4175/assets/remoteEntry.js',format:'esm',from:'vite'}
 };
                 const currentImports = {};
                 const loadJS = async (url, fn) => {
@@ -16426,24 +16426,67 @@ const se = ({
 };
 
 const React$1 = await importShared('react');
-const {Suspense} = React$1;
-const CardA = React$1.lazy(() => __federation_method_getRemote("cardA" , "./Card").then(module=>__federation_method_wrapDefault(module, true)));
-const CardB = React$1.lazy(() => __federation_method_getRemote("cardB" , "./Card").then(module=>__federation_method_wrapDefault(module, true)));
+const {Suspense,useState,useEffect} = React$1;
+const CardA = React$1.lazy(() => __federation_method_getRemote("cardA" , "./Card").then(module=>__federation_method_wrapDefault(module, true)).catch(() => {
+  return Promise.resolve({
+    default: () => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
+      padding: "20px",
+      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      color: "white",
+      borderRadius: "12px",
+      textAlign: "center"
+    }, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { children: "Card A Component" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "This is a fallback component (remote not available)" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { style: { fontSize: "0.9rem", opacity: 0.8 }, children: "Start the micro-frontend-1 server to see the real component" })
+    ] })
+  });
+}));
+const PromptManagerCard = React$1.lazy(() => __federation_method_getRemote("promptManager" , "./PromptManagerCard").then(module=>__federation_method_wrapDefault(module, true)).catch(() => {
+  return Promise.resolve({
+    default: () => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
+      padding: "20px",
+      background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+      color: "white",
+      borderRadius: "12px",
+      textAlign: "center"
+    }, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { children: "Prompt Manager Component" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "This is a fallback component (remote not available)" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { style: { fontSize: "0.9rem", opacity: 0.8 }, children: "Start the prompt-manager server to see the real component" })
+    ] })
+  });
+}));
 function App() {
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1e3);
+    return () => clearTimeout(timer);
+  }, []);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "app", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "app-header", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { children: "Module Federation Host App" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "This app consumes federated components from card-a and card-b" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "This app consumes federated components from card-a and prompt-manager" })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "app-main", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "cards-container", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-section", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Card A (from micro-frontend-1)" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Suspense, { fallback: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { children: "Loading Card A..." }), children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardA, {}) })
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Suspense, { fallback: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
+            padding: "20px",
+            background: "#f0f0f0",
+            borderRadius: "12px",
+            textAlign: "center"
+          }, children: "Loading Card A..." }), children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardA, {}) })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-section", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Card B (from micro-frontend-2)" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Suspense, { fallback: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { children: "Loading Card B..." }), children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardB, {}) })
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-section prompt-manager", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Prompt Manager (from prompt-manager)" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Suspense, { fallback: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
+            padding: "20px",
+            background: "#f0f0f0",
+            borderRadius: "12px",
+            textAlign: "center"
+          }, children: "Loading Prompt Manager..." }), children: /* @__PURE__ */ jsxRuntimeExports.jsx(PromptManagerCard, {}) })
         ] })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "shared-ui-section", children: [
@@ -16451,6 +16494,28 @@ function App() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "button-group", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(se, { onClick: () => alert("Primary button clicked!"), children: "Primary Button" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(se, { variant: "secondary", onClick: () => alert("Secondary button clicked!"), children: "Secondary Button" })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "instructions-section", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Development Instructions" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { background: "#ffffff", padding: "20px", borderRadius: "8px", color: "#213547", border: "1px solid #e1e5e9" }, children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "To see the real federated components:" }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("ol", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
+              "Go to the root directory and run: ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "npm run dev" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
+              "This runs ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "turbo run dev" }),
+              " under the hood, starting all apps in parallel"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
+              "Or build and preview individually: ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "cd apps/micro-frontend-1 && npm run build && npm run preview" })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "The fallback components above will be replaced with real federated components when the remote servers are available." })
         ] })
       ] })
     ] })

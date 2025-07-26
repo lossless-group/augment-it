@@ -8,10 +8,14 @@ export default defineConfig({
     federation({
       name: 'host',
       remotes: {
-        cardA: 'http://localhost:4173/assets/remoteEntry.js',
-        cardB: 'http://localhost:4174/assets/remoteEntry.js',
+        promptManager: 'http://localhost:4175/assets/remoteEntry.js',
+        recordCollector: 'http://localhost:4176/assets/remoteEntry.js',
+        requestReviewer: 'http://localhost:4177/assets/remoteEntry.js',
       },
-      shared: ['react', 'react-dom'],
+      shared: ['react', 'react-dom', 'zustand', 'lucide-react'],
+      dev: {
+        enabled: true,
+      },
     }),
   ],
   build: {

@@ -13,15 +13,19 @@ const CardB: React.FC<CardBProps> = ({
 }) => {
   return (
     <div className="card-b">
-      <div className="card-header">
-        <h3>{title}</h3>
-        <span className="badge">Card B</span>
-      </div>
       <div className="card-content">
-        <p>{description}</p>
+        <p>
+          {description}
+        </p>
+        <p>
+          Demonstrates Module Federation capabilities with clean, modern styling and seamless integration.
+        </p>
         <div className="card-actions">
           <Button onClick={() => alert('Card B button clicked!')}>
             Card B Action
+          </Button>
+          <Button variant="secondary" onClick={() => alert('Secondary action triggered!')}>
+            Learn More
           </Button>
         </div>
       </div>

@@ -7,10 +7,14 @@ export default defineConfig({
     react(),
     federation({
       name: 'cardB',
+      filename: 'remoteEntry.js',
       exposes: {
         './Card': './src/components/CardB.tsx',
       },
       shared: ['react', 'react-dom'],
+      dev: {
+        enabled: true,
+      },
     }),
   ],
   build: {
