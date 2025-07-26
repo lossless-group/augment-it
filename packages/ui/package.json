@@ -10,6 +10,21 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./Button": {
+      "types": "./dist/Button.d.ts",
+      "import": "./dist/Button.mjs",
+      "require": "./dist/Button.js"
+    },
+    "./RecordCard": {
+      "types": "./dist/RecordCard.d.ts",
+      "import": "./dist/RecordCard.mjs",
+      "require": "./dist/RecordCard.js"
+    },
+    "./ErrorBoundary": {
+      "types": "./dist/ErrorBoundary.d.ts",
+      "import": "./dist/ErrorBoundary.mjs",
+      "require": "./dist/ErrorBoundary.js"
     }
   },
   "scripts": {
@@ -21,7 +36,8 @@
   },
   "dependencies": {
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "lucide-react": "^0.358.0"
   },
   "devDependencies": {
     "@types/react": "^19.1.2",
@@ -33,6 +49,8 @@
   },
   "peerDependencies": {
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "lucide-react": "^0.358.0",
+    "@module-federation-vite/utils": "workspace:*"
   }
 } 

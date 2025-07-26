@@ -12,17 +12,24 @@ export default defineConfig({
   ],
   build: {
     lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
+      entry: {
+        index: resolve(__dirname, 'src/index.ts'),
+        Button: resolve(__dirname, 'src/Button.tsx'),
+        RecordCard: resolve(__dirname, 'src/RecordCard.tsx'),
+        ErrorBoundary: resolve(__dirname, 'src/ErrorBoundary.tsx'),
+      },
       name: 'ModuleFederationViteUI',
       formats: ['es', 'cjs'],
-      fileName: (format) => `index.${format === 'es' ? 'mjs' : 'js'}`,
+      fileName: (format, entryName) => `${entryName}.${format === 'es' ? 'mjs' : 'js'}`,
     },
     rollupOptions: {
-      external: ['react', 'react-dom'],
+      external: ['react', 'react-dom', 'lucide-react', '@module-federation-vite/utils'],
       output: {
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
+          'lucide-react': 'lucide-react',
+          '@module-federation-vite/utils': 'ModuleFederationViteUtils',
         },
       },
     },

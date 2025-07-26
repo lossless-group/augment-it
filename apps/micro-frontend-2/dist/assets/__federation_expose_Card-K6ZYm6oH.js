@@ -70,53 +70,74 @@ var T = { exports: {} }, R = {};
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var I;
+var $;
 function re() {
-  if (I) return R;
-  I = 1;
-  var c = Symbol.for("react.transitional.element"), d = Symbol.for("react.fragment");
-  function i(f, o, s) {
-    var b = null;
-    if (s !== void 0 && (b = "" + s), o.key !== void 0 && (b = "" + o.key), "key" in o) {
+  if ($) return R;
+  $ = 1;
+  var l = Symbol.for("react.transitional.element"), _ = Symbol.for("react.fragment");
+  function f(m, a, s) {
+    var d = null;
+    if (s !== void 0 && (d = "" + s), a.key !== void 0 && (d = "" + a.key), "key" in a) {
       s = {};
-      for (var E in o)
-        E !== "key" && (s[E] = o[E]);
-    } else s = o;
-    return o = s.ref, {
-      $$typeof: c,
-      type: f,
-      key: b,
-      ref: o !== void 0 ? o : null,
+      for (var E in a)
+        E !== "key" && (s[E] = a[E]);
+    } else s = a;
+    return a = s.ref, {
+      $$typeof: l,
+      type: m,
+      key: d,
+      ref: a !== void 0 ? a : null,
       props: s
     };
   }
-  return R.Fragment = d, R.jsx = i, R.jsxs = i, R;
+  return R.Fragment = _, R.jsx = f, R.jsxs = f, R;
 }
 var D;
 function ne() {
   return D || (D = 1, T.exports = re() ), T.exports;
 }
 var ae = ne();
-const se = ({
-  children: c,
-  onClick: d,
-  variant: i = "primary",
-  disabled: f = false
+
+const g = ({
+  children: t,
+  onClick: r,
+  variant: e = "primary",
+  disabled: a = false
 }) => {
-  const o = "px-4 py-2 rounded font-medium transition-colors", s = {
+  const s = "px-4 py-2 rounded font-medium transition-colors", o = {
     primary: "bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300",
     secondary: "bg-gray-200 text-gray-800 hover:bg-gray-300 disabled:bg-gray-100"
   };
   return /* @__PURE__ */ ae.jsx(
     "button",
     {
-      className: `${o} ${s[i]}`,
-      onClick: d,
-      disabled: f,
-      children: c
+      className: `${s} ${o[e]}`,
+      onClick: r,
+      disabled: a,
+      children: t
     }
   );
 };
+
+const {useState:f} = await importShared('react');
+
+const t = await importShared('react');
+
+class d extends t.Component {
+  constructor(e) {
+    super(e), this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(e) {
+    return { hasError: true, error: e };
+  }
+  render() {
+    return this.state.hasError ? this.props.fallback || /* @__PURE__ */ ae.jsxs("div", { className: "p-4 border border-red-200 rounded-lg bg-red-50", children: [
+      /* @__PURE__ */ ae.jsx("h3", { className: "text-lg font-medium text-red-800 mb-2", children: "Component Error" }),
+      /* @__PURE__ */ ae.jsx("p", { className: "text-sm text-red-600", children: "A required UI component could not be loaded. Please ensure all shared components are properly installed." }),
+      this.state.error && /* @__PURE__ */ ae.jsx("pre", { className: "mt-2 text-xs text-red-500 whitespace-pre-wrap", children: this.state.error.message })
+    ] }) : this.props.children;
+  }
+}
 
 const CardB = ({
   title = "Card B Component",
@@ -126,8 +147,8 @@ const CardB = ({
     /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: description }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Demonstrates Module Federation capabilities with clean, modern styling and seamless integration." }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card-actions", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(se, { onClick: () => alert("Card B button clicked!"), children: "Card B Action" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(se, { variant: "secondary", onClick: () => alert("Secondary action triggered!"), children: "Learn More" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(g, { onClick: () => alert("Card B button clicked!"), children: "Card B Action" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(g, { variant: "secondary", onClick: () => alert("Secondary action triggered!"), children: "Learn More" })
     ] })
   ] }) });
 };

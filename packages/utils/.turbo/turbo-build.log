@@ -11,8 +11,8 @@ rendering chunks...
 computing gzip size...
 [2mdist/[22m[36mindex.mjs  [39m[1m[2m0.10 kB[22m[1m[22m[2m │ gzip: 0.09 kB[22m
 [2mdist/[22m[36mstore.mjs  [39m[1m[2m8.46 kB[22m[1m[22m[2m │ gzip: 2.34 kB[22m
-[vite:dts] Declaration files built in 1450ms.
+[vite:dts] Declaration files built in 1901ms.
 
 [2mdist/[22m[36mindex.js  [39m[1m[2m0.16 kB[22m[1m[22m[2m │ gzip: 0.15 kB[22m
 [2mdist/[22m[36mstore.js  [39m[1m[2m5.47 kB[22m[1m[22m[2m │ gzip: 1.89 kB[22m
-[32m✓ built in 1.58s[39m
+[32m✓ built in 2.04s[39m

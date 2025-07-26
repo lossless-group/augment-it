@@ -4,13 +4,68 @@
 
 [36mvite v6.3.5 [32mbuilding for production...[36m[39m
 transforming...
-[32m✓[39m 11 modules transformed.
+[32m✓[39m 13 modules transformed.
 rendering chunks...
 
 [vite:dts] Start generate declaration files...
-computing gzip size...
-[2mdist/[22m[36mindex.mjs  [39m[1m[2m9.43 kB[22m[1m[22m[2m │ gzip: 3.14 kB[22m
-[vite:dts] Declaration files built in 1334ms.
+[96msrc/RecordCard.tsx[0m:[93m2[0m:[93m10[0m - [91merror[0m[90m TS6133: [0m'MessageSquare' is declared but its value is never read.
 
-[2mdist/[22m[36mindex.js  [39m[1m[2m6.67 kB[22m[1m[22m[2m │ gzip: 2.79 kB[22m
-[32m✓ built in 1.49s[39m
+[7m2[0m import { MessageSquare, Trash2, Eye, Code, Calendar, Zap, Edit, ChevronDown, ChevronUp, ExternalLink, Mail, Building, MapPin, DollarSign, Clock } from 'lucide-react';
+[7m [0m [91m         ~~~~~~~~~~~~~[0m
+[96msrc/RecordCard.tsx[0m:[93m2[0m:[93m33[0m - [91merror[0m[90m TS6133: [0m'Eye' is declared but its value is never read.
+
+[7m2[0m import { MessageSquare, Trash2, Eye, Code, Calendar, Zap, Edit, ChevronDown, ChevronUp, ExternalLink, Mail, Building, MapPin, DollarSign, Clock } from 'lucide-react';
+[7m [0m [91m                                ~~~[0m
+[96msrc/RecordCard.tsx[0m:[93m2[0m:[93m38[0m - [91merror[0m[90m TS6133: [0m'Code' is declared but its value is never read.
+
+[7m2[0m import { MessageSquare, Trash2, Eye, Code, Calendar, Zap, Edit, ChevronDown, ChevronUp, ExternalLink, Mail, Building, MapPin, DollarSign, Clock } from 'lucide-react';
+computing gzip size...
+[7m [0m [91m                                     ~~~~[0m
+[96msrc/RecordCard.tsx[0m:[93m2[0m:[93m44[0m - [91merror[0m[90m TS6133: [0m'Calendar' is declared but its value is never read.
+
+[7m2[0m import { MessageSquare, Trash2, Eye, Code, Calendar, Zap, Edit, ChevronDown, ChevronUp, ExternalLink, Mail, Building, MapPin, DollarSign, Clock } from 'lucide-react';
+[7m [0m [91m                                           ~~~~~~~~[0m
+[96msrc/RecordCard.tsx[0m:[93m2[0m:[93m59[0m - [91merror[0m[90m TS6133: [0m'Edit' is declared but its value is never read.
+
+[7m2[0m import { MessageSquare, Trash2, Eye, Code, Calendar, Zap, Edit, ChevronDown, ChevronUp, ExternalLink, Mail, Building, MapPin, DollarSign, Clock } from 'lucide-react';
+[7m [0m [91m                                                          ~~~~[0m
+[96msrc/RecordCard.tsx[0m:[93m3[0m:[93m29[0m - [91merror[0m[90m TS2307: [0mCannot find module '@module-federation-vite/utils' or its corresponding type declarations.
+
+[7m3[0m import type { Record } from '@module-federation-vite/utils';
+[7m [0m [91m                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/RecordCard.tsx[0m:[93m18[0m:[93m3[0m - [91merror[0m[90m TS6133: [0m'onEdit' is declared but its value is never read.
+
+[7m18[0m   onEdit,
+[7m  [0m [91m  ~~~~~~[0m
+[96msrc/RecordCard.tsx[0m:[93m37[0m:[93m24[0m - [91merror[0m[90m TS7006: [0mParameter 'prev' implicitly has an 'any' type.
+
+[7m37[0m     setCollapsedFields(prev => ({
+[7m  [0m [91m                       ~~~~[0m
+[96msrc/RecordCard.tsx[0m:[93m106[0m:[93m12[0m - [91merror[0m[90m TS7053: [0mElement implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ technology: string; software: string; healthcare: string; finance: string; energy: string; default: string; }'.
+  No index signature with a parameter of type 'string' was found on type '{ technology: string; software: string; healthcare: string; finance: string; energy: string; default: string; }'.
+
+[7m106[0m     return colors[industry?.toLowerCase() || 'default'] || colors.default;
+[7m   [0m [91m           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/RecordCard.tsx[0m:[93m121[0m:[93m12[0m - [91merror[0m[90m TS7053: [0mElement implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ small: string; medium: string; large: string; default: string; }'.
+  No index signature with a parameter of type 'string' was found on type '{ small: string; medium: string; large: string; default: string; }'.
+
+[7m121[0m     return colors[size?.toLowerCase() || 'default'] || colors.default;
+[7m   [0m [91m           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/RecordCard.tsx[0m:[93m125[0m:[93m9[0m - [91merror[0m[90m TS6133: [0m'getPrimaryFields' is declared but its value is never read.
+
+[7m125[0m   const getPrimaryFields = () => {
+[7m   [0m [91m        ~~~~~~~~~~~~~~~~[0m
+
+[2mdist/[22m[36mindex.mjs                 [39m[1m[2m 0.22 kB[22m[1m[22m[2m │ gzip: 0.13 kB[22m
+[2mdist/[22m[36mButton.mjs                [39m[1m[2m 0.56 kB[22m[1m[22m[2m │ gzip: 0.36 kB[22m
+[2mdist/[22m[36mErrorBoundary.mjs         [39m[1m[2m 0.97 kB[22m[1m[22m[2m │ gzip: 0.51 kB[22m
+[2mdist/[22m[36mjsx-runtime-CH8yh2Yd.mjs  [39m[1m[2m 8.94 kB[22m[1m[22m[2m │ gzip: 2.89 kB[22m
+[2mdist/[22m[36mRecordCard.mjs            [39m[1m[2m10.53 kB[22m[1m[22m[2m │ gzip: 2.70 kB[22m
+[vite:dts] Declaration files built in 2188ms.
+
+[2mdist/[22m[36mindex.js                 [39m[1m[2m0.27 kB[22m[1m[22m[2m │ gzip: 0.18 kB[22m
+[2mdist/[22m[36mButton.js                [39m[1m[2m0.52 kB[22m[1m[22m[2m │ gzip: 0.36 kB[22m
+[2mdist/[22m[36mErrorBoundary.js         [39m[1m[2m0.92 kB[22m[1m[22m[2m │ gzip: 0.51 kB[22m
+[2mdist/[22m[36mjsx-runtime-CFFZ3DPA.js  [39m[1m[2m6.25 kB[22m[1m[22m[2m │ gzip: 2.57 kB[22m
+[2mdist/[22m[36mRecordCard.js            [39m[1m[2m8.47 kB[22m[1m[22m[2m │ gzip: 2.40 kB[22m
+[32m✓ built in 2.40s[39m
