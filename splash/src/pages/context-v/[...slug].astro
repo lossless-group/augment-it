@@ -1,0 +1,138 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '@layouts/BaseLayout.astro';
+import { formatDate, toDate } from '@lib/date';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('context-v');
+  return entries
+    .filter((e) => e.data.publish !== false)
+    .map((entry) => ({
+      params: { slug: entry.id },
+      props: { entry },
+    }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+
+const d = toDate(entry.data.date_modified ?? entry.data.date_updated ?? entry.data.date_created);
+const created = toDate(entry.data.date_created);
+const modified = toDate(entry.data.date_modified ?? entry.data.date_updated);
+
+const segments = entry.id.split('/');
+const group = segments.length > 1 ? segments[0] : 'general';
+
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout
+  title={entry.data.title ?? entry.id}
+  description={entry.data.lede ?? entry.data.summary ?? entry.data.description ?? entry.data.purpose ?? ''}
+  ogType="article"
+  publishedTime={created?.toISOString()}
+  modifiedTime={modified?.toISOString()}
+  tags={entry.data.tags}
+>
+  <main
+    class="entry"
+    data-pagefind-body
+    data-pagefind-meta={`title:${entry.data.title ?? entry.id}`}
+  >
+    <span data-pagefind-filter="kind:Context" hidden></span>
+    <span data-pagefind-meta="kind:Context" hidden></span>
+    <span data-pagefind-filter={`type:${group}`} hidden></span>
+    {entry.data.tags?.map((t) => <span data-pagefind-filter={`tag:${t}`} hidden></span>)}
+
+    <div class="container-narrow">
+      <p class="entry__back mono" data-pagefind-ignore>
+        <a href={`${base}context-v/`}>← Context</a>
+        <span class="entry__crumb">/ {group}</span>
+      </p>
+
+      <header class="entry__header">
+        <div class="entry__meta mono" data-pagefind-ignore>
+          {d && <time datetime={d.toISOString()}>{formatDate(d)}</time>}
+          {entry.data.semantic_version && (
+            <span class="ver-chip">{entry.data.semantic_version}</span>
+          )}
+          {entry.data.status && <span class="pill" data-status={entry.data.status}>{entry.data.status}</span>}
+        </div>
+        <h1>{entry.data.title ?? entry.id}</h1>
+        {entry.data.lede && <p class="entry__lede">{entry.data.lede}</p>}
+        {entry.data.applies_to && (
+          <p class="entry__applies">
+            <span class="entry__applies-label">Applies to</span>
+            {entry.data.applies_to}
+          </p>
+        )}
+      </header>
+
+      <article class="prose entry__body">
+        <Content />
+      </article>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .entry { padding: var(--space-10) 0 var(--space-16); }
+  .entry__back {
+    font-size: 0.85rem;
+    margin-bottom: var(--space-6);
+    display: flex;
+    gap: var(--space-2);
+    align-items: baseline;
+  }
+  .entry__back a { color: var(--color-text-dim); }
+  .entry__back a:hover { color: var(--color-accent); }
+  .entry__crumb { color: var(--color-text-faint); }
+
+  .entry__header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-bottom: var(--space-10);
+    padding-bottom: var(--space-8);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .entry__meta {
+    display: flex;
+    gap: var(--space-3);
+    align-items: baseline;
+    font-size: 0.82rem;
+    color: var(--color-text-dim);
+  }
+  .entry__header h1 {
+    font-size: clamp(2rem, 4.4vw, 2.8rem);
+    font-weight: 700;
+    color: var(--color-text);
+    letter-spacing: -0.02em;
+  }
+  .entry__lede {
+    font-size: 1.18rem;
+    line-height: 1.55;
+    color: var(--color-text-soft);
+    font-family: var(--font__sans);
+    font-style: italic;
+    max-width: 60ch;
+  }
+  .entry__applies {
+    font-family: var(--font__mono);
+    font-size: 0.84rem;
+    color: var(--color-text-dim);
+    display: flex;
+    gap: var(--space-2);
+    align-items: baseline;
+  }
+  .entry__applies-label {
+    color: var(--color-accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 0.74rem;
+  }
+
+  .entry__body {
+    max-width: 68ch;
+  }
+</style>

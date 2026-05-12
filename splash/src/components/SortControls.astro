@@ -1,0 +1,245 @@
+---
+/**
+ * SortControls — chip-group + direction toggle for client-side list sorting.
+ *
+ * Pattern:
+ *   - Each <ul data-sort-target> on the page is a sortable list.
+ *   - Each <li> carries data-sort-{key} attributes (ISO date strings or
+ *     lowercased text — lexicographic sort works for both).
+ *   - This component reorders matching lists on-click and persists the
+ *     choice to localStorage under `name`.
+ *
+ * The server pre-sorts the list to match the default option so the static
+ * HTML reads correctly even before JS hydrates.
+ */
+
+interface SortOption {
+  key: string;
+  label: string;
+}
+
+interface Props {
+  name: string;
+  options: SortOption[];
+  defaultKey?: string;
+  defaultDirection?: 'asc' | 'desc';
+}
+
+const {
+  name,
+  options,
+  defaultKey = options[0]?.key ?? '',
+  defaultDirection = 'desc',
+} = Astro.props;
+---
+
+<div
+  class="sort-controls"
+  data-sort-name={name}
+  data-default-key={defaultKey}
+  data-default-direction={defaultDirection}
+>
+  <span class="sort-controls__label">Sort by</span>
+
+  <div class="sort-controls__keys" role="radiogroup" aria-label="Sort key">
+    {options.map((o) => (
+      <button
+        type="button"
+        class="sort-controls__chip"
+        data-sort-key={o.key}
+        role="radio"
+        aria-checked={o.key === defaultKey ? 'true' : 'false'}
+      >
+        {o.label}
+      </button>
+    ))}
+  </div>
+
+  <button
+    type="button"
+    class="sort-controls__direction mono"
+    data-sort-direction
+    aria-label="Toggle direction"
+    title="Toggle direction"
+  >
+    <span class="sort-controls__arrow" data-arrow></span>
+    <span class="sort-controls__direction-label" data-direction-label>Newest first</span>
+  </button>
+</div>
+
+<script define:vars={{ name, defaultKey, defaultDirection }}>
+  (() => {
+    const root = document.querySelector(`.sort-controls[data-sort-name="${name}"]`);
+    if (!root) return;
+
+    const STORAGE_KEY = `augment-it-splash-sort:${name}`;
+    const arrow = root.querySelector('[data-arrow]');
+    const dirLabel = root.querySelector('[data-direction-label]');
+    const chips = Array.from(root.querySelectorAll('.sort-controls__chip'));
+    const dirBtn = root.querySelector('[data-sort-direction]');
+
+    const stored = (() => {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); }
+      catch { return null; }
+    })();
+    let key = stored?.key ?? defaultKey;
+    let direction = stored?.direction ?? defaultDirection;
+
+    function paint() {
+      chips.forEach((c) => {
+        c.setAttribute('aria-checked', c.dataset.sortKey === key ? 'true' : 'false');
+      });
+      arrow.textContent = direction === 'desc' ? '↓' : '↑';
+      const isText = key === 'title';
+      if (isText) {
+        dirLabel.textContent = direction === 'desc' ? 'Z → A' : 'A → Z';
+      } else {
+        dirLabel.textContent = direction === 'desc' ? 'Newest first' : 'Oldest first';
+      }
+    }
+
+    function sortAll() {
+      const lists = document.querySelectorAll(`[data-sort-target="${name}"]`);
+      lists.forEach((list) => {
+        const items = Array.from(list.children);
+        items.sort((a, b) => {
+          const av = a.getAttribute(`data-sort-${key}`) || '';
+          const bv = b.getAttribute(`data-sort-${key}`) || '';
+          if (!av && !bv) return 0;
+          if (!av) return 1;
+          if (!bv) return -1;
+          const cmp = av.localeCompare(bv);
+          return direction === 'desc' ? -cmp : cmp;
+        });
+        items.forEach((item) => list.appendChild(item));
+      });
+    }
+
+    function persist() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ key, direction })); }
+      catch {}
+    }
+
+    chips.forEach((c) => {
+      c.addEventListener('click', () => {
+        if (key === c.dataset.sortKey) return;
+        key = c.dataset.sortKey;
+        paint();
+        sortAll();
+        persist();
+      });
+    });
+
+    dirBtn.addEventListener('click', () => {
+      direction = direction === 'desc' ? 'asc' : 'desc';
+      paint();
+      sortAll();
+      persist();
+    });
+
+    paint();
+    if (key !== defaultKey || direction !== defaultDirection) sortAll();
+  })();
+</script>
+
+<style>
+  .sort-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3) var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-6);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-elevated);
+    font-family: var(--font__mono);
+  }
+
+  .sort-controls__label {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+  }
+
+  .sort-controls__keys {
+    display: inline-flex;
+    gap: var(--space-1);
+    padding: 2px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-soft);
+  }
+
+  .sort-controls__chip {
+    border: 0;
+    background: transparent;
+    color: var(--color-text-dim);
+    font-family: var(--font__mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: color var(--transition-fast), background var(--transition-fast);
+  }
+  .sort-controls__chip:hover { color: var(--color-text); }
+  .sort-controls__chip[aria-checked='true'] {
+    background: var(--color-accent);
+    color: var(--color-bg);
+  }
+  .sort-controls__chip:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .sort-controls__direction {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 4px 10px 4px 6px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg);
+    color: var(--color-text-soft);
+    font-family: var(--font__mono);
+    font-size: 0.76rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    margin-left: auto;
+    transition: border-color var(--transition-fast), color var(--transition-fast);
+  }
+  .sort-controls__direction:hover {
+    color: var(--color-text);
+    border-color: var(--color-border-strong);
+  }
+  .sort-controls__direction:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .sort-controls__arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-sm);
+    background: color-mix(in oklab, var(--color-accent) 12%, transparent);
+    color: var(--color-accent);
+    font-size: 0.9rem;
+    line-height: 1;
+  }
+
+  @media (max-width: 540px) {
+    .sort-controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .sort-controls__direction {
+      margin-left: 0;
+      justify-content: flex-start;
+    }
+  }
+</style>

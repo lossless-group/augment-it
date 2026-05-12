@@ -1,0 +1,494 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   theme.css — augment-it/splash
+   Two-tier token system + three-mode contract per the Astro Knots convention.
+
+   Tier 1: NAMED tokens  (--color__magenta, --font__display)
+           Mode-invariant raw values.
+
+   Tier 2: SEMANTIC tokens (--color-bg, --color-accent)
+           Reference Tier 1; rebound per <html data-mode="...">.
+
+   Modes (vibrant is the default for augment-it — the tool's job is to
+   *enrich* data, vibrant matches that posture):
+   - vibrant : default; saturated magenta-iris on near-black, demo-shop feel.
+   - dark    : "operator" — same near-black ground, muted chrome.
+   - light   : "ledger" — paper-pale, terminal-on-paper for reading at length.
+
+   The brand spine — magenta + violet + iris — comes straight from the
+   gradient in the augment-it wordmark SVG. Distinct from memopop (cyan +
+   plum), lfm (violet-ink + sienna + moss), and content-farm/splash.
+   ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ─── Tier 1: NAMED tokens — raw values, mode-invariant ──────────────── */
+
+  /* Brand spine — pulled from the wordmark gradient.
+     B62DC2 → 794AC3 → CB5BDE → 7D32C6 → C157F2 → 6A16AB */
+  --color__magenta:       #cb5bde;
+  --color__magenta-deep:  #b62dc2;
+  --color__magenta-soft:  #efb6f7;
+  --color__violet:        #794ac3;
+  --color__violet-deep:   #6a16ab;
+  --color__violet-soft:   #b9a0ee;
+  --color__iris:          #c157f2;
+  --color__iris-deep:     #7d32c6;
+  --color__iris-soft:     #e0b3ff;
+
+  /* Signal hues — adjacents that aren't on the wordmark spine */
+  --color__cyan:          #4ad7ff;  /* "live" / status-thread color */
+  --color__amber:         #ffb547;  /* "wip" / warm warning */
+  --color__lime:          #9ce86b;
+
+  /* Editorial neutrals — the ink-pad axis */
+  --color__ink-deep:      #0a0712;
+  --color__ink:           #14101e;
+  --color__ink-soft:      #1f1830;
+  --color__charcoal:      #251d3a;
+  --color__slate-700:     #3a3052;
+  --color__slate-500:     #6b5f86;
+  --color__slate-400:     #8a7da3;
+  --color__slate-300:     #aaa0c0;
+  --color__slate-200:     #cdc4de;
+  --color__slate-100:     #e7e2ef;
+  --color__paper:         #f7f4fa;
+  --color__paper-soft:    #efe9f4;
+  --color__paper-deep:    #e2d8eb;
+
+  /* Typography — Tier 1.
+     Display: JetBrains Mono (mono-forward; this is a data tool).
+     Sans:    Space Grotesk  (geometric, slightly technical).
+     Mono:    JetBrains Mono. */
+  --font__display: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font__sans:    'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font__mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Spacing — invariant */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* Radii — squarer than memopop; the "module manifest" feel wants edges.
+     Pills stay round. */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 10px;
+  --radius-pill: 999px;
+
+  --transition-fast: 160ms ease;
+  --transition-mid:  320ms ease;
+
+  /* Module-grid pitch — used by the dot-grid background ornament. */
+  --grid-pitch: 32px;
+
+  color-scheme: dark;
+}
+
+/* ─── Tier 2: SEMANTIC — VIBRANT MODE (default; "demo shop") ─────────── */
+:root,
+:root[data-mode='vibrant'] {
+  --color-bg:           var(--color__ink-deep);
+  --color-bg-soft:      var(--color__ink);
+  --color-bg-elevated:  var(--color__charcoal);
+  --color-bg-card:      rgba(31, 24, 48, 0.78);
+  --color-bg-code:      #060410;
+
+  --color-text:         #f6eefb;
+  --color-text-soft:    var(--color__slate-200);
+  --color-text-dim:     var(--color__slate-400);
+  --color-text-dimmer:  #786994;
+  --color-text-faint:   #58496f;
+
+  --color-accent:       var(--color__magenta);
+  --color-accent-soft:  var(--color__magenta-soft);
+  --color-accent-warm:  var(--color__iris);
+  --color-accent-hot:   var(--color__magenta-deep);
+
+  --color-thread:       var(--color__cyan);
+  --color-thread-soft:  #a8ecff;
+
+  --color-border:       rgba(203, 91, 222, 0.16);
+  --color-border-strong: rgba(203, 91, 222, 0.36);
+  --color-border-accent: rgba(193, 87, 242, 0.62);
+
+  --shadow-glow:     0 0 80px rgba(193, 87, 242, 0.22);
+  --shadow-card:     0 18px 40px -22px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(203, 91, 222, 0.12);
+  --shadow-elevated: 0 30px 70px -28px rgba(122, 50, 198, 0.5);
+
+  --gradient-thread:
+    linear-gradient(110deg,
+      var(--color__magenta-deep) 0%,
+      var(--color__iris) 50%,
+      var(--color__violet-deep) 100%);
+
+  --gradient-mesh-1: radial-gradient(ellipse at 10% 8%,  color-mix(in oklab, var(--color__magenta) 22%, transparent), transparent 55%);
+  --gradient-mesh-2: radial-gradient(ellipse at 90% 16%, color-mix(in oklab, var(--color__iris) 22%, transparent), transparent 60%);
+  --gradient-mesh-3: radial-gradient(ellipse at 50% 100%, color-mix(in oklab, var(--color__violet-deep) 26%, transparent), transparent 60%);
+
+  color-scheme: dark;
+}
+
+/* ─── Tier 2: SEMANTIC — DARK MODE ("operator") ───────────────────────── */
+:root[data-mode='dark'] {
+  --color-bg:           var(--color__ink);
+  --color-bg-soft:      var(--color__ink-soft);
+  --color-bg-elevated:  var(--color__charcoal);
+  --color-bg-card:      rgba(31, 24, 48, 0.72);
+  --color-bg-code:      var(--color__ink-deep);
+
+  --color-text:         #ece4f5;
+  --color-text-soft:    var(--color__slate-300);
+  --color-text-dim:     var(--color__slate-500);
+  --color-text-dimmer:  #5d5278;
+  --color-text-faint:   #463c5c;
+
+  --color-accent:       var(--color__violet-soft);
+  --color-accent-soft:  #d6c8ff;
+  --color-accent-warm:  var(--color__magenta-soft);
+  --color-accent-hot:   var(--color__iris);
+
+  --color-thread:       var(--color__lime);
+  --color-thread-soft:  #c7f4a8;
+
+  --color-border:       rgba(236, 228, 245, 0.10);
+  --color-border-strong: rgba(236, 228, 245, 0.22);
+  --color-border-accent: rgba(185, 160, 238, 0.5);
+
+  --shadow-glow:     0 0 60px rgba(121, 74, 195, 0.22);
+  --shadow-card:     0 18px 36px -22px rgba(0, 0, 0, 0.65);
+  --shadow-elevated: 0 24px 60px -28px rgba(0, 0, 0, 0.75);
+
+  --gradient-thread:
+    linear-gradient(110deg,
+      var(--color__violet-soft) 0%,
+      var(--color__magenta-soft) 55%,
+      var(--color__iris-soft) 100%);
+
+  --gradient-mesh-1: radial-gradient(ellipse at 12% 6%,  color-mix(in oklab, var(--color__violet) 18%, transparent), transparent 55%);
+  --gradient-mesh-2: radial-gradient(ellipse at 88% 14%, color-mix(in oklab, var(--color__magenta) 12%, transparent), transparent 60%);
+  --gradient-mesh-3: radial-gradient(ellipse at 50% 100%, color-mix(in oklab, var(--color__iris) 10%, transparent), transparent 60%);
+
+  color-scheme: dark;
+}
+
+/* ─── Tier 2: SEMANTIC — LIGHT MODE ("ledger") ────────────────────────── */
+:root[data-mode='light'] {
+  --color-bg:           var(--color__paper);
+  --color-bg-soft:      var(--color__paper-soft);
+  --color-bg-elevated:  #ffffff;
+  --color-bg-card:      rgba(255, 255, 255, 0.92);
+  --color-bg-code:      var(--color__paper-deep);
+
+  --color-text:         var(--color__ink);
+  --color-text-soft:    var(--color__slate-700);
+  --color-text-dim:     var(--color__slate-500);
+  --color-text-dimmer:  #7c6f95;
+  --color-text-faint:   var(--color__slate-400);
+
+  --color-accent:       var(--color__violet-deep);
+  --color-accent-soft:  var(--color__iris-deep);
+  --color-accent-warm:  var(--color__magenta-deep);
+  --color-accent-hot:   var(--color__magenta);
+
+  --color-thread:       #2a8f4a;
+  --color-thread-soft:  #5fbf7b;
+
+  --color-border:       rgba(20, 16, 30, 0.10);
+  --color-border-strong: rgba(20, 16, 30, 0.22);
+  --color-border-accent: rgba(106, 22, 171, 0.4);
+
+  --shadow-glow:     0 0 40px rgba(106, 22, 171, 0.08);
+  --shadow-card:     0 1px 0 rgba(20, 16, 30, 0.06), 0 12px 24px -16px rgba(20, 16, 30, 0.18);
+  --shadow-elevated: 0 1px 0 rgba(20, 16, 30, 0.08), 0 24px 48px -22px rgba(20, 16, 30, 0.24);
+
+  --gradient-thread:
+    linear-gradient(110deg,
+      var(--color__violet-deep) 0%,
+      var(--color__magenta-deep) 55%,
+      var(--color__iris-deep) 100%);
+
+  --gradient-mesh-1: radial-gradient(ellipse at 12% 6%,  color-mix(in oklab, var(--color__magenta) 5%, transparent), transparent 55%);
+  --gradient-mesh-2: radial-gradient(ellipse at 88% 14%, color-mix(in oklab, var(--color__violet) 5%, transparent), transparent 60%);
+  --gradient-mesh-3: radial-gradient(ellipse at 50% 100%, color-mix(in oklab, var(--color__iris) 4%, transparent), transparent 60%);
+
+  color-scheme: light;
+}
+
+/* ─── Reset & base ────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; padding: 0; }
+
+html {
+  scroll-behavior: smooth;
+  background: var(--color-bg);
+  transition: background var(--transition-mid);
+}
+
+body {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font__sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  position: relative;
+  overflow-x: hidden;
+  transition: background var(--transition-mid), color var(--transition-mid);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font__sans);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.018em;
+  color: var(--color-text);
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+a:hover { text-decoration: underline; text-decoration-thickness: 1px; }
+a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+ul, ol { list-style: none; }
+img { max-width: 100%; height: auto; }
+
+::selection {
+  background: color-mix(in oklab, var(--color-accent) 35%, transparent);
+  color: var(--color-text);
+}
+
+/* ─── Background ornament — radial mesh + module-grid dots ─────────────
+   The grid suggests a module-federation manifest: many discrete cells
+   composing one surface. Pitch is set via --grid-pitch. */
+.bg-mesh {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    var(--gradient-mesh-1),
+    var(--gradient-mesh-2),
+    var(--gradient-mesh-3);
+  transition: background var(--transition-mid);
+}
+
+.bg-mesh::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(
+      circle at center,
+      color-mix(in oklab, var(--color-accent) 28%, transparent) 1px,
+      transparent 1.2px
+    );
+  background-size: var(--grid-pitch) var(--grid-pitch);
+  opacity: 0.35;
+  mask-image: radial-gradient(ellipse at 50% 30%, #000 0%, #000 60%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 30%, #000 0%, #000 60%, transparent 100%);
+}
+:root[data-mode='light'] .bg-mesh::before {
+  opacity: 0.18;
+}
+
+body > :not(.bg-mesh) {
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── Utility primitives ─────────────────────────────────────────────── */
+
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.container-narrow {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.mono    { font-family: var(--font__mono); }
+.display { font-family: var(--font__display); }
+
+.eyebrow {
+  font-family: var(--font__mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+/* Section folio — keeps lfm's manuscript convention but stamped with a
+   module-marker prefix (the data-num is shown as a code chip). */
+.folio {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  font-family: var(--font__mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+.folio::before {
+  content: attr(data-num);
+  font-weight: 600;
+  color: var(--color-accent);
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  padding: 1px 6px;
+  border: 1px solid var(--color-border-accent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--color-accent) 8%, transparent);
+}
+
+.gradient-text {
+  background: var(--gradient-thread);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font__mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-soft);
+  background: color-mix(in oklab, var(--color-text) 4%, transparent);
+}
+.pill[data-status='Active'],
+.pill[data-status='Stable'],
+.pill[data-status='live'] {
+  color: var(--color-thread);
+  border-color: color-mix(in oklab, var(--color-thread) 50%, transparent);
+  background: color-mix(in oklab, var(--color-thread) 12%, transparent);
+}
+.pill[data-status='Beta'] {
+  color: var(--color-accent);
+  border-color: color-mix(in oklab, var(--color-accent) 50%, transparent);
+  background: color-mix(in oklab, var(--color-accent) 12%, transparent);
+}
+.pill[data-status='Alpha'],
+.pill[data-status='Experiment'],
+.pill[data-status='planned'],
+.pill[data-status='Draft'] {
+  color: var(--color-accent-warm);
+  border-color: color-mix(in oklab, var(--color-accent-warm) 50%, transparent);
+  background: color-mix(in oklab, var(--color-accent-warm) 12%, transparent);
+}
+
+.from-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font__mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-thread);
+  background: color-mix(in oklab, var(--color-thread) 12%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-thread) 35%, transparent);
+}
+.from-tag::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-thread);
+}
+
+.chip {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font__mono);
+  font-size: 0.82em;
+  background: var(--color-bg-code);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-soft);
+  white-space: nowrap;
+}
+
+/* Version chip — small mono badge for semver / manifest version strings.
+   Distinct from .chip — used as a tiny corner-marker. */
+.ver-chip {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font__mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  color: var(--color-accent);
+  border: 1px solid color-mix(in oklab, var(--color-accent) 36%, transparent);
+  background: color-mix(in oklab, var(--color-accent) 8%, transparent);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  font-family: var(--font__sans);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+}
+.btn:hover {
+  border-color: var(--color-accent);
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg);
+}
+.btn-primary:hover {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}

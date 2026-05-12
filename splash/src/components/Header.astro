@@ -1,0 +1,105 @@
+---
+import ModeToggle from './ModeToggle.astro';
+import SearchBox from './SearchBox.astro';
+const base = import.meta.env.BASE_URL;
+---
+
+<header class="site-header">
+  <div class="container site-header__inner">
+    <a class="site-header__brand" href={base}>
+      <span class="brand__mark" aria-hidden="true">⌬</span>
+      <span class="brand__name">Augment It</span>
+      <span class="brand__short" aria-hidden="true">A·IT</span>
+    </a>
+    <nav class="site-header__nav" aria-label="Primary">
+      <a href={`${base}#apps`}>Apps</a>
+      <a href={`${base}changelog/`}>Changelog</a>
+      <a href={`${base}context-v/`}>Context</a>
+      <a href={`${base}search/`}>Search</a>
+      <a
+        href="https://github.com/lossless-group/augment-it"
+        target="_blank"
+        rel="noopener"
+      >
+        GitHub
+      </a>
+    </nav>
+    <div class="site-header__actions">
+      <SearchBox compact />
+      <ModeToggle />
+    </div>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in oklab, var(--color-bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    height: 64px;
+  }
+
+  .site-header__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .site-header__brand {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    color: var(--color-text);
+    font-family: var(--font__sans);
+    font-weight: 700;
+    font-size: 1.02rem;
+    letter-spacing: -0.005em;
+  }
+  .site-header__brand:hover { text-decoration: none; }
+
+  .brand__mark {
+    color: var(--color-accent);
+    font-size: 1.4rem;
+    line-height: 1;
+  }
+  .brand__short {
+    display: none;
+    font-family: var(--font__mono);
+    font-size: 0.78rem;
+    color: var(--color-text-dim);
+    letter-spacing: 0.12em;
+  }
+
+  @media (max-width: 720px) {
+    .brand__name { display: none; }
+    .brand__short { display: inline; }
+  }
+
+  .site-header__nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    margin-left: auto;
+    font-size: 0.9rem;
+  }
+  .site-header__nav a {
+    color: var(--color-text-soft);
+  }
+  .site-header__nav a:hover {
+    color: var(--color-accent);
+  }
+
+  @media (max-width: 860px) {
+    .site-header__nav { gap: var(--space-3); font-size: 0.84rem; }
+    .site-header__nav a:nth-child(n+4) { display: none; }
+  }
+</style>

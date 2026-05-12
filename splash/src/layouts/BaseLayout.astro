@@ -1,0 +1,159 @@
+---
+import MetaTags from '@components/MetaTags.astro';
+import Header from '@components/Header.astro';
+import { STATIC_SEO } from '@lib/seo';
+import '@styles/theme.css';
+import '@styles/prose.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  ogImageWidth?: number;
+  ogImageHeight?: number;
+  ogImageType?: string;
+  ogImageAlt?: string;
+  ogType?: string;
+  noindex?: boolean;
+  canonical?: string;
+  publishedTime?: string;
+  modifiedTime?: string;
+  author?: string;
+  tags?: string[];
+  hideHeader?: boolean;
+}
+
+const {
+  title,
+  description = STATIC_SEO.root.description,
+  ogImage,
+  ogImageWidth,
+  ogImageHeight,
+  ogImageType,
+  ogImageAlt,
+  ogType,
+  noindex,
+  canonical,
+  publishedTime,
+  modifiedTime,
+  author,
+  tags,
+  hideHeader = false,
+} = Astro.props;
+
+const base = import.meta.env.BASE_URL;
+---
+
+<!DOCTYPE html>
+<html lang="en" data-mode="vibrant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <MetaTags
+      title={title}
+      description={description}
+      ogImage={ogImage}
+      ogImageWidth={ogImageWidth}
+      ogImageHeight={ogImageHeight}
+      ogImageType={ogImageType}
+      ogImageAlt={ogImageAlt}
+      ogType={ogType}
+      noindex={noindex}
+      canonical={canonical}
+      publishedTime={publishedTime}
+      modifiedTime={modifiedTime}
+      author={author}
+      tags={tags}
+    />
+    <link rel="icon" type="image/svg+xml" href={`${base}appIcon__Augment-It.svg`} />
+    <link rel="sitemap" type="application/xml" href={`${base}sitemap-index.xml`} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script is:inline>
+      (() => {
+        try {
+          const stored = localStorage.getItem('augment-it-splash-mode');
+          if (stored === 'light' || stored === 'dark' || stored === 'vibrant') {
+            document.documentElement.setAttribute('data-mode', stored);
+          }
+        } catch {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="bg-mesh" aria-hidden="true"></div>
+    {!hideHeader && <Header />}
+    <slot />
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <div class="site-footer__col">
+          <p class="eyebrow">Repo</p>
+          <p>
+            <a
+              href="https://github.com/lossless-group/augment-it"
+              target="_blank"
+              rel="noopener"
+            >
+              github
+            </a>
+          </p>
+        </div>
+        <div class="site-footer__col">
+          <p class="eyebrow">Read</p>
+          <p>
+            <a href={`${base}changelog/`}>changelog</a>
+            ·
+            <a href={`${base}context-v/`}>context</a>
+          </p>
+        </div>
+        <div class="site-footer__col">
+          <p class="eyebrow">Org</p>
+          <p>
+            <a href="https://lossless.group" target="_blank" rel="noopener">lossless.group</a>
+          </p>
+        </div>
+        <div class="site-footer__legal">
+          <p class="mono">MIT licensed. Built with the Astro Knots conventions.</p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .site-footer {
+    margin-top: var(--space-24);
+    border-top: 1px solid var(--color-border);
+    padding: var(--space-12) 0 var(--space-16);
+  }
+  .site-footer__inner {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr) auto;
+    gap: var(--space-8);
+    align-items: end;
+  }
+  .site-footer__col p:not(.eyebrow) {
+    margin-top: var(--space-2);
+    color: var(--color-text-soft);
+    font-size: 0.92rem;
+  }
+  .site-footer__legal {
+    color: var(--color-text-dim);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+  }
+  @media (max-width: 800px) {
+    .site-footer__inner {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .site-footer__legal {
+      grid-column: 1 / -1;
+      border-top: 1px solid var(--color-border);
+      padding-top: var(--space-4);
+    }
+  }
+</style>

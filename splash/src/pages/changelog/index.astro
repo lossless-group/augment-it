@@ -1,0 +1,204 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@layouts/BaseLayout.astro';
+import SortControls from '@components/SortControls.astro';
+import { STATIC_SEO } from '@lib/seo';
+import { formatDate, toDate } from '@lib/date';
+
+const entries = (await getCollection('changelog'))
+  .filter((e) => e.data.publish !== false)
+  .sort((a, b) => {
+    const da = toDate(a.data.date_modified ?? a.data.date_first_published ?? a.data.date_created ?? a.data.date);
+    const db = toDate(b.data.date_modified ?? b.data.date_first_published ?? b.data.date_created ?? b.data.date);
+    const ta = da ? da.getTime() : 0;
+    const tb = db ? db.getTime() : 0;
+    if (tb !== ta) return tb - ta;
+    return a.id < b.id ? 1 : -1;
+  });
+
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout
+  title={STATIC_SEO.changelog.title}
+  description={STATIC_SEO.changelog.description}
+>
+  <main class="page">
+    <div class="container-narrow">
+      <header class="page__header">
+        <p class="folio" data-num="§">Changelog</p>
+        <h1>What shipped, when, and why</h1>
+        <p class="page__lede">
+          Entry-by-entry notes for <code>augment-it</code>, following the
+          Lossless changelog conventions.
+        </p>
+      </header>
+
+      {entries.length > 0 && (
+        <SortControls
+          name="changelog"
+          defaultKey="modified"
+          defaultDirection="desc"
+          options={[
+            { key: 'modified',  label: 'Modified' },
+            { key: 'created',   label: 'Created' },
+            { key: 'published', label: 'Published' },
+            { key: 'title',     label: 'Title' },
+          ]}
+        />
+      )}
+
+      {
+        entries.length === 0 ? (
+          <p class="page__empty">No changelog entries yet.</p>
+        ) : (
+          <ul class="entry-list" data-pagefind-ignore="all" data-sort-target="changelog">
+            {entries.map((entry) => {
+              const created = toDate(entry.data.date_created ?? entry.data.date);
+              const modified = toDate(entry.data.date_modified);
+              const published = toDate(entry.data.date_first_published);
+              const d = modified ?? published ?? created;
+              const title = (entry.data.title ?? entry.id).toString().toLowerCase();
+              return (
+                <li
+                  class="entry-list__item"
+                  data-sort-modified={modified ? modified.toISOString() : ''}
+                  data-sort-created={created ? created.toISOString() : ''}
+                  data-sort-published={published ? published.toISOString() : ''}
+                  data-sort-title={title}
+                >
+                  <a href={`${base}changelog/${entry.id}/`}>
+                    <div class="entry-list__meta mono">
+                      {d && <time datetime={d.toISOString()}>{formatDate(d)}</time>}
+                      {entry.data.at_semantic_version && (
+                        <span class="ver-chip">{entry.data.at_semantic_version}</span>
+                      )}
+                      {entry.data.status && (
+                        <span class="pill" data-status={entry.data.status}>{entry.data.status}</span>
+                      )}
+                    </div>
+                    <h2 class="entry-list__title">{entry.data.title ?? entry.id}</h2>
+                    {entry.data.lede && <p class="entry-list__lede">{entry.data.lede}</p>}
+                    {entry.data.tags && entry.data.tags.length > 0 && (
+                      <ul class="entry-list__tags" aria-label="Tags">
+                        {entry.data.tags.map((t) => (
+                          <li class="entry-list__tag">{t}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        )
+      }
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .page { padding: var(--space-12) 0 var(--space-16); }
+
+  .page__header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-bottom: var(--space-12);
+  }
+  .page__header h1 {
+    font-size: clamp(2rem, 4.6vw, 2.8rem);
+    color: var(--color-text);
+    font-weight: 700;
+    letter-spacing: -0.018em;
+  }
+  .page__lede {
+    color: var(--color-text-soft);
+    font-size: 1.06rem;
+    line-height: 1.6;
+    max-width: 60ch;
+  }
+  .page__lede code {
+    font-family: var(--font__mono);
+    font-size: 0.86em;
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-code);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+  }
+
+  .page__empty {
+    color: var(--color-text-dim);
+    font-style: italic;
+    padding: var(--space-12) 0;
+    text-align: center;
+  }
+
+  .entry-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .entry-list__item a {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-6) 0;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+    transition: padding-left var(--transition-fast);
+  }
+  .entry-list__item a:hover {
+    text-decoration: none;
+    padding-left: var(--space-3);
+  }
+  .entry-list__item a:hover .entry-list__title {
+    color: var(--color-accent);
+  }
+
+  .entry-list__meta {
+    display: flex;
+    gap: var(--space-3);
+    align-items: baseline;
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+  }
+
+  .entry-list__title {
+    font-size: 1.4rem;
+    font-family: var(--font__sans);
+    font-weight: 700;
+    margin: 0;
+    color: var(--color-text);
+    transition: color var(--transition-fast);
+    letter-spacing: -0.012em;
+  }
+
+  .entry-list__lede {
+    color: var(--color-text-soft);
+    font-size: 0.98rem;
+    line-height: 1.55;
+    max-width: 70ch;
+  }
+
+  .entry-list__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    list-style: none;
+    padding: 0;
+  }
+  .entry-list__tag {
+    font-family: var(--font__mono);
+    font-size: 0.7rem;
+    color: var(--color-text-dim);
+    padding: 2px 7px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+</style>

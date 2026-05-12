@@ -1,0 +1,236 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@layouts/BaseLayout.astro';
+import SortControls from '@components/SortControls.astro';
+import { STATIC_SEO } from '@lib/seo';
+import { formatDate, toDate } from '@lib/date';
+
+const entries = (await getCollection('context-v'))
+  .filter((e) => e.data.publish !== false);
+
+const groups = new Map<string, typeof entries>();
+for (const entry of entries) {
+  const segments = entry.id.split('/');
+  const group = segments.length > 1 ? segments[0] : 'general';
+  if (!groups.has(group)) groups.set(group, []);
+  groups.get(group)!.push(entry);
+}
+
+for (const arr of groups.values()) {
+  arr.sort((a, b) => {
+    const am = toDate(a.data.date_modified ?? a.data.date_updated ?? a.data.date_created);
+    const bm = toDate(b.data.date_modified ?? b.data.date_updated ?? b.data.date_created);
+    const ta = am ? am.getTime() : 0;
+    const tb = bm ? bm.getTime() : 0;
+    if (tb !== ta) return tb - ta;
+    return a.id < b.id ? -1 : 1;
+  });
+}
+
+const groupOrder = ['specs', 'habits', 'prompts', 'reminders', 'explorations', 'issues', 'general'];
+const sortedGroups = Array.from(groups.entries()).sort(([a], [b]) => {
+  const ai = groupOrder.indexOf(a);
+  const bi = groupOrder.indexOf(b);
+  const ax = ai === -1 ? Number.MAX_SAFE_INTEGER : ai;
+  const bx = bi === -1 ? Number.MAX_SAFE_INTEGER : bi;
+  if (ax !== bx) return ax - bx;
+  return a < b ? -1 : 1;
+});
+
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout
+  title={STATIC_SEO.contextV.title}
+  description={STATIC_SEO.contextV.description}
+>
+  <main class="page">
+    <div class="container-narrow">
+      <header class="page__header">
+        <p class="folio" data-num="§">Context Vigilance</p>
+        <h1>The why beneath the code</h1>
+        <p class="page__lede">
+          Specs, habits, and reflections that shape how augment-it gets built.
+          Versioned context, intentionally legible.
+        </p>
+      </header>
+
+      {entries.length > 0 && (
+        <SortControls
+          name="context-v"
+          defaultKey="modified"
+          defaultDirection="desc"
+          options={[
+            { key: 'modified',  label: 'Modified' },
+            { key: 'created',   label: 'Created' },
+            { key: 'published', label: 'Published' },
+            { key: 'title',     label: 'Title' },
+          ]}
+        />
+      )}
+
+      {
+        entries.length === 0 ? (
+          <p class="page__empty">
+            No context-v entries yet — they'll appear here as they're authored.
+          </p>
+        ) : (
+          sortedGroups.map(([group, items]) => (
+            <section class="ctx-group">
+              <h2 class="ctx-group__title">{group}</h2>
+              <ul class="entry-list" data-pagefind-ignore="all" data-sort-target="context-v">
+                {items.map((entry) => {
+                  const created = toDate(entry.data.date_created);
+                  const modified = toDate(entry.data.date_modified ?? entry.data.date_updated);
+                  const published = toDate(entry.data.date_first_published);
+                  const d = modified ?? created;
+                  const title = (entry.data.title ?? entry.id).toString().toLowerCase();
+                  return (
+                    <li
+                      class="entry-list__item"
+                      data-sort-modified={modified ? modified.toISOString() : ''}
+                      data-sort-created={created ? created.toISOString() : ''}
+                      data-sort-published={published ? published.toISOString() : ''}
+                      data-sort-title={title}
+                    >
+                      <a href={`${base}context-v/${entry.id}/`}>
+                        <div class="entry-list__meta mono">
+                          {d && <time datetime={d.toISOString()}>{formatDate(d)}</time>}
+                          {entry.data.semantic_version && (
+                            <span class="ver-chip">{entry.data.semantic_version}</span>
+                          )}
+                          {entry.data.status && (
+                            <span class="pill" data-status={entry.data.status}>{entry.data.status}</span>
+                          )}
+                        </div>
+                        <h3 class="entry-list__title">{entry.data.title ?? entry.id}</h3>
+                        {entry.data.lede && <p class="entry-list__lede">{entry.data.lede}</p>}
+                        {entry.data.tags && entry.data.tags.length > 0 && (
+                          <ul class="entry-list__tags" aria-label="Tags">
+                            {entry.data.tags.map((t) => (
+                              <li class="entry-list__tag">{t}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))
+        )
+      }
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .page { padding: var(--space-12) 0 var(--space-16); }
+  .page__header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-bottom: var(--space-12);
+  }
+  .page__header h1 {
+    font-size: clamp(2rem, 4.6vw, 2.8rem);
+    color: var(--color-text);
+    font-weight: 700;
+    letter-spacing: -0.018em;
+  }
+  .page__lede {
+    color: var(--color-text-soft);
+    font-size: 1.06rem;
+    line-height: 1.6;
+    max-width: 70ch;
+  }
+
+  .page__empty {
+    color: var(--color-text-dim);
+    font-style: italic;
+    padding: var(--space-12) 0;
+  }
+
+  .ctx-group {
+    margin-bottom: var(--space-12);
+  }
+  .ctx-group__title {
+    font-family: var(--font__mono);
+    font-size: 0.82rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .entry-list {
+    display: flex;
+    flex-direction: column;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .entry-list__item a {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-5) 0;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+    transition: padding-left var(--transition-fast);
+  }
+  .entry-list__item a:hover {
+    text-decoration: none;
+    padding-left: var(--space-3);
+  }
+  .entry-list__item a:hover .entry-list__title {
+    color: var(--color-accent);
+  }
+  .entry-list__meta {
+    display: flex;
+    gap: var(--space-3);
+    align-items: baseline;
+    font-size: 0.78rem;
+    color: var(--color-text-dim);
+  }
+  .entry-list__title {
+    font-size: 1.18rem;
+    font-family: var(--font__sans);
+    font-weight: 700;
+    margin: 0;
+    transition: color var(--transition-fast);
+    letter-spacing: -0.01em;
+  }
+  .entry-list__lede {
+    color: var(--color-text-soft);
+    font-size: 0.94rem;
+    line-height: 1.55;
+    max-width: 75ch;
+  }
+
+  .entry-list__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    list-style: none;
+    padding: 0;
+  }
+  .entry-list__tag {
+    font-family: var(--font__mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    color: var(--color-text-dim);
+    padding: 2px 7px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: color-mix(in oklab, var(--color-text) 3%, transparent);
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+  }
+  .entry-list__item a:hover .entry-list__tag {
+    border-color: var(--color-border-strong);
+  }
+</style>

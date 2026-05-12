@@ -1,0 +1,338 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Header from '@components/Header.astro';
+import FeatureCard from '@components/FeatureCard.astro';
+import { STATIC_SEO } from '@lib/seo';
+import { formatDate, toDate } from '@lib/date';
+
+const features = (await getCollection('feature-highlights')).sort(byOrder);
+
+const changelog = (await getCollection('changelog'))
+  .filter((e) => e.data.publish !== false)
+  .sort((a, b) => {
+    const da = toDate(a.data.date_modified ?? a.data.date_first_published ?? a.data.date_created ?? a.data.date);
+    const db = toDate(b.data.date_modified ?? b.data.date_first_published ?? b.data.date_created ?? b.data.date);
+    const ta = da ? da.getTime() : 0;
+    const tb = db ? db.getTime() : 0;
+    if (tb !== ta) return tb - ta;
+    return a.id < b.id ? 1 : -1;
+  })
+  .slice(0, 3);
+
+function byOrder(a: { data: { order?: number | null }; id: string }, b: { data: { order?: number | null }; id: string }) {
+  const ao = a.data.order ?? Number.MAX_SAFE_INTEGER;
+  const bo = b.data.order ?? Number.MAX_SAFE_INTEGER;
+  if (ao !== bo) return ao - bo;
+  return a.id < b.id ? -1 : 1;
+}
+
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout
+  title={STATIC_SEO.root.title}
+  description={STATIC_SEO.root.description}
+  hideHeader={true}
+>
+  <Header />
+
+  <!-- ───────────────────── HERO MANIFEST ─────────────────────
+       The hero is not a centered headline + diagram pair — it's a
+       module-federation manifest. Six microfrontends rendered as a 2×3
+       grid, intro copy lives in the manifest header instead of competing
+       with the cards for primacy. -->
+  <section class="manifest">
+    <div class="container">
+      <header class="manifest__head">
+        <p class="folio" data-num="MFE">augment-it · v0</p>
+        <h1 class="manifest__title">
+          A <span class="gradient-text">module-federated</span>
+          workshop for augmenting data with AI.
+        </h1>
+        <p class="manifest__tagline">
+          One shell. Six microfrontends. A small set of disciplined surfaces
+          for the work of <em>collect → prompt → request → review → highlight → insight</em>.
+        </p>
+        <div class="manifest__meta mono">
+          <span class="manifest__meta-item">
+            <span class="manifest__meta-label">shell</span>
+            <span class="ver-chip">rsbuild + mf</span>
+          </span>
+          <span class="manifest__meta-item">
+            <span class="manifest__meta-label">ui</span>
+            <span class="ver-chip">react · next</span>
+          </span>
+          <span class="manifest__meta-item">
+            <span class="manifest__meta-label">runtime</span>
+            <span class="ver-chip">turbo · docker</span>
+          </span>
+        </div>
+      </header>
+
+      <div id="apps" class="manifest__grid">
+        {features.map((entry) => <FeatureCard entry={entry} />)}
+      </div>
+
+      <div class="manifest__cta">
+        <a class="btn btn-primary" href="https://github.com/lossless-group/augment-it" target="_blank" rel="noopener">
+          View on GitHub
+        </a>
+        <a class="btn" href={`${base}context-v/`}>
+          Read the context
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────────── PIPELINE STRIP ─────────────────────
+       Tiny annotated pipeline rail — the six apps in flow order, mono
+       arrows between. A quiet reinforcement of the workshop story. -->
+  <section class="pipeline">
+    <div class="container">
+      <header class="section-header">
+        <p class="folio" data-num="§ 1">Flow</p>
+        <h2>How a record moves through the workshop</h2>
+        <p class="section-lede">
+          Each microfrontend owns one surface. Federation keeps them composable;
+          a record's provenance carries through from ingest to insight.
+        </p>
+      </header>
+
+      <ol class="pipeline__rail mono" aria-label="Augmentation flow">
+        <li class="pipeline__step"><span class="pipeline__num">01</span> record-collector</li>
+        <li class="pipeline__arrow" aria-hidden="true">→</li>
+        <li class="pipeline__step"><span class="pipeline__num">02</span> prompt-template-manager</li>
+        <li class="pipeline__arrow" aria-hidden="true">→</li>
+        <li class="pipeline__step"><span class="pipeline__num">03</span> request-reviewer</li>
+        <li class="pipeline__arrow" aria-hidden="true">→</li>
+        <li class="pipeline__step"><span class="pipeline__num">04</span> response-reviewer</li>
+        <li class="pipeline__arrow" aria-hidden="true">→</li>
+        <li class="pipeline__step"><span class="pipeline__num">05</span> highlight-collector</li>
+        <li class="pipeline__arrow" aria-hidden="true">→</li>
+        <li class="pipeline__step"><span class="pipeline__num">06</span> insight-manager</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ───────────────────── CHANGELOG TEASER ───────────────────── -->
+  {
+    changelog.length > 0 && (
+      <section class="recent">
+        <div class="container">
+          <header class="section-header">
+            <p class="folio" data-num="§ 2">Recent</p>
+            <h2>What shipped lately</h2>
+          </header>
+          <ul class="recent__list" data-pagefind-ignore="all">
+            {changelog.map((entry) => {
+              const d = toDate(entry.data.date_modified ?? entry.data.date_first_published ?? entry.data.date_created ?? entry.data.date);
+              return (
+                <li class="recent__item">
+                  <a href={`${base}changelog/${entry.id}/`}>
+                    <div class="recent__meta mono">
+                      {d && <time datetime={d.toISOString()}>{formatDate(d)}</time>}
+                      {entry.data.at_semantic_version && (
+                        <span class="ver-chip">{entry.data.at_semantic_version}</span>
+                      )}
+                    </div>
+                    <h3 class="recent__title">{entry.data.title ?? entry.id}</h3>
+                    {entry.data.lede && <p class="recent__lede">{entry.data.lede}</p>}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+          <p class="recent__all">
+            <a href={`${base}changelog/`}>Read the full changelog →</a>
+          </p>
+        </div>
+      </section>
+    )
+  }
+</BaseLayout>
+
+<style>
+  /* ─── Manifest (hero) ─── */
+  .manifest {
+    padding: var(--space-12) 0 var(--space-16);
+  }
+
+  .manifest__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    max-width: 760px;
+    margin-bottom: var(--space-10);
+  }
+
+  .manifest__title {
+    font-size: clamp(2rem, 4.6vw, 3rem);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+  }
+  .manifest__title em { font-style: italic; }
+
+  .manifest__tagline {
+    font-size: 1.1rem;
+    line-height: 1.55;
+    color: var(--color-text-soft);
+    max-width: 60ch;
+  }
+  .manifest__tagline em {
+    color: var(--color-text);
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  .manifest__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3) var(--space-5);
+    margin-top: var(--space-2);
+    font-size: 0.8rem;
+  }
+  .manifest__meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .manifest__meta-label {
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.7rem;
+  }
+
+  .manifest__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
+  @media (max-width: 980px) {
+    .manifest__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 620px) {
+    .manifest__grid { grid-template-columns: 1fr; }
+  }
+
+  .manifest__cta {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    margin-top: var(--space-10);
+  }
+
+  /* ─── Section header (reused by pipeline + recent) ─── */
+  .section-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-bottom: var(--space-8);
+    max-width: 720px;
+  }
+  .section-header h2 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    color: var(--color-text);
+  }
+  .section-lede {
+    color: var(--color-text-soft);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  /* ─── Pipeline rail ─── */
+  .pipeline {
+    padding: var(--space-12) 0;
+    border-top: 1px solid var(--color-border);
+  }
+  .pipeline__rail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    list-style: none;
+    padding: var(--space-4) var(--space-5);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-elevated);
+    font-size: 0.85rem;
+  }
+  .pipeline__step {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    background: color-mix(in oklab, var(--color-accent) 10%, transparent);
+    color: var(--color-text);
+    border: 1px solid color-mix(in oklab, var(--color-accent) 30%, transparent);
+  }
+  .pipeline__num {
+    color: var(--color-accent);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+  }
+  .pipeline__arrow {
+    color: var(--color-accent-warm);
+    font-weight: 600;
+  }
+
+  /* ─── Recent ─── */
+  .recent {
+    padding: var(--space-12) 0;
+    border-top: 1px solid var(--color-border);
+  }
+  .recent__list {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .recent__item a {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-5) var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+    transition: background var(--transition-fast);
+    color: var(--color-text);
+  }
+  .recent__item a:hover {
+    background: color-mix(in oklab, var(--color-accent) 5%, transparent);
+    text-decoration: none;
+  }
+  .recent__item a:hover .recent__title {
+    color: var(--color-accent);
+  }
+  .recent__meta {
+    display: flex;
+    gap: var(--space-3);
+    align-items: baseline;
+    font-size: 0.78rem;
+    color: var(--color-text-dim);
+    letter-spacing: 0.04em;
+  }
+  .recent__title {
+    font-size: 1.1rem;
+    font-family: var(--font__sans);
+    font-weight: 700;
+    margin: 0;
+    transition: color var(--transition-fast);
+  }
+  .recent__lede {
+    font-size: 0.95rem;
+    color: var(--color-text-soft);
+    line-height: 1.55;
+    max-width: 80ch;
+  }
+  .recent__all {
+    margin-top: var(--space-6);
+    font-family: var(--font__mono);
+    font-size: 0.9rem;
+  }
+</style>

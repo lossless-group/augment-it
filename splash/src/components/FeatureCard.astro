@@ -1,0 +1,164 @@
+---
+import { render, type CollectionEntry } from 'astro:content';
+
+interface Props {
+  entry: CollectionEntry<'feature-highlights'>;
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content } = await render(entry);
+---
+
+<article class={`module ${data.featured ? 'module--featured' : ''}`}>
+  <div class="module__corner module__corner--tl" aria-hidden="true"></div>
+  <div class="module__corner module__corner--tr" aria-hidden="true"></div>
+  <div class="module__corner module__corner--bl" aria-hidden="true"></div>
+  <div class="module__corner module__corner--br" aria-hidden="true"></div>
+
+  <header class="module__head">
+    <div class="module__id mono">
+      <span class="module__icon" aria-hidden="true">{data.icon ?? '◆'}</span>
+      <span class="module__slug">{entry.id}</span>
+      {data.status && <span class="pill" data-status={data.status}>{data.status}</span>}
+    </div>
+    <h3 class="module__title">{data.title}</h3>
+    {data.lede && <p class="module__lede">{data.lede}</p>}
+  </header>
+
+  <div class="module__body prose">
+    <Content />
+  </div>
+
+  {
+    data.tags && data.tags.length > 0 && (
+      <footer class="module__tags">
+        {data.tags.map((tag) => (
+          <span class="module__tag mono">{tag}</span>
+        ))}
+      </footer>
+    )
+  }
+</article>
+
+<style>
+  .module {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-6);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-card);
+    transition: border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .module:hover {
+    border-color: var(--color-border-strong);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Module-manifest corner ticks — small L-shaped marks at each corner,
+     suggesting a "framed module" / bounding-box aesthetic. */
+  .module__corner {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    pointer-events: none;
+  }
+  .module__corner--tl { top: -1px; left: -1px; border-top: 2px solid var(--color-accent); border-left: 2px solid var(--color-accent); }
+  .module__corner--tr { top: -1px; right: -1px; border-top: 2px solid var(--color-accent); border-right: 2px solid var(--color-accent); }
+  .module__corner--bl { bottom: -1px; left: -1px; border-bottom: 2px solid var(--color-accent); border-left: 2px solid var(--color-accent); }
+  .module__corner--br { bottom: -1px; right: -1px; border-bottom: 2px solid var(--color-accent); border-right: 2px solid var(--color-accent); }
+
+  .module--featured {
+    grid-column: span 2;
+    border-color: color-mix(in oklab, var(--color-accent) 30%, var(--color-border));
+  }
+  .module--featured::before {
+    content: 'Featured';
+    position: absolute;
+    top: -10px;
+    left: var(--space-5);
+    padding: 2px 9px;
+    background: var(--color-accent);
+    color: var(--color-bg);
+    font-family: var(--font__mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    border-radius: var(--radius-sm);
+  }
+  @media (max-width: 720px) {
+    .module--featured { grid-column: span 1; }
+  }
+
+  .module__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .module__id {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 0.72rem;
+    color: var(--color-text-dim);
+    letter-spacing: 0.04em;
+  }
+  .module__icon {
+    font-size: 1.05rem;
+    line-height: 1;
+    color: var(--color-accent);
+  }
+  .module__slug {
+    color: var(--color-text-soft);
+  }
+
+  .module__title {
+    font-family: var(--font__sans);
+    font-size: 1.18rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+    letter-spacing: -0.012em;
+  }
+
+  .module__lede {
+    color: var(--color-text-soft);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  .module__body {
+    font-size: 0.92rem;
+    color: var(--color-text-soft);
+    max-width: none;
+  }
+  .module__body :global(p) { margin-top: var(--space-3); }
+  .module__body :global(p:first-child) { margin-top: 0; }
+  .module__body :global(code) {
+    font-size: 0.86em;
+    padding: 1px 5px;
+  }
+
+  .module__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: auto;
+    padding-top: var(--space-3);
+    border-top: 1px dashed var(--color-border);
+  }
+  .module__tag {
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: var(--color-text-dim);
+    padding: 2px 7px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+</style>
