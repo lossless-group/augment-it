@@ -10,6 +10,9 @@
 //   - EventFrame → routed to config.onFrame for the workspace singleton to
 //     ingestEvent
 //   - reconnect with backoff on close
+//   - invoke() called BEFORE the socket is open gets QUEUED and flushed
+//     when the socket reaches OPEN state. Callers don't have to think
+//     about WS timing; the first-call-on-page-load is the common case.
 
 import type { ClientFrame, InvokeFrame, ResultFrame, ServerFrame } from './types';
 
@@ -39,11 +42,20 @@ export function createTransport(config: TransportConfig): Transport {
   let backoff = RECONNECT_INITIAL_MS;
   let closing = false;
   const pending = new Map<string, Pending>();
+  const sendQueue: ClientFrame[] = [];
   let nextId = 0;
 
   function genId(): string {
     nextId += 1;
     return `inv_${Date.now().toString(36)}_${nextId.toString(36)}`;
+  }
+
+  function flushSendQueue(): void {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    while (sendQueue.length > 0) {
+      const frame = sendQueue.shift()!;
+      ws.send(JSON.stringify(frame));
+    }
   }
 
   function connect(): void {
@@ -58,6 +70,7 @@ export function createTransport(config: TransportConfig): Transport {
     ws.addEventListener('open', () => {
       backoff = RECONNECT_INITIAL_MS;
       config.onStatus?.('open');
+      flushSendQueue();
     });
 
     ws.addEventListener('message', (evt: MessageEvent) => {
@@ -85,9 +98,15 @@ export function createTransport(config: TransportConfig): Transport {
 
     ws.addEventListener('close', () => {
       config.onStatus?.('closed');
-      // reject any in-flight invokes so callers get a clean error
+      // Reject any in-flight invokes (already on the wire or still
+      // queued) — callers will receive a clean 'socket closed' and can
+      // retry. Clearing the sendQueue too keeps pending and queue in
+      // lockstep; a stray queued frame surviving a reconnect would
+      // produce a server reply that no longer has a pending entry to
+      // resolve, wasting server work.
       for (const [, p] of pending) p.reject(new Error('socket closed'));
       pending.clear();
+      sendQueue.length = 0;
       if (!closing) scheduleReconnect();
     });
 
@@ -104,20 +123,19 @@ export function createTransport(config: TransportConfig): Transport {
     }, backoff);
   }
 
-  function send(frame: ClientFrame): void {
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      throw new Error('transport not open');
-    }
-    ws.send(JSON.stringify(frame));
-  }
-
   async function invoke(capability: string, args: unknown): Promise<unknown> {
     const id = genId();
     const frame: InvokeFrame = { kind: 'invoke', id, capability, args };
     const promise = new Promise<unknown>((resolve, reject) => {
       pending.set(id, { resolve, reject });
     });
-    send(frame);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(frame));
+    } else {
+      // Not open yet (either before first open, or during reconnect).
+      // Queue; flushSendQueue() drains on the next 'open' event.
+      sendQueue.push(frame);
+    }
     return promise;
   }
 

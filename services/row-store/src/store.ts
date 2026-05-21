@@ -112,3 +112,15 @@ export async function updateRow(
   await persist();
   return next;
 }
+
+export async function deleteRecordSet(
+  record_set_id: string,
+): Promise<{ deleted: boolean; row_count: number }> {
+  const rs = data.record_sets[record_set_id];
+  if (!rs) return { deleted: false, row_count: 0 };
+  const row_count = rs.row_ids.length;
+  for (const row_id of rs.row_ids) delete data.rows[row_id];
+  delete data.record_sets[record_set_id];
+  await persist();
+  return { deleted: true, row_count };
+}

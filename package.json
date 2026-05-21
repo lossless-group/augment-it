@@ -6,7 +6,7 @@
     "apps/*",
     "packages/*",
     "services/*",
-    "shell/*"
+    "shell"
   ],
   "scripts": {
     "build": "turbo run build",
@@ -16,6 +16,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
+    "@module-federation/enhanced": "^0.18.0",
+    "@module-federation/rsbuild-plugin": "^0.18.0",
     "@rsbuild/core": "^1.4.3",
     "@rsbuild/plugin-svelte": "^1.0.7",
     "svelte": "^5.0.0",

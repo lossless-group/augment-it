@@ -8,6 +8,7 @@
 import { JSONCodec, type NatsConnection } from 'nats';
 import {
   createRecordSet,
+  deleteRecordSet,
   getRecordSet,
   listRecordSets,
   listRows,
@@ -68,6 +69,24 @@ export function registerHandlers(nc: NatsConnection): void {
         record_set_id?: string;
       };
       if (msg.reply) msg.respond(jc.encode({ rows: listRows(args.record_set_id) }));
+    }
+  })();
+
+  // record_set.delete.requested — drops the record set and ALL its rows.
+  // Walking-skeleton behavior: no soft-delete, no archive. Broadcasts
+  // record_set.deleted so UIs can react.
+  (async () => {
+    const sub = nc.subscribe('record_set.delete.requested');
+    for await (const msg of sub) {
+      const { record_set_id } = jc.decode(msg.data) as { record_set_id: string };
+      const result = await deleteRecordSet(record_set_id);
+      if (msg.reply) msg.respond(jc.encode(result));
+      if (result.deleted) {
+        nc.publish(
+          'record_set.deleted',
+          jc.encode({ record_set_id, row_count: result.row_count }),
+        );
+      }
     }
   })();
 

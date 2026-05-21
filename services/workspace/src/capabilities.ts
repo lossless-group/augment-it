@@ -13,6 +13,7 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'record_set.get': 'record_set.get.requested',
   'record_set.ingest': 'record_set.ingest.requested',
   'record_set.ingest.xlsx': 'record_set.ingest.xlsx.requested',
+  'record_set.delete': 'record_set.delete.requested',
   // row operations
   'row.list': 'row.list.requested',
   'row.update': 'row.update.requested',

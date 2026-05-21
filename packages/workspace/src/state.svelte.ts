@@ -36,15 +36,23 @@ class AugmentItWorkspace {
   }
 
   /**
-   * Attach a transport to the singleton. Idempotent; calling again replaces
-   * the previous transport (closing it first).
+   * Attach a transport to the singleton. Idempotent in the federation case:
+   * when the workspace is a shared singleton across host + remote, both
+   * call connect() but only the first one establishes the transport. To
+   * force a reconnect (e.g. URL changed), call disconnect() first.
    */
   connect(config: Omit<TransportConfig, 'onFrame'>): void {
-    if (this.transport) this.transport.close();
+    if (this.transport) return;
     this.transport = createTransport({
       ...config,
       onFrame: (frame) => this.handleFrame(frame),
     });
+  }
+
+  disconnect(): void {
+    if (!this.transport) return;
+    this.transport.close();
+    this.transport = null;
   }
 
   rowsFor(record_set_id: string): Row[] {

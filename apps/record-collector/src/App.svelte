@@ -67,8 +67,36 @@
       rowsForSelected = rowsForSelected.map((r) => (r.row_id === merged.row_id ? merged : r));
     } else if (ev.subject === 'record_set.created') {
       void refreshList();
+    } else if (ev.subject === 'record_set.deleted') {
+      const payload = ev.payload as { record_set_id: string };
+      const next = { ...workspace.record_sets };
+      const removedRows = next[payload.record_set_id]?.row_ids ?? [];
+      delete next[payload.record_set_id];
+      workspace.record_sets = next;
+      if (removedRows.length > 0) {
+        const nextRows = { ...workspace.rows };
+        for (const id of removedRows) delete nextRows[id];
+        workspace.rows = nextRows;
+      }
+      if (selectedId === payload.record_set_id) {
+        selectedId = null;
+        rowsForSelected = [];
+      }
     }
   });
+
+  async function deleteRecordSet(rs: RecordSet) {
+    const confirmed = window.confirm(
+      `Delete "${rs.name}" and its ${rs.row_ids.length} row${rs.row_ids.length === 1 ? '' : 's'}? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    try {
+      await workspace.invoke('record_set.delete', { record_set_id: rs.record_set_id });
+      // The record_set.deleted broadcast handler above will remove from state.
+    } catch (err: unknown) {
+      console.error('record_set.delete', err);
+    }
+  }
 
   async function commitEdit(row: Row, fieldName: string, newValue: string) {
     const before = String(row.fields[fieldName] ?? '');
@@ -119,16 +147,15 @@
   }
 </script>
 
-<header>
-  <h1>augment-it · record-collector</h1>
-  <p class="muted">
-    Svelte 5 + Rsbuild · consumes <code>@augment-it/workspace</code> directly · talks to
-    <code>{WS_URL}</code> · status:
+<div class="rc-app">
+<div class="rc-status-bar">
+  <span class="muted">
+    consumes <code>@augment-it/workspace</code> · {WS_URL} ·
     <span class="status status-{status}">{status}</span>
-  </p>
-</header>
+  </span>
+</div>
 
-<main>
+<div class="rc-layout">
   <aside>
     <h2>Record sets</h2>
     <button class="secondary" onclick={refreshList}>refresh</button>
@@ -141,7 +168,15 @@
           role="button"
           tabindex="0"
         >
-          <strong>{rs.name}</strong>
+          <div class="rs-row-top">
+            <strong>{rs.name}</strong>
+            <button
+              class="rs-delete"
+              title="Delete this record set and all its rows"
+              onclick={(e) => { e.stopPropagation(); void deleteRecordSet(rs); }}
+              aria-label="delete {rs.name}"
+            >×</button>
+          </div>
           <span class="muted">{rs.schema.fields.length} cols · {rs.row_ids.length} rows</span>
         </li>
       {/each}
@@ -196,107 +231,11 @@
       </div>
     {/if}
   </section>
-</main>
+</div>
+</div>
 
-<style>
-  :global(body) {
-    margin: 0;
-    background: #0f1115;
-    color: #e8eaf0;
-    font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
-  }
-  header {
-    padding: 1.25rem 2rem;
-    border-bottom: 1px solid #232634;
-  }
-  h1 { font-size: 1.05rem; margin: 0 0 0.25rem; }
-  h2 { font-size: 0.85rem; margin: 1.25rem 0 0.5rem; color: #c75bfb; text-transform: uppercase; letter-spacing: 0.05em; }
-  h3 { font-size: 0.95rem; margin: 0 0 0.5rem; color: #5bbcfb; }
-  .muted { color: #8a8f9b; }
-  code { background: #16181f; padding: 1px 5px; border-radius: 3px; }
-  .status { padding: 1px 7px; border-radius: 3px; background: #232634; }
-  .status-open { background: #1b3d2f; color: #a4e3b5; }
-  .status-closed, .status-error { background: #3d1b1b; color: #f29a9a; }
+<!-- Styles live in ./app.css and are imported as a module side effect
+     from both index.ts (standalone) and mount.ts (federation). This
+     bypasses Svelte's append_styles runtime which doesn't fire reliably
+     across Module Federation chunk boundaries. -->
 
-  main {
-    display: grid;
-    grid-template-columns: 340px 1fr;
-    gap: 1.25rem;
-    padding: 1.25rem 2rem;
-  }
-
-  aside, section {
-    border: 1px solid #232634;
-    border-radius: 6px;
-    padding: 1rem;
-    min-width: 0;
-  }
-
-  button {
-    background: #c75bfb;
-    color: #0f1115;
-    border: 0;
-    padding: 5px 10px;
-    border-radius: 4px;
-    font: inherit;
-    cursor: pointer;
-    margin-right: 0.5rem;
-  }
-  button.secondary {
-    background: transparent;
-    color: #c75bfb;
-    border: 1px solid #c75bfb;
-  }
-
-  input[type=file] {
-    color: #e8eaf0;
-    margin: 0.5rem 0;
-    width: 100%;
-  }
-
-  pre { white-space: pre-wrap; word-break: break-word; padding: 0.6rem; background: #16181f; border-radius: 4px; margin: 0.5rem 0 0; font-size: 11px; }
-
-  ul.records { list-style: none; padding: 0; margin: 0.5rem 0; }
-  ul.records li {
-    padding: 0.5rem;
-    border: 1px solid #232634;
-    border-radius: 4px;
-    margin-bottom: 0.25rem;
-    cursor: pointer;
-  }
-  ul.records li:hover { border-color: #c75bfb; }
-  ul.records li.selected { border-color: #c75bfb; background: rgba(199, 91, 251, 0.06); }
-  ul.records li.empty { cursor: default; }
-  ul.records li strong { display: block; color: #c75bfb; margin-bottom: 0.15rem; }
-
-  .rows-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 70vh; overflow: auto; }
-  .row-card {
-    border: 1px solid #232634;
-    border-radius: 5px;
-    padding: 0.55rem 0.7rem;
-    background: rgba(255,255,255,0.01);
-  }
-  .row-id { color: #8a8f9b; font-size: 10px; margin-bottom: 0.35rem; }
-  .fields {
-    display: grid;
-    grid-template-columns: minmax(140px, 220px) 1fr;
-    gap: 4px 12px;
-    align-items: baseline;
-  }
-  .field-name {
-    color: #8a8f9b;
-    font-size: 11px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .field-value {
-    background: #16181f;
-    padding: 3px 6px;
-    border-radius: 3px;
-    word-break: break-word;
-    cursor: text;
-    outline: none;
-  }
-  .field-value:focus { outline: 1px solid #5bbcfb; background: #1a1d27; }
-</style>
