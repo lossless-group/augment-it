@@ -1,0 +1,48 @@
+services:
+  nats:
+    image: nats:2.10-alpine
+    ports:
+      - "4222:4222"     # client connections
+      - "8222:8222"     # monitoring — the dashboard the client looks at
+    command: ["-js", "-m", "8222"]
+
+  workspace-service:
+    build: ./services/workspace
+    ports:
+      - "3001:3001"
+    depends_on:
+      - nats
+    environment:
+      NATS_URL: nats://nats:4222
+      SESSION_STORE_PATH: /data/sessions.json
+      PORT: "3001"
+    volumes:
+      - workspace-data:/data
+
+  row-store:
+    build: ./services/row-store
+    depends_on:
+      - nats
+    environment:
+      NATS_URL: nats://nats:4222
+      ROW_STORE_PATH: /data/rows.json
+    volumes:
+      - row-store-data:/data
+
+  ingest:
+    build: ./services/ingest
+    depends_on:
+      - nats
+    environment:
+      NATS_URL: nats://nats:4222
+
+  xlsx-ingest:
+    build: ./services/xlsx-ingest
+    depends_on:
+      - nats
+    environment:
+      NATS_URL: nats://nats:4222
+
+volumes:
+  workspace-data:
+  row-store-data:

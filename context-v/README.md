@@ -25,3 +25,8 @@ Subdirectories appear as content arrives:
 
 The splash at `splash/` renders every `.md` in this tree (and `changelog/`)
 on push to `main`.
+
+│   ├── request-reviewer/
+│   ├── response-reviewer/
+│   ├── highlight-collector/
+│   └── insight-manager/

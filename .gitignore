@@ -5,6 +5,10 @@ dist/
 content/
 content
 
+extra/
+extra
+context-v/extra/*
+
 # Next.js build output
 next/
 next

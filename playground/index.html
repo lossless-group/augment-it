@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>augment-it — Phase 4 playground</title>
+  <style>
+    :root {
+      color-scheme: dark light;
+      --bg: #0f1115;
+      --fg: #e8eaf0;
+      --muted: #8a8f9b;
+      --accent: #c75bfb;
+      --accent-2: #5bbcfb;
+      --line: #232634;
+      --field-bg: #16181f;
+    }
+    body { margin: 0; padding: 2rem; background: var(--bg); color: var(--fg); font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    h1 { font-size: 1.05rem; margin: 0 0 1rem; }
+    h2 { font-size: 0.85rem; margin: 1.25rem 0 0.5rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; }
+    h3 { font-size: 0.95rem; margin: 0 0 0.5rem; color: var(--accent-2); }
+    .layout { display: grid; grid-template-columns: 360px 1fr 360px; gap: 1.25rem; max-width: 1800px; }
+    .panel { border: 1px solid var(--line); padding: 1rem; border-radius: 6px; min-width: 0; }
+    .status { display: inline-block; padding: 2px 8px; border-radius: 3px; background: var(--line); font-size: 0.8rem; }
+    .status.open { background: #1b3d2f; color: #a4e3b5; }
+    .status.closed, .status.error { background: #3d1b1b; color: #f29a9a; }
+    input[type=file] { color: var(--fg); }
+    button { background: var(--accent); color: var(--bg); border: 0; padding: 5px 10px; border-radius: 4px; font: inherit; cursor: pointer; }
+    button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    pre { white-space: pre-wrap; word-break: break-word; margin: 0.5rem 0; padding: 0.65rem; background: var(--field-bg); border-radius: 4px; max-height: 20rem; overflow: auto; font-size: 11px; }
+    .row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .muted { color: var(--muted); }
+    ul.records { list-style: none; padding: 0; margin: 0.5rem 0; }
+    ul.records li { padding: 0.5rem; border: 1px solid var(--line); border-radius: 4px; margin-bottom: 0.25rem; cursor: pointer; }
+    ul.records li:hover { border-color: var(--accent); }
+    ul.records li.selected { border-color: var(--accent); background: rgba(199, 91, 251, 0.06); }
+    ul.records li strong { color: var(--accent); display: block; margin-bottom: 0.2rem; }
+    .rows-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 60vh; overflow: auto; }
+    .row-card { border: 1px solid var(--line); border-radius: 5px; padding: 0.6rem; background: rgba(255,255,255,0.01); }
+    .row-card .row-id { color: var(--muted); font-size: 10px; margin-bottom: 0.4rem; }
+    .row-card .fields { display: grid; grid-template-columns: minmax(140px, 200px) 1fr; gap: 4px 12px; align-items: baseline; }
+    .row-card .field-name { color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-card .field-value { background: var(--field-bg); padding: 3px 6px; border-radius: 3px; cursor: text; min-height: 1.2em; word-break: break-word; }
+    .row-card .field-value:hover { outline: 1px solid var(--accent); }
+    .row-card .field-value.editing { outline: 1px solid var(--accent-2); background: #1a1d27; }
+    .row-card .field-value.updated { animation: flash 1s ease-out; }
+    @keyframes flash { from { background: rgba(91, 188, 251, 0.3); } to { background: var(--field-bg); } }
+    .empty { color: var(--muted); padding: 1rem; text-align: center; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1>augment-it — Phase 4 playground</h1>
+  <p class="muted">WebSocket protocol via <code>ws://localhost:3001/ws</code>. Per-upload column schema. Click a record set to view its rows; click a field value to edit it.</p>
+
+  <div class="layout">
+    <div class="panel">
+      <h2>Connection</h2>
+      <div class="row">
+        Status: <span id="status" class="status">disconnected</span>
+      </div>
+      <div class="muted" style="font-size: 11px; margin-top: 0.25rem;">Session: <code id="token">—</code></div>
+
+      <h2>Record sets</h2>
+      <div class="row">
+        <button id="refresh" class="secondary">refresh</button>
+      </div>
+      <ul class="records" id="records"></ul>
+
+      <h2>Ingest</h2>
+      <div class="row">
+        <input type="file" id="file" accept=".csv,.xlsx,text/csv" />
+        <button id="upload" disabled>upload</button>
+      </div>
+      <pre id="ingest-result" class="muted">Pick a CSV or XLSX and click upload.</pre>
+    </div>
+
+    <div class="panel">
+      <h2>Rows</h2>
+      <h3 id="rows-header" class="muted">(select a record set)</h3>
+      <div id="rows-list" class="rows-list"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Event stream</h2>
+      <pre id="events" class="muted">(none yet)</pre>
+      <h2>Wire log</h2>
+      <pre id="log"></pre>
+    </div>
+  </div>
+
+  <script type="module">
+    const WS_URL = 'ws://localhost:3001/ws';
+    const TOKEN_KEY = 'augment-it:session-token';
+
+    const $ = (id) => document.getElementById(id);
+    const log = (line) => {
+      $('log').textContent += line + '\n';
+      $('log').scrollTop = $('log').scrollHeight;
+    };
+    const setStatus = (s) => {
+      const el = $('status');
+      el.textContent = s;
+      el.className = 'status ' + s;
+    };
+
+    let ws = null;
+    const pending = new Map();
+    let nextId = 0;
+    const eventsBuf = [];
+
+    // local state
+    let recordSets = [];                 // [{record_set_id, name, schema, row_ids, ...}]
+    let selectedRecordSetId = null;
+    let currentRows = [];                // rows of the selected record set
+    const rowById = new Map();           // row_id → row, kept in sync
+
+    function invoke(capability, args) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        return Promise.reject(new Error('not connected'));
+      }
+      nextId += 1;
+      const id = `inv_${Date.now().toString(36)}_${nextId.toString(36)}`;
+      const frame = { kind: 'invoke', id, capability, args };
+      return new Promise((resolve, reject) => {
+        pending.set(id, { resolve, reject });
+        ws.send(JSON.stringify(frame));
+        log(`→ invoke ${capability} (${id})`);
+      });
+    }
+
+    function connect() {
+      const token = localStorage.getItem(TOKEN_KEY);
+      const url = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : WS_URL;
+      setStatus('connecting');
+      ws = new WebSocket(url);
+
+      ws.addEventListener('open', () => {
+        setStatus('open');
+        log(`open ${url}`);
+        $('upload').disabled = false;
+        refreshList();
+      });
+
+      ws.addEventListener('message', (evt) => {
+        const frame = JSON.parse(evt.data);
+        if (frame.kind === 'session') {
+          localStorage.setItem(TOKEN_KEY, frame.token);
+          $('token').textContent = frame.token.slice(0, 12) + '…';
+          log(`← session ${frame.token.slice(0, 8)}…`);
+        } else if (frame.kind === 'result') {
+          log(`← result ${frame.id} ${frame.ok ? 'ok' : 'err'}`);
+          const p = pending.get(frame.id);
+          if (!p) return;
+          pending.delete(frame.id);
+          frame.ok ? p.resolve(frame.result) : p.reject(new Error(frame.error));
+        } else if (frame.kind === 'event') {
+          handleEvent(frame);
+        }
+      });
+
+      ws.addEventListener('close', () => { setStatus('closed'); $('upload').disabled = true; log('close'); });
+      ws.addEventListener('error', () => setStatus('error'));
+    }
+
+    function handleEvent(frame) {
+      log(`← event ${frame.subject} (seq ${frame.seq})`);
+      eventsBuf.unshift({ subject: frame.subject, seq: frame.seq, payload: frame.payload, at: new Date().toLocaleTimeString() });
+      $('events').textContent = eventsBuf.slice(0, 20).map((e) => `[${e.at}] ${e.subject} (seq ${e.seq}) — ${JSON.stringify(e.payload).slice(0, 160)}`).join('\n');
+
+      if (frame.subject === 'record_set.created') {
+        refreshList();
+      } else if (frame.subject === 'row.updated') {
+        const { row_id, fields } = frame.payload;
+        const row = rowById.get(row_id);
+        if (row) {
+          row.fields = { ...row.fields, ...fields };
+          markRowUpdated(row_id, Object.keys(fields));
+        }
+      }
+    }
+
+    async function refreshList() {
+      try {
+        const result = await invoke('record_set.list', {});
+        recordSets = result.record_sets;
+        renderList();
+      } catch (err) { log(`refresh error: ${err.message}`); }
+    }
+
+    function renderList() {
+      const ul = $('records');
+      if (!recordSets || recordSets.length === 0) {
+        ul.innerHTML = '<li class="muted">no record sets yet</li>';
+        return;
+      }
+      ul.innerHTML = '';
+      for (const rs of recordSets) {
+        const li = document.createElement('li');
+        if (rs.record_set_id === selectedRecordSetId) li.classList.add('selected');
+        li.innerHTML = `<strong>${escapeHtml(rs.name)}</strong><span class="muted">${rs.schema.fields.length} cols · ${rs.row_ids.length} rows</span>`;
+        li.addEventListener('click', () => selectRecordSet(rs.record_set_id));
+        ul.appendChild(li);
+      }
+    }
+
+    async function selectRecordSet(record_set_id) {
+      selectedRecordSetId = record_set_id;
+      renderList();
+      const rs = recordSets.find((r) => r.record_set_id === record_set_id);
+      $('rows-header').textContent = rs ? rs.name : '(unknown)';
+      $('rows-header').classList.remove('muted');
+      $('rows-list').innerHTML = '<div class="empty">loading…</div>';
+      try {
+        const result = await invoke('row.list', { record_set_id });
+        currentRows = result.rows;
+        rowById.clear();
+        for (const r of currentRows) rowById.set(r.row_id, r);
+        renderRows(rs);
+      } catch (err) {
+        $('rows-list').innerHTML = `<div class="empty">error: ${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    function renderRows(rs) {
+      const container = $('rows-list');
+      if (!currentRows || currentRows.length === 0) {
+        container.innerHTML = '<div class="empty">no rows</div>';
+        return;
+      }
+      const orderedFields = rs.schema.fields.slice().sort((a, b) => a.order - b.order).map((f) => f.name);
+      container.innerHTML = '';
+      for (const row of currentRows) {
+        const card = document.createElement('div');
+        card.className = 'row-card';
+        card.dataset.rowId = row.row_id;
+        const idDiv = document.createElement('div');
+        idDiv.className = 'row-id';
+        idDiv.textContent = row.row_id;
+        card.appendChild(idDiv);
+        const fields = document.createElement('div');
+        fields.className = 'fields';
+        for (const fname of orderedFields) {
+          const nameEl = document.createElement('div');
+          nameEl.className = 'field-name';
+          nameEl.title = fname;
+          nameEl.textContent = fname;
+          const valueEl = document.createElement('div');
+          valueEl.className = 'field-value';
+          valueEl.dataset.fieldName = fname;
+          valueEl.textContent = row.fields[fname] ?? '';
+          valueEl.addEventListener('click', () => beginEdit(valueEl, row, fname));
+          fields.appendChild(nameEl);
+          fields.appendChild(valueEl);
+        }
+        card.appendChild(fields);
+        container.appendChild(card);
+      }
+    }
+
+    function beginEdit(valueEl, row, fname) {
+      if (valueEl.classList.contains('editing')) return;
+      const before = row.fields[fname] ?? '';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = before;
+      input.style.width = '100%';
+      input.style.font = 'inherit';
+      input.style.background = 'transparent';
+      input.style.border = 'none';
+      input.style.color = 'inherit';
+      input.style.outline = 'none';
+      valueEl.innerHTML = '';
+      valueEl.classList.add('editing');
+      valueEl.appendChild(input);
+      input.focus();
+      input.select();
+
+      const commit = async () => {
+        const after = input.value;
+        valueEl.classList.remove('editing');
+        if (after === String(before ?? '')) {
+          valueEl.textContent = after;
+          return;
+        }
+        valueEl.textContent = after + ' …';
+        try {
+          await invoke('row.update', { row_id: row.row_id, fields: { [fname]: after } });
+          // row.updated event handles re-render + flash
+        } catch (err) {
+          valueEl.textContent = String(before ?? '');
+          log(`row.update failed: ${err.message}`);
+        }
+      };
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        if (e.key === 'Escape') {
+          valueEl.classList.remove('editing');
+          valueEl.textContent = String(before ?? '');
+        }
+      });
+    }
+
+    function markRowUpdated(row_id, changedFields) {
+      const card = document.querySelector(`.row-card[data-row-id="${CSS.escape(row_id)}"]`);
+      if (!card) return;
+      const row = rowById.get(row_id);
+      for (const fname of changedFields) {
+        const valueEl = card.querySelector(`.field-value[data-field-name="${CSS.escape(fname)}"]`);
+        if (!valueEl) continue;
+        valueEl.textContent = row.fields[fname] ?? '';
+        valueEl.classList.remove('updated');
+        // restart animation
+        void valueEl.offsetWidth;
+        valueEl.classList.add('updated');
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    $('refresh').addEventListener('click', refreshList);
+
+    $('upload').addEventListener('click', async () => {
+      const file = $('file').files[0];
+      if (!file) return;
+      const isXlsx = file.name.toLowerCase().endsWith('.xlsx');
+      $('ingest-result').textContent = `uploading ${file.name} (${file.size} bytes, ${isXlsx ? 'xlsx' : 'csv'})…`;
+      try {
+        let result;
+        if (isXlsx) {
+          const buf = await file.arrayBuffer();
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+          result = await invoke('record_set.ingest.xlsx', { filename: file.name, xlsx_b64: base64 });
+        } else {
+          const csv = await file.text();
+          result = await invoke('record_set.ingest', { filename: file.name, csv });
+        }
+        $('ingest-result').textContent = `ingested ${result.record_set.record_set_id}\n${result.rows.length} rows · ${result.record_set.schema.fields.length} columns derived from header`;
+      } catch (err) {
+        $('ingest-result').textContent = `error: ${err.message}`;
+      }
+    });
+
+    connect();
+  </script>
+</body>
+</html>

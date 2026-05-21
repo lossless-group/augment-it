@@ -1,0 +1,22 @@
+{
+  "name": "@augment-it/record-collector",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "rsbuild dev",
+    "build": "rsbuild build",
+    "preview": "rsbuild preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json"
+  },
+  "dependencies": {
+    "@augment-it/workspace": "workspace:*"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^1.4.3",
+    "@rsbuild/plugin-svelte": "^1.0.7",
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.0.0",
+    "typescript": "^5.8.3"
+  }
+}

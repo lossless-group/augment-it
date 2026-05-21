@@ -1,0 +1,14 @@
+{
+  "name": "@augment-it/scripts",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ingest": "node smoke-ingest.mjs",
+    "ws": "node smoke-ws.mjs",
+    "playground": "node serve-playground.mjs"
+  },
+  "dependencies": {
+    "nats": "^2.28.0"
+  }
+}
