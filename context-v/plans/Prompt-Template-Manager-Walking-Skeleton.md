@@ -24,6 +24,14 @@ status: Draft
 
 # Prompt-Template-Manager — Walking Skeleton Plan
 
+> **Superseded in part (2026-05-21).** This plan's "every prompt run produces a
+> new derived record set / lineage chain" decision is **superseded** by the
+> record-instance model in [[Original-and-Enhanced-Record-Instances]]: runs
+> accumulate into one mutable *enhanced instance* per round, not a chain of
+> sets. Phases 1–3 shipped as written (changelog `2026-05-21_04`) and are the
+> v0 of that model; the implementing work folds many-runs-into-one-instance
+> and the source pointer onto it. Everything else in this plan stands.
+
 ## What this plan is
 
 The second federated app for augment-it, building directly on the substrate the
