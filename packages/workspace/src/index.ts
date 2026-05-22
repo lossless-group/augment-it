@@ -10,6 +10,7 @@ export type {
   EventFrame,
   InvokeFrame,
   JobEvent,
+  PreviewOk,
   PreviewResult,
   PromptTemplate,
   PromptTool,

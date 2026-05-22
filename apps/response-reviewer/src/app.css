@@ -2,7 +2,7 @@
  * response-reviewer styles. Imported as a side effect from index.ts
  * (standalone :3005) and mount.ts (federation) — the bundler's CSS pipeline
  * injects it in both modes. All selectors namespaced under .resp-app so they
- * can't leak into the shell or sibling remotes.
+ * can't leak into the shell or sibling remotes. Tokens only — no hex.
  */
 
 .resp-app .resp-status-bar {
@@ -11,21 +11,33 @@
   font-size: 11px;
 }
 
-.resp-app .resp-body { padding: 1.5rem; }
+.resp-app .resp-body { padding: 1.25rem 1.5rem; max-width: 1000px; }
+
+.resp-app .resp-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
 
 .resp-app h2 {
   font-size: 0.85rem;
-  margin: 0 0 0.75rem;
+  margin: 0;
   color: var(--color-accent);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.resp-app .muted {
-  color: var(--color-text-muted);
-  max-width: 64ch;
-  line-height: 1.5;
+.resp-app h3 {
+  font-size: 0.8rem;
+  margin: 1.1rem 0 0.4rem;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
+
+.resp-app .muted { color: var(--color-text-muted); line-height: 1.5; max-width: 60ch; }
 
 .resp-app code {
   background: var(--color-field);
@@ -37,3 +49,110 @@
 .resp-app .status-open { background: var(--color-ok-bg); color: var(--color-ok-text); }
 .resp-app .status-closed,
 .resp-app .status-error { background: var(--color-error-bg); color: var(--color-error-text); }
+
+.resp-app button {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border: 0;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font: inherit;
+  cursor: pointer;
+}
+.resp-app button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.resp-app .chip {
+  background: var(--color-field);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+.resp-app .chip.active {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+}
+
+.resp-app .filters,
+.resp-app .flags,
+.resp-app .actions { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.resp-app .actions { margin-top: 0.5rem; gap: 0.5rem; }
+
+.resp-app .stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+  font-size: 13px;
+}
+
+.resp-app .flag {
+  padding: 1px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  background: var(--color-border);
+}
+.resp-app .flag-good { background: var(--color-ok-bg); color: var(--color-ok-text); }
+.resp-app .flag-wrong { background: var(--color-error-bg); color: var(--color-error-text); }
+.resp-app .flag-partial { background: var(--color-field); color: var(--color-accent-2); }
+.resp-app .flag-needs-rerun { background: var(--color-field); color: var(--color-accent); }
+.resp-app .flag.accepted { background: var(--color-ok-bg); color: var(--color-ok-text); }
+
+.resp-app .resp-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.25rem;
+  margin-top: 0.85rem;
+  align-items: start;
+}
+.resp-app .resp-layout > aside,
+.resp-app .resp-layout > section { min-width: 0; }
+
+.resp-app dl {
+  margin: 0.4rem 0 0.6rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 0.6rem;
+  font-size: 12px;
+}
+.resp-app dt { color: var(--color-text-muted); }
+.resp-app dd { margin: 0; }
+
+.resp-app .panel {
+  margin-top: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  background: var(--color-field);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 320px;
+  overflow: auto;
+}
+.resp-app .hint { font-size: 11px; margin-top: 0.35rem; }
+
+.resp-app textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.7rem 0.85rem;
+  background: var(--color-field);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.55;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.resp-app textarea:focus { outline: 1px solid var(--color-accent-2); }
+
+.resp-app .result {
+  margin-top: 0.6rem;
+  padding: 0.4rem 0.6rem;
+  background: color-mix(in srgb, var(--color-ok-text) 7%, transparent);
+  border: 1px solid var(--color-ok-bg);
+  border-radius: 4px;
+}

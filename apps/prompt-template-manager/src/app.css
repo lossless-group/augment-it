@@ -21,6 +21,15 @@
 
 .ptm-app .muted { color: var(--color-text-muted); }
 
+.ptm-app .handoff-note {
+  margin-top: 1rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--color-field);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .ptm-app code {
   background: var(--color-field);
   padding: 1px 5px;

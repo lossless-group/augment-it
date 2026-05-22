@@ -127,14 +127,17 @@ export type TokenBinding = {
   bound: boolean; // false → no matching column in the record set
 };
 
-// The result of the prompt.preview capability — the resolved request, built
-// by prompt-runner's buildRequest but never sent.
-export type PreviewResult = {
+// The result of the prompt.preview capability. prompt-runner returns either
+// the resolved request (built by buildRequest, never sent) or an error —
+// a discriminated union on `ok`.
+export type PreviewOk = {
+  ok: true;
   filled_prompt: string;
   request_body: unknown; // the exact messages.create() body
   bind: TokenBinding[];
   unbound_tokens: string[];
 };
+export type PreviewResult = PreviewOk | { ok: false; error: string };
 
 // A fired LLM response, recorded by the response-store service. Named
 // ResponseRecord (not Response) to avoid shadowing the Fetch API global.

@@ -195,9 +195,9 @@ Read-mostly, high-throughput, themed entirely with `var(--color-*)` /
 │  Row:    Acme Corp          │  Acme Corp is a logistics company   │
 │  Prompt: Company Summary    │  founded in 2014, operating across  │
 │  Model:  Opus 4.7           │  [ rendered verbose markdown —      │
-│  {{Company}} = Acme Corp    │    links, code blocks, tables,      │
-│  {{Sector}}  = Logistics    │    citations preserved ]            │
-│  [ show request JSON ]      │                                     │
+│  Output col: summary        │    links, code blocks, tables,      │
+│  Prompt fired:              │    citations preserved ]            │
+│   "Summarize Acme Corp …"   │                                     │
 ├────────────────────────────┴─────────────────────────────────────┤
 │ Flag:  ( good ) ( partial ) ( wrong ) ( needs-rerun )             │
 │ [ Accept whole response → cell ]   [ Re-run in request-reviewer ] │
@@ -207,10 +207,12 @@ Read-mostly, high-throughput, themed entirely with `var(--color-*)` /
 
 - **Response stepper** — prev/next across a `run_id`'s responses; the filter
   row narrows to unflagged / by-flag for triage throughput.
-- **Context pane (left)** — the row, the prompt, the model, the resolved
-  token bindings, and a toggle to show the stored `request_body` JSON. This
-  reuses request-reviewer's JSON-view treatment; the stored `request_body` is
-  what makes post-hoc inspection exact.
+- **Context pane (left)** — the prompt name, the record set, the model, the
+  output column, and the **prompt that fired** rendered as plain text (the
+  filled-in question, read from the stored `request_body`'s message content).
+  The **JSON request view belongs to request-reviewer, not here** — the two
+  remotes are deliberately not conflated: request-reviewer owns the request
+  (and its under-the-hood JSON), response-reviewer owns the response.
 - **Response pane (right)** — the verbose `response_text` rendered through a
   lightweight markdown renderer, structure preserved. The reviewer may edit
   the text inline before a whole-response accept.
@@ -284,9 +286,10 @@ see `Response` objects land in response-store.
 
 ### RR-Phase 3 — the review UI
 
-The response stepper and filter row, the context pane (row / prompt / model /
-bindings / request-JSON toggle), the markdown-rendered response pane, the four
-triage flag buttons wired to `response.flag`.
+The response stepper and filter row, the context pane (prompt / record set /
+model / output column / the prompt-that-fired as plain text — no JSON view,
+that is request-reviewer's), the response pane, the four triage flag buttons
+wired to `response.flag`.
 
 ### RR-Phase 4 — accept path + integration
 
