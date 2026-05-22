@@ -4,10 +4,12 @@
 // changelog for why exposing a mount function (not a component) is the
 // right shape across the federation boundary.
 //
-// ./app.css is imported as a side effect so webpack's CSS pipeline injects
-// the stylesheet — Svelte's append_styles doesn't fire reliably across the
-// federation chunk boundary.
+// theme.css (shared token system) + ./app.css are imported as side effects
+// so webpack's CSS pipeline injects them — Svelte's append_styles doesn't
+// fire reliably across the federation chunk boundary. theme.css first so
+// its :root tokens exist before app.css's var() refs resolve.
 
+import '@augment-it/theme/theme.css';
 import './app.css';
 import { mount, unmount, type Component } from 'svelte';
 import App from './App.svelte';

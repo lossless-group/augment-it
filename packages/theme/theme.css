@@ -1,0 +1,190 @@
+/* =============================================================================
+ * augment-it theme.css — the two-tier token system, three-mode contract.
+ *
+ * Adapted from the Astro Knots blueprint
+ * (astro-knots/context-v/blueprints/Maintain-Themes-Mode-Across-CSS-Tailwind.md)
+ * for a non-Astro, non-Tailwind, federated multi-remote app. No Tailwind layer;
+ * the tokens are plain CSS custom properties. One brand, three modes.
+ *
+ * TWO TIERS:
+ *   Tier 1 — named tokens   --color__name      raw palette values, `__` separator
+ *   Tier 2 — semantic tokens --color-role       what components consume, kebab-case
+ * Components reference ONLY Tier 2. To re-skin: re-point a Tier-2 token at a
+ * different Tier-1 named token. Components never change.
+ *
+ * THREE MODES, switched by `data-mode` on <html>:
+ *   dark    — the default (:root with no data-mode). augment-it's native look.
+ *   light   — warm paper, dark ink.
+ *   vibrant — dark-based, louder accent, real glows.
+ * ========================================================================== */
+
+/* -----------------------------------------------------------------------------
+ * Tier 1 — NAMED TOKENS. The raw palette: "the things we have."
+ * Components do NOT reference these. Only the Tier-2 blocks below do.
+ * The user iterates here — add a colour, re-point a semantic token, done.
+ * -------------------------------------------------------------------------- */
+:root {
+  /* greyscale — dark side */
+  --color__graphite-1000: #0c0d12;
+  --color__graphite-950:  #0f1115;
+  --color__graphite-900:  #16181f;
+  --color__graphite-850:  #1a1d27;
+  --color__graphite-800:  #232634;
+  --color__graphite-700:  #13151b;
+  --color__mist-100:      #e8eaf0;
+  --color__mist-400:      #8a8f9b;
+
+  /* greyscale — light side (warm paper / ink) */
+  --color__paper-50:   #faf9f6;
+  --color__paper-100:  #f1efe9;
+  --color__paper-200:  #f4f2ec;
+  --color__paper-300:  #ddd9cd;
+  --color__paper-0:    #ffffff;
+  --color__ink-900:    #1b1d22;
+  --color__ink-500:    #6b6f7a;
+
+  /* greyscale — vibrant side (violet-tinted near-black) */
+  --color__void-1000:  #0a0710;
+  --color__void-950:   #0c0814;
+  --color__void-900:   #1c1429;
+  --color__void-850:   #241934;
+  --color__void-800:   #3a2a52;
+  --color__void-700:   #16101f;
+  --color__halo-100:   #f4ecff;
+  --color__halo-400:   #a594c4;
+
+  /* accents — magenta-violet + cyan, per intensity */
+  --color__magenta-electric: #c75bfb;   /* dark accent */
+  --color__magenta-deep:     #9a3fd4;   /* light accent — reads on paper */
+  --color__magenta-loud:     #d96bff;   /* vibrant accent */
+  --color__cyan-bright:      #5bbcfb;   /* dark accent-2 */
+  --color__cyan-deep:        #2563a8;   /* light accent-2 */
+  --color__cyan-loud:        #54c8ff;   /* vibrant accent-2 */
+
+  /* status — success */
+  --color__green-deep:    #1b3d2f;
+  --color__green-bright:  #a4e3b5;
+  --color__green-wash:    #d8efdd;
+  --color__green-ink:     #1d6b3a;
+  --color__green-neon:    #5fffa8;
+  --color__green-void:    #143d2a;
+
+  /* status — error / danger */
+  --color__red-deep:    #3d1b1b;
+  --color__red-bright:  #f29a9a;
+  --color__red-wash:    #f6dada;
+  --color__red-ink:     #b23b3b;
+  --color__red-neon:    #ff8fb0;
+  --color__red-void:    #3d1430;
+
+  /* typeface — augment-it is a monospace tool surface */
+  --font__mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+}
+
+/* -----------------------------------------------------------------------------
+ * Tier 2 — SEMANTIC TOKENS. What every component reads.
+ * dark is the default — :root with no data-mode resolves here.
+ * -------------------------------------------------------------------------- */
+:root,
+[data-mode='dark'] {
+  --color-background:      var(--color__graphite-950);
+  --color-surface:         var(--color__graphite-700);
+  --color-surface-raised:  var(--color__graphite-1000);
+  --color-field:           var(--color__graphite-900);
+  --color-field-focus:     var(--color__graphite-850);
+  --color-border:          var(--color__graphite-800);
+  --color-text:            var(--color__mist-100);
+  --color-text-muted:      var(--color__mist-400);
+  --color-accent:          var(--color__magenta-electric);
+  --color-accent-2:        var(--color__cyan-bright);
+  --color-on-accent:       var(--color__graphite-950);
+  --color-ok-bg:           var(--color__green-deep);
+  --color-ok-text:         var(--color__green-bright);
+  --color-error-bg:        var(--color__red-deep);
+  --color-error-text:      var(--color__red-bright);
+
+  /* tints derived from the accent so they follow it automatically */
+  --color-selected-tint:   color-mix(in srgb, var(--color-accent) 9%, transparent);
+  --color-danger-tint:     color-mix(in srgb, var(--color-error-text) 7%, transparent);
+
+  /* effect tokens — moderate in dark */
+  --fx-accent-glow:  0 0 0 1px color-mix(in srgb, var(--color-accent) 30%, transparent);
+  --fx-card-shadow:  0 1px 3px rgba(0, 0, 0, 0.35);
+  --fx-flash:        color-mix(in srgb, var(--color-accent-2) 30%, transparent);
+
+  --font-mono: var(--font__mono);
+}
+
+[data-mode='light'] {
+  --color-background:      var(--color__paper-50);
+  --color-surface:         var(--color__paper-0);
+  --color-surface-raised:  var(--color__paper-100);
+  --color-field:           var(--color__paper-200);
+  --color-field-focus:     var(--color__paper-0);
+  --color-border:          var(--color__paper-300);
+  --color-text:            var(--color__ink-900);
+  --color-text-muted:      var(--color__ink-500);
+  --color-accent:          var(--color__magenta-deep);
+  --color-accent-2:        var(--color__cyan-deep);
+  --color-on-accent:       var(--color__paper-0);
+  --color-ok-bg:           var(--color__green-wash);
+  --color-ok-text:         var(--color__green-ink);
+  --color-error-bg:        var(--color__red-wash);
+  --color-error-text:      var(--color__red-ink);
+
+  --color-selected-tint:   color-mix(in srgb, var(--color-accent) 8%, transparent);
+  --color-danger-tint:     color-mix(in srgb, var(--color-error-text) 8%, transparent);
+
+  /* effect tokens — minimal in light */
+  --fx-accent-glow:  none;
+  --fx-card-shadow:  0 1px 3px rgba(27, 29, 34, 0.08);
+  --fx-flash:        color-mix(in srgb, var(--color-accent-2) 18%, transparent);
+}
+
+[data-mode='vibrant'] {
+  --color-background:      var(--color__void-950);
+  --color-surface:         var(--color__void-700);
+  --color-surface-raised:  var(--color__void-1000);
+  --color-field:           var(--color__void-900);
+  --color-field-focus:     var(--color__void-850);
+  --color-border:          var(--color__void-800);
+  --color-text:            var(--color__halo-100);
+  --color-text-muted:      var(--color__halo-400);
+  --color-accent:          var(--color__magenta-loud);
+  --color-accent-2:        var(--color__cyan-loud);
+  --color-on-accent:       var(--color__void-950);
+  --color-ok-bg:           var(--color__green-void);
+  --color-ok-text:         var(--color__green-neon);
+  --color-error-bg:        var(--color__red-void);
+  --color-error-text:      var(--color__red-neon);
+
+  --color-selected-tint:   color-mix(in srgb, var(--color-accent) 16%, transparent);
+  --color-danger-tint:     color-mix(in srgb, var(--color-error-text) 14%, transparent);
+
+  /* effect tokens — loud in vibrant */
+  --fx-accent-glow:  0 0 20px color-mix(in srgb, var(--color-accent) 45%, transparent);
+  --fx-card-shadow:  0 0 24px color-mix(in srgb, var(--color__magenta-loud) 12%, transparent);
+  --fx-flash:        color-mix(in srgb, var(--color-accent-2) 45%, transparent);
+}
+
+/* -----------------------------------------------------------------------------
+ * Base rules — replace the per-app STANDALONE_BODY_CSS hacks. Every frontend
+ * imports this file, so body / box-sizing / the theme-swap transition are
+ * defined once here.
+ * -------------------------------------------------------------------------- */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text);
+  font: 13px/1.45 var(--font-mono);
+}
+
+/* 75ms swap so cycling modes feels instant but not jarring (blueprint §8.4) */
+body,
+body * {
+  transition: background-color 75ms ease, border-color 75ms ease, color 75ms ease;
+}

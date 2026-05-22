@@ -32,6 +32,9 @@ importers:
 
   apps/prompt-template-manager:
     dependencies:
+      '@augment-it/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
       '@augment-it/workspace':
         specifier: workspace:*
         version: link:../../packages/workspace
@@ -60,6 +63,9 @@ importers:
 
   apps/record-collector:
     dependencies:
+      '@augment-it/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
       '@augment-it/workspace':
         specifier: workspace:*
         version: link:../../packages/workspace
@@ -82,6 +88,12 @@ importers:
       svelte-check:
         specifier: ^4.0.0
         version: 4.4.8(svelte@5.55.9)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  packages/theme:
+    devDependencies:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
@@ -208,6 +220,9 @@ importers:
 
   shell:
     dependencies:
+      '@augment-it/theme':
+        specifier: workspace:*
+        version: link:../packages/theme
       '@augment-it/workspace':
         specifier: workspace:*
         version: link:../packages/workspace

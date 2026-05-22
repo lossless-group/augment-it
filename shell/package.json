@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@augment-it/workspace": "workspace:*",
+    "@augment-it/theme": "workspace:*",
     "svelte": "^5.0.0"
   },
   "devDependencies": {

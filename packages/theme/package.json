@@ -1,0 +1,13 @@
+{
+  "name": "@augment-it/theme",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./theme.css": "./theme.css",
+    "./mode-switcher": "./mode-switcher.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

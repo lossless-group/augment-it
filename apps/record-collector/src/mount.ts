@@ -9,11 +9,12 @@
 // microfrontend pattern when framework-runtime singleton-sharing across
 // the federation boundary is not workable.
 //
-// Styles: ./app.css is imported as a side effect so webpack's CSS
-// pipeline (style-loader in dev) injects the stylesheet into the host
-// document.head when this module evaluates. This is how the remote's
-// styles travel across the federation boundary.
+// Styles: theme.css (the shared token system) and ./app.css are imported
+// as side effects so webpack's CSS pipeline injects them into the host
+// document.head when this module evaluates. theme.css first — its :root
+// tokens must exist before app.css's var() refs resolve.
 
+import '@augment-it/theme/theme.css';
 import './app.css';
 import { mount, unmount, type Component } from 'svelte';
 import App from './App.svelte';

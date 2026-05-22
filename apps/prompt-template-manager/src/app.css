@@ -7,30 +7,30 @@
 
 .ptm-app .ptm-status-bar {
   padding: 0.5rem 1.5rem;
-  border-bottom: 1px solid #232634;
+  border-bottom: 1px solid var(--color-border);
   font-size: 11px;
 }
 
 .ptm-app h2 {
   font-size: 0.85rem;
   margin: 1.25rem 0 0.5rem;
-  color: #c75bfb;
+  color: var(--color-accent);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.ptm-app .muted { color: #8a8f9b; }
+.ptm-app .muted { color: var(--color-text-muted); }
 
 .ptm-app code {
-  background: #16181f;
+  background: var(--color-field);
   padding: 1px 5px;
   border-radius: 3px;
 }
 
-.ptm-app .status { padding: 1px 7px; border-radius: 3px; background: #232634; }
-.ptm-app .status-open { background: #1b3d2f; color: #a4e3b5; }
+.ptm-app .status { padding: 1px 7px; border-radius: 3px; background: var(--color-border); }
+.ptm-app .status-open { background: var(--color-ok-bg); color: var(--color-ok-text); }
 .ptm-app .status-closed,
-.ptm-app .status-error { background: #3d1b1b; color: #f29a9a; }
+.ptm-app .status-error { background: var(--color-error-bg); color: var(--color-error-text); }
 
 .ptm-app .ptm-layout {
   display: grid;
@@ -42,15 +42,15 @@
 
 .ptm-app .ptm-layout > aside,
 .ptm-app .ptm-layout > section {
-  border: 1px solid #232634;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 1rem;
   min-width: 0;
 }
 
 .ptm-app button {
-  background: #c75bfb;
-  color: #0f1115;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   border: 0;
   padding: 5px 10px;
   border-radius: 4px;
@@ -60,36 +60,36 @@
 }
 .ptm-app button.danger {
   background: transparent;
-  color: #f29a9a;
-  border: 1px solid #f29a9a;
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error-text);
 }
 .ptm-app button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .ptm-app ul.prompts { list-style: none; padding: 0; margin: 0.5rem 0 0; }
 .ptm-app ul.prompts li {
   padding: 0.5rem;
-  border: 1px solid #232634;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   margin-bottom: 0.25rem;
   cursor: pointer;
 }
-.ptm-app ul.prompts li:hover { border-color: #c75bfb; }
-.ptm-app ul.prompts li.selected { border-color: #c75bfb; background: rgba(199, 91, 251, 0.06); }
+.ptm-app ul.prompts li:hover { border-color: var(--color-accent); }
+.ptm-app ul.prompts li.selected { border-color: var(--color-accent); background: var(--color-selected-tint); }
 .ptm-app ul.prompts li.empty { cursor: default; }
-.ptm-app ul.prompts li strong { display: block; color: #c75bfb; margin-bottom: 0.15rem; }
+.ptm-app ul.prompts li strong { display: block; color: var(--color-accent); margin-bottom: 0.15rem; }
 
 .ptm-app label {
   display: block;
   margin: 0.75rem 0 0;
   font-size: 11px;
-  color: #8a8f9b;
+  color: var(--color-text-muted);
 }
 .ptm-app label.checkbox,
 .ptm-app label.inline {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #e8eaf0;
+  color: var(--color-text);
   font-size: 13px;
 }
 .ptm-app label.inline input[type=number] { width: 5rem; }
@@ -101,9 +101,9 @@
   width: 100%;
   margin-top: 0.25rem;
   padding: 5px 7px;
-  background: #16181f;
-  color: #e8eaf0;
-  border: 1px solid #232634;
+  background: var(--color-field);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font: inherit;
   box-sizing: border-box;
@@ -111,7 +111,7 @@
 .ptm-app textarea { resize: vertical; }
 .ptm-app input:focus,
 .ptm-app textarea:focus,
-.ptm-app select:focus { outline: 1px solid #5bbcfb; }
+.ptm-app select:focus { outline: 1px solid var(--color-accent-2); }
 
 .ptm-app .row {
   display: flex;
@@ -129,29 +129,29 @@
   gap: 0.35rem;
   flex-wrap: wrap;
 }
-.ptm-app .token { background: #232634; }
-.ptm-app .token.bound { background: #1b3d2f; color: #a4e3b5; }
-.ptm-app .token.unbound { background: #3d1b1b; color: #f29a9a; }
+.ptm-app .token { background: var(--color-border); }
+.ptm-app .token.bound { background: var(--color-ok-bg); color: var(--color-ok-text); }
+.ptm-app .token.unbound { background: var(--color-error-bg); color: var(--color-error-text); }
 
 .ptm-app .warn {
   width: 100%;
   margin-top: 0.35rem;
-  color: #f29a9a;
+  color: var(--color-error-text);
   font-size: 11px;
 }
 
 .ptm-app .progress {
   margin-top: 0.5rem;
   padding: 0.4rem 0.6rem;
-  background: #16181f;
+  background: var(--color-field);
   border-radius: 4px;
-  color: #5bbcfb;
+  color: var(--color-accent-2);
 }
 
 .ptm-app .result {
   margin-top: 0.5rem;
   padding: 0.4rem 0.6rem;
-  background: rgba(164, 227, 181, 0.06);
-  border: 1px solid #1b3d2f;
+  background: color-mix(in srgb, var(--color-ok-text) 7%, transparent);
+  border: 1px solid var(--color-ok-bg);
   border-radius: 4px;
 }

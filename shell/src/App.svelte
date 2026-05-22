@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import ModeToggle from './ModeToggle.svelte';
 
   type MountFn = (target: HTMLElement) => { destroy: () => void };
 
@@ -95,6 +96,7 @@
   </nav>
   <div class="metrics">
     <span class="muted">federation host · :3100</span>
+    <ModeToggle />
   </div>
 </header>
 
@@ -113,46 +115,47 @@
 </main>
 
 <style>
-  :global(body) {
-    margin: 0;
-    background: #0f1115;
-    color: #e8eaf0;
-    font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
-  }
+  /* body styling lives in @augment-it/theme/theme.css — every frontend
+     imports it. The shell only styles its own chrome here, off semantic
+     tokens; the three modes follow automatically. */
   header {
     display: grid;
     grid-template-columns: auto 1fr auto;
     gap: 1.5rem;
     align-items: center;
     padding: 0.75rem 1.5rem;
-    border-bottom: 1px solid #232634;
-    background: #0c0d12;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface-raised);
     position: sticky;
     top: 0;
     z-index: 10;
   }
-  .brand strong { color: #c75bfb; font-size: 1.05rem; }
-  .brand .muted { color: #8a8f9b; }
+  .brand strong { color: var(--color-accent); font-size: 1.05rem; }
+  .brand .muted { color: var(--color-text-muted); }
   nav { display: flex; gap: 0.5rem; }
   nav button {
     background: transparent;
-    color: #e8eaf0;
-    border: 1px solid #232634;
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
     padding: 4px 12px;
     border-radius: 4px;
     font: inherit;
     cursor: pointer;
   }
-  nav button:hover { border-color: #c75bfb; }
-  nav button.active { background: rgba(199, 91, 251, 0.12); border-color: #c75bfb; color: #c75bfb; }
+  nav button:hover { border-color: var(--color-accent); }
+  nav button.active {
+    background: var(--color-selected-tint);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
   .metrics { display: flex; gap: 0.75rem; align-items: center; font-size: 11px; }
-  .muted { color: #8a8f9b; }
+  .muted { color: var(--color-text-muted); }
 
   main { min-height: calc(100vh - 56px); }
   .loading, .error-box {
     padding: 3rem 2rem;
     text-align: center;
-    color: #8a8f9b;
+    color: var(--color-text-muted);
   }
   .error-box {
     text-align: left;
@@ -160,10 +163,10 @@
     margin: 3rem auto;
   }
   .error-box pre {
-    background: #16181f;
+    background: var(--color-field);
     padding: 0.75rem;
     border-radius: 4px;
-    color: #f29a9a;
+    color: var(--color-error-text);
     white-space: pre-wrap;
   }
   .mount-target { min-height: 200px; }
