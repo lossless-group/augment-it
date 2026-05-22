@@ -25,6 +25,13 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'prompt.delete': 'prompt.delete.requested',
   // prompt execution — runs N LLM calls, can take minutes
   'prompt.run': 'prompt.run.requested',
+  // request preview — builds the request for one row, no LLM call
+  'prompt.preview': 'prompt.preview.requested',
+  // response review (post-flight)
+  'response.list': 'response.list.requested',
+  'response.get': 'response.get.requested',
+  'response.flag': 'response.flag.requested',
+  'response.accept': 'response.accept.requested',
 };
 
 const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {

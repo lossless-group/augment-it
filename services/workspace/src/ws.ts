@@ -28,6 +28,8 @@ const BROADCAST_SUBJECTS = [
   'prompt.deleted',
   'prompt.run.progress',
   'prompt.run.completed',
+  'response.created',
+  'response.flagged',
 ];
 
 type Session = {

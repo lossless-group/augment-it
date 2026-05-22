@@ -1,19 +1,23 @@
-// The run orchestration: one prompt × N rows → one derived record set.
+// The run orchestration: one prompt × N rows → one derived record set, plus
+// one recorded response per row published to response-store.
 //
 // Flow:
 //   1. fetch the prompt from prompt-store
 //   2. fetch the parent record set + its rows from row-store
 //   3. bind check — every {{token}} must be a column in the parent schema
-//   4. for each row (capped at row_limit): fill template, call Anthropic,
-//      collect the result; publish prompt.run.progress
-//   5. build a derived record set (parent rows + the new output column)
-//   6. create it via record_set.create.requested (row-store)
+//   4. pick target rows — explicit row_ids (single-record / subset), else
+//      the first row_limit rows (batch)
+//   5. per row: buildRequest, send, collect; publish response.create.requested
+//      and prompt.run.progress
+//   6. build a derived record set (parent rows + the new output column)
+//   7. create it via record_set.create.requested (row-store)
 //
-// Per-row failures don't abort the run: the failed cell gets
-// "[error: ...]" and the run completes with partial results.
+// Per-row failures don't abort the run: the failed cell gets "[error: ...]",
+// the response is still recorded, and the run completes with partial results.
 
 import { JSONCodec, type NatsConnection } from 'nats';
 import { runPrompt, describeError } from './anthropic';
+import { buildRequest } from './request';
 import { extractTokens, fillTemplate } from './template';
 
 const jc = JSONCodec();
@@ -51,7 +55,14 @@ async function request<T>(nc: NatsConnection, subject: string, body: unknown, ti
 
 export async function runPromptAgainstRecordSet(
   nc: NatsConnection,
-  args: { prompt_id: string; record_set_id: string; row_limit?: number },
+  args: {
+    prompt_id: string;
+    record_set_id: string;
+    row_limit?: number;
+    row_ids?: string[];
+    model?: string;
+    max_tokens?: number;
+  },
 ): Promise<RunResult> {
   // 1. prompt
   const promptReply = await request<{ prompt: PromptTemplate | null }>(
@@ -83,29 +94,68 @@ export async function runPromptAgainstRecordSet(
     };
   }
 
-  // 4. per-row LLM calls
-  const limit = Math.max(1, Math.min(args.row_limit ?? DEFAULT_ROW_LIMIT, rsReply.rows.length));
-  const targetRows = rsReply.rows.slice(0, limit);
+  // 4. target rows — explicit row_ids (single-record / subset, in
+  //    record-set order) or the first row_limit rows (batch).
+  let targetRows: Row[];
+  if (args.row_ids && args.row_ids.length > 0) {
+    const wanted = new Set(args.row_ids);
+    targetRows = rsReply.rows.filter((r) => wanted.has(r.row_id));
+    if (targetRows.length === 0) {
+      return { ok: false, error: `none of the requested row_ids are in "${parent.name}"` };
+    }
+  } else {
+    const limit = Math.max(1, Math.min(args.row_limit ?? DEFAULT_ROW_LIMIT, rsReply.rows.length));
+    targetRows = rsReply.rows.slice(0, limit);
+  }
+
+  // 5. per-row LLM calls
+  const run_id = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  const total = targetRows.length;
   const enrichedRows: { fields: Record<string, unknown> }[] = [];
 
   for (let i = 0; i < targetRows.length; i++) {
     const row = targetRows[i];
     const filled = fillTemplate(prompt.content, row.fields);
+    // The exact request — built once, sent by runPrompt, recorded on the
+    // response. buildRequest is the same assembler prompt.preview uses.
+    const reqBody = buildRequest(filled, {
+      model: args.model,
+      maxTokens: args.max_tokens,
+      tools: prompt.tools ?? [],
+    });
     let value: string;
     try {
-      value = await runPrompt(filled, prompt.tools ?? []);
+      value = await runPrompt(reqBody);
     } catch (err) {
       value = `[error: ${describeError(err)}]`;
       console.error(JSON.stringify({ level: 'error', msg: 'row failed', row: i, error: describeError(err) }));
     }
     enrichedRows.push({ fields: { ...row.fields, [prompt.output_column]: value } });
+
+    // Record the response post-flight — fire-and-forget to response-store.
+    // If response-store is down the publish is simply dropped; the run is
+    // unaffected (the spec's additive guarantee).
+    nc.publish(
+      'response.create.requested',
+      jc.encode({
+        run_id,
+        prompt_id: prompt.prompt_id,
+        row_id: row.row_id,
+        record_set_id: args.record_set_id,
+        output_column: prompt.output_column,
+        model: reqBody.model,
+        request_body: reqBody,
+        response_text: value,
+      }),
+    );
+
     nc.publish(
       'prompt.run.progress',
-      jc.encode({ prompt_id: prompt.prompt_id, record_set_id: args.record_set_id, done: i + 1, total: limit }),
+      jc.encode({ prompt_id: prompt.prompt_id, record_set_id: args.record_set_id, done: i + 1, total }),
     );
   }
 
-  // 5. derived schema — append the output column unless it already exists
+  // 6. derived schema — append the output column unless it already exists
   const hasOutputColumn = columnNames.has(prompt.output_column);
   const derivedFields: ColumnField[] = hasOutputColumn
     ? parent.schema.fields
@@ -114,7 +164,7 @@ export async function runPromptAgainstRecordSet(
         { name: prompt.output_column, order: parent.schema.fields.length },
       ];
 
-  // 6. create the derived record set
+  // 7. create the derived record set
   const created = await request<{ record_set: RecordSet }>(
     nc,
     'record_set.create.requested',

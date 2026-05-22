@@ -9,6 +9,7 @@
     "shell"
   ],
   "scripts": {
+    "stack": "bash scripts/dev.sh",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "start": "turbo run start",

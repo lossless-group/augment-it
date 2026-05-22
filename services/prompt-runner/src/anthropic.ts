@@ -1,24 +1,16 @@
-// Anthropic API wrapper. This is the ONLY file in augment-it that calls an
-// LLM. The API key lives in this container's environment and nowhere else.
+// Anthropic API wrapper. This is the ONLY file in augment-it that sends an
+// LLM request. The API key lives in this container's environment and nowhere
+// else.
 //
-// Model: claude-opus-4-7 by default (the claude-api skill's guidance —
-// default to the most capable model, never downgrade for cost without an
-// explicit decision). Set LLM_MODEL=claude-sonnet-4-6 in the environment
-// for the cost-sensible default on large per-row batches.
-//
-// Web search is per-prompt, not runner-wide: a prompt whose `tools` list
-// includes 'web_search' gets Anthropic's server-side web_search tool added
-// to its call; every other prompt makes a plain completion call. The
-// server runs the search loop; when it hits its iteration cap it returns
-// stop_reason 'pause_turn' and we re-send to let it continue.
+// The request body is assembled by buildRequest (./request) — the same
+// function the no-send preview uses — so what request-reviewer previews is
+// exactly what runPrompt sends. This file's job is purely: send, handle the
+// server-side web-search pause loop, extract the answer text.
 
 import Anthropic from '@anthropic-ai/sdk';
+import { DEFAULT_MODEL } from './request';
 
-const MODEL = process.env.LLM_MODEL ?? 'claude-opus-4-7';
-const MAX_TOKENS = Number(process.env.LLM_MAX_TOKENS ?? 4096);
 const MAX_PAUSE_CONTINUATIONS = 5;
-
-const WEB_SEARCH_TOOL = { type: 'web_search_20260209' as const, name: 'web_search' as const };
 
 let client: Anthropic | null = null;
 
@@ -30,8 +22,9 @@ function getClient(): Anthropic {
   return client;
 }
 
+/** The default model — used only for the startup log line. */
 export function modelName(): string {
-  return MODEL;
+  return DEFAULT_MODEL;
 }
 
 function extractText(content: Anthropic.ContentBlock[]): string {
@@ -53,38 +46,25 @@ function extractText(content: Anthropic.ContentBlock[]): string {
 }
 
 /**
- * Run one filled prompt against the model. `tools` is the prompt's
- * per-prompt capability list — if it includes 'web_search', the call gets
- * Anthropic's server-side web search. Returns the trimmed text response.
- * Throws on API errors — run.ts decides whether a single-row failure
- * aborts the run or just marks that cell.
+ * Send one pre-built request (see buildRequest) to the model and return the
+ * trimmed text answer. Handles the server-side web-search 'pause_turn' loop:
+ * 'pause_turn' means the search loop hit its iteration cap, so we re-send
+ * with the assistant turn appended to let it resume.
+ *
+ * Throws on API errors — run.ts decides whether that aborts the run or just
+ * marks the one cell.
  */
-export async function runPrompt(filledPrompt: string, tools: string[] = []): Promise<string> {
-  const useWebSearch = tools.includes('web_search');
-  const requestTools = useWebSearch ? [WEB_SEARCH_TOOL] : undefined;
+export async function runPrompt(
+  request: Anthropic.MessageCreateParamsNonStreaming,
+): Promise<string> {
+  let messages: Anthropic.MessageParam[] = request.messages;
+  let response = await getClient().messages.create(request);
 
-  const messages: Anthropic.MessageParam[] = [{ role: 'user', content: filledPrompt }];
-
-  let response = await getClient().messages.create({
-    model: MODEL,
-    max_tokens: MAX_TOKENS,
-    messages,
-    ...(requestTools ? { tools: requestTools } : {}),
-  });
-
-  // Server-side tool loop: 'pause_turn' means the server-side search loop
-  // hit its iteration cap. Re-send (assistant turn appended, no extra user
-  // message) to let it resume. Guard against an unbounded loop.
   let continuations = 0;
   while (response.stop_reason === 'pause_turn' && continuations < MAX_PAUSE_CONTINUATIONS) {
     continuations += 1;
-    messages.push({ role: 'assistant', content: response.content });
-    response = await getClient().messages.create({
-      model: MODEL,
-      max_tokens: MAX_TOKENS,
-      messages,
-      ...(requestTools ? { tools: requestTools } : {}),
-    });
+    messages = [...messages, { role: 'assistant', content: response.content }];
+    response = await getClient().messages.create({ ...request, messages });
   }
 
   return extractText(response.content);

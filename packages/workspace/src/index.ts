@@ -1,6 +1,8 @@
 export { workspace } from './state.svelte';
 export { createAdapter } from './adapter';
 export { createTransport } from './transport';
+export { MODELS, DEFAULT_MODEL, DEFAULT_MAX_TOKENS } from './models';
+export type { ModelId, ModelEntry } from './models';
 export type {
   ActiveView,
   ClientFrame,
@@ -8,13 +10,17 @@ export type {
   EventFrame,
   InvokeFrame,
   JobEvent,
+  PreviewResult,
   PromptTemplate,
   PromptTool,
   RecordSet,
+  ResponseFlag,
+  ResponseRecord,
   ResultFrame,
   Row,
   ServerFrame,
   SessionFrame,
+  TokenBinding,
   UserContext,
 } from './types';
 export type { WorkspaceAdapter } from './adapter';

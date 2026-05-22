@@ -115,3 +115,43 @@ export type SessionFrame = {
 
 export type ServerFrame = ResultFrame | EventFrame | SessionFrame;
 export type ClientFrame = InvokeFrame;
+
+// --- request-reviewer / response-reviewer surfaces ---
+// See context-v/specs/Request-Reviewer-Pre-Flight-Surface.md and
+// context-v/specs/Response-Reviewer-and-Response-Store.md.
+
+// One {{token}} in a prompt template, resolved against a record row.
+export type TokenBinding = {
+  token: string;
+  value: string | null; // the row's value, stringified; null when unbound
+  bound: boolean; // false → no matching column in the record set
+};
+
+// The result of the prompt.preview capability — the resolved request, built
+// by prompt-runner's buildRequest but never sent.
+export type PreviewResult = {
+  filled_prompt: string;
+  request_body: unknown; // the exact messages.create() body
+  bind: TokenBinding[];
+  unbound_tokens: string[];
+};
+
+// A fired LLM response, recorded by the response-store service. Named
+// ResponseRecord (not Response) to avoid shadowing the Fetch API global.
+export type ResponseFlag = 'good' | 'partial' | 'wrong' | 'needs-rerun';
+
+export type ResponseRecord = {
+  response_id: string;
+  run_id: string; // groups the N responses of one prompt.run
+  prompt_id: string;
+  row_id: string;
+  record_set_id: string;
+  output_column: string; // the column an accepted value writes to
+  model: string; // the model that actually ran
+  request_body: unknown; // the exact request that fired
+  response_text: string; // the verbose model output
+  flag: ResponseFlag | null; // null until a human triages it
+  accepted: boolean; // a value from this response reached a cell
+  created_at: string;
+  reviewed_at: string | null;
+};

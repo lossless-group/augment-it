@@ -62,10 +62,23 @@ services:
       # The only container that holds the API key. Sourced from
       # augment-it/.env (gitignored; Docker Compose auto-reads it).
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      # Override to claude-sonnet-4-6 for cheaper large per-row batches.
+      # Default model when a prompt.run names none. Per-request `model` from
+      # request-reviewer overrides this. Override to claude-sonnet-4-6 for
+      # cheaper large per-row batches.
       LLM_MODEL: ${LLM_MODEL:-claude-opus-4-7}
+
+  response-store:
+    build: ./services/response-store
+    depends_on:
+      - nats
+    environment:
+      NATS_URL: nats://nats:4222
+      RESPONSE_STORE_PATH: /data/responses.json
+    volumes:
+      - response-store-data:/data
 
 volumes:
   workspace-data:
   row-store-data:
   prompt-store-data:
+  response-store-data:
