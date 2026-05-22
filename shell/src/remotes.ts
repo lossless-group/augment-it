@@ -28,6 +28,20 @@ export const REMOTES: RemoteEntry[] = [
     // @ts-expect-error — federation remote, type comes from the MF runtime
     importMount: () => import('promptTemplateManager/mount'),
   },
+  {
+    id: 'requestReviewer',
+    label: 'Request Reviewer',
+    description: 'Pre-flight: review the resolved request, pick the model, fire it',
+    // @ts-expect-error — federation remote, type comes from the MF runtime
+    importMount: () => import('requestReviewer/mount'),
+  },
+  {
+    id: 'responseReviewer',
+    label: 'Response Reviewer',
+    description: 'Post-flight: triage responses, accept or send back for re-run',
+    // @ts-expect-error — federation remote, type comes from the MF runtime
+    importMount: () => import('responseReviewer/mount'),
+  },
 ];
 
 // Co-existence pairings — which two remotes share the viewport in Mode B,

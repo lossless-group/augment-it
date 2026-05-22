@@ -1,0 +1,39 @@
+/*
+ * response-reviewer styles. Imported as a side effect from index.ts
+ * (standalone :3005) and mount.ts (federation) — the bundler's CSS pipeline
+ * injects it in both modes. All selectors namespaced under .resp-app so they
+ * can't leak into the shell or sibling remotes.
+ */
+
+.resp-app .resp-status-bar {
+  padding: 0.5rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 11px;
+}
+
+.resp-app .resp-body { padding: 1.5rem; }
+
+.resp-app h2 {
+  font-size: 0.85rem;
+  margin: 0 0 0.75rem;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.resp-app .muted {
+  color: var(--color-text-muted);
+  max-width: 64ch;
+  line-height: 1.5;
+}
+
+.resp-app code {
+  background: var(--color-field);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.resp-app .status { padding: 1px 7px; border-radius: 3px; background: var(--color-border); }
+.resp-app .status-open { background: var(--color-ok-bg); color: var(--color-ok-text); }
+.resp-app .status-closed,
+.resp-app .status-error { background: var(--color-error-bg); color: var(--color-error-text); }
