@@ -95,6 +95,19 @@
     }
   });
 
+  // Single-record enrichment: dispatch a window event the shell hears.
+  // The shell opens the co-existence split (record-collector + prompt-
+  // template-manager side by side). Wiring the chosen record THROUGH to
+  // the prompt panel is the record-instance-model work; this just opens
+  // the layout.
+  function enrichRecord(row: Row) {
+    window.dispatchEvent(
+      new CustomEvent('augment-it:enrich-record', {
+        detail: { record_set_id: row.record_set_id, row_id: row.row_id },
+      }),
+    );
+  }
+
   async function deleteRecordSet(rs: RecordSet) {
     const confirmed = window.confirm(
       `Delete "${rs.name}" and its ${rs.row_ids.length} row${rs.row_ids.length === 1 ? '' : 's'}? This cannot be undone.`,
@@ -213,7 +226,17 @@
             .slice()
             .sort((a, b) => a.order - b.order)}
           <article class="row-card">
-            <div class="row-id">{row.row_id}</div>
+            <div class="row-card-top">
+              <span class="row-id">{row.row_id}</span>
+              <!-- single-record enrichment: tells the shell to open the
+                   co-existence split (record-collector + prompt-template-
+                   manager side by side) for this one record. -->
+              <button
+                class="enrich-one"
+                title="Enrich just this record — open the prompt panel beside it"
+                onclick={() => enrichRecord(row)}
+              >enrich ›</button>
+            </div>
             <div class="fields">
               {#each orderedFields as f (f.name)}
                 <div class="field-name" title={f.name}>{f.name}</div>

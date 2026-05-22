@@ -1,83 +1,164 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import ModeToggle from './ModeToggle.svelte';
+  import MountHost from './MountHost.svelte';
+  import { REMOTES, PAIRINGS, remoteById, type RemoteEntry } from './remotes';
+  import { layout, type LayoutMode } from './layout.svelte';
 
-  type MountFn = (target: HTMLElement) => { destroy: () => void };
+  // ---- geometry constants -------------------------------------------------
+  const HOVER_PCT = 38;       // a hovered peek neighbour expands to this width
+  const MIN_PEEK = 4;         // a peek neighbour never narrower than this
 
-  type RemoteEntry = {
+  type StageRole = 'focused' | 'prev' | 'next' | 'pair-left' | 'pair-right' | 'full';
+  type StageItem = {
     id: string;
-    label: string;
-    description: string;
-    importMount: () => Promise<Record<string, unknown>>;
+    remote: RemoteEntry;
+    widthPct: number;
+    zIndex: number;
+    role: StageRole;
   };
 
-  // As more remotes land they get added here. Each one is expected to
-  // expose a mount function (named export or default export) that takes a
-  // host-provided DOM element and returns a destroy() handle.
-  const REMOTES: RemoteEntry[] = [
-    {
-      id: 'recordCollector',
-      label: 'Record Collector',
-      description: 'Ingest CSV / XLSX, browse rows, edit cells',
-      // @ts-expect-error — federation remote, type comes from MF runtime
-      importMount: () => import('recordCollector/mount'),
-    },
-    {
-      id: 'promptTemplateManager',
-      label: 'Prompt Templates',
-      description: 'Author prompts, run them per-row to enrich record sets',
-      // @ts-expect-error — federation remote, type comes from MF runtime
-      importMount: () => import('promptTemplateManager/mount'),
-    },
-  ];
+  // ---- transient interaction state (never persisted) ----------------------
+  let hoveredNeighborId = $state<string | null>(null);
+  let stageEl = $state<HTMLDivElement | undefined>(undefined);
+  let resizing = $state<boolean>(false);
+  let splitting = $state<boolean>(false);
 
-  let activeRemoteId = $state<string>(REMOTES[0].id);
-  let loadError = $state<string | null>(null);
-  let loading = $state<boolean>(true);
-  let mountTarget: HTMLDivElement;
-  let currentMount: { destroy: () => void } | null = null;
+  // ---- the stage geometry — derived from layout + interaction -------------
+  const stage = $derived.by<StageItem[]>(() => {
+    if (layout.mode === 'full') {
+      const r = REMOTES[layout.focusIndex];
+      return r ? [{ id: r.id, remote: r, widthPct: 100, zIndex: 1, role: 'full' }] : [];
+    }
 
-  onMount(() => {
-    void loadRemote(activeRemoteId);
-    return () => {
-      currentMount?.destroy();
-    };
+    if (layout.mode === 'co-existence') {
+      const pairing = PAIRINGS.find((p) => p.key === layout.activePairKey) ?? PAIRINGS[0];
+      if (!pairing) return [];
+      const left = remoteById(pairing.left);
+      const right = remoteById(pairing.right);
+      if (!left || !right) return [];
+      const leftPct = layout.ratioFor(pairing.key, pairing.defaultLeftPct);
+      return [
+        { id: left.id, remote: left, widthPct: leftPct, zIndex: 1, role: 'pair-left' },
+        { id: right.id, remote: right, widthPct: 100 - leftPct, zIndex: 1, role: 'pair-right' },
+      ];
+    }
+
+    // peek-deck
+    const i = layout.focusIndex;
+    const focused = REMOTES[i];
+    if (!focused) return [];
+    const prev = REMOTES[i - 1];
+    const next = REMOTES[i + 1];
+    const neighbours = [prev, next].filter(Boolean) as RemoteEntry[];
+    const remainder = 100 - layout.focusedWidthPct;
+    const peekEach = neighbours.length ? Math.max(MIN_PEEK, remainder / neighbours.length) : 0;
+
+    const hoveredIsNeighbour =
+      hoveredNeighborId !== null && neighbours.some((n) => n.id === hoveredNeighborId);
+    const widthOf = (n: RemoteEntry): number =>
+      hoveredIsNeighbour && n.id === hoveredNeighborId ? HOVER_PCT : peekEach;
+
+    const items: StageItem[] = [];
+    if (prev) {
+      items.push({
+        id: prev.id, remote: prev, widthPct: widthOf(prev),
+        zIndex: prev.id === hoveredNeighborId ? 2 : 1, role: 'prev',
+      });
+    }
+    const consumed =
+      (prev ? widthOf(prev) : 0) + (next ? widthOf(next) : 0);
+    items.push({
+      id: focused.id, remote: focused, widthPct: Math.max(20, 100 - consumed),
+      zIndex: 3, role: 'focused',
+    });
+    if (next) {
+      items.push({
+        id: next.id, remote: next, widthPct: widthOf(next),
+        zIndex: next.id === hoveredNeighborId ? 2 : 1, role: 'next',
+      });
+    }
+    return items;
   });
 
-  async function loadRemote(id: string) {
-    activeRemoteId = id;
-    loadError = null;
-    loading = true;
-    currentMount?.destroy();
-    currentMount = null;
-
-    const entry = REMOTES.find((r) => r.id === id);
-    if (!entry) {
-      loadError = `unknown remote: ${id}`;
-      loading = false;
-      return;
-    }
-    try {
-      const mod = await entry.importMount();
-      // Federation contract: a remote's ./mount exposes a single mount
-      // function. The shell doesn't care what it's named — take the
-      // default export, or the first function value in the module.
-      const fn = (mod.default ?? Object.values(mod).find((v) => typeof v === 'function')) as
-        | MountFn
-        | undefined;
-      if (typeof fn !== 'function') {
-        throw new Error('remote does not export a mount function');
-      }
-      // Wait for the target div to exist (post-render)
-      await new Promise((r) => setTimeout(r, 0));
-      mountTarget.innerHTML = '';
-      currentMount = fn(mountTarget);
-      loading = false;
-    } catch (err: unknown) {
-      loadError = err instanceof Error ? err.message : String(err);
-      loading = false;
+  // ---- peek-deck: commit a neighbour as the new focus ---------------------
+  function commitFocus(remoteId: string): void {
+    const idx = REMOTES.findIndex((r) => r.id === remoteId);
+    if (idx >= 0) {
+      hoveredNeighborId = null;
+      layout.setFocusIndex(idx);
     }
   }
+
+  // ---- focused-panel edge resize (peek-deck) ------------------------------
+  function startResize(e: PointerEvent): void {
+    e.preventDefault();
+    resizing = true;
+    const onMove = (ev: PointerEvent) => {
+      if (!stageEl) return;
+      const rect = stageEl.getBoundingClientRect();
+      // distance of the cursor from the stage centre, doubled, is the
+      // focused panel's width as a fraction of the stage.
+      const centre = rect.left + rect.width / 2;
+      const pct = (Math.abs(ev.clientX - centre) * 2) / rect.width * 100;
+      layout.setFocusedWidth(pct);
+    };
+    const onUp = () => {
+      resizing = false;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  // ---- co-existence splitter drag ----------------------------------------
+  function startSplitter(e: PointerEvent): void {
+    e.preventDefault();
+    const pairing = PAIRINGS.find((p) => p.key === layout.activePairKey) ?? PAIRINGS[0];
+    if (!pairing) return;
+    splitting = true;
+    const onMove = (ev: PointerEvent) => {
+      if (!stageEl) return;
+      const rect = stageEl.getBoundingClientRect();
+      const pct = ((ev.clientX - rect.left) / rect.width) * 100;
+      layout.setRatio(pairing.key, pct);
+    };
+    const onUp = () => {
+      splitting = false;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  // ---- single-record enrich trigger (dispatched by record-collector) ------
+  onMount(() => {
+    const onEnrich = () => {
+      const pairing = PAIRINGS[0];
+      if (pairing) layout.openPair(pairing.key);
+    };
+    window.addEventListener('augment-it:enrich-record', onEnrich);
+    return () => window.removeEventListener('augment-it:enrich-record', onEnrich);
+  });
+
+  const MODE_BUTTONS: { mode: LayoutMode; label: string }[] = [
+    { mode: 'peek-deck', label: 'Deck' },
+    { mode: 'co-existence', label: 'Split' },
+    { mode: 'full', label: 'Full' },
+  ];
+
+  function selectMode(mode: LayoutMode): void {
+    if (mode === 'co-existence') {
+      const pairing = PAIRINGS[0];
+      if (pairing) layout.openPair(pairing.key);
+    } else {
+      layout.setMode(mode);
+    }
+  }
+
+  const showSplitter = $derived(layout.mode === 'co-existence' && stage.length === 2);
 </script>
 
 <header>
@@ -86,38 +167,72 @@
     <span class="muted">· shell</span>
   </div>
   <nav>
-    {#each REMOTES as r (r.id)}
-      <button
-        class:active={r.id === activeRemoteId}
-        onclick={() => loadRemote(r.id)}
-        title={r.description}
-      >{r.label}</button>
+    {#each MODE_BUTTONS as b (b.mode)}
+      <button class:active={layout.mode === b.mode} onclick={() => selectMode(b.mode)}>
+        {b.label}
+      </button>
     {/each}
   </nav>
   <div class="metrics">
-    <span class="muted">federation host · :3100</span>
+    <span class="muted">tiling host · :3100</span>
     <ModeToggle />
   </div>
 </header>
 
-<main>
-  {#if loadError}
-    <div class="error-box">
-      <h3>remote load failed</h3>
-      <pre>{loadError}</pre>
-      <p class="muted">Is the remote dev server running on its expected port?</p>
-    </div>
+<main
+  class="stage"
+  class:fast={hoveredNeighborId !== null}
+  class:dragging={resizing || splitting}
+  bind:this={stageEl}
+>
+  {#each stage as item (item.id)}
+    {@const isInteractive = item.role !== 'prev' && item.role !== 'next'}
+    <section class="slot" class:slot-peek={!isInteractive}
+      style="width: {item.widthPct}%; z-index: {item.zIndex};">
+      <MountHost remote={item.remote} />
+
+      {#if !isInteractive}
+        <!-- peek neighbour: a click-capture overlay. Hover expands it,
+             click commits it as the new focus. The live app underneath is
+             not interactive while it is a neighbour. -->
+        <button
+          class="peek-overlay"
+          aria-label={`Focus ${item.remote.label}`}
+          onmouseenter={() => (hoveredNeighborId = item.id)}
+          onmouseleave={() => (hoveredNeighborId = null)}
+          onclick={() => commitFocus(item.id)}
+        >
+          <span class="peek-label">{item.remote.label}</span>
+        </button>
+      {/if}
+
+      {#if item.role === 'focused'}
+        <!-- focused-panel resize edges — distinct pixels from the peek
+             overlays, so a resize-drag never fires a focus-commit. -->
+        <div class="resize-edge resize-edge-left"
+          onpointerdown={startResize}
+          role="separator" aria-label="Resize focused panel" tabindex="-1"></div>
+        <div class="resize-edge resize-edge-right"
+          onpointerdown={startResize}
+          role="separator" aria-label="Resize focused panel" tabindex="-1"></div>
+      {/if}
+    </section>
+  {/each}
+
+  {#if showSplitter}
+    {@const leftPct = stage[0].widthPct}
+    <div class="splitter" style="left: {leftPct}%;"
+      onpointerdown={startSplitter}
+      role="separator" aria-orientation="vertical"
+      aria-label="Resize the two panels" tabindex="-1"></div>
   {/if}
-  {#if loading && !loadError}
-    <div class="loading">loading remote…</div>
+
+  {#if stage.length === 0}
+    <div class="empty">no frontend to show</div>
   {/if}
-  <div bind:this={mountTarget} class="mount-target"></div>
 </main>
 
 <style>
-  /* body styling lives in @augment-it/theme/theme.css — every frontend
-     imports it. The shell only styles its own chrome here, off semantic
-     tokens; the three modes follow automatically. */
   header {
     display: grid;
     grid-template-columns: auto 1fr auto;
@@ -128,7 +243,9 @@
     background: var(--color-surface-raised);
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 100;
+    height: 56px;
+    box-sizing: border-box;
   }
   .brand strong { color: var(--color-accent); font-size: 1.05rem; }
   .brand .muted { color: var(--color-text-muted); }
@@ -151,23 +268,94 @@
   .metrics { display: flex; gap: 0.75rem; align-items: center; font-size: 11px; }
   .muted { color: var(--color-text-muted); }
 
-  main { min-height: calc(100vh - 56px); }
-  .loading, .error-box {
-    padding: 3rem 2rem;
-    text-align: center;
+  /* ---- the tiling stage ---- */
+  .stage {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    height: calc(100vh - 56px);
+    overflow: hidden;
+    background: var(--color-background);
+  }
+  .stage.dragging { user-select: none; cursor: col-resize; }
+
+  .slot {
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+    background: var(--color-background);
+    /* default: the slow, eased snap-back (~1.9s, slow → fast → slow) */
+    transition: width 1.9s cubic-bezier(0.45, 0.05, 0.55, 0.95);
+  }
+  /* while a neighbour is hovered, every slot redistributes FAST */
+  .stage.fast .slot { transition: width 0.2s ease-out; }
+  /* no transition mid-drag — the pointer drives the width directly */
+  .stage.dragging .slot { transition: none; }
+
+  /* the focused / interactive slot reads as raised */
+  .slot:not(.slot-peek) {
+    box-shadow: var(--fx-card-shadow);
+  }
+
+  /* peek neighbour click-capture overlay */
+  .peek-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 1.5rem;
+    background: color-mix(in srgb, var(--color-background) 55%, transparent);
+    border: 0;
+    border-left: 1px solid var(--color-border);
+    border-right: 1px solid var(--color-border);
+    cursor: pointer;
+    font: inherit;
+  }
+  .peek-overlay:hover {
+    background: color-mix(in srgb, var(--color-background) 22%, transparent);
+  }
+  .peek-label {
+    color: var(--color-text-muted);
+    font-size: 11px;
+    writing-mode: vertical-rl;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* focused-panel resize edges */
+  .resize-edge {
+    position: absolute;
+    top: 0;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 5;
+  }
+  .resize-edge-left { left: 0; }
+  .resize-edge-right { right: 0; }
+  .resize-edge:hover {
+    background: color-mix(in srgb, var(--color-accent) 25%, transparent);
+  }
+
+  /* co-existence splitter */
+  .splitter {
+    position: absolute;
+    top: 0;
+    width: 8px;
+    height: 100%;
+    margin-left: -4px;
+    cursor: col-resize;
+    z-index: 50;
+    background: var(--color-border);
+  }
+  .splitter:hover {
+    background: var(--color-accent);
+    box-shadow: var(--fx-accent-glow);
+  }
+
+  .empty {
+    margin: auto;
     color: var(--color-text-muted);
   }
-  .error-box {
-    text-align: left;
-    max-width: 600px;
-    margin: 3rem auto;
-  }
-  .error-box pre {
-    background: var(--color-field);
-    padding: 0.75rem;
-    border-radius: 4px;
-    color: var(--color-error-text);
-    white-space: pre-wrap;
-  }
-  .mount-target { min-height: 200px; }
 </style>
