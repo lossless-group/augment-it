@@ -15,12 +15,13 @@
 // rule in https://svelte.dev/e/state_invalid_placement.
 
 import { createTransport, type Transport, type TransportConfig } from './transport';
-import type { ActiveView, JobEvent, RecordSet, Row, ServerFrame, UserContext } from './types';
+import type { ActiveView, JobEvent, PromptTemplate, RecordSet, Row, ServerFrame, UserContext } from './types';
 
 class AugmentItWorkspace {
   activeView: ActiveView;
   record_sets: Record<string, RecordSet>;
   rows: Record<string, Row>;
+  prompts: Record<string, PromptTemplate>;
   events: JobEvent[];
   user: UserContext | null;
 
@@ -31,6 +32,10 @@ class AugmentItWorkspace {
     this.activeView = $state<ActiveView>({ kind: 'idle' });
     this.record_sets = $state<Record<string, RecordSet>>({});
     this.rows = $state<Record<string, Row>>({});
+    // Prompt templates — populated by the prompt-template-manager remote.
+    // record-collector leaves this empty; the singleton is a superset and
+    // each remote uses the slice it needs.
+    this.prompts = $state<Record<string, PromptTemplate>>({});
     this.events = $state.raw<JobEvent[]>([]);
     this.user = $state<UserContext | null>(null);
   }

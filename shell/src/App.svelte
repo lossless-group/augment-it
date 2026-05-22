@@ -7,7 +7,7 @@
     id: string;
     label: string;
     description: string;
-    importMount: () => Promise<{ default?: MountFn; mountRecordCollector?: MountFn }>;
+    importMount: () => Promise<Record<string, unknown>>;
   };
 
   // As more remotes land they get added here. Each one is expected to
@@ -20,6 +20,13 @@
       description: 'Ingest CSV / XLSX, browse rows, edit cells',
       // @ts-expect-error — federation remote, type comes from MF runtime
       importMount: () => import('recordCollector/mount'),
+    },
+    {
+      id: 'promptTemplateManager',
+      label: 'Prompt Templates',
+      description: 'Author prompts, run them per-row to enrich record sets',
+      // @ts-expect-error — federation remote, type comes from MF runtime
+      importMount: () => import('promptTemplateManager/mount'),
     },
   ];
 
@@ -51,7 +58,12 @@
     }
     try {
       const mod = await entry.importMount();
-      const fn = mod.mountRecordCollector ?? mod.default;
+      // Federation contract: a remote's ./mount exposes a single mount
+      // function. The shell doesn't care what it's named — take the
+      // default export, or the first function value in the module.
+      const fn = (mod.default ?? Object.values(mod).find((v) => typeof v === 'function')) as
+        | MountFn
+        | undefined;
       if (typeof fn !== 'function') {
         throw new Error('remote does not export a mount function');
       }

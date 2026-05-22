@@ -30,6 +30,34 @@ importers:
         specifier: ^5.8.3
         version: 5.9.3
 
+  apps/prompt-template-manager:
+    dependencies:
+      '@augment-it/workspace':
+        specifier: workspace:*
+        version: link:../../packages/workspace
+      svelte:
+        specifier: ^5.0.0
+        version: 5.55.9
+    devDependencies:
+      '@module-federation/enhanced':
+        specifier: ^0.18.0
+        version: 0.18.4(@rspack/core@1.7.11(@swc/helpers@0.5.21))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(webpack@5.107.1)
+      '@module-federation/rsbuild-plugin':
+        specifier: ^0.18.0
+        version: 0.18.4(@rsbuild/core@1.7.5)(@rspack/core@1.7.11(@swc/helpers@0.5.21))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(webpack@5.107.1)
+      '@rsbuild/core':
+        specifier: ^1.4.3
+        version: 1.7.5
+      '@rsbuild/plugin-svelte':
+        specifier: ^1.0.7
+        version: 1.1.1(@rsbuild/core@1.7.5)(svelte@5.55.9)(typescript@5.9.3)
+      svelte-check:
+        specifier: ^4.0.0
+        version: 4.4.8(svelte@5.55.9)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
   apps/record-collector:
     dependencies:
       '@augment-it/workspace':
@@ -72,6 +100,41 @@ importers:
       csv-parse:
         specifier: ^5.5.6
         version: 5.6.0
+      nats:
+        specifier: ^2.28.0
+        version: 2.29.3
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      tsx:
+        specifier: ^4.19.0
+        version: 4.22.3
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  services/prompt-runner:
+    dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.69.0
+        version: 0.69.0
+      nats:
+        specifier: ^2.28.0
+        version: 2.29.3
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      tsx:
+        specifier: ^4.19.0
+        version: 4.22.3
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  services/prompt-store:
+    dependencies:
       nats:
         specifier: ^2.28.0
         version: 2.29.3
@@ -172,6 +235,19 @@ importers:
         version: 5.9.3
 
 packages:
+
+  '@anthropic-ai/sdk@0.69.0':
+    resolution: {integrity: sha512-L92d2q47BSq+7slUqHBL1d2DwloulZotYGCTDt9AYRtPmYF+iK6rnwq9JaZwPPJgk+LenbcbQ/nj6gfaDFsl9w==}
+    hasBin: true
+    peerDependencies:
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      zod:
+        optional: true
+
+  '@babel/runtime@7.29.2':
+    resolution: {integrity: sha512-JiDShH45zKHWyGe4ZNVRrCjBz8Nh9TMmZG1kh4QTK8hCBTWBi8Da+i7s1fJw7/lYpM4ccepSNfqzZ/QvABBi5g==}
+    engines: {node: '>=6.9.0'}
 
   '@emnapi/core@1.10.0':
     resolution: {integrity: sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw==}
@@ -1455,6 +1531,10 @@ packages:
   json-schema-ref-resolver@3.0.0:
     resolution: {integrity: sha512-hOrZIVL5jyYFjzk7+y7n5JDzGlU8rfWDuYyHwGa2WA8/pcmMHezp2xsVwxrebD/Q9t8Nc5DboieySDpCp4WG4A==}
 
+  json-schema-to-ts@3.1.1:
+    resolution: {integrity: sha512-+DWg8jCJG2TEnpy7kOm/7/AxaYoaRbjVB4LFZLySZlWn8exGs3A4OLJR966cVvU26N7X9TWxl+Jsw7dzAqKT6g==}
+    engines: {node: '>=16'}
+
   json-schema-traverse@1.0.0:
     resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
 
@@ -2019,6 +2099,9 @@ packages:
   traverse@0.3.9:
     resolution: {integrity: sha512-iawgk0hLP3SxGKDfnDJf8wTz4p2qImnyihM5Hh/sGvQ3K37dPi/w8sRhdNIxYA1TwFwc5mDhIJq+O0RsvXBKdQ==}
 
+  ts-algebra@2.0.0:
+    resolution: {integrity: sha512-FPAhNPFMrkwz76P7cdjdmiShwMynZYN6SgOujD1urY4oNm80Ou9oMdmbR45LotcKOXoy7wSmHkRFE6Mxbrhefw==}
+
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
@@ -2145,6 +2228,12 @@ packages:
     engines: {node: '>= 10'}
 
 snapshots:
+
+  '@anthropic-ai/sdk@0.69.0':
+    dependencies:
+      json-schema-to-ts: 3.1.1
+
+  '@babel/runtime@7.29.2': {}
 
   '@emnapi/core@1.10.0':
     dependencies:
@@ -3499,6 +3588,11 @@ snapshots:
     dependencies:
       dequal: 2.0.3
 
+  json-schema-to-ts@3.1.1:
+    dependencies:
+      '@babel/runtime': 7.29.2
+      ts-algebra: 2.0.0
+
   json-schema-traverse@1.0.0: {}
 
   json5@2.2.3: {}
@@ -3975,6 +4069,8 @@ snapshots:
   tr46@0.0.3: {}
 
   traverse@0.3.9: {}
+
+  ts-algebra@2.0.0: {}
 
   tslib@2.8.1: {}
 
