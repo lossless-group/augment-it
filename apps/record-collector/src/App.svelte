@@ -53,47 +53,45 @@
     }
   }
 
-  // React to the latest broadcast event. Three $effects, one per subject,
-  // so an early-return for the row-specific handler can't swallow the
-  // record-set-level handlers.
+  // Process each broadcast event EXACTLY ONCE. Naive $effects that read
+  // `workspace.events[...]` AND write to `workspace.record_sets` / `rows`
+  // re-fire on every reactive dependency change (including selectedId),
+  // re-processing stale events and clobbering local state. Seq-based dedup
+  // with a plain (non-reactive) cursor variable means each event's handler
+  // runs the first time we see it and the effect bails on every re-fire
+  // until a genuinely-new event arrives.
+  let lastProcessedSeq = -1;
   $effect(() => {
     const ev = workspace.events[workspace.events.length - 1];
-    if (!ev) return;
-    if (ev.subject !== 'row.updated') return;
-    if (!selectedId) return;
-    const payload = ev.payload as { row_id: string; record_set_id: string; fields: Record<string, unknown> };
-    if (payload.record_set_id !== selectedId) return;
-    const existing = workspace.rows[payload.row_id];
-    if (!existing) return;
-    const merged: Row = { ...existing, fields: { ...existing.fields, ...payload.fields } };
-    workspace.rows = { ...workspace.rows, [payload.row_id]: merged };
-    rowsForSelected = rowsForSelected.map((r) => (r.row_id === merged.row_id ? merged : r));
-  });
+    if (!ev || ev.seq <= lastProcessedSeq) return;
+    lastProcessedSeq = ev.seq;
 
-  $effect(() => {
-    const ev = workspace.events[workspace.events.length - 1];
-    if (!ev) return;
-    if (ev.subject !== 'record_set.created') return;
-    void refreshList();
-  });
-
-  $effect(() => {
-    const ev = workspace.events[workspace.events.length - 1];
-    if (!ev) return;
-    if (ev.subject !== 'record_set.deleted') return;
-    const payload = ev.payload as { record_set_id: string };
-    const next = { ...workspace.record_sets };
-    const removedRows = next[payload.record_set_id]?.row_ids ?? [];
-    delete next[payload.record_set_id];
-    workspace.record_sets = next;
-    if (removedRows.length > 0) {
-      const nextRows = { ...workspace.rows };
-      for (const id of removedRows) delete nextRows[id];
-      workspace.rows = nextRows;
-    }
-    if (selectedId === payload.record_set_id) {
-      selectedId = null;
-      rowsForSelected = [];
+    if (ev.subject === 'row.updated') {
+      if (!selectedId) return;
+      const payload = ev.payload as { row_id: string; record_set_id: string; fields: Record<string, unknown> };
+      if (payload.record_set_id !== selectedId) return;
+      const existing = workspace.rows[payload.row_id];
+      if (!existing) return;
+      const merged: Row = { ...existing, fields: { ...existing.fields, ...payload.fields } };
+      workspace.rows = { ...workspace.rows, [payload.row_id]: merged };
+      rowsForSelected = rowsForSelected.map((r) => (r.row_id === merged.row_id ? merged : r));
+    } else if (ev.subject === 'record_set.created') {
+      void refreshList();
+    } else if (ev.subject === 'record_set.deleted') {
+      const payload = ev.payload as { record_set_id: string };
+      const next = { ...workspace.record_sets };
+      const removedRows = next[payload.record_set_id]?.row_ids ?? [];
+      delete next[payload.record_set_id];
+      workspace.record_sets = next;
+      if (removedRows.length > 0) {
+        const nextRows = { ...workspace.rows };
+        for (const id of removedRows) delete nextRows[id];
+        workspace.rows = nextRows;
+      }
+      if (selectedId === payload.record_set_id) {
+        selectedId = null;
+        rowsForSelected = [];
+      }
     }
   });
 
