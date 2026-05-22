@@ -19,7 +19,16 @@ import { getNats } from './nats';
 
 const jc = JSONCodec();
 
-const BROADCAST_SUBJECTS = ['record_set.created', 'record_set.deleted', 'row.updated'];
+const BROADCAST_SUBJECTS = [
+  'record_set.created',
+  'record_set.deleted',
+  'row.updated',
+  'prompt.created',
+  'prompt.updated',
+  'prompt.deleted',
+  'prompt.run.progress',
+  'prompt.run.completed',
+];
 
 type Session = {
   token: string;

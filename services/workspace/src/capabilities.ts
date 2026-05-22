@@ -17,11 +17,21 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // row operations
   'row.list': 'row.list.requested',
   'row.update': 'row.update.requested',
+  // prompt template operations
+  'prompt.list': 'prompt.list.requested',
+  'prompt.get': 'prompt.get.requested',
+  'prompt.create': 'prompt.create.requested',
+  'prompt.update': 'prompt.update.requested',
+  'prompt.delete': 'prompt.delete.requested',
+  // prompt execution — runs N LLM calls, can take minutes
+  'prompt.run': 'prompt.run.requested',
 };
 
 const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'record_set.ingest': 30_000,
   'record_set.ingest.xlsx': 30_000,
+  // a row_limit-capped run is N sequential LLM calls; give it generous room
+  'prompt.run': 600_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {

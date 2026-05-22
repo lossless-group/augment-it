@@ -8,6 +8,8 @@ export type {
   EventFrame,
   InvokeFrame,
   JobEvent,
+  PromptTemplate,
+  PromptTool,
   RecordSet,
   ResultFrame,
   Row,

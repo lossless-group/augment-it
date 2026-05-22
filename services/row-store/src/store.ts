@@ -8,7 +8,17 @@ import { dirname } from 'node:path';
 
 export type ColumnSchema = {
   fields: { name: string; order: number }[];
-  source: { kind: 'csv'; filename: string; uploaded_at: string };
+  // 'csv' for uploaded sets (the ingest services). 'derivation' for sets
+  // produced by running a prompt — prompt-runner creates these.
+  source:
+    | { kind: 'csv'; filename: string; uploaded_at: string }
+    | {
+        kind: 'derivation';
+        prompt_id: string;
+        prompt_name: string;
+        parent_record_set_id: string;
+        derived_at: string;
+      };
 };
 
 export type RecordSet = {
@@ -17,6 +27,14 @@ export type RecordSet = {
   schema: ColumnSchema;
   row_ids: string[];
   created_at: string;
+  // Present only for derived sets (output of a prompt run). Uploaded sets
+  // omit it. The lineage is what turns repeated enrichment into a chain
+  // instead of the duplicate-uploads problem.
+  derived_from?: {
+    record_set_id: string;
+    prompt_id: string;
+    added_columns: string[];
+  };
 };
 
 export type Row = {
@@ -76,6 +94,7 @@ export async function createRecordSet(params: {
   name: string;
   schema: ColumnSchema;
   rows: { fields: Record<string, unknown> }[];
+  derived_from?: RecordSet['derived_from'];
 }): Promise<{ record_set: RecordSet; rows: Row[] }> {
   const record_set_id = `rs_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   const created_at = new Date().toISOString();
@@ -92,6 +111,7 @@ export async function createRecordSet(params: {
     schema: params.schema,
     row_ids: newRows.map((r) => r.row_id),
     created_at,
+    ...(params.derived_from ? { derived_from: params.derived_from } : {}),
   };
 
   data.record_sets[record_set_id] = rs;

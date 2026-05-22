@@ -43,6 +43,29 @@ services:
     environment:
       NATS_URL: nats://nats:4222
 
+  prompt-store:
+    build: ./services/prompt-store
+    depends_on:
+      - nats
+    environment:
+      NATS_URL: nats://nats:4222
+      PROMPT_STORE_PATH: /data/prompts.json
+    volumes:
+      - prompt-store-data:/data
+
+  prompt-runner:
+    build: ./services/prompt-runner
+    depends_on:
+      - nats
+    environment:
+      NATS_URL: nats://nats:4222
+      # The only container that holds the API key. Sourced from
+      # augment-it/.env (gitignored; Docker Compose auto-reads it).
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      # Override to claude-sonnet-4-6 for cheaper large per-row batches.
+      LLM_MODEL: ${LLM_MODEL:-claude-opus-4-7}
+
 volumes:
   workspace-data:
   row-store-data:
+  prompt-store-data:

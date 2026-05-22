@@ -14,6 +14,7 @@ import {
   listRows,
   updateRow,
   type ColumnSchema,
+  type RecordSet,
 } from './store';
 
 const jc = JSONCodec();
@@ -46,6 +47,7 @@ export function registerHandlers(nc: NatsConnection): void {
         name: string;
         schema: ColumnSchema;
         rows: { fields: Record<string, unknown> }[];
+        derived_from?: RecordSet['derived_from'];
       };
       const result = await createRecordSet(payload);
       if (msg.reply) msg.respond(jc.encode(result));

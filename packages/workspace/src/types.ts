@@ -10,11 +10,17 @@
 
 export type ColumnSchema = {
   fields: { name: string; order: number }[];   // column names, in CSV-header order
-  source: {
-    kind: 'csv';
-    filename: string;
-    uploaded_at: string;                        // ISO timestamp
-  };
+  // 'csv' for uploaded sets (ingest / xlsx-ingest); 'derivation' for sets
+  // produced by running a prompt (prompt-runner).
+  source:
+    | { kind: 'csv'; filename: string; uploaded_at: string }
+    | {
+        kind: 'derivation';
+        prompt_id: string;
+        prompt_name: string;
+        parent_record_set_id: string;
+        derived_at: string;
+      };
 };
 
 export type RecordSet = {
@@ -23,6 +29,35 @@ export type RecordSet = {
   schema: ColumnSchema;
   row_ids: string[];                            // ordered references into rows
   created_at: string;
+  // Present only for derived sets (the output of a prompt run). Uploaded
+  // sets omit it. Lineage turns repeated enrichment into a chain.
+  derived_from?: {
+    record_set_id: string;
+    prompt_id: string;
+    added_columns: string[];
+  };
+};
+
+// A prompt template — authored in prompt-template-manager, stored in
+// prompt-store, executed per-row by prompt-runner. {{token}} names are
+// derived from `content` at bind time, never stored separately.
+//
+// `tools` is the per-prompt capability list — the prompt declares what
+// server-side tools its LLM call needs. Walking-skeleton supports one
+// value: 'web_search'. A prompt without it makes a plain completion call;
+// a prompt with it gets Anthropic's server-side web search. The capability
+// is a property of the prompt, not a runner-wide hardcode.
+export type PromptTool = 'web_search';
+
+export type PromptTemplate = {
+  prompt_id: string;
+  name: string;
+  description: string;
+  content: string;
+  output_column: string;
+  tools: PromptTool[];
+  created_at: string;
+  updated_at: string;
 };
 
 export type Row = {
