@@ -184,23 +184,22 @@
     <button class="secondary" onclick={refreshList}>refresh</button>
     <ul class="records">
       {#each recordSets as rs (rs.record_set_id)}
-        <li
-          class:selected={rs.record_set_id === selectedId}
-          onclick={() => selectRs(rs.record_set_id)}
-          onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectRs(rs.record_set_id); } }}
-          role="button"
-          tabindex="0"
-        >
-          <div class="rs-row-top">
+        <li class:selected={rs.record_set_id === selectedId}>
+          <button
+            type="button"
+            class="rs-select"
+            onclick={() => selectRs(rs.record_set_id)}
+          >
             <strong>{rs.name}</strong>
-            <button
-              class="rs-delete"
-              title="Delete this record set and all its rows"
-              onclick={(e) => { e.stopPropagation(); void deleteRecordSet(rs); }}
-              aria-label="delete {rs.name}"
-            >×</button>
-          </div>
-          <span class="muted">{rs.schema.fields.length} cols · {rs.row_ids.length} rows</span>
+            <span class="muted">{rs.schema.fields.length} cols · {rs.row_ids.length} rows</span>
+          </button>
+          <button
+            type="button"
+            class="rs-delete"
+            title="Delete this record set and all its rows"
+            onclick={() => { void deleteRecordSet(rs); }}
+            aria-label="delete {rs.name}"
+          >×</button>
         </li>
       {/each}
       {#if recordSets.length === 0}

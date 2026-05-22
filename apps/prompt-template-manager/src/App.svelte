@@ -159,15 +159,11 @@
       <button onclick={newPrompt}>+ new prompt</button>
       <ul class="prompts">
         {#each prompts as p (p.prompt_id)}
-          <li
-            class:selected={p.prompt_id === selectedPromptId}
-            onclick={() => loadIntoEditor(p)}
-            onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); loadIntoEditor(p); } }}
-            role="button"
-            tabindex="0"
-          >
-            <strong>{p.name}</strong>
-            <span class="muted">→ {p.output_column}{p.tools.includes('web_search') ? ' · web' : ''}</span>
+          <li class:selected={p.prompt_id === selectedPromptId}>
+            <button type="button" class="prompt-select" onclick={() => loadIntoEditor(p)}>
+              <strong>{p.name}</strong>
+              <span class="muted">→ {p.output_column}{p.tools.includes('web_search') ? ' · web' : ''}</span>
+            </button>
           </li>
         {/each}
         {#if prompts.length === 0}

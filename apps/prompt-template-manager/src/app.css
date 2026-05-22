@@ -76,16 +76,26 @@
 
 .ptm-app ul.prompts { list-style: none; padding: 0; margin: 0.5rem 0 0; }
 .ptm-app ul.prompts li {
-  padding: 0.5rem;
   border: 1px solid var(--color-border);
   border-radius: 4px;
   margin-bottom: 0.25rem;
-  cursor: pointer;
 }
 .ptm-app ul.prompts li:hover { border-color: var(--color-accent); }
 .ptm-app ul.prompts li.selected { border-color: var(--color-accent); background: var(--color-selected-tint); }
-.ptm-app ul.prompts li.empty { cursor: default; }
-.ptm-app ul.prompts li strong { display: block; color: var(--color-accent); margin-bottom: 0.15rem; }
+.ptm-app ul.prompts li.empty { padding: 0.5rem; }
+.ptm-app ul.prompts .prompt-select {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 0.5rem;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.ptm-app ul.prompts .prompt-select strong { display: block; color: var(--color-accent); margin-bottom: 0.15rem; }
 
 .ptm-app label {
   display: block;
