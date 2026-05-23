@@ -15,6 +15,7 @@ import type { WebSocket } from '@fastify/websocket';
 import { JSONCodec, type Subscription } from 'nats';
 import { isValid, mint } from './auth';
 import { dispatch } from './capabilities';
+import { dispatchChatTurn } from './chat';
 import { getNats } from './nats';
 
 const jc = JSONCodec();
@@ -22,6 +23,7 @@ const jc = JSONCodec();
 const BROADCAST_SUBJECTS = [
   'record_set.created',
   'record_set.deleted',
+  'record_set.archived',
   'row.updated',
   'prompt.created',
   'prompt.updated',
@@ -92,32 +94,70 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
         app.log.warn('ws: invalid JSON frame');
         return;
       }
-      const f = frame as { kind?: string; id?: string; capability?: string; args?: unknown };
-      if (f.kind !== 'invoke' || !f.id || !f.capability) {
-        app.log.warn({ frame: f }, 'ws: unexpected frame shape');
+      const f = frame as {
+        kind?: string;
+        id?: string;
+        capability?: string;
+        args?: unknown;
+        message?: string;
+        thread_id?: string;
+        context?: { focused_prompt_id?: string; record_set_id?: string };
+        thread?: { role: 'user' | 'assistant'; content: string }[];
+        suggestions?: { capability: string; hint: string }[];
+      };
+
+      // --- invoke frame: existing capability dispatch path. ---
+      if (f.kind === 'invoke' && f.id && f.capability) {
+        try {
+          const result = await dispatch(f.capability, f.args ?? {});
+          socket.send(JSON.stringify({ kind: 'result', id: f.id, ok: true, result }));
+        } catch (err: unknown) {
+          const error = err instanceof Error ? err.message : String(err);
+          socket.send(JSON.stringify({ kind: 'result', id: f.id, ok: false, error }));
+        }
         return;
       }
-      try {
-        const result = await dispatch(f.capability, f.args ?? {});
-        socket.send(
-          JSON.stringify({
-            kind: 'result',
-            id: f.id,
-            ok: true,
-            result,
-          }),
-        );
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        socket.send(
-          JSON.stringify({
-            kind: 'result',
-            id: f.id,
-            ok: false,
-            error,
-          }),
-        );
+
+      // --- chat_turn frame: route through chat dispatch. ---
+      if (f.kind === 'chat_turn' && f.id && f.message) {
+        try {
+          const result = await dispatchChatTurn({
+            message: f.message,
+            thread: f.thread,
+            context: f.context,
+            suggestions: f.suggestions,
+          });
+          if (!result.ok) {
+            socket.send(JSON.stringify({ kind: 'chat_error', id: f.id, error: result.error }));
+            return;
+          }
+          if (result.tool_name === 'chat_answer') {
+            socket.send(JSON.stringify({ kind: 'chat_response', id: f.id, mode: 'answer', text: result.input.text }));
+          } else if (result.tool_name === 'chat_propose') {
+            socket.send(JSON.stringify({
+              kind: 'chat_response',
+              id: f.id,
+              mode: 'propose',
+              text: result.input.text,
+              proposals: result.input.proposals,
+            }));
+          } else {
+            socket.send(JSON.stringify({
+              kind: 'chat_response',
+              id: f.id,
+              mode: 'invoke',
+              text: result.input.text,
+              tool_call: { capability: result.input.capability, args: result.input.args },
+            }));
+          }
+        } catch (err: unknown) {
+          const error = err instanceof Error ? err.message : String(err);
+          socket.send(JSON.stringify({ kind: 'chat_error', id: f.id, error }));
+        }
+        return;
       }
+
+      app.log.warn({ frame: f }, 'ws: unexpected frame shape');
     });
 
     socket.on('close', () => {

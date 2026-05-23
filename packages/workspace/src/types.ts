@@ -11,7 +11,8 @@
 export type ColumnSchema = {
   fields: { name: string; order: number }[];   // column names, in CSV-header order
   // 'csv' for uploaded sets (ingest / xlsx-ingest); 'derivation' for sets
-  // produced by running a prompt (prompt-runner).
+  // produced by running a prompt (prompt-runner); 'promotion' for sets
+  // produced by record_set.promote.
   source:
     | { kind: 'csv'; filename: string; uploaded_at: string }
     | {
@@ -20,6 +21,12 @@ export type ColumnSchema = {
         prompt_name: string;
         parent_record_set_id: string;
         derived_at: string;
+      }
+    | {
+        kind: 'promotion';
+        promoted_from: string[];
+        promoted_at: string;
+        record_count: number;
       };
 };
 
@@ -36,6 +43,25 @@ export type RecordSet = {
     prompt_id: string;
     added_columns: string[];
   };
+  // Set true by the promotion mechanic when this set is superseded.
+  // See context-v/specs/Enhanced-Records-List-and-Promotion-Checkpoint.md.
+  archived?: boolean;
+  // Set when this RecordSet was produced by record_set.promote; reads the
+  // lineage without parsing names.
+  promoted_from?: {
+    record_set_ids: string[];
+    promoted_at: string;
+    record_count: number;
+  };
+};
+
+// One cemented triage state on a row, keyed by prompt_id in
+// Row.fields.triage_states. See the Enhanced-Records-List spec.
+export type CementedTriage = {
+  flag: ResponseFlag | null;          // ResponseFlag declared further down
+  accepted: boolean;
+  response_id: string;                // provenance — which response produced this state
+  cemented_at: string;                // promotion timestamp, ISO
 };
 
 // A prompt template — authored in prompt-template-manager, stored in
@@ -63,7 +89,15 @@ export type PromptTemplate = {
 export type Row = {
   row_id: string;
   record_set_id: string;                        // which upload this row belongs to
-  fields: Record<string, unknown>;              // keys are whatever the CSV had
+  // Dynamic — schema columns come from the upload's CSV headers. A handful
+  // of RESERVED side-channel keys also live here, distinct from CSV columns:
+  //   - 'record_uuid'    string         — stable identity across derivations
+  //   - 'helpful_links'  HelpfulLink[]  — human-captured side-channel links
+  //   - 'archived'       boolean        — row-level archive (drops out of promotion)
+  //   - 'triage_states'  Record<promptId, CementedTriage>  — cemented at promotion
+  // Reserved keys are NEVER ingested from CSV headers; the ingest service
+  // refuses or namespaces any incoming column that collides.
+  fields: Record<string, unknown>;
   status?: string;
 };
 
@@ -129,8 +163,56 @@ export type SessionFrame = {
   token: string;
 };
 
-export type ServerFrame = ResultFrame | EventFrame | SessionFrame;
-export type ClientFrame = InvokeFrame;
+// --- Chat surface frames ---
+// See context-v/blueprints/Chat-As-Verb-Surface-Patterns.md (ai-labs).
+// The chat is layered ON TOP of the invoke/result surface — a chat_turn
+// produces a chat_response, and any capability the chat suggests is
+// dispatched through the same InvokeFrame/ResultFrame as everything else.
+
+export type ChatProposal = {
+  capability: string;            // e.g. 'prompt.draft'
+  args: unknown;                 // prefilled args the user can edit
+  hint: string;                  // one-line label for the affordance
+};
+
+export type ChatToolCall = {
+  capability: string;
+  args: unknown;
+};
+
+export type ChatTurnFrame = {
+  kind: 'chat_turn';
+  id: string;                    // turn id; reused in the response
+  message: string;               // the user's free-text message
+  thread_id?: string;            // groups turns in one conversation
+  /**
+   * Optional context the chat surface knows but the server doesn't —
+   * the active prompt draft id being discussed, etc. The server inlines
+   * this into the user-message slab of the prompt so the model can act
+   * on it without a separate fetch.
+   */
+  context?: { focused_prompt_id?: string; record_set_id?: string };
+};
+
+export type ChatResponseMode = 'answer' | 'propose' | 'invoke';
+
+export type ChatResponseFrame = {
+  kind: 'chat_response';
+  id: string;                    // matches the chat_turn id
+  mode: ChatResponseMode;
+  text: string;                  // the model's prose framing (always present)
+  proposals?: ChatProposal[];    // when mode === 'propose'
+  tool_call?: ChatToolCall;      // when mode === 'invoke'
+};
+
+export type ChatErrorFrame = {
+  kind: 'chat_error';
+  id: string;
+  error: string;
+};
+
+export type ServerFrame = ResultFrame | EventFrame | SessionFrame | ChatResponseFrame | ChatErrorFrame;
+export type ClientFrame = InvokeFrame | ChatTurnFrame;
 
 // --- request-reviewer / response-reviewer surfaces ---
 // See context-v/specs/Request-Reviewer-Pre-Flight-Surface.md and

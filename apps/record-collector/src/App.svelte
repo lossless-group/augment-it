@@ -238,21 +238,34 @@
             </div>
             <div class="fields">
               {#each orderedFields as f (f.name)}
+                {@const value = row.fields[f.name]}
+                {@const isStructured = value !== null && typeof value === 'object'}
                 <div class="field-name" title={f.name}>{f.name}</div>
-                <div
-                  class="field-value"
-                  contenteditable="true"
-                  role="textbox"
-                  tabindex="0"
-                  onblur={(e) =>
-                    commitEdit(row, f.name, (e.currentTarget as HTMLDivElement).textContent ?? '')}
-                  onkeydown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      (e.currentTarget as HTMLDivElement).blur();
-                    }
-                  }}
-                >{row.fields[f.name] ?? ''}</div>
+                {#if isStructured}
+                  <!-- Structured value (array or object) — JSON-stringified
+                       and read-only in this surface. Inline editing of JSON
+                       in a contenteditable is a data-loss vector; if the
+                       user wants to edit structured data, that's a richer
+                       editor's job (a future feature). -->
+                  <div class="field-value field-value-json" title="structured value (read-only here)">
+                    {JSON.stringify(value)}
+                  </div>
+                {:else}
+                  <div
+                    class="field-value"
+                    contenteditable="true"
+                    role="textbox"
+                    tabindex="0"
+                    onblur={(e) =>
+                      commitEdit(row, f.name, (e.currentTarget as HTMLDivElement).textContent ?? '')}
+                    onkeydown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        (e.currentTarget as HTMLDivElement).blur();
+                      }
+                    }}
+                  >{value ?? ''}</div>
+                {/if}
               {/each}
             </div>
           </article>

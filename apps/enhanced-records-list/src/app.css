@@ -1,0 +1,283 @@
+/*
+ * enhanced-records-list styles. Side-effect import from mount.ts + index.ts.
+ * All selectors namespaced under .erl-app so they can't leak into the
+ * shell or sibling remotes.
+ *
+ * Tokens (--color-*, --space-*, --radius-*) come from @augment-it/theme.
+ */
+
+.erl-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: var(--font-sans, system-ui);
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-size: 13px;
+}
+
+.erl-app .erl-status {
+  padding: 0.4rem 0.8rem;
+  font-size: 11px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+.erl-app .erl-status.open { color: var(--color-accent); }
+.erl-app .erl-status strong { color: var(--color-text); font-weight: 500; }
+
+.erl-app .erl-parent-picker {
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 12px;
+}
+.erl-app .erl-parent-picker select {
+  background: var(--color-field, var(--color-bg));
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font: inherit;
+}
+
+/* --- Filter chip row --- */
+.erl-app .erl-filters {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid var(--color-border);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.erl-app .filter-chip {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 11px;
+  background: transparent;
+}
+.erl-app .filter-chip.active {
+  background: var(--color-selected-tint);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.erl-app .filter-chip.disabled {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+.erl-app .filter-row-note {
+  font-size: 10px;
+  font-style: italic;
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+/* --- Table --- */
+.erl-app .erl-table-wrap {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+.erl-app .erl-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.erl-app .erl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.erl-app .erl-table th,
+.erl-app .erl-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+}
+.erl-app .erl-table th {
+  position: sticky;
+  top: 0;
+  background: var(--color-surface-raised, var(--color-bg));
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  border-bottom: 2px solid var(--color-border);
+  z-index: 1;
+}
+.erl-app .erl-table tr:hover td {
+  background: var(--color-field, transparent);
+}
+.erl-app .col-check { width: 28px; }
+.erl-app .col-identity {
+  font-weight: 500;
+  max-width: 24em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.erl-app .col-enriched {
+  max-width: 28em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+}
+/* Removed: helpful_links special rendering (now generic JSON via formatCell) */
+.erl-app .col-origin {
+  width: 9em;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+/* --- Bottom action bar --- */
+.erl-app .erl-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0.8rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-raised, var(--color-bg));
+}
+.erl-app .promote-btn {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent, var(--color-bg));
+  border-radius: var(--radius-md, 6px);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.erl-app .promote-btn:disabled {
+  background: transparent;
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+  cursor: not-allowed;
+}
+.erl-app .erl-note {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+.erl-app .erl-error {
+  font-size: 11px;
+  color: var(--color-warn, #c66);
+  font-family: var(--font-mono, monospace);
+}
+
+/* --- Success banner — celebratory, prominent, with the canonical name front-and-center --- */
+.erl-app .erl-success-banner {
+  margin: 0.6rem 0.8rem;
+  padding: 1.1rem 1.3rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-accent);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-accent) 14%, transparent),
+    color-mix(in srgb, var(--color-accent) 4%, transparent)
+  );
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  animation: erl-success-pop 0.35s ease-out;
+}
+@keyframes erl-success-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.erl-app .success-icon {
+  font-size: 28px;
+  line-height: 1;
+  color: var(--color-accent);
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+.erl-app .success-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+  flex: 1;
+}
+.erl-app .success-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+.erl-app .success-name {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  word-break: break-all;
+  line-height: 1.35;
+}
+.erl-app .success-meta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.erl-app .success-meta strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+.erl-app .success-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+}
+.erl-app .success-primary,
+.erl-app .success-secondary {
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+}
+.erl-app .success-primary {
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  color: var(--color-on-accent, var(--color-bg));
+}
+.erl-app .success-primary:hover {
+  filter: brightness(1.08);
+}
+.erl-app .success-secondary {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+.erl-app .success-secondary:hover {
+  border-color: var(--color-accent);
+}
+.erl-app .success-howto {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-top: 0.3rem;
+  padding-top: 0.4rem;
+  border-top: 1px dashed var(--color-border);
+}
+.erl-app .success-howto strong {
+  color: var(--color-accent);
+}

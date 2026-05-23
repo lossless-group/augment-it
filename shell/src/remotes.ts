@@ -42,7 +42,30 @@ export const REMOTES: RemoteEntry[] = [
     // @ts-expect-error — federation remote, type comes from the MF runtime
     importMount: () => import('responseReviewer/mount'),
   },
+  {
+    id: 'enhancedRecordsList',
+    label: 'Enhanced Records',
+    description: 'Record-grained checkpoint between enrichment passes',
+    // @ts-expect-error — federation remote, type comes from the MF runtime
+    importMount: () => import('enhancedRecordsList/mount'),
+  },
 ];
+
+// CHAT_REMOTE is intentionally NOT in REMOTES. The chat surface is a
+// persistent left-rail companion to whatever Window the user is focused on
+// — it doesn't rotate, doesn't tile, doesn't co-exist. It just sits next to
+// the user wherever they go. See App.svelte's grid layout: header on top,
+// chat-rail on the left, stage (REMOTES rotation) on the right.
+//
+// The federation registration is still in rsbuild.config.ts so the dynamic
+// import works; only the rotation list is different from a normal remote.
+export const CHAT_REMOTE: RemoteEntry = {
+  id: 'chat',
+  label: 'Chat',
+  description: 'Author prompts conversationally — draft → improve → apply',
+  // @ts-expect-error — federation remote, type comes from the MF runtime
+  importMount: () => import('chat/mount'),
+};
 
 // Co-existence pairings — which two remotes share the viewport in Mode B,
 // and the default left-panel width %. Different pairs want different
@@ -60,6 +83,15 @@ export const PAIRINGS: Pairing[] = [
     left: 'recordCollector',
     right: 'promptTemplateManager',
     defaultLeftPct: 30, // record-collector 30 / prompt-template-manager 70
+  },
+  {
+    // Per Enhanced-Records-List spec §"Surface": pair the new checkpoint
+    // surface with Record Collector so the user can flip between "all
+    // my data raw" (left) and "the unified curation checkpoint" (right).
+    key: 'recordCollector+enhancedRecordsList',
+    left: 'recordCollector',
+    right: 'enhancedRecordsList',
+    defaultLeftPct: 25, // record-collector narrower; the checkpoint table needs room
   },
 ];
 

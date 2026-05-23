@@ -8,12 +8,15 @@
 import { JSONCodec, type NatsConnection } from 'nats';
 import {
   addHelpfulLink,
+  archiveRecordSet,
+  archiveRow,
   createRecordSet,
   deleteRecordSet,
   getRecordSet,
   getRow,
   listRecordSets,
   listRows,
+  promoteRecordSet,
   removeHelpfulLink,
   updateRow,
   type ColumnSchema,
@@ -165,6 +168,82 @@ export function registerHandlers(nc: NatsConnection): void {
       };
       try {
         const row = await removeHelpfulLink(row_id, link_id);
+        if (msg.reply) msg.respond(jc.encode({ row }));
+        nc.publish(
+          'row.updated',
+          jc.encode({
+            row_id: row.row_id,
+            record_set_id: row.record_set_id,
+            fields: row.fields,
+          }),
+        );
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // record_set.promote.requested — snapshot a source set into a canonical
+  // successor. Archives the source. See
+  // context-v/specs/Enhanced-Records-List-and-Promotion-Checkpoint.md.
+  (async () => {
+    const sub = nc.subscribe('record_set.promote.requested');
+    for await (const msg of sub) {
+      const { source_record_set_id, name } = jc.decode(msg.data) as {
+        source_record_set_id: string;
+        name?: string;
+      };
+      try {
+        const result = await promoteRecordSet({ source_record_set_id, name });
+        if (msg.reply) msg.respond(jc.encode(result));
+        // Broadcast both the create and the archive so subscribers can react.
+        nc.publish(
+          'record_set.created',
+          jc.encode({
+            record_set_id: result.record_set.record_set_id,
+            name: result.record_set.name,
+            row_count: result.rows.length,
+            kind: 'promotion',
+          }),
+        );
+        nc.publish(
+          'record_set.archived',
+          jc.encode({ record_set_id: source_record_set_id }),
+        );
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // record_set.archive.requested — mark a set as archived without
+  // promoting. Used to manually hide a stale or duplicate set.
+  (async () => {
+    const sub = nc.subscribe('record_set.archive.requested');
+    for await (const msg of sub) {
+      const { record_set_id } = jc.decode(msg.data) as { record_set_id: string };
+      try {
+        const rs = await archiveRecordSet(record_set_id);
+        if (msg.reply) msg.respond(jc.encode({ record_set: rs }));
+        nc.publish('record_set.archived', jc.encode({ record_set_id }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // row.archive.requested — set Row.fields.archived = true. The only
+  // mechanism for a record to drop out of the canonical lineage at the
+  // next promotion (per the spec).
+  (async () => {
+    const sub = nc.subscribe('row.archive.requested');
+    for await (const msg of sub) {
+      const { row_id } = jc.decode(msg.data) as { row_id: string };
+      try {
+        const row = await archiveRow(row_id);
         if (msg.reply) msg.respond(jc.encode({ row }));
         nc.publish(
           'row.updated',

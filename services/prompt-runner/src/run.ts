@@ -164,6 +164,11 @@ export async function runPromptAgainstRecordSet(
       clearTimeout(timeoutId);
       runSignal?.removeEventListener('abort', onRunAbort);
     }
+    // The spread of `row.fields` is load-bearing: it propagates record_uuid
+    // (and helpful_links, and any other side-channel field) from parent
+    // row to derived row without explicit handling. See
+    // context-v/specs/Enhanced-Records-List-and-Promotion-Checkpoint.md
+    // §"At derivation". Do not refactor this to copy specific keys.
     enrichedRows.push({ fields: { ...row.fields, [prompt.output_column]: value } });
 
     // Record the response post-flight — fire-and-forget to response-store.

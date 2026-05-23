@@ -352,6 +352,87 @@ Priority order:
 - [ ] Append the `## v0.0.1 Session Notes` section to this file (Phase 6).
 - [ ] If anything in [[Chat-As-Verb-Surface-Patterns]] or [[Per-App-Workspace-Conventions]] proved wrong, bump same-session.
 
+## Pre-rehearsal implementation notes (2026-05-22)
+
+The plan was authored before walking the augment-it tree; recon during
+implementation surfaced four things worth recording. Captured here in
+advance of Phase 6 so the post-rehearsal write-up only adds what hurts
+at demo time.
+
+### Substrate was further along than the plan assumed
+
+Augment-it already had: `services/prompt-store` (with the PromptTemplate
+entity, NATS handlers, CRUD), `services/prompt-runner` (the LLM gateway —
+`anthropic.ts` carries a comment that **it is the ONLY file that sends
+LLM requests**), `services/workspace` (the dispatch surface with
+`CAPABILITY_TO_SUBJECT`), and `packages/workspace` (Svelte 5 singleton,
+adapter, transport, types). The plan's Phase 0 ("wire prompt parameter
+into the enrichment runner") was already done — `prompt.run` exists.
+
+### The LLM-gateway invariant changed the chat service architecture
+
+Plan called for a new `services/chat/` container with its own Anthropic
+call. The `anthropic.ts` comment makes "only one container holds the API
+key" a security invariant, not just a convention. Respecting it: no new
+container. Browser → workspace WebSocket → workspace assembles the
+four-slab prompt → publishes `chat.turn.requested` to NATS → prompt-runner
+makes the SDK call → returns the tool_use block → workspace translates
+to a `ChatResponseFrame` → browser. Container count stays at the existing
+seven backend services.
+
+### Adapter-shape coverage tightened from "two of four" to "one of four"
+
+ScriptCapability doesn't fit augment-it's substrate — services are
+NATS-addressable, not shell-invocable. McpCapability and SkillCapability
+were already deferred. All four v0.0.1 capabilities (records.list,
+prompt.draft, prompt.improve, prompt.apply) are TS handlers. The
+blueprint's full Pattern 1 (four adapter shapes) is NOT proven by v0.0.1;
+the gated-enhancement triad is. v0.0.2 brings the other three adapter
+shapes via firecrawl/tavily MCP wrap, a SkillCapability wrap of
+`crawl-fetch-ingest`, and a real ScriptCapability if any new service
+warrants it.
+
+Postconditions still ship — at the workspace-reply-evaluation layer in
+`services/prompt-runner/src/apply.ts`, not at a shell-process layer. Same
+"monitor quality of command execution and output" story, different
+mechanics.
+
+### What changed in the existing codebase
+
+| Layer | New | Modified |
+|---|---|---|
+| `services/prompt-store/src/store.ts` | `createDraft`, `cloneAsDraft`, `markApplied`; `PromptStatus`, `RecordSetContext` types | `PromptTemplate` (optional draft-versioning fields); `load` backfills `status='applied'` for existing prompts |
+| `services/prompt-store/src/handlers.ts` | Three subjects: `prompt.draft.save.requested`, `prompt.draft.improve.save.requested`, `prompt.mark_applied.requested` | — |
+| `services/prompt-runner/src/drafter.ts` | New file — `draftPrompt`, `improvePrompt` (LLM calls + persistence via NATS) | — |
+| `services/prompt-runner/src/apply.ts` | New file — `applyPrompt` (wraps `runPromptAgainstRecordSet` + postcondition eval + status flip) | — |
+| `services/prompt-runner/src/chat-turn.ts` | New file — `registerChatTurnHandler` (the LLM call for chat verb routing) | — |
+| `services/prompt-runner/src/server.ts` | — | Subscribed to four new subjects: `prompt.draft.requested`, `prompt.improve.requested`, `prompt.apply.requested`, `chat.turn.requested` |
+| `services/workspace/src/capabilities.ts` | — | Three new entries in `CAPABILITY_TO_SUBJECT` (`prompt.draft`, `prompt.improve`, `prompt.apply`) + matching timeouts |
+| `services/workspace/src/chat.ts` | New file — four-slab prompt assembly, `CHAT_TOOLS`, `dispatchChatTurn` | — |
+| `services/workspace/src/ws.ts` | — | Handles new `chat_turn` ClientFrame; emits `chat_response` / `chat_error` ServerFrame |
+| `packages/workspace/src/types.ts` | `ChatTurnFrame`, `ChatResponseFrame`, `ChatErrorFrame`, `ChatProposal`, `ChatToolCall`, `ChatResponseMode` | `ClientFrame` and `ServerFrame` unions expanded |
+| `packages/workspace/src/transport.ts` | `chatTurn()` method; `chatPending` map | — |
+| `packages/workspace/src/state.svelte.ts` | `chatTurn()` method; `last_capability` field | `invoke()` updates `last_capability` |
+| `packages/workspace/src/anticipation.ts` | New file — flat lookup map + `suggest()` | — |
+| `packages/workspace/src/index.ts` | Exports for `suggest`, `Suggestion`, all chat-related types | — |
+| `apps/chat/` | New federation remote (port 3006) — `App.svelte`, `ChatSurface.svelte`, `CharacterCastRow.svelte`, `ResponseModeRenderer.svelte`, `PromptDraftPanel.svelte`, `chat-state.svelte.ts`, `mount.ts`, `index.ts`, `app.css`, `package.json`, `rsbuild.config.ts`, `tsconfig.json` | — |
+| `shell/rsbuild.config.ts` | — | `chat` added to `remotes` map |
+| `shell/src/remotes.ts` | — | `chat` REMOTES entry |
+| `scripts/dev.sh` | — | Frontend announce message lists all six dev URLs |
+
+### What Phase 6 (the actual rehearsal) needs to confirm
+
+- [ ] `./scripts/dev.sh up` brings up backend + frontend cleanly. (Note: no new container — the chat surface ships as a federation remote at :3006. Backend changes are additions to existing prompt-runner + workspace containers, picked up on `docker compose up --build`.)
+- [ ] `pnpm install` succeeded at the augment-it root — confirm the chat dev server starts at :3006 and the shell at :3100 sees the new remote in its picker.
+- [ ] A test message in the chat panel produces any of the three response modes. (If the model insists on `chat_answer` for everything, the static spine in `services/workspace/src/chat.ts` needs sharper "prefer chat_propose" framing.)
+- [ ] A `prompt.draft` proposal accepted by clicking "Run this" lands a draft visibly inline (the PromptDraftPanel rendering).
+- [ ] A draft accepted via "Refine this" + a feedback string produces a refined draft linked via `derived_from`.
+- [ ] A draft "Run this" produces a `prompt.apply` invocation that completes; postconditions evaluate; status flips to `applied`.
+- [ ] Prompt-cache headers fire on the second turn (`cache_read_tokens > 0` visible in prompt-runner logs).
+- [ ] Anticipation pills update after each capability completes — `record_set::prompt.draft` shows the improve+apply suggestions, etc.
+
+If any of those fail, edit this section in place with what happened, then add a Session Notes section below capturing the cache-hit ratio and any fit/finish to clean before showing a client.
+
 ## Related
 
 - [[Chat-As-Verb-Surface-Patterns]] (ai-labs) — the blueprint this plan implements; defines the four adapter shapes and the five patterns

@@ -14,12 +14,16 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'record_set.ingest': 'record_set.ingest.requested',
   'record_set.ingest.xlsx': 'record_set.ingest.xlsx.requested',
   'record_set.delete': 'record_set.delete.requested',
+  // Promotion + archive — see Enhanced-Records-List spec
+  'record_set.promote': 'record_set.promote.requested',
+  'record_set.archive': 'record_set.archive.requested',
   // row operations
   'row.list': 'row.list.requested',
   'row.get': 'row.get.requested',
   'row.update': 'row.update.requested',
   'row.helpful_links.add': 'row.helpful_links.add.requested',
   'row.helpful_links.remove': 'row.helpful_links.remove.requested',
+  'row.archive': 'row.archive.requested',
   // prompt template operations
   'prompt.list': 'prompt.list.requested',
   'prompt.get': 'prompt.get.requested',
@@ -32,6 +36,12 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'prompt.run.cancel': 'prompt.run.cancel.requested',
   // request preview — builds the request for one row, no LLM call
   'prompt.preview': 'prompt.preview.requested',
+  // chat-driven prompt drafting — one LLM call, persisted with status='draft'
+  'prompt.draft': 'prompt.draft.requested',
+  // chat-driven refinement of an existing draft from natural-language feedback
+  'prompt.improve': 'prompt.improve.requested',
+  // chat-driven apply — runs the prompt + flips status to 'applied' on success
+  'prompt.apply': 'prompt.apply.requested',
   // response review (post-flight)
   'response.list': 'response.list.requested',
   'response.get': 'response.get.requested',
@@ -48,6 +58,11 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'record_set.ingest.xlsx': 30_000,
   // a row_limit-capped run is N sequential LLM calls; give it generous room
   'prompt.run': 600_000,
+  // single-LLM-call drafting / improving — 60s is comfortable for Sonnet
+  'prompt.draft': 60_000,
+  'prompt.improve': 60_000,
+  // apply wraps prompt.run; needs the same generous budget
+  'prompt.apply': 600_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {

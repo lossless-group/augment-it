@@ -14,7 +14,18 @@
 //     when the socket reaches OPEN state. Callers don't have to think
 //     about WS timing; the first-call-on-page-load is the common case.
 
-import type { ClientFrame, InvokeFrame, ResultFrame, ServerFrame } from './types';
+import type {
+  ChatErrorFrame,
+  ChatProposal,
+  ChatResponseFrame,
+  ChatResponseMode,
+  ChatToolCall,
+  ChatTurnFrame,
+  ClientFrame,
+  InvokeFrame,
+  ResultFrame,
+  ServerFrame,
+} from './types';
 
 export type TransportConfig = {
   url: string;                              // e.g. 'ws://localhost:3001/ws'
@@ -24,8 +35,18 @@ export type TransportConfig = {
   onStatus?: (status: 'connecting' | 'open' | 'closed' | 'error') => void;
 };
 
+export type ChatTurnReply = {
+  mode: ChatResponseMode;
+  text: string;
+  proposals?: ChatProposal[];
+  tool_call?: ChatToolCall;
+};
+
+export type ChatTurnRequest = Omit<ChatTurnFrame, 'kind' | 'id'>;
+
 export type Transport = {
   invoke: (capability: string, args: unknown) => Promise<unknown>;
+  chatTurn: (req: ChatTurnRequest) => Promise<ChatTurnReply>;
   close: () => void;
 };
 
@@ -42,6 +63,7 @@ export function createTransport(config: TransportConfig): Transport {
   let backoff = RECONNECT_INITIAL_MS;
   let closing = false;
   const pending = new Map<string, Pending>();
+  const chatPending = new Map<string, { resolve: (v: ChatTurnReply) => void; reject: (e: Error) => void }>();
   const sendQueue: ClientFrame[] = [];
   let nextId = 0;
 
@@ -90,6 +112,23 @@ export function createTransport(config: TransportConfig): Transport {
           if (frame.ok) p.resolve(frame.result);
           else p.reject(new Error(frame.error ?? 'unknown error'));
         }
+      } else if (frame.kind === 'chat_response') {
+        const p = chatPending.get(frame.id);
+        if (p) {
+          chatPending.delete(frame.id);
+          p.resolve({
+            mode: frame.mode,
+            text: frame.text,
+            proposals: frame.proposals,
+            tool_call: frame.tool_call,
+          });
+        }
+      } else if (frame.kind === 'chat_error') {
+        const p = chatPending.get(frame.id);
+        if (p) {
+          chatPending.delete(frame.id);
+          p.reject(new Error(frame.error));
+        }
       }
 
       // forward every frame so the workspace can react (e.g. ingestEvent)
@@ -106,6 +145,8 @@ export function createTransport(config: TransportConfig): Transport {
       // resolve, wasting server work.
       for (const [, p] of pending) p.reject(new Error('socket closed'));
       pending.clear();
+      for (const [, p] of chatPending) p.reject(new Error('socket closed'));
+      chatPending.clear();
       sendQueue.length = 0;
       if (!closing) scheduleReconnect();
     });
@@ -139,10 +180,25 @@ export function createTransport(config: TransportConfig): Transport {
     return promise;
   }
 
+  async function chatTurn(req: ChatTurnRequest): Promise<ChatTurnReply> {
+    const id = `chat_${Date.now().toString(36)}_${(++nextId).toString(36)}`;
+    const frame: ChatTurnFrame = { kind: 'chat_turn', id, ...req };
+    const promise = new Promise<ChatTurnReply>((resolve, reject) => {
+      chatPending.set(id, { resolve, reject });
+    });
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(frame));
+    } else {
+      sendQueue.push(frame);
+    }
+    return promise;
+  }
+
   connect();
 
   return {
     invoke,
+    chatTurn,
     close: () => {
       closing = true;
       ws?.close();

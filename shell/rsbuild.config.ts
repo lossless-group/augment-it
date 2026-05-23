@@ -17,6 +17,8 @@ export default defineConfig({
         promptTemplateManager: 'promptTemplateManager@http://localhost:3003/remoteEntry.js',
         requestReviewer: 'requestReviewer@http://localhost:3004/remoteEntry.js',
         responseReviewer: 'responseReviewer@http://localhost:3005/remoteEntry.js',
+        chat: 'chat@http://localhost:3006/remoteEntry.js',
+        enhancedRecordsList: 'enhancedRecordsList@http://localhost:3007/remoteEntry.js',
       },
       // No `shared` block — sharing Svelte 5's reactive runtime and a
       // .svelte.ts singleton across federation has known issues with the

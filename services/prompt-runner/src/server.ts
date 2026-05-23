@@ -7,6 +7,9 @@
 
 import { connect, JSONCodec } from 'nats';
 import { modelName } from './anthropic';
+import { applyPrompt } from './apply';
+import { registerChatTurnHandler } from './chat-turn';
+import { draftPrompt, improvePrompt } from './drafter';
 import { previewRequest } from './preview';
 import { runPromptAgainstRecordSet } from './run';
 
@@ -128,6 +131,107 @@ async function main(): Promise<void> {
       }
     }
   })();
+
+  // prompt.draft.requested — chat-driven prompt drafting. One LLM call
+  // produces the prompt body; the result is persisted via prompt-store's
+  // prompt.draft.save.requested. See ./drafter.ts.
+  (async () => {
+    const sub = nc.subscribe('prompt.draft.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as {
+        goal: string;
+        record_set_id: string;
+        output_column: string;
+        tools?: string[];
+      };
+      console.log(JSON.stringify({ level: 'info', msg: 'draft started', ...args }));
+      try {
+        const result = await draftPrompt(nc, args);
+        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+        console.log(JSON.stringify({ level: 'info', msg: 'draft completed', prompt_id: result.prompt_id }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        console.error(JSON.stringify({ level: 'error', msg: 'draft failed', error }));
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // prompt.improve.requested — refine an existing draft from user feedback.
+  // Parent prompt stays untouched; result is persisted as a new prompt with
+  // derived_from set. See ./drafter.ts.
+  (async () => {
+    const sub = nc.subscribe('prompt.improve.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as { parent_id: string; feedback: string };
+      console.log(JSON.stringify({ level: 'info', msg: 'improve started', ...args }));
+      try {
+        const result = await improvePrompt(nc, args);
+        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+        console.log(JSON.stringify({ level: 'info', msg: 'improve completed', prompt_id: result.prompt_id }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        console.error(JSON.stringify({ level: 'error', msg: 'improve failed', error }));
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // prompt.apply.requested — chat-driven apply. Wraps runPromptAgainstRecordSet
+  // with postcondition checks and flips the prompt's status to 'applied' on
+  // a clean pass. See ./apply.ts.
+  (async () => {
+    const sub = nc.subscribe('prompt.apply.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as {
+        prompt_id: string;
+        record_set_id: string;
+        row_limit?: number;
+        row_ids?: string[];
+        model?: string;
+        max_tokens?: number;
+      };
+      console.log(JSON.stringify({ level: 'info', msg: 'apply started', ...args }));
+      const controller = new AbortController();
+      const existing = activeRuns.get(args.record_set_id);
+      if (existing) existing.abort(new Error('superseded by a new apply'));
+      activeRuns.set(args.record_set_id, controller);
+      try {
+        const result = await applyPrompt(nc, args, { runSignal: controller.signal });
+        if (msg.reply) msg.respond(jc.encode(result));
+        if (result.ok) {
+          nc.publish(
+            'prompt.apply.completed',
+            jc.encode({
+              prompt_id: args.prompt_id,
+              parent_record_set_id: args.record_set_id,
+              record_set_id: result.derived_record_set_id,
+              quality_violations: result.quality_violations.length,
+            }),
+          );
+          console.log(JSON.stringify({
+            level: result.quality_violations.length === 0 ? 'info' : 'warn',
+            msg: 'apply completed',
+            prompt_id: args.prompt_id,
+            quality_violations: result.quality_violations.length,
+          }));
+        }
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        console.error(JSON.stringify({ level: 'error', msg: 'apply failed', error }));
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      } finally {
+        if (activeRuns.get(args.record_set_id) === controller) {
+          activeRuns.delete(args.record_set_id);
+        }
+      }
+    }
+  })();
+
+  // chat.turn.requested — verb-routing LLM call for the in-app chat.
+  // Workspace assembles the four-slab prompt + tools; this handler makes
+  // the SDK call and returns the tool_use block. See ./chat-turn.ts.
+  registerChatTurnHandler(nc);
 
   console.log(JSON.stringify({ level: 'info', msg: 'prompt-runner-service ready' }));
 }

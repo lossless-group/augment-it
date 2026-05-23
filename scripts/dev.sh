@@ -55,6 +55,10 @@ frontend_up() {
   echo "    shell                   http://localhost:3100"
   echo "    record-collector        http://localhost:3002"
   echo "    prompt-template-manager http://localhost:3003"
+  echo "    request-reviewer        http://localhost:3004"
+  echo "    response-reviewer       http://localhost:3005"
+  echo "    chat                    http://localhost:3006"
+  echo "    enhanced-records-list   http://localhost:3007"
   echo "  (Ctrl-C stops the frontend; the backend keeps running — './scripts/dev.sh down' to stop it)"
   pnpm --parallel --if-present \
     --filter './apps/*' --filter './shell' \

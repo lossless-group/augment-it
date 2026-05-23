@@ -14,7 +14,7 @@
 // "first assignment to a class field at the top level of the constructor"
 // rule in https://svelte.dev/e/state_invalid_placement.
 
-import { createTransport, type Transport, type TransportConfig } from './transport';
+import { createTransport, type ChatTurnReply, type ChatTurnRequest, type Transport, type TransportConfig } from './transport';
 import type { ActiveView, JobEvent, PromptTemplate, RecordSet, Row, ServerFrame, UserContext } from './types';
 
 class AugmentItWorkspace {
@@ -24,6 +24,13 @@ class AugmentItWorkspace {
   prompts: Record<string, PromptTemplate>;
   events: JobEvent[];
   user: UserContext | null;
+  /**
+   * The most recent capability the user (or the chat) invoked. Used by
+   * the anticipation map (./anticipation.ts) to key suggestions on
+   * (activeView.kind, last_capability). Null at startup; updated by
+   * invoke() on every dispatch.
+   */
+  last_capability: string | null;
 
   private transport: Transport | null = null;
   private lastSeenSeq = -1;
@@ -38,6 +45,7 @@ class AugmentItWorkspace {
     this.prompts = $state<Record<string, PromptTemplate>>({});
     this.events = $state.raw<JobEvent[]>([]);
     this.user = $state<UserContext | null>(null);
+    this.last_capability = $state<string | null>(null);
   }
 
   /**
@@ -70,7 +78,22 @@ class AugmentItWorkspace {
 
   async invoke(capability: string, args: unknown): Promise<unknown> {
     if (!this.transport) throw new Error('workspace not connected — call workspace.connect() first');
+    // Track the most recent capability so the anticipation map can key
+    // suggestions on (activeView, last_capability). Update before the
+    // dispatch resolves — the suggestion lookup in the chat surface fires
+    // as soon as the new capability lands in the transcript.
+    this.last_capability = capability;
     return this.transport.invoke(capability, args);
+  }
+
+  /**
+   * Send a chat turn through the workspace transport. The reply is one of
+   * three modes — answer / propose / invoke (see [[Chat-As-Verb-Surface-Patterns]]
+   * Pattern 4). Throws if the socket isn't connected.
+   */
+  async chatTurn(req: ChatTurnRequest): Promise<ChatTurnReply> {
+    if (!this.transport) throw new Error('workspace not connected — call workspace.connect() first');
+    return this.transport.chatTurn(req);
   }
 
   ingestEvent(event: JobEvent): void {

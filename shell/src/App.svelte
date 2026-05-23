@@ -2,8 +2,27 @@
   import { onMount } from 'svelte';
   import ModeToggle from './ModeToggle.svelte';
   import MountHost from './MountHost.svelte';
-  import { REMOTES, PAIRINGS, remoteById, type RemoteEntry } from './remotes';
+  import { REMOTES, PAIRINGS, CHAT_REMOTE, remoteById, type RemoteEntry } from './remotes';
   import { layout, type LayoutMode } from './layout.svelte';
+
+  // Chat rail visibility — persistent left-side companion to the focused
+  // Window. Toggleable from the header; persisted to localStorage so a
+  // user's preference survives reloads. Per the four-roles model in
+  // context-v/blueprints/Chat-As-Verb-Surface-Patterns.md, the chat is a
+  // peer to the Window (not a remote in the rotation) — it goes WITH the
+  // user as they switch which Window they're focused on.
+  const CHAT_VISIBLE_KEY = 'augment-it:chat-rail-visible';
+  let chatVisible = $state<boolean>(
+    typeof localStorage === 'undefined' ? true : localStorage.getItem(CHAT_VISIBLE_KEY) !== 'false',
+  );
+  function toggleChat(): void {
+    chatVisible = !chatVisible;
+    try {
+      localStorage.setItem(CHAT_VISIBLE_KEY, String(chatVisible));
+    } catch {
+      /* localStorage unavailable */
+    }
+  }
 
   // ---- geometry constants -------------------------------------------------
   const HOVER_PCT = 38;       // a hovered peek neighbour expands to this width
@@ -143,6 +162,27 @@
     return () => window.removeEventListener('augment-it:enrich-record', onEnrich);
   });
 
+  // ---- cross-remote navigation (dispatched by any remote) -----------------
+  // Remotes that want to send the user to a different surface dispatch a
+  // window event:  window.dispatchEvent(new CustomEvent('augment-it:navigate',
+  //   { detail: { remoteId: 'promptTemplateManager', mode?: 'full'|'co-existence' }}))
+  // The shell switches layout accordingly. Used by enhanced-records-list's
+  // post-promotion "Do another round of enhancements" affordance.
+  onMount(() => {
+    const onNavigate = (e: Event) => {
+      const detail = (e as CustomEvent).detail as
+        | { remoteId?: string; mode?: LayoutMode }
+        | undefined;
+      if (!detail?.remoteId) return;
+      const idx = REMOTES.findIndex((r) => r.id === detail.remoteId);
+      if (idx < 0) return;
+      layout.setFocusIndex(idx);
+      layout.setMode(detail.mode ?? 'full');
+    };
+    window.addEventListener('augment-it:navigate', onNavigate);
+    return () => window.removeEventListener('augment-it:navigate', onNavigate);
+  });
+
   const MODE_BUTTONS: { mode: LayoutMode; label: string }[] = [
     { mode: 'peek-deck', label: 'Deck' },
     { mode: 'co-existence', label: 'Split' },
@@ -174,17 +214,32 @@
     {/each}
   </nav>
   <div class="metrics">
+    <button
+      class="chat-toggle"
+      class:on={chatVisible}
+      onclick={() => toggleChat()}
+      aria-pressed={chatVisible}
+      title={chatVisible ? 'Hide chat rail' : 'Show chat rail'}
+    >
+      💬 chat
+    </button>
     <span class="muted">tiling host · :3100</span>
     <ModeToggle />
   </div>
 </header>
 
-<main
-  class="stage"
-  class:fast={hoveredNeighborId !== null}
-  class:dragging={resizing || splitting}
-  bind:this={stageEl}
->
+<div class="below-header" class:has-chat={chatVisible}>
+  {#if chatVisible}
+    <aside class="chat-rail" aria-label="Chat panel">
+      <MountHost remote={CHAT_REMOTE} />
+    </aside>
+  {/if}
+  <main
+    class="stage"
+    class:fast={hoveredNeighborId !== null}
+    class:dragging={resizing || splitting}
+    bind:this={stageEl}
+  >
   {#each stage as item (item.id)}
     {@const isInteractive = item.role !== 'prev' && item.role !== 'next'}
     <section class="slot" class:slot-peek={!isInteractive}
@@ -230,7 +285,8 @@
   {#if stage.length === 0}
     <div class="empty">no frontend to show</div>
   {/if}
-</main>
+  </main>
+</div>
 
 <style>
   header {
@@ -268,12 +324,52 @@
   .metrics { display: flex; gap: 0.75rem; align-items: center; font-size: 11px; }
   .muted { color: var(--color-text-muted); }
 
+  /* ---- chat toggle in the header ---- */
+  .chat-toggle {
+    background: transparent;
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .chat-toggle:hover { border-color: var(--color-accent); color: var(--color-text); }
+  .chat-toggle.on {
+    background: var(--color-selected-tint);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  /* ---- below-header: chat rail on the left, stage on the right ---- */
+  .below-header {
+    display: flex;
+    align-items: stretch;
+    height: calc(100vh - 56px);
+    overflow: hidden;
+  }
+  .chat-rail {
+    width: 360px;
+    min-width: 280px;
+    max-width: 480px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--color-border);
+    background: var(--color-surface-raised, var(--color-background));
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
   /* ---- the tiling stage ---- */
   .stage {
     position: relative;
     display: flex;
     align-items: stretch;
-    height: calc(100vh - 56px);
+    flex: 1;
+    min-width: 0;
+    height: 100%;
     overflow: hidden;
     background: var(--color-background);
   }
