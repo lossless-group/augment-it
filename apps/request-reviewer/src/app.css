@@ -158,7 +158,51 @@
   font-size: 12px;
 }
 
+.req-app .coverage {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.55rem;
+  background: var(--color-field);
+  border-radius: 4px;
+  font-size: 12px;
+}
+.req-app .coverage-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.req-app .coverage-stat::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.65;
+}
+.req-app .coverage-stat.covered { color: var(--color-ok-text); }
+.req-app .coverage-stat.needs-rerun { color: var(--color-warn-text, var(--color-accent-2)); }
+.req-app .coverage-stat.remaining { color: var(--color-accent); }
+
 .req-app .fire-row { display: flex; gap: 0.5rem; margin-top: 0.6rem; flex-wrap: wrap; }
+.req-app .fire-row .remaining {
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+}
+.req-app .fire-row .remaining:hover:not(:disabled) {
+  background: var(--color-selected-tint);
+}
+.req-app .fire-row .cancel {
+  background: transparent;
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error-text);
+}
+.req-app .fire-row .cancel:hover {
+  background: var(--color-danger-tint);
+}
 
 .req-app .progress {
   margin-top: 0.5rem;
@@ -166,7 +210,23 @@
   background: var(--color-field);
   border-radius: 4px;
   color: var(--color-accent-2);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
+
+.req-app .progress .spinner {
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  border: 2px solid color-mix(in srgb, var(--color-accent-2) 30%, transparent);
+  border-top-color: var(--color-accent-2);
+  border-radius: 50%;
+  animation: req-spin 0.9s linear infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes req-spin { to { transform: rotate(360deg); } }
 
 .req-app .result {
   margin-top: 0.5rem;

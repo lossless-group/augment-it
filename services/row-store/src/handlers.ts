@@ -7,11 +7,14 @@
 
 import { JSONCodec, type NatsConnection } from 'nats';
 import {
+  addHelpfulLink,
   createRecordSet,
   deleteRecordSet,
   getRecordSet,
+  getRow,
   listRecordSets,
   listRows,
+  removeHelpfulLink,
   updateRow,
   type ColumnSchema,
   type RecordSet,
@@ -110,6 +113,71 @@ export function registerHandlers(nc: NatsConnection): void {
           fields: row.fields,
         }),
       );
+    }
+  })();
+
+  // row.get.requested — fetch a single row by id.
+  (async () => {
+    const sub = nc.subscribe('row.get.requested');
+    for await (const msg of sub) {
+      const { row_id } = jc.decode(msg.data) as { row_id: string };
+      if (msg.reply) msg.respond(jc.encode({ row: getRow(row_id) ?? null }));
+    }
+  })();
+
+  // row.helpful_links.add.requested — append a link to row.fields.helpful_links.
+  // Reply + broadcast row.updated so any open Response Reviewer refreshes.
+  (async () => {
+    const sub = nc.subscribe('row.helpful_links.add.requested');
+    for await (const msg of sub) {
+      const params = jc.decode(msg.data) as {
+        row_id: string;
+        url: string;
+        label?: string;
+        note?: string;
+        response_id?: string | null;
+      };
+      try {
+        const row = await addHelpfulLink(params);
+        if (msg.reply) msg.respond(jc.encode({ row }));
+        nc.publish(
+          'row.updated',
+          jc.encode({
+            row_id: row.row_id,
+            record_set_id: row.record_set_id,
+            fields: row.fields,
+          }),
+        );
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // row.helpful_links.remove.requested — drop a link by link_id.
+  (async () => {
+    const sub = nc.subscribe('row.helpful_links.remove.requested');
+    for await (const msg of sub) {
+      const { row_id, link_id } = jc.decode(msg.data) as {
+        row_id: string;
+        link_id: string;
+      };
+      try {
+        const row = await removeHelpfulLink(row_id, link_id);
+        if (msg.reply) msg.respond(jc.encode({ row }));
+        nc.publish(
+          'row.updated',
+          jc.encode({
+            row_id: row.row_id,
+            record_set_id: row.record_set_id,
+            fields: row.fields,
+          }),
+        );
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
     }
   })();
 }

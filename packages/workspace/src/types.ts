@@ -67,6 +67,22 @@ export type Row = {
   status?: string;
 };
 
+// A side-channel link attached to a row by a human during triage (or, later,
+// extracted automatically by the highlight-collector / a follow-up enrichment
+// prompt). Lives in row.fields.helpful_links as an array — NOT a CSV-derived
+// schema column, to keep the dynamic-schema discipline intact.
+// See context-v/prompts/Helpful-Links-on-Records-Captured-During-Triage.md.
+export type HelpfulLinkSource = 'manual' | 'distill' | 'enrichment';
+export type HelpfulLink = {
+  link_id: string;
+  url: string;
+  label: string;            // empty allowed; UI falls back to URL host
+  note: string;             // empty allowed
+  source: HelpfulLinkSource;
+  added_at: string;
+  response_id: string | null; // the response being triaged when this was saved
+};
+
 export type ActiveView =
   | { kind: 'idle' }
   | { kind: 'record_set_list' }
@@ -141,7 +157,7 @@ export type PreviewResult = PreviewOk | { ok: false; error: string };
 
 // A fired LLM response, recorded by the response-store service. Named
 // ResponseRecord (not Response) to avoid shadowing the Fetch API global.
-export type ResponseFlag = 'good' | 'partial' | 'wrong' | 'needs-rerun';
+export type ResponseFlag = 'good' | 'partial' | 'wrong' | 'needs-rerun' | 'needs-human';
 
 export type ResponseRecord = {
   response_id: string;
@@ -152,9 +168,29 @@ export type ResponseRecord = {
   output_column: string; // the column an accepted value writes to
   model: string; // the model that actually ran
   request_body: unknown; // the exact request that fired
-  response_text: string; // the verbose model output
+  response_text: string; // the verbose model output, as the LLM returned it
+  edited_text: string | null; // human's in-progress edit; autosaved on blur
   flag: ResponseFlag | null; // null until a human triages it
   accepted: boolean; // a value from this response reached a cell
   created_at: string;
   reviewed_at: string | null;
+  edited_at: string | null;
+};
+
+// Returned by the response.coverage capability — the response-store-derived
+// view of which rows of a record set have already been fired against a given
+// prompt. Coverage classifies any row that has at least one ResponseRecord;
+// rows with NO response at all are computed client-side by subtracting these
+// two sets from the record set's full row list (the store has no idea what
+// rows belong to the set — that's row-store's territory).
+//
+//   covered_row_ids     — at least one response exists that is NOT flagged
+//                         needs-rerun (treat the row as done)
+//   needs_rerun_row_ids — every response for this row is flagged needs-rerun
+//                         (the human explicitly asked to re-fire)
+export type Coverage = {
+  prompt_id: string;
+  record_set_id: string;
+  covered_row_ids: string[];
+  needs_rerun_row_ids: string[];
 };

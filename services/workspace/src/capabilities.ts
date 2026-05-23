@@ -16,7 +16,10 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'record_set.delete': 'record_set.delete.requested',
   // row operations
   'row.list': 'row.list.requested',
+  'row.get': 'row.get.requested',
   'row.update': 'row.update.requested',
+  'row.helpful_links.add': 'row.helpful_links.add.requested',
+  'row.helpful_links.remove': 'row.helpful_links.remove.requested',
   // prompt template operations
   'prompt.list': 'prompt.list.requested',
   'prompt.get': 'prompt.get.requested',
@@ -25,6 +28,8 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'prompt.delete': 'prompt.delete.requested',
   // prompt execution — runs N LLM calls, can take minutes
   'prompt.run': 'prompt.run.requested',
+  // cancel an in-flight prompt.run (by record_set_id)
+  'prompt.run.cancel': 'prompt.run.cancel.requested',
   // request preview — builds the request for one row, no LLM call
   'prompt.preview': 'prompt.preview.requested',
   // response review (post-flight)
@@ -32,6 +37,10 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'response.get': 'response.get.requested',
   'response.flag': 'response.flag.requested',
   'response.accept': 'response.accept.requested',
+  'response.delete': 'response.delete.requested',
+  'response.delete_all': 'response.delete_all.requested',
+  'response.coverage': 'response.coverage.requested',
+  'response.set_text': 'response.set_text.requested',
 };
 
 const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {

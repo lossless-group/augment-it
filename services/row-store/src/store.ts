@@ -84,6 +84,10 @@ export function getRecordSet(record_set_id: string): RecordSet | undefined {
   return data.record_sets[record_set_id];
 }
 
+export function getRow(row_id: string): Row | undefined {
+  return data.rows[row_id];
+}
+
 export function listRows(record_set_id?: string): Row[] {
   const all = Object.values(data.rows);
   if (!record_set_id) return all;
@@ -128,6 +132,65 @@ export async function updateRow(
   const existing = data.rows[row_id];
   if (!existing) throw new Error(`row not found: ${row_id}`);
   const next: Row = { ...existing, fields: { ...existing.fields, ...fields } };
+  data.rows[row_id] = next;
+  await persist();
+  return next;
+}
+
+export type HelpfulLinkInput = {
+  row_id: string;
+  url: string;
+  label?: string;
+  note?: string;
+  response_id?: string | null;
+};
+
+type HelpfulLink = {
+  link_id: string;
+  url: string;
+  label: string;
+  note: string;
+  source: 'manual' | 'distill' | 'enrichment';
+  added_at: string;
+  response_id: string | null;
+};
+
+function getLinks(row: Row): HelpfulLink[] {
+  const raw = row.fields.helpful_links;
+  return Array.isArray(raw) ? (raw as HelpfulLink[]) : [];
+}
+
+export async function addHelpfulLink(params: HelpfulLinkInput): Promise<Row> {
+  const existing = data.rows[params.row_id];
+  if (!existing) throw new Error(`row not found: ${params.row_id}`);
+  const url = params.url.trim();
+  if (!url) throw new Error('url is required');
+  const link: HelpfulLink = {
+    link_id: `hl_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    url,
+    label: (params.label ?? '').trim(),
+    note: (params.note ?? '').trim(),
+    source: 'manual',
+    added_at: new Date().toISOString(),
+    response_id: params.response_id ?? null,
+  };
+  const next: Row = {
+    ...existing,
+    fields: { ...existing.fields, helpful_links: [...getLinks(existing), link] },
+  };
+  data.rows[params.row_id] = next;
+  await persist();
+  return next;
+}
+
+export async function removeHelpfulLink(row_id: string, link_id: string): Promise<Row> {
+  const existing = data.rows[row_id];
+  if (!existing) throw new Error(`row not found: ${row_id}`);
+  const filtered = getLinks(existing).filter((l) => l.link_id !== link_id);
+  const next: Row = {
+    ...existing,
+    fields: { ...existing.fields, helpful_links: filtered },
+  };
   data.rows[row_id] = next;
   await persist();
   return next;

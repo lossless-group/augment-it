@@ -12,7 +12,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
-export type ResponseFlag = 'good' | 'partial' | 'wrong' | 'needs-rerun';
+export type ResponseFlag = 'good' | 'partial' | 'wrong' | 'needs-rerun' | 'needs-human';
 
 export type ResponseRecord = {
   response_id: string;
@@ -23,11 +23,13 @@ export type ResponseRecord = {
   output_column: string; // the column an accepted value writes to
   model: string; // the model that actually ran
   request_body: unknown; // the exact messages.create() body that fired
-  response_text: string; // the verbose model output, as returned
+  response_text: string; // the verbose model output, as the LLM returned it
+  edited_text: string | null; // autosaved human edit; null = never edited
   flag: ResponseFlag | null; // null until a human triages it
   accepted: boolean; // a value from this response reached a cell
   created_at: string;
   reviewed_at: string | null;
+  edited_at: string | null;
 };
 
 type Store = {
@@ -43,6 +45,12 @@ export async function load(path: string): Promise<void> {
     const raw = await readFile(path, 'utf8');
     const parsed = JSON.parse(raw);
     data = { responses: parsed.responses ?? {} };
+    // Backfill — older response records pre-date edited_text / edited_at,
+    // so coerce them to the current shape so consumers can rely on the field.
+    for (const r of Object.values(data.responses)) {
+      if (!('edited_text' in r)) (r as ResponseRecord).edited_text = null;
+      if (!('edited_at' in r)) (r as ResponseRecord).edited_at = null;
+    }
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
       await mkdir(dirname(path), { recursive: true });
@@ -99,14 +107,41 @@ export async function createResponse(params: {
     model: params.model,
     request_body: params.request_body,
     response_text: params.response_text,
+    edited_text: null,
     flag: null,
     accepted: false,
     created_at: new Date().toISOString(),
     reviewed_at: null,
+    edited_at: null,
   };
   data.responses[response_id] = record;
   await persist();
   return record;
+}
+
+/**
+ * Save an in-progress human edit to the response without accepting it.
+ * Preserves response_text (the original LLM output) for audit; the cell
+ * write that `acceptResponse` performs picks the latest of edited_text /
+ * response_text. Passing the same text the response already has is a no-op.
+ */
+export async function setResponseEditedText(
+  response_id: string,
+  edited_text: string,
+): Promise<ResponseRecord> {
+  const existing = data.responses[response_id];
+  if (!existing) throw new Error(`response not found: ${response_id}`);
+  // No-op if the autosave fires with no actual change
+  if (existing.edited_text === edited_text) return existing;
+  if (existing.edited_text === null && existing.response_text === edited_text) return existing;
+  const next: ResponseRecord = {
+    ...existing,
+    edited_text,
+    edited_at: new Date().toISOString(),
+  };
+  data.responses[response_id] = next;
+  await persist();
+  return next;
 }
 
 export async function flagResponse(
@@ -131,15 +166,86 @@ export async function flagResponse(
  * the reviewer chose; absent, the raw response_text is used. The handler
  * issues the actual row.update.
  */
+export type Coverage = {
+  prompt_id: string;
+  record_set_id: string;
+  covered_row_ids: string[];
+  needs_rerun_row_ids: string[];
+};
+
+/**
+ * Which rows of a record set have already been fired against a given prompt?
+ * A row is `covered` if it has at least one response that is NOT flagged
+ * `needs-rerun` (i.e. we'll treat the row as done unless explicitly re-queued).
+ * A row is in `needs_rerun_row_ids` if every response for that row is flagged
+ * needs-rerun — the human asked to re-fire it.
+ *
+ * Rows of the record set that have NO response at all are not represented
+ * here: response-store doesn't know the row universe; the caller subtracts
+ * these two sets from the parent record set's row_ids.
+ */
+export function getCoverage(prompt_id: string, record_set_id: string): Coverage {
+  const covered = new Set<string>();
+  const seenNeedsRerunOnly = new Map<string, boolean>();
+  for (const r of Object.values(data.responses)) {
+    if (r.prompt_id !== prompt_id || r.record_set_id !== record_set_id) continue;
+    if (r.flag === 'needs-rerun') {
+      // remember the row, but only count it as needs-rerun if no non-rerun
+      // response shows up later in the iteration.
+      if (!seenNeedsRerunOnly.has(r.row_id)) seenNeedsRerunOnly.set(r.row_id, true);
+    } else {
+      covered.add(r.row_id);
+      seenNeedsRerunOnly.set(r.row_id, false);
+    }
+  }
+  const needsRerun: string[] = [];
+  for (const [row_id, isStillRerunOnly] of seenNeedsRerunOnly) {
+    if (isStillRerunOnly && !covered.has(row_id)) needsRerun.push(row_id);
+  }
+  return {
+    prompt_id,
+    record_set_id,
+    covered_row_ids: [...covered],
+    needs_rerun_row_ids: needsRerun,
+  };
+}
+
+/** Delete one response. Returns true if it existed, false if already gone. */
+export async function deleteResponse(response_id: string): Promise<boolean> {
+  if (!data.responses[response_id]) return false;
+  delete data.responses[response_id];
+  await persist();
+  return true;
+}
+
+/**
+ * Delete every response matching the filter (an empty filter clears all).
+ * Returns the count actually removed so the caller can confirm.
+ */
+export async function deleteResponses(filter: ResponseFilter = {}): Promise<number> {
+  const targets = listResponses(filter);
+  if (targets.length === 0) return 0;
+  for (const r of targets) delete data.responses[r.response_id];
+  await persist();
+  return targets.length;
+}
+
 export async function acceptResponse(
   response_id: string,
   value?: string,
 ): Promise<{ response: ResponseRecord; cell_value: string }> {
   const existing = data.responses[response_id];
   if (!existing) throw new Error(`response not found: ${response_id}`);
-  const cell_value = value ?? existing.response_text;
+  // Precedence for what hits the cell:
+  //   1. explicit value passed by accept() (e.g. last-second edits)
+  //   2. the autosaved edited_text (the human's working copy)
+  //   3. the original LLM response_text (the v0 behaviour)
+  const cell_value = value ?? existing.edited_text ?? existing.response_text;
   const next: ResponseRecord = {
     ...existing,
+    // If the caller passed a value, fold it into edited_text so the response
+    // record reflects what was accepted to the cell.
+    ...(value !== undefined ? { edited_text: value, edited_at: new Date().toISOString() } : {}),
     flag: 'good',
     accepted: true,
     reviewed_at: new Date().toISOString(),

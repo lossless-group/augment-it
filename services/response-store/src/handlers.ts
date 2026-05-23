@@ -16,9 +16,13 @@ import { JSONCodec, type NatsConnection } from 'nats';
 import {
   acceptResponse,
   createResponse,
+  deleteResponse,
+  deleteResponses,
   flagResponse,
+  getCoverage,
   getResponse,
   listResponses,
+  setResponseEditedText,
   type ResponseFilter,
   type ResponseFlag,
 } from './store';
@@ -69,6 +73,27 @@ export function registerHandlers(nc: NatsConnection): void {
     }
   })();
 
+  // response.set_text.requested — autosave the human's in-progress edit to
+  // the response's edited_text field. Broadcasts response.edited so any
+  // other open window can refresh.
+  (async () => {
+    const sub = nc.subscribe('response.set_text.requested');
+    for await (const msg of sub) {
+      const { response_id, edited_text } = jc.decode(msg.data) as {
+        response_id: string;
+        edited_text: string;
+      };
+      try {
+        const response = await setResponseEditedText(response_id, edited_text);
+        if (msg.reply) msg.respond(jc.encode({ response }));
+        nc.publish('response.edited', jc.encode({ response_id, edited_at: response.edited_at }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
   // response.flag.requested
   (async () => {
     const sub = nc.subscribe('response.flag.requested');
@@ -81,6 +106,58 @@ export function registerHandlers(nc: NatsConnection): void {
         const response = await flagResponse(response_id, flag);
         if (msg.reply) msg.respond(jc.encode({ response }));
         nc.publish('response.flagged', jc.encode({ response_id, flag }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // response.coverage.requested — which rows of this record set have already
+  // been fired against this prompt? Reply { prompt_id, record_set_id,
+  // covered_row_ids, needs_rerun_row_ids }.
+  (async () => {
+    const sub = nc.subscribe('response.coverage.requested');
+    for await (const msg of sub) {
+      const { prompt_id, record_set_id } = jc.decode(msg.data) as {
+        prompt_id: string;
+        record_set_id: string;
+      };
+      if (msg.reply) msg.respond(jc.encode(getCoverage(prompt_id, record_set_id)));
+    }
+  })();
+
+  // response.delete.requested — drop one response. Broadcasts response.deleted
+  // so any open Response Reviewer refreshes itself.
+  (async () => {
+    const sub = nc.subscribe('response.delete.requested');
+    for await (const msg of sub) {
+      const { response_id } = jc.decode(msg.data) as { response_id: string };
+      try {
+        const existed = await deleteResponse(response_id);
+        if (msg.reply) msg.respond(jc.encode({ ok: true, deleted: existed }));
+        if (existed) {
+          nc.publish('response.deleted', jc.encode({ response_id }));
+        }
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // response.delete_all.requested — drop every response matching the optional
+  // filter (empty filter clears all). Reply carries the count removed.
+  (async () => {
+    const sub = nc.subscribe('response.delete_all.requested');
+    for await (const msg of sub) {
+      const filter = (msg.data.length > 0 ? jc.decode(msg.data) : {}) as ResponseFilter;
+      try {
+        const count = await deleteResponses(filter);
+        if (msg.reply) msg.respond(jc.encode({ ok: true, deleted: count }));
+        if (count > 0) {
+          nc.publish('response.deleted', jc.encode({ bulk: true, count, filter }));
+        }
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
         if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
