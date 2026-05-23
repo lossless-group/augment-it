@@ -76,16 +76,20 @@
 
 .ptm-app ul.prompts { list-style: none; padding: 0; margin: 0.5rem 0 0; }
 .ptm-app ul.prompts li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
   border: 1px solid var(--color-border);
   border-radius: 4px;
   margin-bottom: 0.25rem;
 }
 .ptm-app ul.prompts li:hover { border-color: var(--color-accent); }
 .ptm-app ul.prompts li.selected { border-color: var(--color-accent); background: var(--color-selected-tint); }
-.ptm-app ul.prompts li.empty { padding: 0.5rem; }
+.ptm-app ul.prompts li.empty { display: block; padding: 0.5rem; }
 .ptm-app ul.prompts .prompt-select {
+  flex: 1 1 auto;
+  min-width: 0;
   display: block;
-  width: 100%;
   text-align: left;
   background: transparent;
   border: 0;
@@ -96,6 +100,32 @@
   cursor: pointer;
 }
 .ptm-app ul.prompts .prompt-select strong { display: block; color: var(--color-accent); margin-bottom: 0.15rem; }
+.ptm-app ul.prompts .prompt-delete {
+  flex: 0 0 auto;
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid transparent;
+  padding: 0 6px;
+  margin: 0.5rem 0.5rem 0 0;
+  border-radius: 3px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ptm-app ul.prompts .prompt-delete:hover {
+  color: var(--color-error-text);
+  border-color: var(--color-error-text);
+  background: var(--color-danger-tint);
+}
+
+.ptm-app button.apply {
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+}
+.ptm-app button.apply:not(:disabled):hover {
+  background: var(--color-selected-tint);
+}
 
 .ptm-app label {
   display: block;

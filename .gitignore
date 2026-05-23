@@ -46,3 +46,7 @@ pnpm-debug.log*
 # Profile
 .rspack-profile-*/
 
+
+# Local agent + ad-hoc data backups
+.claude/
+.backups/

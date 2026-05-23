@@ -17,7 +17,35 @@
   let editWebSearch = $state(false);
   let saveStatus = $state('');
 
+  // Snapshot of the last-saved version of the editor fields, so we can tell
+  // when the form is dirty. For an unsaved new draft this stays null.
+  type EditorSnapshot = {
+    name: string;
+    description: string;
+    content: string;
+    output_column: string;
+    web_search: boolean;
+  };
+  let savedSnapshot = $state<EditorSnapshot | null>(null);
+
   const prompts = $derived(Object.values(workspace.prompts) as PromptTemplate[]);
+
+  const hasRequiredContent = $derived(
+    editName.trim() !== '' && editContent.trim() !== '' && editOutputColumn.trim() !== '',
+  );
+
+  const isDirty = $derived.by(() => {
+    if (savedSnapshot === null) return hasRequiredContent; // new draft is "dirty" once it has content
+    return (
+      editName !== savedSnapshot.name ||
+      editDescription !== savedSnapshot.description ||
+      editContent !== savedSnapshot.content ||
+      editOutputColumn !== savedSnapshot.output_column ||
+      editWebSearch !== savedSnapshot.web_search
+    );
+  });
+
+  const canApply = $derived(selectedPromptId !== null && !isDirty);
 
   // {{tokens}} referenced by the editor body, distinct, first-seen order
   const tokens = $derived.by(() => {
@@ -52,18 +80,17 @@
     }
   });
 
-  // Carry the selected prompt over to the request-reviewer remote — choosing
-  // a saved prompt here auto-selects it there. RUNNING a prompt is
-  // request-reviewer's job, not this remote's: this remote authors prompts,
-  // request-reviewer reviews and fires the request. The two are separate
-  // federated remotes coordinating by window event.
-  $effect(() => {
-    const prompt_id = selectedPromptId;
-    if (!prompt_id) return;
+  // Handoff to the request-reviewer remote is now an explicit "Apply" action,
+  // not a side-effect of selection. Authoring lives here; firing lives there;
+  // crossing the boundary is a deliberate click so the user knows when it
+  // happens.
+  function applyToRequestReviewer() {
+    if (!canApply || !selectedPromptId) return;
     window.dispatchEvent(
-      new CustomEvent('augment-it:review-request', { detail: { prompt_id } }),
+      new CustomEvent('augment-it:review-request', { detail: { prompt_id: selectedPromptId } }),
     );
-  });
+    saveStatus = 'applied to Request Reviewer';
+  }
 
   async function refreshPrompts() {
     try {
@@ -83,6 +110,13 @@
     editContent = p.content;
     editOutputColumn = p.output_column;
     editWebSearch = p.tools.includes('web_search');
+    savedSnapshot = {
+      name: p.name,
+      description: p.description,
+      content: p.content,
+      output_column: p.output_column,
+      web_search: editWebSearch,
+    };
     saveStatus = '';
   }
 
@@ -93,14 +127,16 @@
     editContent = '';
     editOutputColumn = '';
     editWebSearch = false;
+    savedSnapshot = null;
     saveStatus = '';
   }
 
   async function savePrompt() {
-    if (!editName.trim() || !editContent.trim() || !editOutputColumn.trim()) {
+    if (!hasRequiredContent) {
       saveStatus = 'name, content and output column are all required';
       return;
     }
+    if (!isDirty) return;
     const tools: PromptTool[] = editWebSearch ? ['web_search'] : [];
     try {
       if (selectedPromptId) {
@@ -126,6 +162,24 @@
         selectedPromptId = result.prompt.prompt_id;
         saveStatus = 'created';
       }
+      savedSnapshot = {
+        name: editName,
+        description: editDescription,
+        content: editContent,
+        output_column: editOutputColumn,
+        web_search: editWebSearch,
+      };
+      await refreshPrompts();
+    } catch (err: unknown) {
+      saveStatus = `error: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  }
+
+  async function deletePromptById(prompt_id: string, name: string) {
+    if (!window.confirm(`Delete prompt "${name}"?`)) return;
+    try {
+      await workspace.invoke('prompt.delete', { prompt_id });
+      if (selectedPromptId === prompt_id) newPrompt();
       await refreshPrompts();
     } catch (err: unknown) {
       saveStatus = `error: ${err instanceof Error ? err.message : String(err)}`;
@@ -134,14 +188,7 @@
 
   async function deletePrompt() {
     if (!selectedPromptId) return;
-    if (!window.confirm(`Delete prompt "${editName}"?`)) return;
-    try {
-      await workspace.invoke('prompt.delete', { prompt_id: selectedPromptId });
-      await refreshPrompts();
-      newPrompt();
-    } catch (err: unknown) {
-      saveStatus = `error: ${err instanceof Error ? err.message : String(err)}`;
-    }
+    await deletePromptById(selectedPromptId, editName);
   }
 </script>
 
@@ -164,6 +211,13 @@
               <strong>{p.name}</strong>
               <span class="muted">→ {p.output_column}{p.tools.includes('web_search') ? ' · web' : ''}</span>
             </button>
+            <button
+              type="button"
+              class="prompt-delete"
+              title="Delete this prompt"
+              aria-label="delete {p.name}"
+              onclick={() => void deletePromptById(p.prompt_id, p.name)}
+            >×</button>
           </li>
         {/each}
         {#if prompts.length === 0}
@@ -202,7 +256,28 @@
       </div>
 
       <div class="row">
-        <button onclick={savePrompt}>{selectedPromptId ? 'save' : 'create'}</button>
+        <button
+          class="primary"
+          onclick={savePrompt}
+          disabled={!isDirty || !hasRequiredContent}
+          title={!hasRequiredContent
+            ? 'Name, prompt body, and output column are required'
+            : !isDirty
+              ? 'No unsaved changes'
+              : selectedPromptId
+                ? 'Save changes to this prompt'
+                : 'Create this prompt'}
+        >{selectedPromptId ? 'save' : 'create'}</button>
+        <button
+          class="apply"
+          onclick={applyToRequestReviewer}
+          disabled={!canApply}
+          title={!selectedPromptId
+            ? 'Save the prompt first, then Apply'
+            : isDirty
+              ? 'Save your changes before applying'
+              : 'Send this prompt to Request Reviewer'}
+        >apply →</button>
         {#if selectedPromptId}
           <button class="danger" onclick={deletePrompt}>delete</button>
         {/if}
@@ -211,9 +286,10 @@
 
       {#if selectedPromptId}
         <p class="muted handoff-note">
-          To run this prompt — review the resolved request, pick the model,
-          fire — open <strong>Request Reviewer</strong>. It already has this
-          prompt selected. Authoring lives here; firing lives there.
+          <strong>Save</strong> lights up only when you've changed something.
+          <strong>Apply →</strong> sends this prompt to Request Reviewer, where
+          you review the resolved request, pick the model, and fire.
+          Authoring lives here; firing lives there.
         </p>
       {/if}
     </section>
