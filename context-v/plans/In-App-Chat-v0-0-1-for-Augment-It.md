@@ -1,0 +1,366 @@
+---
+title: "In-App Chat v0.0.1 for Augment-It — The Prompt-Drafting Triad as the Demo Affordance"
+lede: "Revised. The v0.0.1 demo arc is the gated-enhancement pattern made conversational: the user states a goal, the chat drafts a prompt (`prompts.draft`), refines it across one or two turns (`prompts.improve`), then explicitly binds it to records (`prompts.apply`) — a ScriptCapability with postconditions that actually checks whether the enrichment did what the prompt promised. Plus `records.list` to look at the result. Four capabilities total, all per-app; two adapter shapes exercised (TS handler, ScriptCapability). McpCapability and SkillCapability honestly deferred to v0.0.2 — no corpus exists yet for `corpus.search` to query, and no skill is wrapped yet. The blueprint's full Pattern 1 isn't proven by v0.0.1; the gated-enhancement triad is. That's the right trade for a client-meeting demo on fundraising-pipeline development."
+date_created: 2026-05-22
+date_modified: 2026-05-22
+revisions:
+  - 2026-05-22 — Replaced `corpus.search` (no corpus to query yet) with the `prompts.draft → improve → apply` triad as the lead demo affordance. Adapter-shape coverage drops from three to two; that's honest and called out.
+authors:
+  - Michael Staton
+augmented_with:
+  - Claude Code on Claude Opus 4.7
+semantic_version: 0.0.0.2
+tags:
+  - Plan
+  - Augment-It
+  - In-App-Agent-Chat
+  - Walking-Skeleton
+  - Prompt-Drafting-Triad
+  - Gated-Enhancement
+  - Client-Demo
+  - Strict-Alignment
+status: Draft
+---
+
+# In-App Chat v0.0.1 for Augment-It
+
+## What this plan is for
+
+A demo-shaped first slice of the in-app chat surface, scoped to **augment-it only**, sized for the upcoming client meeting on fundraising pipeline development. The demo's core affordance: **the chat helps the user author the prompt that drives their enrichment run** — drafting it from a stated goal, improving it from feedback, then explicitly applying it to a scope of records. That's the gated-enhancement pattern from [[Per-App-Workspace-Conventions]] §"Naming convention — entity.verb" rendered conversationally.
+
+The slice exercises the patterns in [[Chat-As-Verb-Surface-Patterns]] enough to learn whether the conventions hold under one real workflow before generalizing. It does **not** exercise every adapter shape (Pattern 1) — McpCapability and SkillCapability are deferred. That's a deliberate, called-out trade: a smaller slice with a stronger client-meeting story beats a wider slice with a weaker one.
+
+## Prerequisites — what has to be true before this lands
+
+- [[Augment-It-Workspace-Walking-Skeleton]] is at "row-store loads two CSVs and the workspace state reflects them" — the workspace package + Workspace Service + row-store + NATS bus all exist and the browser sees real data.
+- [[Prompt-Template-Manager-Walking-Skeleton]] (the augment-it prompt-template work) has a usable template-storage shape we can write `prompts.*` capabilities against — even if its own UI isn't done. Worst case: a JSON file under `services/prompts/data/` is enough.
+- The enrichment script invoked by `prompts.apply` accepts a prompt-template path (or inline string) plus a record-set ID + scope. If it doesn't yet, wiring that parameter is a Phase-0 task below.
+- An Anthropic API key in `~/.secrets`, exported in the chat-service container's environment.
+
+If any of the above is missing the day-of, **stop and do that first** — the chat with nothing to drive is not a demo.
+
+## Where in augment-it this lives
+
+```
+augment-it/
+├── packages/
+│   └── workspace/                          # @augment-it/workspace (exists)
+│       └── src/
+│           ├── state.ts
+│           ├── capabilities/               # NEW — four capability handlers
+│           │   ├── records-list.ts         # TS handler
+│           │   ├── prompts-draft.ts        # TS handler (calls model server-side)
+│           │   ├── prompts-improve.ts      # TS handler (calls model server-side)
+│           │   └── prompts-apply.ts        # ScriptCapability with postconditions
+│           ├── entities/
+│           │   └── prompts.ts              # NEW — the Prompt entity + draft-versioning
+│           ├── anticipation.ts             # NEW — Pattern 3 flat map
+│           └── prompts/
+│               └── system.md               # NEW — the four slabs (Pattern 5)
+├── apps/
+│   └── chat/                               # NEW — federation remote for the chat surface
+│       └── src/
+│           ├── ChatSurface.svelte
+│           ├── CharacterCastRow.svelte     # consumes capability lifecycle events
+│           ├── ResponseModeRenderer.svelte # branches on answer | propose | invoke
+│           └── PromptDraftPanel.svelte     # renders a prompts.draft / improve result inline
+└── services/
+    └── chat/                               # NEW — Node/Fastify; the model proxy
+        └── src/
+            ├── server.ts                   # SSE endpoint
+            ├── prompt.ts                   # assembles the four slabs with cache breakpoints
+            ├── dispatch.ts                 # wires LLM tool calls → workspace.invoke()
+            └── lifecycle.ts                # emits capability.* events onto NATS
+```
+
+The chat service is a **fifth container** in the compose file (workspace-service + row-store + ingest + nats + chat-service). Demo-audience caveat from [[Augment-It-Workspace-Walking-Skeleton]] applies: every container must have a legible reason. The chat service exists because the Anthropic API key never sits in the browser, and the prompt-slab assembly + cache-breakpoint emission is server-side logic. Two legible reasons.
+
+## The Prompt entity (new, lives in `@augment-it/workspace`)
+
+```ts
+interface Prompt {
+  id: string;                      // 'prompt_a1b2c3...'
+  goal: string;                    // the user's stated intent in their own words
+  body: string;                    // the actual prompt template, with {{column}} placeholders
+  expected_outputs: string[];      // column names this prompt should populate
+  derived_from: string | null;     // parent prompt_id if this is an `improve` result
+  derivation_feedback?: string;    // free-text feedback that produced this version
+  status: 'draft' | 'applied' | 'archived';
+  record_set_context?: {           // the columns the prompt was drafted against
+    record_set_id: string;
+    sample_size: number;
+    columns: string[];
+  };
+  created_at: number;
+}
+```
+
+`improve` creates a new Prompt with `derived_from` set, not an in-place edit. That preserves the iteration history and matches the "improve is the refinement loop, not a direct edit" distinction in the [[Per-App-Workspace-Conventions]] verb table.
+
+`apply` updates the source prompt's `status` to `'applied'` and writes the application result against the record set (column-by-column enrichment values).
+
+## Decisions to settle before coding (15 min)
+
+1. **Alignment mode.** `strict` for v0.0.1 (per [[Chat-As-Verb-Surface-Patterns]] Pattern 4 — propose-by-default suits the client meeting).
+2. **Model.** `claude-sonnet-4-6` for v0.0.1. Sonnet's latency suits the drafting-refinement loop; Opus is reserved for the actual enrichment inside `prompts.apply` (overkill for verb routing, right-sized for the per-record extraction).
+3. **System-prompt static spine — first cut.** Draft to `packages/workspace/src/prompts/system.md`. Three paragraphs: "you operate inside augment-it", the three response modes from Pattern 4, the strict-alignment instruction, and one specific instruction that **`prompts.improve` is for iterating drafts, not for applying them** — the chat must not silently switch from refinement to execution.
+4. **Prompt storage location.** A JSON file at `services/prompts/data/prompts.json` for v0.0.1; libSQL once the prompt-template-manager catches up. The walking skeleton's persistence discipline applies (D3 from the workspace walking skeleton's pre-flight decisions).
+5. **Enrichment script wiring.** Confirm which entry under `services/ingest/` or `services/enrich/` accepts a prompt-template parameter today. If none do, this becomes a Phase 0 task — add a `--prompt-template` flag to the existing enrichment runner.
+
+## Phase 0 — Wire the enrichment script's prompt parameter (~30 min, only if needed)
+
+If the existing enrichment runner can't accept a prompt template by reference, add a `--prompt-template <path>` flag that reads the JSON, substitutes `{{column}}` placeholders from each record's columns, and dispatches per-record to the model. This is augmenting an existing script, not building a new one — keep the change small.
+
+Done-when: running the script manually with `--prompt-template path/to/prompt.json --record-set-id demo-1 --scope all` enriches the record set and exits 0.
+
+## Phase 1 — Four capability handlers (~90 min)
+
+Goal: the four capabilities exist with real implementations, and a unit test against each invokes through the workspace.
+
+### 1a. `records.list` — TS handler (~10 min)
+
+Same as the prior plan version — reads from row-store via NATS, returns `{ records, display_hint: { mount: 'record_list' } }`. Lightweight; supports the demo's "show me the result" beat.
+
+### 1b. `prompts.draft` — TS handler (~30 min)
+
+```ts
+export const promptsDraft: Capability<DraftArgs, { prompt: Prompt }> = {
+  name: 'prompts.draft',
+  description: 'Draft a prompt template from a user goal + a sample of the record set columns. Returns an editable Prompt entity, not a side effect.',
+  args_schema: z.object({
+    goal: z.string().min(8),
+    record_set_id: z.string(),
+    expected_outputs: z.array(z.string()).default([]),
+  }),
+  required_tier: 'user',
+  requires_user_confirmation: false,        // drafts are inert — no real records change
+  handler: async (args, ctx) => {
+    const sample = await ctx.workspace.rowStore.sample(args.record_set_id, 5);
+    const columns = Object.keys(sample[0] ?? {});
+    const draftBody = await draftPromptViaModel({         // server-side LLM call
+      goal: args.goal,
+      columns,
+      sampleRows: sample,
+      expectedOutputs: args.expected_outputs,
+    });
+    const prompt = await ctx.workspace.prompts.save({
+      goal: args.goal,
+      body: draftBody,
+      expected_outputs: args.expected_outputs,
+      derived_from: null,
+      status: 'draft',
+      record_set_context: { record_set_id: args.record_set_id, sample_size: sample.length, columns },
+    });
+    return { data: { prompt }, display_hint: { mount: 'prompt_draft', props: { promptId: prompt.id }, layout: 'inline' } };
+  },
+};
+```
+
+The `display_hint.mount: 'prompt_draft'` is a new `activeView` variant the chat surface renders inline (the `PromptDraftPanel.svelte` from the file tree above). Critical UX point: the draft shows up **inside the chat conversation**, not as a side-panel — the user sees the draft as a turn in the dialog and reacts to it conversationally.
+
+Done-when: from a chat turn, typing *"Draft a prompt to find each founder's LinkedIn URL and current role from this list of companies"* triggers `prompts.draft`, the draft body renders in the chat, and the prompt is persisted.
+
+### 1c. `prompts.improve` — TS handler (~20 min)
+
+```ts
+export const promptsImprove: Capability<ImproveArgs, { prompt: Prompt }> = {
+  name: 'prompts.improve',
+  description: "Given an existing draft prompt and user feedback, produce a refined version. Does NOT apply the prompt to records — apply is a separate verb.",
+  args_schema: z.object({
+    prompt_id: z.string(),
+    feedback: z.string().min(4),
+  }),
+  required_tier: 'user',
+  requires_user_confirmation: false,
+  handler: async (args, ctx) => {
+    const parent = await ctx.workspace.prompts.get(args.prompt_id);
+    const refinedBody = await improvePromptViaModel({ parent, feedback: args.feedback });
+    const refined = await ctx.workspace.prompts.save({
+      goal: parent.goal,
+      body: refinedBody,
+      expected_outputs: parent.expected_outputs,
+      derived_from: parent.id,
+      derivation_feedback: args.feedback,
+      status: 'draft',
+      record_set_context: parent.record_set_context,
+    });
+    return { data: { prompt: refined }, display_hint: { mount: 'prompt_draft', props: { promptId: refined.id }, layout: 'inline' } };
+  },
+};
+```
+
+Done-when: an existing draft + the feedback string *"also extract the year the company was founded"* produces a refined Prompt that mentions the founding year in its body, linked back to the parent via `derived_from`.
+
+### 1d. `prompts.apply` — ScriptCapability with postconditions (~30 min)
+
+```ts
+export const promptsApply: Capability<ApplyArgs, { record_set_id: string; rows_enriched: number; columns_added: string[] }> = {
+  name: 'prompts.apply',
+  description: 'Bind a drafted prompt to a record set scope and run the enrichment. This is the only verb that mutates the record set; draft and improve do not.',
+  args_schema: z.object({
+    prompt_id: z.string(),
+    record_set_id: z.string(),
+    scope: z.enum(['all', 'unscored', 'selection']),
+    selection?: z.array(z.string()).optional(),
+  }),
+  required_tier: 'user',
+  requires_user_confirmation: false,        // demo-friendly; v0.0.2 will gate this for non-trivial scopes
+  command: 'pnpm --filter @augment-it/services-enrich run apply -- --prompt {{prompt_id}} --record-set {{record_set_id}} --scope {{scope}}',
+  cwd: '.',
+  expected_effect: {
+    description: 'The expected_outputs columns are populated on every in-scope record; the prompt status flips to applied.',
+    postconditions: [
+      { kind: 'exit_code', equals: 0 },
+      { kind: 'row_count_change', entity: 'enrichments', op: '>=', value: 1 },
+      { kind: 'stdout_matches', pattern: 'rows_enriched=\\d+', mode: 'must' },
+      { kind: 'stdout_matches', pattern: 'rows_enriched=0', mode: 'must_not' },
+    ],
+  },
+  handler: 'script',
+};
+```
+
+The two `stdout_matches` postconditions together encode "we got an explicit count, and it wasn't zero." A `rows_enriched=0` outcome is a postcondition violation — it means the script ran but the prompt produced nothing usable, which is exactly the failure shape the gated-enhancement pattern is meant to catch.
+
+Done-when: invoking `prompts.apply` with a real draft + a small record set completes, the postconditions evaluate, and a deliberately-broken prompt (e.g., one that asks for a column that doesn't fit the data) emits `capability.quality_violation` with the failing postcondition named.
+
+## Phase 2 — Anticipation map (~10 min)
+
+In `packages/workspace/src/anticipation.ts`. Four entries for v0.0.1, all keyed off `record_list`:
+
+```ts
+export const anticipation: Record<AnticipationKey, Suggestion[]> = {
+  'record_list::none': [
+    { capability: 'prompts.draft',   hint: 'Draft a prompt to enrich these records.' },
+    { capability: 'records.list',    hint: 'Preview the rows you have to work with.' },
+  ],
+  'record_list::prompts.draft': [
+    { capability: 'prompts.improve', hint: 'Refine the draft with feedback.' },
+    { capability: 'prompts.apply',   hint: 'Run this prompt against the record set.' },
+  ],
+  'record_list::prompts.improve': [
+    { capability: 'prompts.improve', hint: 'Refine further.' },
+    { capability: 'prompts.apply',   hint: 'Run this version.' },
+  ],
+  'record_list::prompts.apply': [
+    { capability: 'records.list',    hint: 'See the enriched records.' },
+    { capability: 'prompts.draft',   hint: 'Draft another prompt for a different column.' },
+  ],
+};
+```
+
+That map *is* the demo arc, rendered as data. The fact that the same screen with different recent verbs suggests different next steps is the "anticipation" pattern doing visible work.
+
+Done-when: after each capability completes, the chat surface renders the matching suggestions as clickable proposals (Pattern 4's `propose` mode in UI).
+
+## Phase 3 — Chat service + four-slab prompt (~75 min)
+
+`services/chat/` is a new container. Node/Fastify, one route: `POST /api/agent/chat` streaming SSE.
+
+### Prompt assembly (Pattern 5)
+
+Same shape as the prior plan: static spine, capability schemas, active skills (empty in v0.0.1), per-org reminders (empty in v0.0.1), then suggestions + thread + user message uncached. Cache breakpoints between each cacheable slab.
+
+The new wrinkle: the static spine for v0.0.1 must include **one explicit instruction** that `prompts.improve` is for iterating drafts, not for applying them. Without that line, the model will sometimes "improve and apply" in one turn, which destroys the gating discipline. Worth a sentence; cheap insurance.
+
+### Dispatch (Pattern 4)
+
+Same three intents — `answer` / `propose` / `invoke`. The dispatcher branches identically to the prior version of this plan. The novel thing is that `prompts.draft` and `prompts.improve` return prompts that **render inline in the chat** (via `display_hint.layout: 'inline'`), so the conversation feels like a drafting session, not a sequence of disconnected tool calls.
+
+Done-when: each mode can be triggered manually; a draft renders inline; the user can react to it with another chat message that triggers `prompts.improve`.
+
+## Phase 4 — Chat surface (~60 min)
+
+`apps/chat/` is a new federation remote, Svelte 5, mounts as a panel in the augment-it shell (Configuration A from [[Slides_Anatomy-of-the-In-App-Agent-Shell]] — chat-as-primary).
+
+Four components:
+
+- `ChatSurface.svelte` — message list + composer.
+- `CharacterCastRow.svelte` — subscribes to `workspace.jobEvents`, renders one chip per open `invocation_id`.
+- `ResponseModeRenderer.svelte` — branches on `answer` | `propose` | `invoke` SSE events.
+- `PromptDraftPanel.svelte` — renders a `prompt_draft` `activeView` inline as part of a chat turn (not in a side panel). Shows the prompt body in a readable block, with affordances to "Refine this" (triggers `prompts.improve` proposal) and "Run this" (triggers `prompts.apply` proposal). Both affordances go through `propose`, not direct `invoke` — the user clicks once more to confirm.
+
+Done-when: open augment-it, see chat panel, type a goal, get a draft rendered inline, click "Refine this," type feedback, get a new draft inline, click "Run this," watch character-cast row fire as enrichment runs, then see the suggested `records.list` to view results.
+
+## Phase 5 — End-to-end demo rehearsal (~30 min)
+
+The exact path the client meeting will use. Pipeline: a CSV of 47 companies the client is considering for fundraising outreach.
+
+1. Open augment-it. Workspace already has the CSV loaded from startup. `activeView = record_list`.
+2. Chat panel shows: *"Draft a prompt to enrich these records."* and *"Preview the rows you have to work with."*
+3. Type: *"I want to find each company's founder, their LinkedIn URL, and the year the company was founded."* → `prompts.draft` invokes → draft renders inline in the chat as a readable block: *"For each company in {{record_set}}, find the founder's name, their LinkedIn URL, and the year of incorporation. Use the company's domain in {{website}} as your primary search anchor..."*
+4. Type: *"Also flag which ones are SaaS — that's the segment we care about."* → `prompts.improve` invokes → new draft renders inline, now including the SaaS classification field. `derived_from` links to the parent.
+5. Click "Run this." → proposal renders: *"Apply this prompt to all 47 records?"* → click Accept → `prompts.apply` invokes → character-cast row shows one chip ("Enrichment Agent — 12 of 47..."). Postconditions check at the end; all pass.
+6. Anticipation suggests: *"See the enriched records."* → click → `records.list` invokes → records render with the new columns populated.
+
+Total demo: ~3–4 minutes including narration. Two adapter shapes exercised (TS + Script), four capabilities, the anticipation map fired three times, postconditions checked, and — critically — the client saw the chat **help author the prompt** rather than just execute on one.
+
+Run this rehearsal **end-to-end at least three times** before the client meeting. Watch for: (a) the model trying to skip from `improve` straight to enrichment without an explicit `apply` (the static-spine instruction should prevent this; rehearsal verifies), (b) the postcondition firing on a deliberately-bad prompt, (c) the inline draft rendering legibly.
+
+## Phase 6 — Stop and write down what hurt (~15 min, mandatory)
+
+Append a `## v0.0.1 Session Notes` section to *this plan file* covering:
+
+- Where the blueprint patterns didn't match reality (edit [[Chat-As-Verb-Surface-Patterns]] same-session if so).
+- Whether prompt-cache headers actually fired (`cache_read_tokens > 0` on the second turn).
+- Whether the postcondition check caught anything real or was just decoration.
+- Whether `strict` alignment was right for the demo, or whether mid-demo it felt sluggish.
+- Whether `improve` ever silently mutated records (it shouldn't; verify).
+- The first thing v0.0.2 should attack. Likely candidates: McpCapability (firecrawl or tavily for live crawl during apply), SkillCapability (wrap `crawl-fetch-ingest`), mutate-with-confirmation gating for non-trivial `apply` scopes, the `reminders.*` and `cache.*` capabilities once memory-layers reads land.
+
+## Out of scope (deliberate, called out)
+
+- **`corpus.search` and McpCapability adapter.** No corpus exists for augment-it yet. v0.0.2 likely brings firecrawl or tavily as the first MCP wrap — they fit the fundraising-pipeline enrichment use case (live company-page crawls during `prompts.apply`).
+- **SkillCapability adapter.** No skill is wrapped in v0.0.1. v0.0.2 candidate: wrap `crawl-fetch-ingest` so the chat can plan an ingestion run, then `prompts.apply` executes it.
+- **BYOK.** The chat service uses the org's Anthropic key. UI for user-provided keys is v0.0.2+.
+- **Tauri.** Web only.
+- **Mutate-with-confirmation gating.** `prompts.apply` runs without an explicit confirm step for v0.0.1 because the demo arc *is* the confirmation (the user has to click "Run this"). For larger scopes or non-demo use, v0.0.2 adds the preview/accept loop.
+- **Per-organization reminders + AI cache (`reminders.*`, `cache.*`).** Needs the Neo / Letta / mem0 reads from the memory-layers study first.
+- **Character-cast personification per capability.** v0.0.1 uses a single generic "Enrichment Agent" character. Per-verb characters land in v0.0.2.
+- **The shared `@lossless/in-app-agent` package.** Memopop adopts the patterns first; extraction after the second app, not the first.
+
+## Pre-flight checklist (30 min before the demo)
+
+- [ ] `docker compose up` brings up workspace-service + row-store + ingest + nats + chat-service cleanly.
+- [ ] Browser loads augment-it shell at the expected URL/port (avoid :3000 per [[project_user_port_3000_open_webui]]).
+- [ ] Chat panel renders; the empty-state suggests `prompts.draft` and `records.list`.
+- [ ] A test "draft a prompt to extract X" message produces an inline draft.
+- [ ] A follow-up "also extract Y" produces a refined draft with `derived_from` set.
+- [ ] A test `prompts.apply` against a 3-record subset enriches all three and postconditions pass.
+- [ ] A deliberately-corrupted prompt (asks for an impossible column) triggers `capability.quality_violation`.
+- [ ] The demo CSV is at the path the script expects; the 47-record file loads cleanly.
+- [ ] The system prompt's static spine has been read once aloud — the model's first turn is more legible if the spine doesn't sound like a robot wrote it.
+
+## If the session runs short
+
+Priority order:
+
+1. **Phase 1d (`prompts.apply` with postconditions) must finish.** Without it, the demo arc has no climax and the quality-monitoring story disappears.
+2. **Phase 4's `PromptDraftPanel.svelte`** is the *visible* product. Cutting it cuts the "chat helps me draft a prompt" beat. Keep it even if other UI components stub out.
+3. **Phase 5 rehearsal is non-negotiable.** Cut Phase 6 write-up time before cutting rehearsal time.
+4. **Phase 3's cache breakpoints** can ship with empty slabs 3 and 4 (active skills, reminders) — restructuring later is worse than scaffolding the empty slots now.
+5. **Phase 1c (`prompts.improve`)** can degrade to "the user re-runs `prompts.draft` with a longer goal" if time is brutal. The arc weakens but doesn't die.
+
+## Related artifacts to create or update during the session
+
+- [ ] `augment-it/packages/workspace/src/prompts/system.md` — first cut of the static spine, including the *improve-doesn't-apply* instruction.
+- [ ] `augment-it/packages/workspace/src/entities/prompts.ts` — the Prompt entity + draft-versioning.
+- [ ] `augment-it/services/chat/` scaffolded with the Fastify SSE route.
+- [ ] `augment-it/apps/chat/` scaffolded as a federation remote with the four components.
+- [ ] `augment-it/docker-compose.yml` extended with the `chat-service` container.
+- [ ] `augment-it/changelog/2026-05-23_In-App-Chat-v0-0-1.md` — at end of session, per [[changelog-conventions]].
+- [ ] Append the `## v0.0.1 Session Notes` section to this file (Phase 6).
+- [ ] If anything in [[Chat-As-Verb-Surface-Patterns]] or [[Per-App-Workspace-Conventions]] proved wrong, bump same-session.
+
+## Related
+
+- [[Chat-As-Verb-Surface-Patterns]] (ai-labs) — the blueprint this plan implements; defines the four adapter shapes and the five patterns
+- [[Per-App-Workspace-Conventions]] (ai-labs) — the workspace shape; defines the verb vocabulary including `draft → improve → apply`
+- [[Augment-It-Workspace-Walking-Skeleton]] — the substrate this rides on
+- [[Prompt-Template-Manager-Walking-Skeleton]] — the augment-it prompt-template work this leans on for storage
+- [[Remote-Mount-Contract-for-In-App-Agent]] (ai-labs) — the adapter seam
+- [[In-App-Chat-as-Agent-Surface-for-Client-Apps]] (ai-labs) — origin exploration
+- [[Slides_Anatomy-of-the-In-App-Agent-Shell]] (ai-labs) — augment-it is chat-as-primary (Configuration A)
+- [[Federation-and-Bundler-Decision]] — federation substrate this plugs into
+- [[Augment-It-Prior-Art-Survey]] — capability vocabulary this plan picks from
+- [[project_augment_it_gating_and_microfrontend_thesis]] (memory) — the gating discipline this triad is the structural answer to
