@@ -56,15 +56,17 @@ function extractText(content: Anthropic.ContentBlock[]): string {
  */
 export async function runPrompt(
   request: Anthropic.MessageCreateParamsNonStreaming,
+  options?: { signal?: AbortSignal },
 ): Promise<string> {
+  const signal = options?.signal;
   let messages: Anthropic.MessageParam[] = request.messages;
-  let response = await getClient().messages.create(request);
+  let response = await getClient().messages.create(request, { signal });
 
   let continuations = 0;
   while (response.stop_reason === 'pause_turn' && continuations < MAX_PAUSE_CONTINUATIONS) {
     continuations += 1;
     messages = [...messages, { role: 'assistant', content: response.content }];
-    response = await getClient().messages.create({ ...request, messages });
+    response = await getClient().messages.create({ ...request, messages }, { signal });
   }
 
   return extractText(response.content);

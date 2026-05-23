@@ -23,6 +23,7 @@ import { extractTokens, fillTemplate } from './template';
 const jc = JSONCodec();
 
 const DEFAULT_ROW_LIMIT = 25;
+const PER_ROW_TIMEOUT_MS = 90_000;
 
 type PromptTemplate = {
   prompt_id: string;
@@ -45,7 +46,7 @@ type RecordSet = {
 type Row = { row_id: string; record_set_id: string; fields: Record<string, unknown> };
 
 export type RunResult =
-  | { ok: true; record_set: RecordSet; row_count: number }
+  | { ok: true; record_set: RecordSet; row_count: number; cancelled?: boolean }
   | { ok: false; error: string; unbound_tokens?: string[] };
 
 async function request<T>(nc: NatsConnection, subject: string, body: unknown, timeout = 10_000): Promise<T> {
@@ -63,7 +64,9 @@ export async function runPromptAgainstRecordSet(
     model?: string;
     max_tokens?: number;
   },
+  options?: { runSignal?: AbortSignal },
 ): Promise<RunResult> {
+  const runSignal = options?.runSignal;
   // 1. prompt
   const promptReply = await request<{ prompt: PromptTemplate | null }>(
     nc,
@@ -112,8 +115,14 @@ export async function runPromptAgainstRecordSet(
   const run_id = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   const total = targetRows.length;
   const enrichedRows: { fields: Record<string, unknown> }[] = [];
+  let cancelled = false;
 
   for (let i = 0; i < targetRows.length; i++) {
+    if (runSignal?.aborted) {
+      cancelled = true;
+      console.log(JSON.stringify({ level: 'info', msg: 'run cancelled — skipping remaining rows', row: i, remaining: targetRows.length - i }));
+      break;
+    }
     const row = targetRows[i];
     const filled = fillTemplate(prompt.content, row.fields);
     // The exact request — built once, sent by runPrompt, recorded on the
@@ -123,12 +132,37 @@ export async function runPromptAgainstRecordSet(
       maxTokens: args.max_tokens,
       tools: prompt.tools ?? [],
     });
+
+    // Per-row AbortController: aborts on (a) the 90s row timeout or (b) the
+    // run-level cancel signal. Either source triggers the same abort path so
+    // the Anthropic SDK actually closes the in-flight HTTP request rather
+    // than us just walking away from the promise.
+    const rowController = new AbortController();
+    const timeoutId = setTimeout(
+      () => rowController.abort(new Error(`row timed out after ${PER_ROW_TIMEOUT_MS}ms`)),
+      PER_ROW_TIMEOUT_MS,
+    );
+    const onRunAbort = () => rowController.abort(new Error('run cancelled'));
+    runSignal?.addEventListener('abort', onRunAbort, { once: true });
+
+    const rowStartedAt = Date.now();
+    console.log(JSON.stringify({ level: 'info', msg: 'row started', run_id, row: i + 1, total, row_id: row.row_id }));
+
     let value: string;
     try {
-      value = await runPrompt(reqBody);
+      value = await runPrompt(reqBody, { signal: rowController.signal });
+      const elapsed_ms = Date.now() - rowStartedAt;
+      console.log(JSON.stringify({ level: 'info', msg: 'row completed', run_id, row: i + 1, total, row_id: row.row_id, elapsed_ms, chars: value.length }));
     } catch (err) {
+      const elapsed_ms = Date.now() - rowStartedAt;
       value = `[error: ${describeError(err)}]`;
-      console.error(JSON.stringify({ level: 'error', msg: 'row failed', row: i, error: describeError(err) }));
+      console.error(JSON.stringify({ level: 'error', msg: 'row failed', run_id, row: i + 1, total, row_id: row.row_id, elapsed_ms, error: describeError(err) }));
+      // If the failure came from the run-level cancel, stop the loop after
+      // recording this row's error (so its response still lands in the store).
+      if (runSignal?.aborted) cancelled = true;
+    } finally {
+      clearTimeout(timeoutId);
+      runSignal?.removeEventListener('abort', onRunAbort);
     }
     enrichedRows.push({ fields: { ...row.fields, [prompt.output_column]: value } });
 
@@ -153,6 +187,13 @@ export async function runPromptAgainstRecordSet(
       'prompt.run.progress',
       jc.encode({ prompt_id: prompt.prompt_id, record_set_id: args.record_set_id, done: i + 1, total }),
     );
+  }
+
+  // If the run was cancelled before any row completed, don't synthesize an
+  // empty derived record set — there's nothing to record. The per-row
+  // responses (if any) are already in response-store.
+  if (cancelled && enrichedRows.length === 0) {
+    return { ok: false, error: 'run cancelled before any row completed' };
   }
 
   // 6. derived schema — append the output column unless it already exists
@@ -190,5 +231,10 @@ export async function runPromptAgainstRecordSet(
     30_000,
   );
 
-  return { ok: true, record_set: created.record_set, row_count: enrichedRows.length };
+  return {
+    ok: true,
+    record_set: created.record_set,
+    row_count: enrichedRows.length,
+    ...(cancelled ? { cancelled: true } : {}),
+  };
 }
