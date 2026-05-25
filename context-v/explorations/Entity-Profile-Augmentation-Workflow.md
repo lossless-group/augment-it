@@ -7,11 +7,12 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.3
+semantic_version: 0.0.0.4
 revisions:
   - 2026-05-25 — Initial draft.
   - 2026-05-25 — User answered 6 of 7 open questions inline. Resolutions folded back: two-pass execution with data carry-forward; pre-flight agent-scan against existing helpful_links; confidence as numeric 0-100 with color pill; sibling-payload + optional archival-markdown for structured responses; `outcome` enum for response types. Q7 (user's additional philanthropy sources) still open.
   - 2026-05-25 — Pack vs bundle distinction introduced per user. **Pack** = atomic, source-bound, one-per-microfrontend/microservice (deployment unit). **Bundle** = workflow-shaped composition of packs (orchestration unit). Layer 2 re-split; blueprint fork renamed to `Packs-and-Bundles-Pattern`.
+  - 2026-05-25 — Q7 resolved by reconstruction. User's original list was not recoverable from row-store/backups (those contain enriched entities, not DaaS providers). Tier-2 philanthropy expanded to 18 sources across five sub-groups; new open consideration for the blueprint: per-bundle source-selection discipline since 18 is too many for a default fan-out.
 tags:
   - Exploration
   - Augment-It
@@ -195,7 +196,7 @@ a specialized tail:
 |---|---|---|
 | **Public company** | LinkedIn, X, YouTube (BlueSky/FB rare) | SEC EDGAR, Yahoo Finance, investor-relations pages, press-release feeds |
 | **Notable individual (HNWI)** | LinkedIn, X, BlueSky, Wikipedia (FB optional) | Forbes lists, OpenSecrets, news-mention search, public donations records, board memberships |
-| **Philanthropic organization** | LinkedIn, X, Facebook, YouTube | Candid / GuideStar, ProPublica Nonprofit Explorer, IRS Form 990, Grantable, FoundationDirectory, [user has additional list — to be merged] |
+| **Philanthropic organization** | LinkedIn, X, Facebook, YouTube | Candid / GuideStar, 990 Finder, ProPublica Nonprofit Explorer, IRS Form 990, CauseIQ, Grantmakers.io, FoundationDirectory, Grantable, GrantStation, Instrumentl, GrantForward, GrantAdvance, GrantSelect, GrantSpace, Funder.io, Charity Navigator, CharityWatch, Inside Philanthropy, GivingTuesday Data Commons |
 | **Venture capital firm** | LinkedIn, X (BlueSky growing) | Crunchbase, PitchBook, AngelList, SEC Form D filings, portfolio pages |
 | **Startup** | LinkedIn, X | Crunchbase, AngelList, ProductHunt, GitHub orgs, employee-count proxies |
 
@@ -218,8 +219,17 @@ blueprint.
 
 ### Tier 2 — Vertical APIs / structured databases
 
-- **Philanthropy**: Candid (GuideStar), ProPublica Nonprofit Explorer,
-  IRS Form 990 PDFs, Grantable, FoundationDirectory, GrantStation
+- **Philanthropy**:
+  - **Funder / 990-derived databases**: Candid (GuideStar), Candid's
+    990 Finder, ProPublica Nonprofit Explorer, IRS Form 990 PDFs,
+    CauseIQ, Grantmakers.io, FoundationDirectory (Candid product)
+  - **Grant-search platforms**: Grantable, GrantStation, Instrumentl,
+    GrantForward, GrantAdvance, GrantSelect, GrantSpace, Funder.io
+  - **Ratings + watchdog**: Charity Navigator, CharityWatch
+  - **Editorial / discovery**: Inside Philanthropy, GivingTuesday Data
+    Commons
+  - **Adjacent (HNWI overlap, useful for individuals tied to philanthropic
+    orgs)**: OpenSecrets, FEC.gov
 - **Public companies**: SEC EDGAR, Yahoo Finance, MarketWatch
 - **VC / startup**: Crunchbase, PitchBook, AngelList, SEC Form D
 - **Individuals (public-record)**: OpenSecrets, FEC filings, court
@@ -362,9 +372,22 @@ blueprint:
    a distinct render in Response Reviewer — `not_found` is informational,
    not a triage state.
 
-7. **The user's additional philanthropy sources.** The user mentioned a
-   list they couldn't locate. To be merged into the Tier-2 philanthropy
-   row once recovered.
+7. **The user's additional philanthropy sources.** ✅ **Resolved.**
+
+   The user's original list was not recoverable from the row-store or
+   backups — the data there is the *entities being enriched* (foundation
+   websites), not the DaaS providers used to find them. The list got
+   reconstructed from public-knowledge candidates plus the user's
+   original three (Grantable, ProPublica Nonprofit Explorer, plus the
+   already-named Candid / FoundationDirectory / IRS 990 / GrantStation).
+
+   → **Resolution:** Tier-2 philanthropy now sub-divided into five
+   sub-groups (funder/990-derived DBs, grant-search platforms, ratings
+   + watchdog, editorial/discovery, adjacent HNWI-overlap). 18 sources
+   total — likely more than any one bundle should fan out across in v1.
+   The blueprint will need to surface a *selection* discipline: which
+   subset of Tier-2 each bundle invokes (probably 4-6 default, the
+   rest opt-in per row or per dataset).
 
 ## What forks from this exploration
 
