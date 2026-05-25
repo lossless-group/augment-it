@@ -2,7 +2,7 @@
 title: context-v for augment-it
 lede: Living documentation for augment-it — specs, habits, prompts, reminders, explorations, issues.
 date_created: 2026-05-12
-date_modified: 2026-05-12
+date_modified: 2026-05-25
 status: Active
 tags:
   - Context-Vigilance
@@ -25,8 +25,3 @@ Subdirectories appear as content arrives:
 
 The splash at `splash/` renders every `.md` in this tree (and `changelog/`)
 on push to `main`.
-
-│   ├── request-reviewer/
-│   ├── response-reviewer/
-│   ├── highlight-collector/
-│   └── insight-manager/

@@ -2,7 +2,8 @@
 title: "Bolt-Era Record Collector Analysis"
 lede: "Lifted from `augment-it-bolt/specs/RecordCollector-Analysis.md`. Per-feature breakdown of the record-collector module in the bolt monolith. Worth cross-referencing against `Tanuj-Record-Collector-As-Built.md` — Tanuj later forked record-collector into its own Next.js repo, and the differences between this bolt-era version and Tanuj's split version are instructive about which patterns survived the federation experiment."
 date_created: 2026-05-18
-date_modified: 2026-05-18
+date_modified: 2026-05-25
+date_archived: 2026-05-25
 authors:
   - Michael Staton
 augmented_with:
@@ -17,7 +18,7 @@ tags:
   - Record-Collector
   - Pipeline-Stage-1
   - As-Built
-status: Stale
+status: Archived
 deferral_note: "Describes the archive/bolt-code record-collector — cross-reference with Tanuj-Record-Collector-As-Built.md for the federated version."
 ---
 

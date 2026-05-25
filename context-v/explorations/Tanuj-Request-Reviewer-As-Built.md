@@ -2,7 +2,8 @@
 title: "Tanuj's Request-Reviewer As Built — The Module Federation Proof"
 lede: "The smallest of the four sources, and architecturally the most important. Vite + React 19 + Module Federation. The only place Tanuj actually got cross-app code sharing to work — a federated `RecordCard` component imported from `@module-federation-vite/ui`. The augmentation logic, however, is duplicated from record-collector by copy-paste, which exposes the seam that the federation experiment didn't resolve."
 date_created: 2026-05-18
-date_modified: 2026-05-18
+date_modified: 2026-05-25
+date_archived: 2026-05-25
 authors:
   - Michael Staton
 augmented_with:
@@ -15,7 +16,7 @@ tags:
   - Request-Reviewer
   - Module-Federation
   - As-Built
-status: Draft
+status: Archived
 ---
 
 # Tanuj's Request-Reviewer As Built

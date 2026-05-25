@@ -2,13 +2,16 @@
 title: "Helpful Links on Records — Captured During Response-Reviewer Triage"
 lede: "While a human-in-the-loop is triaging LLM responses in Response Reviewer — google-searching the unclear ones, fixing wrong URLs, deciding whether an org even exists — they routinely stumble onto adjacent links worth keeping with the record (a foundation page, a personal LinkedIn, a press release, a related grantee site). Today those links die in the human's clipboard. This prompt scopes a `helpful_links` array field per row, attachable inline from Response Reviewer with one click, surviving across record-set derivations so the next enrichment round can read them."
 date_created: 2026-05-22
-date_modified: 2026-05-22
+date_modified: 2026-05-25
+date_completed: 2026-05-22
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.1
-status: Proposed
+semantic_version: 0.0.0.2
+status: Shipped
+revisions:
+  - 2026-05-25 — Status swept to Shipped; helpful_links landed in commit f1e9a80 per changelog 2026-05-22_04.
 tags:
   - Prompt
   - Augment-It

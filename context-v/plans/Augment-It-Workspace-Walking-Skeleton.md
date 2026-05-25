@@ -2,14 +2,16 @@
 title: "Augment-It Workspace — Walking Skeleton Plan"
 lede: "First buildable plan for the augment-it rewrite. Scaffold @augment-it/workspace (Svelte 5 singleton, per the pre-flight spec) plus a thin Workspace Service container (Node/Fastify) plus one domain microservice (row-store) plus a NATS message bus. Browser ↔ Workspace Service is WebSocket; Workspace Service ↔ domain services is NATS pub/sub. Two spreadsheets become the proof-of-life payload: load → row appears in workspace state → invoke a capability → round-trip the change back through SSE-equivalent broadcast. Supersedes the Transport decision in [[Walking-Skeleton-Pre-Flight-Decisions]]; the demo audience (a 26-product client) is the reason."
 date_created: 2026-05-21
-date_modified: 2026-05-21
+date_modified: 2026-05-25
+date_completed: 2026-05-21
 revisions:
   - 2026-05-21 — Added services/ingest/ as a fourth container; introduced RecordSet + ColumnSchema types per the dynamic-schema discipline ([[feedback_augment_it_dynamic_schema]]); flagged the unresolved record-set toggler and upsert/merge features ([[project_augment_it_recordset_open_features]]).
+  - 2026-05-25 — Status swept to Shipped; all five phases landed per changelog 2026-05-21_01..02.
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 tags:
   - Plan
   - Augment-It
@@ -21,7 +23,7 @@ tags:
   - WebSocket
   - NATS
   - Microservices-Demo
-status: Draft
+status: Shipped
 ---
 
 # Augment-It Workspace — Walking Skeleton Plan

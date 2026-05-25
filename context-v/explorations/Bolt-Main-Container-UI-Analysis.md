@@ -2,7 +2,8 @@
 title: "Bolt-Era Main Container UI Analysis"
 lede: "Lifted from `augment-it-bolt/specs/MainContainerUI-Analysis.md`. The longest of the bolt-era analyses (~750 lines). Describes the app shell, authentication gate, routing, and layout structure of the bolt monolith. Most directly relevant to the rewrite's shell decision — does augment-it have one host shell (with mounted microfrontends), or is each app its own host?"
 date_created: 2026-05-18
-date_modified: 2026-05-18
+date_modified: 2026-05-25
+date_archived: 2026-05-25
 authors:
   - Michael Staton
 augmented_with:
@@ -17,7 +18,7 @@ tags:
   - Main-Container-UI
   - App-Shell
   - As-Built
-status: Stale
+status: Archived
 deferral_note: "Describes the archive/bolt-code app shell — the auth model (Supabase) will not survive, but the layout decisions are reference material for the rewrite's shell."
 ---
 

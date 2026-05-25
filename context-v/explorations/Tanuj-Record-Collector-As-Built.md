@@ -2,7 +2,8 @@
 title: "Tanuj's Record-Collector As Built"
 lede: "The most-finished of the three microfrontend repos Tanuj split out. A standalone Next.js 15 app with a working ingest → configure → augment → export flow, a zustand-with-persist store, Perplexity-only LLM substrate, and one genuinely clever idea — the prompt template auto-generates from whatever columns the imported CSV has. Not the architecture we're keeping, but the field-aware prompt-generation idea is."
 date_created: 2026-05-18
-date_modified: 2026-05-18
+date_modified: 2026-05-25
+date_archived: 2026-05-25
 authors:
   - Michael Staton
 augmented_with:
@@ -14,7 +15,7 @@ tags:
   - Prior-Art
   - Record-Collector
   - As-Built
-status: Draft
+status: Archived
 ---
 
 # Tanuj's Record-Collector As Built

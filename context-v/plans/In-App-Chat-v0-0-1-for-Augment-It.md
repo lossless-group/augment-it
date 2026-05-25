@@ -2,14 +2,16 @@
 title: "In-App Chat v0.0.1 for Augment-It — The Prompt-Drafting Triad as the Demo Affordance"
 lede: "Revised. The v0.0.1 demo arc is the gated-enhancement pattern made conversational: the user states a goal, the chat drafts a prompt (`prompts.draft`), refines it across one or two turns (`prompts.improve`), then explicitly binds it to records (`prompts.apply`) — a ScriptCapability with postconditions that actually checks whether the enrichment did what the prompt promised. Plus `records.list` to look at the result. Four capabilities total, all per-app; two adapter shapes exercised (TS handler, ScriptCapability). McpCapability and SkillCapability honestly deferred to v0.0.2 — no corpus exists yet for `corpus.search` to query, and no skill is wrapped yet. The blueprint's full Pattern 1 isn't proven by v0.0.1; the gated-enhancement triad is. That's the right trade for a client-meeting demo on fundraising-pipeline development."
 date_created: 2026-05-22
-date_modified: 2026-05-22
+date_modified: 2026-05-25
+date_completed: 2026-05-23
 revisions:
   - 2026-05-22 — Replaced `corpus.search` (no corpus to query yet) with the `prompts.draft → improve → apply` triad as the lead demo affordance. Adapter-shape coverage drops from three to two; that's honest and called out.
+  - 2026-05-25 — Status swept to Shipped; v0.0.1 landed in commit 9ac3a50 per changelog 2026-05-23_01. McpCapability + SkillCapability still deferred to v0.0.2 successor.
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.2
+semantic_version: 0.0.0.3
 tags:
   - Plan
   - Augment-It
@@ -19,7 +21,7 @@ tags:
   - Gated-Enhancement
   - Client-Demo
   - Strict-Alignment
-status: Draft
+status: Shipped
 ---
 
 # In-App Chat v0.0.1 for Augment-It

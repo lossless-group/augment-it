@@ -2,12 +2,15 @@
 title: "Request Reviewer — the Pre-Flight Surface"
 lede: "Before a prompt fires, you should be able to see exactly what is about to leave the building. request-reviewer is the augment-it stage that shows the resolved request — the prompt template with every {{token}} replaced by a real row's property value — lets you pick which model it goes to, optionally shows the literal JSON request body, and then fires it. The hard part is not the UI; it is guaranteeing the request you reviewed is byte-identical to the request that sends. That guarantee is the spec."
 date_created: 2026-05-21
-date_modified: 2026-05-22
+date_modified: 2026-05-25
+date_completed: 2026-05-22
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
+revisions:
+  - 2026-05-25 — Status swept to Shipped; remote went live per changelog 2026-05-22_02..03.
 tags:
   - Spec
   - Augment-It
@@ -16,7 +19,7 @@ tags:
   - Module-Federation
   - Model-Selection
   - Prompt-Runner
-status: Draft
+status: Shipped
 ---
 
 # Request Reviewer — the Pre-Flight Surface

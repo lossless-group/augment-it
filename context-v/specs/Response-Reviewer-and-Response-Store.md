@@ -2,12 +2,15 @@
 title: "Response Reviewer and Response Store — the Post-Flight Surface"
 lede: "Once a request has fired, the verbose prose the model returns has to be inspected before any of it reaches a CRM cell. response-reviewer is that inspection surface — and it cannot exist until a fired response becomes a first-class stored object instead of a bare cell value. So this spec defines two things at once: a new response-store service that records every fired response with its request, model, and review flag; and the response-reviewer remote that reads it, lets a human triage good/partial/wrong, and either accepts a whole response straight into a cell or sends the row back to be re-run."
 date_created: 2026-05-22
-date_modified: 2026-05-22
+date_modified: 2026-05-25
+date_completed: 2026-05-22
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
+revisions:
+  - 2026-05-25 — Status swept to Shipped; response-store service + response-reviewer remote landed per changelog 2026-05-22_01..03.
 tags:
   - Spec
   - Augment-It
@@ -16,7 +19,7 @@ tags:
   - Post-Flight
   - Human-in-the-Loop
   - Module-Federation
-status: Draft
+status: Shipped
 ---
 
 # Response Reviewer and Response Store — the Post-Flight Surface

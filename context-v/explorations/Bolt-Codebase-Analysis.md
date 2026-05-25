@@ -2,7 +2,8 @@
 title: "Bolt-Era Codebase Analysis"
 lede: "Lifted from `augment-it-bolt/specs/Bolt-Codebase-Analysis.md` (the archive/bolt-code branch of lossless-group/augment-it). A comprehensive architectural analysis of the bolt monolith — React + TS + Vite + Supabase + zustand. Stale relative to the codebase we're rewriting toward, but a faithful map of the prior state and worth keeping as a reference for what the entity model and component graph looked like when it was working."
 date_created: 2026-05-18
-date_modified: 2026-05-18
+date_modified: 2026-05-25
+date_archived: 2026-05-25
 authors:
   - Michael Staton
 augmented_with:
@@ -16,7 +17,7 @@ tags:
   - Bolt-Code
   - Codebase-Analysis
   - As-Built
-status: Stale
+status: Archived
 deferral_note: "Describes the archive/bolt-code branch state — superseded by the rewrite. Kept for reference; do not treat as current architecture."
 ---
 

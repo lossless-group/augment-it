@@ -2,7 +2,8 @@
 title: "Bolt-Era Prompt Section Analysis"
 lede: "Lifted from `augment-it-bolt/specs/PromptSection-Analysis.md`. The shortest of the bolt-era analyses (~200 lines). Describes the editable+previewable prompt section feature — prompt templates as MDX-rich, variable-aware, edit-toggle-preview blocks. The pattern that the rewrite's prompt-template-manager microfrontend should likely adopt."
 date_created: 2026-05-18
-date_modified: 2026-05-18
+date_modified: 2026-05-25
+date_archived: 2026-05-25
 authors:
   - Michael Staton
 augmented_with:
@@ -18,7 +19,7 @@ tags:
   - MDX
   - Pipeline-Stage-2
   - As-Built
-status: Stale
+status: Archived
 deferral_note: "Describes the archive/bolt-code prompt-section feature — the variable-aware MDX pattern is the most reusable idea in here."
 ---
 

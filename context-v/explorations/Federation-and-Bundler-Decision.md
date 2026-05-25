@@ -2,7 +2,8 @@
 title: "Federation and Bundler Decision — Bun + Rsbuild + Module Federation, Workspace State, Optional Chat"
 lede: "The single architectural decision the augment-it rewrite has been gated on. We federate. The bundler is rsbuild (not Vite). The workspace orchestrator is bun (not turbo). State of truth lives in @augment-it/workspace — a per-app package following the shared workspace conventions — not inside the chat package. The @lossless/in-app-agent chat surface is mounted as one consumer of that workspace through a typed WorkspaceAdapter; non-chat consumers (Window microfrontends, headless workflow scripts) consume the workspace directly. Tanuj's federation experiment proved Module Federation works but exposed a smoking gun around shared state; the singleton-module idiom on @augment-it/workspace dissolves that gun, because every consumer reads from the same instance."
 date_created: 2026-05-18
-date_modified: 2026-05-18
+date_modified: 2026-05-25
+date_archived: 2026-05-25
 authors:
   - Michael Staton
 augmented_with:
@@ -17,7 +18,7 @@ tags:
   - In-App-Agent-Chat
   - Workspace-Pattern
   - Architecture-Decision
-status: Draft
+status: Archived
 ---
 
 # Federation and Bundler Decision

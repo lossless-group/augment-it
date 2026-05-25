@@ -2,12 +2,15 @@
 title: "Prompt-Template-Manager — Walking Skeleton Plan"
 lede: "The second federated app for augment-it: a place to author prompt templates with {{column}} placeholders and run them per-row against a record set, producing a derived record set with the LLM's output as a new column. Two new microservices land — prompt-store (template CRUD, JSON-backed, same shape as row-store) and prompt-runner (the only container that calls the Anthropic API). The proof-of-life is the url-enrichment prompt: the pipeline-tracker CSV has no url column, so the first useful prompt is 'given the organisation name, find its URL' — and its output becomes the url column the next prompt needs."
 date_created: 2026-05-21
-date_modified: 2026-05-21
+date_modified: 2026-05-25
+date_completed: 2026-05-21
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
+revisions:
+  - 2026-05-25 — Status swept to Shipped; prompt-template-manager UI + prompt-store + prompt-runner landed per changelog 2026-05-21_04..05.
 tags:
   - Plan
   - Augment-It
@@ -19,7 +22,7 @@ tags:
   - Derived-Record-Sets
   - Module-Federation
   - Anthropic-API
-status: Draft
+status: Shipped
 ---
 
 # Prompt-Template-Manager — Walking Skeleton Plan

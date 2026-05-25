@@ -2,12 +2,15 @@
 title: "Impose the Three-Mode Theme System on augment-it"
 lede: "augment-it adopts the Lossless theme religion — the two-tier token system and the light/dark/vibrant three-mode contract from the Astro Knots blueprint — adapted for a non-Astro, non-Tailwind, federated multi-remote app. A shared packages/theme holds one theme.css (named tokens → semantic tokens, three mode blocks) and one SSR-safe mode-switcher; the shell renders a 3-mode toggle in its chrome; every hardcoded hex across the shell and the two remotes is replaced with a semantic var(). The structure is imposed in this work; the user then iterates the actual colours at the named-token tier without touching component code — which is the entire point of the two-tier system."
 date_created: 2026-05-21
-date_modified: 2026-05-21
+date_modified: 2026-05-25
+date_completed: 2026-05-21
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
+revisions:
+  - 2026-05-25 — Status swept to Shipped; three-mode theme system landed per changelog 2026-05-21_06.
 tags:
   - Plan
   - Augment-It
@@ -18,7 +21,7 @@ tags:
   - CSS-Custom-Properties
   - Module-Federation
   - Mode-Switcher
-status: Draft
+status: Shipped
 ---
 
 # Impose the Three-Mode Theme System on augment-it

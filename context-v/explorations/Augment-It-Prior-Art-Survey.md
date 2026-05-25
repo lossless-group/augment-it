@@ -2,7 +2,8 @@
 title: "Augment-It Prior Art Survey — What's Already Been Built, and What It Tells Us"
 lede: "Before we rewrite Augment-It on the new stack, we owe ourselves a clear-eyed look at what's already been built. Two parallel attempts exist: Tanuj's split-into-microfrontends approach across three Next.js / Vite repos (record-collector, prompt-manager, request-reviewer — the only one that actually got Module Federation working) and an earlier monolith by Michael on the archive/bolt-code branch that covers more pipeline stages with multi-provider LLM handling and Supabase auth. Both capture most of the core functionality. Neither is what we'll ship. This survey is the map."
 date_created: 2026-05-18
-date_modified: 2026-05-18
+date_modified: 2026-05-25
+date_archived: 2026-05-25
 authors:
   - Michael Staton
 augmented_with:
@@ -16,7 +17,7 @@ tags:
   - CRM-Augmentation
   - Pipeline-as-UI
   - Microfrontends
-status: Draft
+status: Archived
 ---
 
 # Augment-It Prior Art Survey
