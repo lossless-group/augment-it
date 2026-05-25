@@ -14,6 +14,22 @@ import { dirname } from 'node:path';
 
 export type ResponseFlag = 'good' | 'partial' | 'wrong' | 'needs-rerun' | 'needs-human';
 
+// Lifecycle of a response across the packs-and-bundles pipeline.
+// Pre-pack responses (today's prompt-runner) backfill to 'found' when
+// response_text is non-empty, 'pending' otherwise.
+// Spec: context-v/blueprints/Packs-and-Bundles-Pattern.md
+export type Outcome = 'found' | 'not_found' | 'error' | 'skipped' | 'pending';
+
+// The sibling structured payload a pack produces. Present iff
+// outcome === 'found' for a pack response; null for free-form prose responses.
+export type Candidate = {
+  url: string;
+  display_name: string;
+  confidence: number; // 0-100
+  snippet?: string;
+  source_metadata?: Record<string, unknown>;
+};
+
 export type ResponseRecord = {
   response_id: string;
   run_id: string; // groups the N responses of one prompt.run
@@ -30,6 +46,13 @@ export type ResponseRecord = {
   created_at: string;
   reviewed_at: string | null;
   edited_at: string | null;
+  // Packs-and-bundles extension (2026-05-25).
+  outcome: Outcome;
+  structured: Candidate | null;
+  archival_markdown: string | null;
+  pack_id: string | null;
+  bundle_id: string | null;
+  pass: 1 | 2 | null;
 };
 
 type Store = {
@@ -45,11 +68,23 @@ export async function load(path: string): Promise<void> {
     const raw = await readFile(path, 'utf8');
     const parsed = JSON.parse(raw);
     data = { responses: parsed.responses ?? {} };
-    // Backfill — older response records pre-date edited_text / edited_at,
-    // so coerce them to the current shape so consumers can rely on the field.
+    // Backfill — older response records pre-date later fields, so coerce
+    // them to the current shape so consumers can rely on every field.
     for (const r of Object.values(data.responses)) {
-      if (!('edited_text' in r)) (r as ResponseRecord).edited_text = null;
-      if (!('edited_at' in r)) (r as ResponseRecord).edited_at = null;
+      const rec = r as ResponseRecord;
+      if (!('edited_text' in r)) rec.edited_text = null;
+      if (!('edited_at' in r)) rec.edited_at = null;
+      // Packs-and-bundles fields (2026-05-25). Older records have no
+      // structured payload; outcome defaults to 'found' if there's prose,
+      // 'pending' if not.
+      if (!('outcome' in r)) {
+        rec.outcome = rec.response_text && rec.response_text.length > 0 ? 'found' : 'pending';
+      }
+      if (!('structured' in r)) rec.structured = null;
+      if (!('archival_markdown' in r)) rec.archival_markdown = null;
+      if (!('pack_id' in r)) rec.pack_id = null;
+      if (!('bundle_id' in r)) rec.bundle_id = null;
+      if (!('pass' in r)) rec.pass = null;
     }
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -95,6 +130,14 @@ export async function createResponse(params: {
   model: string;
   request_body: unknown;
   response_text: string;
+  // Optional packs-and-bundles fields. Default to legacy prose-response shape
+  // when not supplied so the prompt-runner continues to work unchanged.
+  outcome?: Outcome;
+  structured?: Candidate | null;
+  archival_markdown?: string | null;
+  pack_id?: string | null;
+  bundle_id?: string | null;
+  pass?: 1 | 2 | null;
 }): Promise<ResponseRecord> {
   const response_id = `rsp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   const record: ResponseRecord = {
@@ -113,6 +156,14 @@ export async function createResponse(params: {
     created_at: new Date().toISOString(),
     reviewed_at: null,
     edited_at: null,
+    outcome:
+      params.outcome ??
+      (params.response_text && params.response_text.length > 0 ? 'found' : 'pending'),
+    structured: params.structured ?? null,
+    archival_markdown: params.archival_markdown ?? null,
+    pack_id: params.pack_id ?? null,
+    bundle_id: params.bundle_id ?? null,
+    pass: params.pass ?? null,
   };
   data.responses[response_id] = record;
   await persist();

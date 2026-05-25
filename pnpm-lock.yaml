@@ -187,6 +187,9 @@ importers:
 
   apps/response-reviewer:
     dependencies:
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -212,6 +215,15 @@ importers:
       svelte-check:
         specifier: ^4.0.0
         version: 4.4.8(svelte@5.55.9)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  packages/shared-ui:
+    devDependencies:
+      svelte:
+        specifier: ^5.0.0
+        version: 5.55.9
       typescript:
         specifier: ^5.8.3
         version: 5.9.3

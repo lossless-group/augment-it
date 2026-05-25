@@ -1,0 +1,16 @@
+{
+  "name": "@augment-it/shared-ui",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./ConfidencePill.svelte": "./src/ConfidencePill.svelte"
+  },
+  "peerDependencies": {
+    "svelte": "^5.0.0"
+  },
+  "devDependencies": {
+    "svelte": "^5.0.0",
+    "typescript": "^5.8.3"
+  }
+}

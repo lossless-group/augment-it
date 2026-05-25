@@ -241,6 +241,18 @@ export type PreviewResult = PreviewOk | { ok: false; error: string };
 // ResponseRecord (not Response) to avoid shadowing the Fetch API global.
 export type ResponseFlag = 'good' | 'partial' | 'wrong' | 'needs-rerun' | 'needs-human';
 
+// Packs-and-bundles extension (2026-05-25). Spec:
+// context-v/blueprints/Packs-and-Bundles-Pattern.md
+export type Outcome = 'found' | 'not_found' | 'error' | 'skipped' | 'pending';
+
+export type Candidate = {
+  url: string;
+  display_name: string;
+  confidence: number; // 0-100
+  snippet?: string;
+  source_metadata?: Record<string, unknown>;
+};
+
 export type ResponseRecord = {
   response_id: string;
   run_id: string; // groups the N responses of one prompt.run
@@ -257,6 +269,15 @@ export type ResponseRecord = {
   created_at: string;
   reviewed_at: string | null;
   edited_at: string | null;
+  // Packs-and-bundles extension. Older records backfill to outcome='found'
+  // (if response_text non-empty) or 'pending'; structured + the four pack
+  // correlation fields default to null.
+  outcome: Outcome;
+  structured: Candidate | null;
+  archival_markdown: string | null;
+  pack_id: string | null;
+  bundle_id: string | null;
+  pass: 1 | 2 | null;
 };
 
 // Returned by the response.coverage capability — the response-store-derived

@@ -77,6 +77,14 @@
   --color__red-neon:    #ff8fb0;
   --color__red-void:    #3d1430;
 
+  /* status — warn / mid-confidence (new — packs-and-bundles confidence-med) */
+  --color__amber-deep:    #3d2c0c;
+  --color__amber-bright:  #f5c971;
+  --color__amber-wash:    #fbeed1;
+  --color__amber-ink:     #a16a1f;
+  --color__amber-neon:    #ffd47d;
+  --color__amber-void:    #2a1d08;
+
   /* typeface — augment-it is a monospace tool surface */
   --font__mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
 }
@@ -102,6 +110,13 @@
   --color-ok-text:         var(--color__green-bright);
   --color-error-bg:        var(--color__red-deep);
   --color-error-text:      var(--color__red-bright);
+
+  /* confidence pills — packs-and-bundles. One token per band; the pill
+     component derives a translucent bg via color-mix at the call site.
+     Spec: context-v/blueprints/Packs-and-Bundles-Pattern.md */
+  --color-confidence-low:  var(--color__red-bright);
+  --color-confidence-med:  var(--color__amber-bright);
+  --color-confidence-high: var(--color__green-bright);
 
   /* tints derived from the accent so they follow it automatically */
   --color-selected-tint:   color-mix(in srgb, var(--color-accent) 9%, transparent);
@@ -132,6 +147,10 @@
   --color-error-bg:        var(--color__red-wash);
   --color-error-text:      var(--color__red-ink);
 
+  --color-confidence-low:  var(--color__red-ink);
+  --color-confidence-med:  var(--color__amber-ink);
+  --color-confidence-high: var(--color__green-ink);
+
   --color-selected-tint:   color-mix(in srgb, var(--color-accent) 8%, transparent);
   --color-danger-tint:     color-mix(in srgb, var(--color-error-text) 8%, transparent);
 
@@ -157,6 +176,10 @@
   --color-ok-text:         var(--color__green-neon);
   --color-error-bg:        var(--color__red-void);
   --color-error-text:      var(--color__red-neon);
+
+  --color-confidence-low:  var(--color__red-neon);
+  --color-confidence-med:  var(--color__amber-neon);
+  --color-confidence-high: var(--color__green-neon);
 
   --color-selected-tint:   color-mix(in srgb, var(--color-accent) 16%, transparent);
   --color-danger-tint:     color-mix(in srgb, var(--color-error-text) 14%, transparent);

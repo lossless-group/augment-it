@@ -26,6 +26,8 @@ export type {
   RecordSet,
   ResponseFlag,
   ResponseRecord,
+  Outcome,
+  Candidate,
   Coverage,
   ResultFrame,
   Row,

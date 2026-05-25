@@ -9,6 +9,8 @@
     type Row,
     type HelpfulLink,
   } from '@augment-it/workspace';
+  import ConfidencePill from '@augment-it/shared-ui/ConfidencePill.svelte';
+  import { MOCK_PACKS_FIXTURE } from './fixtures/mock-packs';
 
   // Each remote owns its own workspace singleton + WebSocket — no `shared`
   // federation block (see the 2026-05-21_03 changelog).
@@ -89,6 +91,19 @@
   const recordSetName = $derived(
     current ? (recordSetsById[current.record_set_id]?.name ?? current.record_set_id) : '',
   );
+
+  // Outcome-driven rendering for pack responses. Found responses render the
+  // existing editor + actions; the other four outcomes render thin rows in
+  // place of the editor. The candidate card (when structured !== null) sits
+  // above whatever body the outcome chose. See:
+  // context-v/blueprints/Packs-and-Bundles-Pattern.md §Bundle anatomy/§5
+  const isFound = $derived(current?.outcome === 'found');
+  let snippetExpanded = $state(false);
+  $effect(() => {
+    // collapse the snippet whenever the focused response changes
+    void current?.response_id;
+    snippetExpanded = false;
+  });
 
   onMount(() => {
     workspace.connect({
@@ -257,10 +272,19 @@
     }
   }
 
+  // Detect `?fixture=mock-packs` once on mount. When set, prepend the mock
+  // pack-shaped responses to the live list so every outcome+confidence band
+  // is visible side-by-side. Mocks are NEVER persisted — clearing them is a
+  // refresh away (drop the query param). Spec:
+  // context-v/prompts/Response-Reviewer-Structured-Output-Extension.md
+  const fixtureMode =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('fixture') === 'mock-packs';
+
   async function loadResponses() {
     try {
       const r = (await workspace.invoke('response.list', {})) as { responses: ResponseRecord[] };
-      responses = r.responses;
+      responses = fixtureMode ? [...MOCK_PACKS_FIXTURE, ...r.responses] : r.responses;
       lastRefreshAt = Date.now();
     } catch (e) {
       console.error('response.list', e);
@@ -453,17 +477,23 @@
         <button onclick={() => step(1)} disabled={index >= filtered.length - 1}>▶</button>
         {#if current.flag}<span class="flag flag-{current.flag}">{current.flag}</span>{/if}
         {#if current.accepted}<span class="flag accepted">accepted</span>{/if}
-        <span class="stepper-sep" aria-hidden="true"></span>
-        <span class="muted stepper-label">triage:</span>
-        <div class="flags inline">
-          {#each FLAGS as f (f)}
-            <button
-              class="chip"
-              class:active={current.flag === f}
-              onclick={() => flag(f)}
-            >{f}</button>
-          {/each}
-        </div>
+        {#if current.pack_id}<span class="flag pack-badge" title="response produced by pack">{current.pack_id}</span>{/if}
+        {#if isFound}
+          <span class="stepper-sep" aria-hidden="true"></span>
+          <span class="muted stepper-label">triage:</span>
+          <div class="flags inline">
+            {#each FLAGS as f (f)}
+              <button
+                class="chip"
+                class:active={current.flag === f}
+                onclick={() => flag(f)}
+              >{f}</button>
+            {/each}
+          </div>
+        {:else}
+          <span class="stepper-sep" aria-hidden="true"></span>
+          <span class="muted stepper-label">outcome: {current.outcome}</span>
+        {/if}
       </div>
 
       <div class="resp-layout">
@@ -532,48 +562,116 @@
         </aside>
 
         <section class="response">
-          <h3>
-            Response — editable; edits autosave when you click away or step
-            <span class="save-state" class:dirty={editDirty} class:saving={savingEdit}>
-              {#if savingEdit}saving…
-              {:else if editDirty}unsaved
-              {:else if editSavedAt}saved {formatAge(editSavedAt)}
+          {#if current.structured}
+            <!-- Candidate card — present iff a pack produced a structured payload.
+                 Sits above whatever body the outcome chose. -->
+            <div class="candidate-card">
+              <div class="candidate-row">
+                <ConfidencePill confidence={current.structured.confidence} />
+                <a
+                  class="candidate-url"
+                  href={current.structured.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >{current.structured.url}</a>
+                <span class="candidate-name">{current.structured.display_name}</span>
+                {#if current.pack_id}
+                  <span class="source-badge" title="produced by this pack">{current.pack_id}</span>
+                {/if}
+              </div>
+              {#if current.structured.snippet}
+                <button
+                  class="snippet-toggle"
+                  onclick={() => (snippetExpanded = !snippetExpanded)}
+                  aria-expanded={snippetExpanded}
+                >
+                  {snippetExpanded ? '▾' : '▸'} snippet
+                </button>
+                {#if snippetExpanded}
+                  <p class="candidate-snippet">{current.structured.snippet}</p>
+                {/if}
               {/if}
-            </span>
-          </h3>
-          <textarea
-            bind:value={editText}
-            rows="16"
-            oninput={onEditInput}
-            onblur={() => void flushEdit()}
-          ></textarea>
+            </div>
+          {/if}
 
-          <div class="actions icon-row">
-            <button
-              class="icon accept"
-              onclick={accept}
-              data-tip="Accept whole response → cell"
-              aria-label="Accept whole response and write to row cell"
-            >✓</button>
-            <button
-              class="icon"
-              onclick={rerun}
-              data-tip="Re-run this row in Request Reviewer"
-              aria-label="Re-run in Request Reviewer"
-            >↻</button>
-            <button
-              class="icon"
-              disabled
-              data-tip="Distill in Highlight Collector — a future stage"
-              aria-label="Distill in Highlight Collector"
-            >✦</button>
-            <button
-              class="icon danger"
-              onclick={() => void deleteCurrent()}
-              data-tip="Delete this response"
-              aria-label="Delete this response"
-            >🗑</button>
-          </div>
+          {#if isFound}
+            <h3>
+              Response — editable; edits autosave when you click away or step
+              <span class="save-state" class:dirty={editDirty} class:saving={savingEdit}>
+                {#if savingEdit}saving…
+                {:else if editDirty}unsaved
+                {:else if editSavedAt}saved {formatAge(editSavedAt)}
+                {/if}
+              </span>
+            </h3>
+            <textarea
+              bind:value={editText}
+              rows="16"
+              oninput={onEditInput}
+              onblur={() => void flushEdit()}
+            ></textarea>
+
+            <div class="actions icon-row">
+              <button
+                class="icon accept"
+                onclick={accept}
+                data-tip="Accept whole response → cell"
+                aria-label="Accept whole response and write to row cell"
+              >✓</button>
+              <button
+                class="icon"
+                onclick={rerun}
+                data-tip="Re-run this row in Request Reviewer"
+                aria-label="Re-run in Request Reviewer"
+              >↻</button>
+              <button
+                class="icon"
+                disabled
+                data-tip="Distill in Highlight Collector — a future stage"
+                aria-label="Distill in Highlight Collector"
+              >✦</button>
+              <button
+                class="icon danger"
+                onclick={() => void deleteCurrent()}
+                data-tip="Delete this response"
+                aria-label="Delete this response"
+              >🗑</button>
+            </div>
+          {:else if current.outcome === 'not_found'}
+            <div class="thin-row outcome-not-found">
+              <span class="thin-row-icon">∅</span>
+              <span class="thin-row-body">Source ran, zero candidates.</span>
+            </div>
+          {:else if current.outcome === 'error'}
+            <div class="thin-row outcome-error">
+              <span class="thin-row-icon">✕</span>
+              <span class="thin-row-body">{current.response_text || 'unknown error'}</span>
+              <button
+                class="icon"
+                disabled
+                data-tip="Retry coming in a later feature"
+                aria-label="Retry — coming in a later feature"
+              >↻ retry</button>
+              <button
+                class="icon danger"
+                onclick={() => void deleteCurrent()}
+                data-tip="Delete this response"
+                aria-label="Delete this response"
+              >🗑</button>
+            </div>
+          {:else if current.outcome === 'skipped'}
+            <div class="thin-row outcome-skipped">
+              <span class="thin-row-icon">⤴</span>
+              <span class="thin-row-body">
+                Pre-populated from existing data (dedup hit). Already marked good above.
+              </span>
+            </div>
+          {:else if current.outcome === 'pending'}
+            <div class="thin-row outcome-pending">
+              <span class="spinner" aria-hidden="true"></span>
+              <span class="thin-row-body">Source in flight…</span>
+            </div>
+          {/if}
         </section>
       </div>
       {#if busy}<p class="result">{busy}</p>{/if}

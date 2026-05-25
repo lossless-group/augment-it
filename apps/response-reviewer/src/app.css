@@ -426,3 +426,117 @@
   border: 1px solid var(--color-ok-bg);
   border-radius: 4px;
 }
+
+/* -----------------------------------------------------------------------------
+ * Packs-and-bundles: candidate card + outcome thin rows.
+ * Spec: context-v/blueprints/Packs-and-Bundles-Pattern.md
+ * -------------------------------------------------------------------------- */
+.resp-app .candidate-card {
+  margin: 0.6rem 0 0.4rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--color-field);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent-2);
+  border-radius: 4px;
+}
+
+.resp-app .candidate-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.resp-app .candidate-url {
+  color: var(--color-accent);
+  text-decoration: none;
+  word-break: break-all;
+}
+.resp-app .candidate-url:hover { text-decoration: underline; }
+
+.resp-app .candidate-name {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.resp-app .source-badge,
+.resp-app .flag.pack-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  font-size: 0.72rem;
+}
+
+.resp-app .snippet-toggle {
+  margin-top: 0.4rem;
+  background: transparent;
+  color: var(--color-text-muted);
+  padding: 1px 4px;
+  font-size: 0.75rem;
+}
+.resp-app .snippet-toggle:hover {
+  color: var(--color-text);
+  background: transparent;
+}
+
+.resp-app .candidate-snippet {
+  margin: 0.35rem 0 0;
+  padding: 0.4rem 0.55rem;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+}
+
+.resp-app .thin-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.6rem 0;
+  padding: 0.55rem 0.75rem;
+  background: var(--color-field);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.resp-app .thin-row-icon {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  width: 1.2rem;
+  text-align: center;
+}
+
+.resp-app .thin-row-body {
+  flex: 1;
+  color: var(--color-text);
+}
+
+.resp-app .thin-row.outcome-error {
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  border-color: var(--color-error-text);
+}
+.resp-app .thin-row.outcome-error .thin-row-icon,
+.resp-app .thin-row.outcome-error .thin-row-body { color: var(--color-error-text); }
+
+.resp-app .thin-row.outcome-skipped {
+  border-left: 3px solid var(--color-confidence-high);
+}
+
+.resp-app .thin-row.outcome-pending .spinner {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: resp-spin 0.8s linear infinite;
+}
+
+@keyframes resp-spin {
+  to { transform: rotate(360deg); }
+}
