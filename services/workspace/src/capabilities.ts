@@ -51,6 +51,11 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'response.delete_all': 'response.delete_all.requested',
   'response.coverage': 'response.coverage.requested',
   'response.set_text': 'response.set_text.requested',
+  // Packs-and-bundles. social-search-service is the consumer for both.
+  // pack.search is one (pack × row); pack.fan_out is M rows × N packs,
+  // concurrency-bounded server-side, single reply when all cells settled.
+  'pack.search': 'pack.search.requested',
+  'pack.fan_out': 'pack.fan_out.requested',
 };
 
 const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
@@ -63,6 +68,9 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'prompt.improve': 60_000,
   // apply wraps prompt.run; needs the same generous budget
   'prompt.apply': 600_000,
+  // pack.fan_out can run many cells in sequence; give it room. The
+  // service caps concurrency at 4 Tavily calls, so N cells ≈ N/4 × per-cell.
+  'pack.fan_out': 600_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {

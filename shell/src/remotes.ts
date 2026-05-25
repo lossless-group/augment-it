@@ -49,6 +49,13 @@ export const REMOTES: RemoteEntry[] = [
     // @ts-expect-error — federation remote, type comes from the MF runtime
     importMount: () => import('enhancedRecordsList/mount'),
   },
+  {
+    id: 'packRunner',
+    label: 'Pack Runner',
+    description: 'Fire the common-six social packs against rows — results flow to Response Reviewer',
+    // @ts-expect-error — federation remote, type comes from the MF runtime
+    importMount: () => import('packRunner/mount'),
+  },
 ];
 
 // CHAT_REMOTE is intentionally NOT in REMOTES. The chat surface is a

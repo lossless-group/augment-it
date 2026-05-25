@@ -77,6 +77,18 @@ services:
     volumes:
       - response-store-data:/data
 
+  social-search:
+    build: ./services/social-search
+    depends_on:
+      - nats
+    environment:
+      NATS_URL: nats://nats:4222
+      # Only this container holds the Tavily key. Sourced from
+      # augment-it/.env (gitignored; Docker Compose auto-reads it).
+      TAVILY_API_KEY: ${TAVILY_API_KEY}
+      # Cap concurrent Tavily calls — the free tier is rate-limited.
+      SOCIAL_SEARCH_CONCURRENCY: ${SOCIAL_SEARCH_CONCURRENCY:-4}
+
 volumes:
   workspace-data:
   row-store-data:

@@ -59,6 +59,7 @@ frontend_up() {
   echo "    response-reviewer       http://localhost:3005"
   echo "    chat                    http://localhost:3006"
   echo "    enhanced-records-list   http://localhost:3007"
+  echo "    pack-runner             http://localhost:3009"
   echo "  (Ctrl-C stops the frontend; the backend keeps running — './scripts/dev.sh down' to stop it)"
   pnpm --parallel --if-present \
     --filter './apps/*' --filter './shell' \
