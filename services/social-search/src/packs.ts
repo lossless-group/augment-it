@@ -70,6 +70,18 @@ export const PACKS: Record<string, PackConfig> = {
     tavily_query_template: '"{{entity_name}}" site:en.wikipedia.org',
     tavily_include_domains: ['en.wikipedia.org'],
   },
+  'instagram-pack': {
+    pack_id: 'instagram-pack',
+    display_name: 'Instagram',
+    // Both instagram.com/ROOT and instagram.com/p/POST paths share the
+    // hostname; the whitelist matches any. Profile pages don't have a
+    // distinguishing path prefix, so the URL-shape verifier alone won't
+    // catch "this is a post not a profile" — the user can correct via
+    // the inline URL edit when needed.
+    domain_whitelist: /(^|\.)instagram\.com$/i,
+    tavily_query_template: '"{{entity_name}}" site:instagram.com',
+    tavily_include_domains: ['instagram.com'],
+  },
 };
 
 export const PACK_IDS = Object.keys(PACKS);

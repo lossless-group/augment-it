@@ -359,36 +359,58 @@
   // user's foundation dataset puts the org in "Prospect / Organization";
   // fallbacks cover common shapes seen across CSVs.
   const NAME_COLUMNS = ['Prospect / Organization', 'name', 'organization', 'org', 'company', 'foundation', 'entity'];
-  function entityNameFor(row: Row | undefined): string {
-    if (!row) return '';
+  // Returns BOTH the resolved column name + value so the by-record header
+  // can edit the same column we're displaying. When researching, the user
+  // often needs to correct the entity's name (e.g. "Accelerate the Future
+  // (ACH, GW Match)" → "Accelerate the Future") to make subsequent searches
+  // work — that edit writes back to the CSV-derived column via row.update.
+  function entityFieldFor(
+    row: Row | undefined,
+  ): { field: string; value: string } | null {
+    if (!row) return null;
     const fields = row.fields as Record<string, unknown>;
     for (const c of NAME_COLUMNS) {
       const v = fields[c];
-      if (typeof v === 'string' && v.trim().length > 0) return v.trim();
+      if (typeof v === 'string' && v.trim().length > 0) {
+        return { field: c, value: v.trim() };
+      }
     }
     // Case-insensitive fallback — match the first field that smells like a
     // name column. Avoids re-hunting on CSVs with different casing.
     for (const k of Object.keys(fields)) {
       if (NAME_COLUMNS.some((c) => k.toLowerCase() === c.toLowerCase())) {
         const v = fields[k];
-        if (typeof v === 'string' && v.trim().length > 0) return v.trim();
+        if (typeof v === 'string' && v.trim().length > 0) {
+          return { field: k, value: v.trim() };
+        }
       }
     }
-    return '';
+    return null;
   }
 
   // By-record grouping. Groups filtered responses by row_id, preserves
   // recency order (newest response first), and ranks rows by entity name
   // (alphabetical) so the user steps through "A → Z" rather than a random
-  // response-id order.
-  type RowGroup = { row_id: string; entity_name: string; responses: ResponseRecord[] };
+  // response-id order. `entity_field` is the row column the name came from
+  // — null when no candidate matched, in which case the header falls back
+  // to row_id and the name is read-only.
+  type RowGroup = {
+    row_id: string;
+    record_set_id: string;
+    entity_field: string | null;
+    entity_name: string;
+    responses: ResponseRecord[];
+  };
   const byRecord = $derived.by<RowGroup[]>(() => {
     const groups: Record<string, RowGroup> = {};
     for (const r of filtered) {
       if (!groups[r.row_id]) {
+        const ef = entityFieldFor(rowsByRowId[r.row_id]);
         groups[r.row_id] = {
           row_id: r.row_id,
-          entity_name: entityNameFor(rowsByRowId[r.row_id]),
+          record_set_id: r.record_set_id,
+          entity_field: ef?.field ?? null,
+          entity_name: ef?.value ?? '',
           responses: [],
         };
       }
@@ -420,6 +442,9 @@
   // Same shape for the display_name input — separate so the two fields
   // can be edited independently and save independently.
   let nameDrafts = $state<Record<string, string>>({});
+  // Per-row drafts for the entity-name column edit in the by-record header.
+  // Keyed by row_id (one entity-name per row, not per response).
+  let rowNameDrafts = $state<Record<string, string>>({});
 
   async function saveUrlEdit(resp: ResponseRecord) {
     // Two valid paths: a pack response with existing structured (edit
@@ -451,6 +476,38 @@
       urlDrafts = { ...urlDrafts };
     } catch (e) {
       console.error('response.set_structured', e);
+    }
+  }
+
+  // Save an edit to the row's entity-name CSV column (e.g. "Prospect /
+  // Organization"). When researching, the user often needs to correct the
+  // name to make subsequent searches work — that edit writes back to the
+  // row via row.update. After save we re-pull rows so the by-record header
+  // re-renders with the canonical value and every group's entity_name
+  // re-sorts alphabetically.
+  async function saveRowNameEdit(group: { row_id: string; record_set_id: string; entity_field: string | null; entity_name: string }) {
+    if (!group.entity_field) return;
+    const draft = rowNameDrafts[group.row_id];
+    if (draft === undefined) return;
+    const next = draft.trim();
+    if (next === group.entity_name) {
+      delete rowNameDrafts[group.row_id];
+      rowNameDrafts = { ...rowNameDrafts };
+      return;
+    }
+    if (next.length === 0) return; // refuse to blank the name
+    try {
+      await workspace.invoke('row.update', {
+        row_id: group.row_id,
+        fields: { [group.entity_field]: next },
+      });
+      // Re-fetch the row so rowsByRowId reflects the new value; the byRecord
+      // derived recomputes from there.
+      await loadRowsForByRecord();
+      delete rowNameDrafts[group.row_id];
+      rowNameDrafts = { ...rowNameDrafts };
+    } catch (e) {
+      console.error('row.update (entity-name)', e);
     }
   }
 
@@ -712,7 +769,29 @@
         {#each byRecord as group (group.row_id)}
           <article class="record-card">
             <header class="record-card-header">
-              <h3>{group.entity_name || group.row_id}</h3>
+              {#if group.entity_field}
+                <!-- Editable entity-name input. Looks like a heading until you
+                     hover/focus; saves on Enter/blur via row.update. Lets the
+                     researcher clean up names like "Accelerate the Future
+                     (ACH, GW Match)" before the next search wave. -->
+                <input
+                  class="record-card-name-input"
+                  type="text"
+                  value={rowNameDrafts[group.row_id] ?? group.entity_name}
+                  oninput={(e) =>
+                    (rowNameDrafts[group.row_id] = (e.currentTarget as HTMLInputElement).value)}
+                  onblur={() => void saveRowNameEdit(group)}
+                  onkeydown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      (e.currentTarget as HTMLInputElement).blur();
+                    }
+                  }}
+                  title={`Edit ${group.entity_field} — Enter or click away to save back to the row`}
+                />
+              {:else}
+                <h3>{group.entity_name || group.row_id}</h3>
+              {/if}
               <span class="muted record-card-count">{group.responses.length} {group.responses.length === 1 ? 'response' : 'responses'}</span>
             </header>
             <ul class="record-responses">

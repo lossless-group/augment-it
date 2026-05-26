@@ -12,6 +12,7 @@
     { pack_id: 'youtube-pack', display_name: 'YouTube' },
     { pack_id: 'facebook-pack', display_name: 'Facebook' },
     { pack_id: 'wikipedia-pack', display_name: 'Wikipedia' },
+    { pack_id: 'instagram-pack', display_name: 'Instagram' },
   ];
 
   const TOKEN_KEY = 'augment-it:session-token';
