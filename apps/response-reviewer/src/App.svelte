@@ -417,6 +417,9 @@
   // response.set_structured. Cleared after a successful save so the
   // refreshed response value takes over.
   let urlDrafts = $state<Record<string, string>>({});
+  // Same shape for the display_name input — separate so the two fields
+  // can be edited independently and save independently.
+  let nameDrafts = $state<Record<string, string>>({});
 
   async function saveUrlEdit(resp: ResponseRecord) {
     // Two valid paths: a pack response with existing structured (edit
@@ -448,6 +451,29 @@
       urlDrafts = { ...urlDrafts };
     } catch (e) {
       console.error('response.set_structured', e);
+    }
+  }
+
+  async function saveNameEdit(resp: ResponseRecord) {
+    if (!resp.pack_id || !resp.structured) return;
+    const draft = nameDrafts[resp.response_id];
+    if (draft === undefined) return;
+    const next = draft.trim();
+    if (next === resp.structured.display_name) {
+      delete nameDrafts[resp.response_id];
+      nameDrafts = { ...nameDrafts };
+      return;
+    }
+    try {
+      await workspace.invoke('response.set_structured', {
+        response_id: resp.response_id,
+        patch: { display_name: next },
+      });
+      await loadResponses();
+      delete nameDrafts[resp.response_id];
+      nameDrafts = { ...nameDrafts };
+    } catch (e) {
+      console.error('response.set_structured (display_name)', e);
     }
   }
 
@@ -736,7 +762,22 @@
                         rel="noopener noreferrer"
                         title="Open in new tab"
                       >↗</a>
-                      <span class="record-display-name">{resp.structured.display_name}</span>
+                      <input
+                        class="record-display-name-input"
+                        type="text"
+                        value={nameDrafts[resp.response_id] ?? resp.structured.display_name}
+                        oninput={(e) =>
+                          (nameDrafts[resp.response_id] = (e.currentTarget as HTMLInputElement).value)}
+                        onblur={() => void saveNameEdit(resp)}
+                        onkeydown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            (e.currentTarget as HTMLInputElement).blur();
+                          }
+                        }}
+                        placeholder="display name"
+                        title="Edit the display name — Enter or click away to save"
+                      />
                     {:else if resp.pack_id}
                       <!-- Pack response with no structured payload yet
                            (not_found / error / pending / skipped). Empty

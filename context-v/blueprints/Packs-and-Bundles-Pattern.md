@@ -7,10 +7,11 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.2
+semantic_version: 0.0.0.3
 revisions:
   - 2026-05-25 — Initial draft.
   - 2026-05-25 — **Design pivot from `profiles.<source>` columns to a single `socials` JSON column per row, mirroring `helpful_links`.** Triggered by smoke-run feedback: spawning N new columns per pack obscured the result (no row-level view of which platforms were filled in) and broke the dynamic-schema discipline that "row columns are CSV-derived." New shape: one row-level column `socials: SocialProfile[]` containing all accepted pack profiles. Acceptance of a pack response routes through `row.socials.add` (replace-by-pack_id semantics — one entity has one LinkedIn) instead of `row.update` against a per-pack output_column. See §Row write-back below for the schema + capabilities.
+  - 2026-05-26 — Added §Triage Surface UX Requirements (emergent). Captures pattern-level requirements that the foundation-dataset smoke surfaced — discoveries the upfront draft didn't anticipate. Codified here so future pack/bundle implementations across the Lossless family inherit the discipline without re-hitting the same walls.
 tags:
   - Blueprint
   - Augment-It
@@ -522,6 +523,242 @@ landed; the `socials` write-back is next.
    wrapping the existing six packs with orchestration + dedup.
 7. **Then iterate**: entity-typed bundles, two-pass orchestration with
    carry-forward.
+
+## Triage Surface UX Requirements (emergent)
+
+**Codified 2026-05-26 from the foundation-dataset smoke.** These are
+pattern-level requirements the surfaces that *present* pack/bundle outputs
+must honor. They surfaced by hitting them in the wild rather than from
+upfront thinking — listed here so future implementations across the Lossless
+family inherit the discipline without re-discovering the same walls.
+
+### Authoring vs invocation are peers, not siblings
+
+For any record set, the user has **two paths to enrichment**: author a custom
+LLM prompt (free-form, expensive, exact), or invoke a pre-built pack/bundle
+(source-bound, cheap, structured). These are *peer alternatives*, not sibling
+tiles in a rotation. The UI must surface them as one binary choice — a tab
+pair at the top of the authoring surface, **shared state across the pair so
+both panels reflect the same active mode**. In augment-it this is the
+prompt-template-manager ⇄ pack-runner pairing with the
+`augment-it:enrichment-mode` window event + localStorage shared key.
+
+Anti-pattern: making pack-runner a sibling tile in the peek-deck rotation.
+The user has no semantic anchor for "where do I find the pack feature?"
+without that pairing.
+
+### Default to "ready to fire"
+
+The invocation surface must land the user one click away from firing.
+Concretely:
+
+- Auto-restore the last-used record set from localStorage. Re-entry should
+  never require re-picking what the user just looked at.
+- If exactly one non-archived record set exists, auto-pick it. (Zero-click
+  default for the common case of one active dataset.)
+- Auto-restore the entity-name column choice (or pick a best-guess from a
+  small candidate list — `name`, `organization`, etc.) so column-mapping is
+  one less click.
+- **Auto-select all rows on record-set load.** The user's natural intent on
+  landing is "fire against this set." Narrowing happens later via filter or
+  per-row deselect; the default state should never be "everything visible
+  but Fire is disabled."
+- Persist all of the above across reloads. Refresh should never undo a
+  user's prior selection.
+
+### Filter constrains effective scope
+
+When the row picker has filter chips, **the fire button operates on
+`selectedRowIds ∩ visibleRows`**, not on raw selection. Filter narrows what
+fires; deselection refines within filter. Rows in `selectedRowIds` but
+outside `visibleRows` are preserved (silently waiting for the filter to
+surface them again) so swapping filters doesn't lose user state.
+
+Bulk select-all / deselect-all buttons operate on the *visible* set, not
+the universe. Their labels should say so ("all visible" / "deselect visible"
+or equivalent).
+
+### Filter chips for "last-run status"
+
+The picker needs row-status chips that key off "what happened in the
+*previous* enrichment run" — `has url` / `no url` / `needs-clarification` /
+etc. Sub-pattern:
+
+- **v1 heuristic** — inspect a known output column (e.g. `url` non-empty +
+  not 'unknown'). Cheap, gets ~80% of the value, ships first.
+- **v2 cemented** — read the `triage_states` field cemented at promote
+  time per the Enhanced-Records-List spec. Authoritative once the
+  cementation work lands.
+
+Both versions are presented behind the same filter-chip API so the
+implementation flip is a one-function change, no UI rework.
+
+### Records, not cells, are the unit of intent
+
+Fire-button copy and progress reporting must frame around **records**
+(the user's domain unit), not cells (the engine's unit):
+
+- ✅ "Fire on 67 rows" with a subline "6 packs × 67 rows · 402 fetches total"
+- ❌ "Fire 402 cells (6 packs × 67 rows)"
+
+The record is what the user thinks about; the cell count is internal
+arithmetic.
+
+### Triage must be per-record, not per-response
+
+At pack scale, a single fan-out produces hundreds of responses (N rows ×
+M packs). Stepping through them one-at-a-time is untenable past ~50.
+The triage surface must offer a **per-record view** that groups all
+responses for an entity into a single card with inline triage controls
+per response. Per-record collapse is what makes the triage queue
+workable at pack scale.
+
+Concretely:
+
+- One card per row, sorted by the entity's display name (alphabetical).
+- Card header carries the entity name (resolved from
+  `Prospect / Organization` / `name` / `organization` / etc. — a small
+  candidate list with case-insensitive fallback).
+- One mini-row per response inside the card, showing source badge +
+  outcome badge + structured payload (confidence pill + URL + display
+  name) + **inline `✓ / ✗ / ~ / → accept` buttons**.
+- Whole-row tinting reflects current flag so visual scan reveals
+  unfinished platforms without clicking through.
+
+The single-response stepper view stays available as a peer view-mode
+(for prompt responses where each row produces one verbose answer
+worth reading in full); the user picks the mode that fits the
+current work.
+
+### Inline correction + human supply on the same surface
+
+Source-returned URLs are wrong often enough that the triage surface
+must let the human **edit URL and display name inline** without
+leaving the card. Two distinct flows on one input:
+
+- **Correction** — response already has a `structured` payload (the
+  pack returned `found`); the user fixes the URL (e.g. Wikipedia
+  disambiguation page → entity page). Edit autosaves on blur.
+- **Human supply** — response has no `structured` payload (`not_found`
+  / `error` / `pending` / `skipped`); the user types a URL they
+  already knew. Backend mints a new Candidate with sensible defaults
+  + flips outcome to `found`.
+
+Visual distinction: solid input for correction-path; dashed-border
+input with outcome-aware placeholder for human-supply-path. Both
+save through the same single backend subject (`response.set_structured`
+in augment-it) so the surface code stays uniform.
+
+### Stale-companion-field discipline on edit
+
+When the user edits one field of a structured payload, **adjacent
+fields may go stale**. Specifically:
+
+- URL changes → display_name was the Tavily-returned page title;
+  it no longer describes the new page.
+- URL changes → snippet was the Tavily-returned excerpt; it no
+  longer describes the new page.
+- display_name changes manually → no stale fanout (it's the
+  display field).
+- confidence changes manually → no stale fanout.
+
+The backend should **auto-derive a sensible default** for stale
+companion fields when they aren't explicitly set in the patch
+(hostname-based display_name; cleared snippet). The user can
+override via the inline editor if the derived default isn't right.
+
+### Provenance markers preserve audit through human overrides
+
+Every human override leaves a marker in `source_metadata` so future
+tools can distinguish algorithmic from human-supplied data without
+parsing edit history:
+
+- `human_entered: true` — Candidate minted from a human-typed URL
+  (no source returned anything).
+- `url_human_edited: true` — Candidate's URL was corrected by a
+  human (source returned a different URL).
+- Original source data is **never overwritten** — `tavily_raw_url`
+  and other source-specific metadata fields persist alongside the
+  human values. Provenance is additive.
+
+### Live-progress feedback on long-running fan-outs
+
+A fan-out across hundreds of cells takes minutes. The invocation
+surface must show **live progress per cell as responses land**, not
+just a single "firing N rows…" placeholder. Subscribe to the
+broadcast that response-store fires per cell-create; tally per
+outcome (`found` / `not_found` / `error`); show a small progress
+bar plus the running counters.
+
+The Run entity (per [[Run-as-First-Class-Operation]]) is the
+natural place these counters live — pre-aggregated, broadcast as
+`run.updated`. Until the Run entity ships, the invocation surface
+can tally locally by filtering `response.created` events by
+`record_set_id`.
+
+### Cross-pair state synchronization
+
+When two related panels are visible side-by-side (the pair), state
+that's meaningful to both must sync across them. Examples from
+augment-it:
+
+- Enrichment mode (`prompt` vs `pack`) — clicking "Pre-built Pack"
+  in PTM should reflect in pack-runner's mode indicator and vice
+  versa.
+- Future: focused record-set selection — picking a set in one panel
+  should propagate to the other so they target the same data.
+
+Mechanism: shared `localStorage` key + `window` event combo. Both
+panels read the localStorage value on mount + subscribe to the
+event for live updates; either panel writes both when it changes.
+Lightweight, transport-free, lossless across reloads.
+
+### Federation-time debuggability
+
+Module Federation across ports scrubs cross-origin runtime errors
+to the browser's generic `Script error.` message. This makes
+shell-level debugging useless. Two mitigations:
+
+1. **Standalone-remote-port URLs** are the working debug path. Each
+   remote runs on its own port (`:3005`, `:3009`, etc.); opening
+   that URL directly renders the remote in isolation, same-origin,
+   with full error stacks in DevTools. The host-surface error
+   reveals nothing; the standalone surface reveals everything.
+2. **CORS un-scrubbing** (worthwhile follow-up): set
+   `crossorigin="anonymous"` on the federation script tags and add
+   `Access-Control-Allow-Origin: *` to remoteEntry.js responses.
+   Surfaces real errors in the host's console too.
+
+The standalone-port fallback should be documented per-remote so
+anyone debugging knows where to look.
+
+### Svelte 5 effect-cycle discipline
+
+`$effect` callbacks track **synchronous reads** during their
+execution (including reads inside synchronously-invoked async
+functions, up to the first `await`). A read of state X followed
+by a write to X — even when the write is at the end of the async
+function — re-fires the effect and creates an infinite loop
+(`effect_update_depth_exceeded`).
+
+Pattern to follow:
+
+```ts
+async function loadX() {
+  // Sync portion — reads here register as effect deps.
+  const someInput = readSomeReactiveInput();
+  if (someInput.size === 0) return;
+
+  // Async portion — reads/writes here are microtasks,
+  // outside the effect's sync-tracking window.
+  const fresh = await fetchSomething();
+  reactiveOutputState = { ...reactiveOutputState, ...fresh };
+}
+```
+
+Reads of state that the function will later write must happen
+after the first `await`. The pattern is general: applies to any
+$effect-invoked async function that does merge-then-assign.
 
 ## References
 

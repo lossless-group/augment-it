@@ -7,7 +7,10 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
+revisions:
+  - 2026-05-25 — Initial draft.
+  - 2026-05-26 — Added §Surfaced from smoke (2026-05-25/26). Names the requirements that the foundation-dataset triage hit but the upfront plan didn't anticipate. Each is annotated with ✅ shipped / 🔧 partial / ⏳ pending so the audit trail of "what we learned by doing" stays legible alongside the original four-part plan. The codified pattern-level versions live in [[Packs-and-Bundles-Pattern]] §Triage Surface UX Requirements.
 tags:
   - Plan
   - Augment-It
@@ -302,6 +305,108 @@ to be usable end-to-end:
   [[Packs-and-Bundles-Pattern]] §Row write-back). Without these, the
   Run bar shows pack runs producing 576 responses but no accepted
   cell writes land — fine for triage smoke, broken for end-to-end.
+
+## Surfaced from smoke (2026-05-25/26)
+
+Requirements the smoke run against the foundation dataset surfaced —
+discoveries that the upfront plan didn't anticipate and that the
+implementation only learned by hitting them. Each is annotated with its
+current ship state so the picture of "where the work stands" stays
+honest. The codified pattern-level versions of these live in
+[[Packs-and-Bundles-Pattern]] §Triage Surface UX Requirements; this list
+is the journey-mode capture of how they got found.
+
+### UX requirements found by usage
+
+- ✅ **Pack-runner ⇄ prompt-templates pair, not sibling tiles.** The peek-
+  deck rotation was a wrong shape for the invocation surface. Pack-runner
+  moved into a pair-only `PACK_RUNNER_REMOTE` entry mirroring `CHAT_REMOTE`'s
+  precedent. (Shipped: commit 12546ba.)
+- ✅ **Default to "ready to fire."** Auto-restore last record set from
+  localStorage; auto-pick the only non-archived set when one exists; auto-
+  select all rows on load; persist entity-name column choice. The user
+  shouldn't have to re-click their way back into context. (Shipped: 12546ba.)
+- ✅ **Filter constrains effective scope.** Fire button operates on
+  `selected ∩ visible`, not raw selection. "all visible" / "none" buttons
+  operate on the visible set, not the universe. (Shipped: 12546ba.)
+- 🔧 **Row filter chips on "last-run status."** v1 heuristic (does
+  `row.fields.url` have a real value?) shipped in 12546ba. The proper
+  cementation-based version reads `triage_states` from row-store — still
+  pending the promote-time cementation work, sequenced after this plan.
+- ✅ **Fire-button copy frames around records.** "Fire on N rows" with a
+  subline "P packs × N rows · N×P fetches" — replaces the confusing raw-
+  cell count. (Shipped: 12546ba.)
+- ✅ **Per-record triage view.** The killer realization: stepping through
+  402 pack responses one-by-one in the single-response stepper was
+  untenable. Response Reviewer's by-record view groups all responses per
+  entity into one card with inline `✓ / ✗ / ~ / → accept` buttons.
+  (Shipped: 12546ba.)
+- ✅ **Inline URL editing on `found` responses.** Tavily returns wrong URLs
+  often enough that the triage surface needs human correction without
+  leaving the row. (Shipped: 4a94f77.)
+- ✅ **Empty-state URL inputs on `not_found` / `error` responses.** The
+  human-supply path — user knows the answer the source missed; backend mints
+  a Candidate on save and flips outcome to `found`. (Shipped: commit after
+  4a94f77.)
+- ✅ **Inline display_name editing.** Title fetched alongside the wrong URL
+  is stale; needs to be editable separately. Auto-derive a hostname-based
+  default when URL changes without an accompanying display_name.
+  (Shipped: most recent commit.)
+- ✅ **Provenance markers** (`human_entered`, `url_human_edited`) preserve
+  audit through overrides; original `tavily_raw_url` never overwritten.
+  (Shipped: across the same commits.)
+- ✅ **Cross-pair mode-switch sync.** Clicking "Pre-built Pack" in PTM
+  reflects in pack-runner via `augment-it:enrichment-mode` window event +
+  localStorage shared key. (Shipped: 12546ba.)
+- ⏳ **Live progress on long-running fan-outs.** This is Part 4 of the
+  original plan and remains pending until the Run entity ships.
+
+### Backend / data requirements
+
+- ✅ **`socials` is one row-level JSON array, not N spawned columns.**
+  Pivot from the original `profiles.<source>` cluster design. Replace-by-
+  pack_id semantics, mirrors `helpful_links`. (Shipped: 12546ba.)
+- ✅ **`response.set_structured` carries two flows** (correction +
+  human-supply) on one subject; backend forks on `existing.structured`
+  presence. (Shipped: 4a94f77 + the empty-state extension.)
+- ✅ **`outcome` flips `not_found`→`found`** when the human supplies an
+  answer. Original outcome's audit will live at the Run level once that
+  ships. (Shipped: empty-state extension.)
+- ✅ **All response writes stay additive** through
+  `response.create.requested`; no schema migration ever. Backfill in
+  `load()` handles older records. (Shipped: 288ecec.)
+
+### Dev-experience requirements
+
+- ⏳ **Federation cross-origin error scrubbing.** Module Federation across
+  ports scrubs runtime errors to the browser's `Script error.` placeholder.
+  Two follow-ups noted: (a) document the standalone-remote-port debug
+  path per-remote, (b) wire `crossorigin="anonymous"` on federation script
+  tags + CORS headers on remoteEntry.js so future errors surface real
+  stacks in the host console. Neither shipped yet.
+- ✅ **Svelte 5 effect-cycle pattern documented.** The
+  `effect_update_depth_exceeded` we hit was a sync-read / async-write
+  cycle; the fix pattern (read past the first `await`) is documented
+  inline in the offending file and codified in
+  [[Packs-and-Bundles-Pattern]] §Triage Surface UX. (Shipped: 4a94f77.)
+
+### Still-pending requirements that emerged
+
+These are real requirements named by the smoke but not yet shipped —
+they belong inside the original Parts 1-6 sequencing but deserve being
+called out as discovered-by-doing rather than known-upfront:
+
+- ⏳ **Pack Runner per-cell progress bar.** Visible "N of M cells done"
+  with per-outcome breakdown (found / not_found / error). Pinned to Part 4
+  of this plan.
+- ⏳ **`needs_clarification` row-level state.** Already Part 5; surfaced
+  in the smoke when the user named the Citadel/Ken Griffin example.
+- ⏳ **Refetch-or-update display_name when URL changes.** Currently we
+  hostname-derive; the proper fix is to actually fetch the new URL's
+  `<title>` or `og:title`. Requires a small fetcher service or extending
+  social-search. Worth its own session.
+- ⏳ **Triage queue can't yet filter to "responses from this run."**
+  Part 3 of this plan — Response Reviewer's run-scope filter chip.
 
 ## Implementation order
 

@@ -227,15 +227,50 @@ export async function setResponseStructured(
 
   if (existing.structured) {
     // (a) Correction path — merge patch into the existing Candidate.
+    // Special case: when the URL changes but display_name and snippet
+    // weren't also touched, both stale. The OLD title ("Post by
+    // @womenmovingmillions") doesn't belong to the NEW URL
+    // ("bsky.app/profile/bridgespan"). Without a fetcher we can't re-pull
+    // the real page title, so we derive a default from the new URL's
+    // hostname; the user can override it via the display_name input.
+    // Snippet gets cleared since it referenced the old page.
+    const urlChanged = patch.url !== undefined && patch.url !== existing.structured.url;
+    let derivedDisplayName: string | undefined;
+    let clearedSnippet: string | undefined;
+    const humanEditedMarker: Record<string, unknown> = {};
+    if (urlChanged && patch.display_name === undefined) {
+      try {
+        derivedDisplayName = new URL(patch.url!).hostname.replace(/^www\./, '');
+      } catch {
+        derivedDisplayName = patch.url!;
+      }
+    }
+    if (urlChanged && patch.snippet === undefined) {
+      clearedSnippet = '';
+    }
+    if (urlChanged) {
+      humanEditedMarker.url_human_edited = true;
+    }
+
     nextStructured = {
       ...existing.structured,
       ...(patch.url !== undefined ? { url: patch.url } : {}),
-      ...(patch.display_name !== undefined ? { display_name: patch.display_name } : {}),
+      ...(patch.display_name !== undefined
+        ? { display_name: patch.display_name }
+        : derivedDisplayName !== undefined
+          ? { display_name: derivedDisplayName }
+          : {}),
       ...(patch.confidence !== undefined ? { confidence: patch.confidence } : {}),
-      ...(patch.snippet !== undefined ? { snippet: patch.snippet } : {}),
-      ...(patch.source_metadata !== undefined
-        ? { source_metadata: { ...existing.structured.source_metadata, ...patch.source_metadata } }
-        : {}),
+      ...(patch.snippet !== undefined
+        ? { snippet: patch.snippet }
+        : clearedSnippet !== undefined
+          ? { snippet: clearedSnippet }
+          : {}),
+      source_metadata: {
+        ...existing.structured.source_metadata,
+        ...humanEditedMarker,
+        ...(patch.source_metadata ?? {}),
+      },
     };
   } else {
     // (b) Human-supply path — require a URL; mint a new Candidate.
