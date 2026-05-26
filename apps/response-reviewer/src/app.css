@@ -694,6 +694,59 @@
 }
 .resp-app .record-url:hover { text-decoration: underline; }
 
+/* Editable URL input — used in by-record mode so a human can correct what
+   Tavily returned (Wikipedia disambiguation → entity page, deep-link post
+   → canonical profile URL). On blur autosaves via response.set_structured. */
+.resp-app .record-url-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--color-field);
+  color: var(--color-accent);
+  border: 1px solid var(--color-border);
+  padding: 0.18rem 0.4rem;
+  border-radius: 3px;
+  font: 0.82rem var(--font-mono);
+}
+.resp-app .record-url-input:focus {
+  outline: 1px solid var(--color-accent-2);
+  border-color: var(--color-accent-2);
+  color: var(--color-text);
+}
+
+/* Empty-state — pack responses with no structured payload (not_found,
+   error, etc.). Visually muted so the user reads it as "needs input"
+   rather than "here's a value." Dashed border signals "not committed yet." */
+.resp-app .record-url-input.record-url-input-empty {
+  color: var(--color-text-muted);
+  border-style: dashed;
+  background: transparent;
+}
+.resp-app .record-url-input.record-url-input-empty:focus {
+  border-style: solid;
+  background: var(--color-field);
+}
+.resp-app .record-url-input.record-url-input-empty::placeholder {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.resp-app .record-url-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  font-size: 0.9rem;
+}
+.resp-app .record-url-open:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
 .resp-app .record-display-name {
   color: var(--color-text);
   font-weight: 600;

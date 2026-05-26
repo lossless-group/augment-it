@@ -328,19 +328,31 @@
   // responses so we can show the entity name + use row.fields for
   // disambiguation. Batches per record_set_id via the existing row.list
   // capability. Cheap enough for the foundation-dataset scale.
+  //
+  // Effect-cycle note: when this is invoked from a $effect, only the
+  // SYNCHRONOUS portion (up to the first `await`) participates in Svelte
+  // 5's reactive read-tracking. We therefore avoid reading `rowsByRowId`
+  // synchronously — otherwise the effect would (a) read rowsByRowId,
+  // (b) write rowsByRowId, and (c) re-fire on every write, infinite loop.
+  // The spread + assignment live after the first await, outside the
+  // tracking window.
   async function loadRowsForByRecord() {
     const setIds = new Set<string>();
     for (const r of filtered) setIds.add(r.record_set_id);
-    const next: Record<string, Row> = { ...rowsByRowId };
+    if (setIds.size === 0) return;
+    const fresh: Record<string, Row> = {};
     for (const record_set_id of setIds) {
       try {
         const r = (await workspace.invoke('row.list', { record_set_id })) as { rows: Row[] };
-        for (const row of r.rows) next[row.row_id] = row;
+        for (const row of r.rows) fresh[row.row_id] = row;
       } catch (e) {
         console.error('row.list (by-record)', record_set_id, e);
       }
     }
-    rowsByRowId = next;
+    // Past the first await — outside the effect's sync tracking window.
+    // Reading rowsByRowId here does NOT register as a dep of the effect
+    // that called us, so writing it doesn't re-fire that effect.
+    rowsByRowId = { ...rowsByRowId, ...fresh };
   }
 
   // The columns we look in to find an entity's display name. In order — the
@@ -398,6 +410,46 @@
     void responses.length;
     void loadRowsForByRecord();
   });
+
+  // In-flight URL drafts for the by-record view's inline URL inputs.
+  // Keyed by response_id. Falls back to structured.url for display when no
+  // local draft exists. Persisted to response-store on blur via
+  // response.set_structured. Cleared after a successful save so the
+  // refreshed response value takes over.
+  let urlDrafts = $state<Record<string, string>>({});
+
+  async function saveUrlEdit(resp: ResponseRecord) {
+    // Two valid paths: a pack response with existing structured (edit
+    // correction) OR a pack response with structured: null (human supply
+    // for not_found/error/etc.). Non-pack responses don't have the
+    // structured surface at all, so skip.
+    if (!resp.pack_id) return;
+    const draft = urlDrafts[resp.response_id];
+    if (draft === undefined) return; // never edited
+    const next = draft.trim();
+    // Empty draft is a no-op — don't fire set_structured with an empty URL
+    // since the backend rejects (you'd just generate noise).
+    if (next.length === 0) return;
+    if (resp.structured && next === resp.structured.url) {
+      // No actual change — drop the draft so the input falls back to source.
+      delete urlDrafts[resp.response_id];
+      urlDrafts = { ...urlDrafts };
+      return;
+    }
+    try {
+      await workspace.invoke('response.set_structured', {
+        response_id: resp.response_id,
+        patch: { url: next },
+      });
+      // Refresh so the local response list picks up structured.url = draft.
+      // Then clear the draft so the input renders from the canonical source.
+      await loadResponses();
+      delete urlDrafts[resp.response_id];
+      urlDrafts = { ...urlDrafts };
+    } catch (e) {
+      console.error('response.set_structured', e);
+    }
+  }
 
   // Inline triage in by-record mode — bypass the per-cell editText
   // machinery. Just flips the flag (and writes to row.socials on accept
@@ -662,10 +714,64 @@
                   <div class="record-response-body">
                     {#if resp.structured}
                       <ConfidencePill confidence={resp.structured.confidence} />
-                      <a class="record-url" href={resp.structured.url} target="_blank" rel="noopener noreferrer">
-                        {resp.structured.url}
-                      </a>
+                      <input
+                        class="record-url-input"
+                        type="url"
+                        value={urlDrafts[resp.response_id] ?? resp.structured.url}
+                        oninput={(e) =>
+                          (urlDrafts[resp.response_id] = (e.currentTarget as HTMLInputElement).value)}
+                        onblur={() => void saveUrlEdit(resp)}
+                        onkeydown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            (e.currentTarget as HTMLInputElement).blur();
+                          }
+                        }}
+                        title="Edit the URL — Enter or click away to save"
+                      />
+                      <a
+                        class="record-url-open"
+                        href={urlDrafts[resp.response_id] ?? resp.structured.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open in new tab"
+                      >↗</a>
                       <span class="record-display-name">{resp.structured.display_name}</span>
+                    {:else if resp.pack_id}
+                      <!-- Pack response with no structured payload yet
+                           (not_found / error / pending / skipped). Empty
+                           URL input lets the user supply it manually —
+                           backend mints a Candidate + flips outcome to
+                           'found' when they save a URL. -->
+                      <input
+                        class="record-url-input record-url-input-empty"
+                        type="url"
+                        placeholder={resp.outcome === 'not_found'
+                          ? 'no result — type a URL to supply one'
+                          : resp.outcome === 'error'
+                            ? 'source errored — type a URL to override'
+                            : 'type a URL to supply manually'}
+                        value={urlDrafts[resp.response_id] ?? ''}
+                        oninput={(e) =>
+                          (urlDrafts[resp.response_id] = (e.currentTarget as HTMLInputElement).value)}
+                        onblur={() => void saveUrlEdit(resp)}
+                        onkeydown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            (e.currentTarget as HTMLInputElement).blur();
+                          }
+                        }}
+                        title="Type a URL — Enter or click away to save; promotes the response from {resp.outcome} → found"
+                      />
+                      {#if urlDrafts[resp.response_id]}
+                        <a
+                          class="record-url-open"
+                          href={urlDrafts[resp.response_id]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Open the URL you're typing in a new tab"
+                        >↗</a>
+                      {/if}
                     {:else if resp.response_text}
                       <span class="record-prose">{resp.response_text}</span>
                     {:else}

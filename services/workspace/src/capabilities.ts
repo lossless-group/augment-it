@@ -56,6 +56,9 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'response.delete_all': 'response.delete_all.requested',
   'response.coverage': 'response.coverage.requested',
   'response.set_text': 'response.set_text.requested',
+  // Patch a pack response's structured Candidate (URL, display_name, ...) —
+  // used by the by-record review surface for inline human corrections.
+  'response.set_structured': 'response.set_structured.requested',
   // Packs-and-bundles. social-search-service is the consumer for both.
   // pack.search is one (pack × row); pack.fan_out is M rows × N packs,
   // concurrency-bounded server-side, single reply when all cells settled.

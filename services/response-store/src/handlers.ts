@@ -23,6 +23,8 @@ import {
   getResponse,
   listResponses,
   setResponseEditedText,
+  setResponseStructured,
+  type Candidate,
   type ResponseFilter,
   type ResponseFlag,
 } from './store';
@@ -85,6 +87,30 @@ export function registerHandlers(nc: NatsConnection): void {
       };
       try {
         const response = await setResponseEditedText(response_id, edited_text);
+        if (msg.reply) msg.respond(jc.encode({ response }));
+        nc.publish('response.edited', jc.encode({ response_id, edited_at: response.edited_at }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // response.set_structured.requested — patch the structured Candidate
+  // payload on a pack response. Used by the by-record review surface when
+  // the user corrects what Tavily returned (e.g. Wikipedia disambiguation
+  // → actual entity page, deep-linked post → canonical profile URL). Only
+  // patches the fields named in the request body; preserves the rest of
+  // the Candidate. Broadcasts response.edited like the prose-edit path.
+  (async () => {
+    const sub = nc.subscribe('response.set_structured.requested');
+    for await (const msg of sub) {
+      const { response_id, patch } = jc.decode(msg.data) as {
+        response_id: string;
+        patch: Partial<Candidate>;
+      };
+      try {
+        const response = await setResponseStructured(response_id, patch);
         if (msg.reply) msg.respond(jc.encode({ response }));
         nc.publish('response.edited', jc.encode({ response_id, edited_at: response.edited_at }));
       } catch (err: unknown) {

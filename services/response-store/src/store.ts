@@ -195,6 +195,85 @@ export async function setResponseEditedText(
   return next;
 }
 
+/**
+ * Patch fields on a response's `structured` payload — OR create a structured
+ * payload from scratch when none exists. Two distinct flows ride the same
+ * subject:
+ *   (a) Correction. structured already exists (pack returned 'found'); the
+ *       human fixes url / display_name / etc. Fields not in `patch` are
+ *       preserved from the original Candidate.
+ *   (b) Human supply. structured is null (pack returned 'not_found' or
+ *       'error'); the human knows the answer and types it in. We mint a
+ *       new Candidate from the patch + sensible defaults, AND flip the
+ *       response's outcome from 'not_found' to 'found' since the data is
+ *       no longer absent. Confidence defaults to 100 (human-verified,
+ *       max trust); display_name falls back to the URL hostname so the
+ *       UI has something to render. source_metadata gets a `human_entered:
+ *       true` marker so audit can tell algorithmic results from human
+ *       overrides.
+ *
+ * Bumps edited_at for audit so the row-card UI can show "saved 12s ago"
+ * the same way the prose edit does.
+ */
+export async function setResponseStructured(
+  response_id: string,
+  patch: Partial<Candidate>,
+): Promise<ResponseRecord> {
+  const existing = data.responses[response_id];
+  if (!existing) throw new Error(`response not found: ${response_id}`);
+
+  let nextStructured: Candidate;
+  let nextOutcome = existing.outcome;
+
+  if (existing.structured) {
+    // (a) Correction path — merge patch into the existing Candidate.
+    nextStructured = {
+      ...existing.structured,
+      ...(patch.url !== undefined ? { url: patch.url } : {}),
+      ...(patch.display_name !== undefined ? { display_name: patch.display_name } : {}),
+      ...(patch.confidence !== undefined ? { confidence: patch.confidence } : {}),
+      ...(patch.snippet !== undefined ? { snippet: patch.snippet } : {}),
+      ...(patch.source_metadata !== undefined
+        ? { source_metadata: { ...existing.structured.source_metadata, ...patch.source_metadata } }
+        : {}),
+    };
+  } else {
+    // (b) Human-supply path — require a URL; mint a new Candidate.
+    if (!patch.url || patch.url.trim().length === 0) {
+      throw new Error(`response ${response_id} has no structured payload; patch must include a url`);
+    }
+    let hostname = '';
+    try {
+      hostname = new URL(patch.url).hostname.replace(/^www\./, '');
+    } catch {
+      /* malformed URL — display_name fallback uses the raw url */
+    }
+    nextStructured = {
+      url: patch.url,
+      display_name: patch.display_name ?? hostname ?? patch.url,
+      confidence: patch.confidence ?? 100,
+      snippet: patch.snippet ?? '',
+      source_metadata: { human_entered: true, ...(patch.source_metadata ?? {}) },
+    };
+    // Outcome was 'not_found' / 'error' / 'pending' / 'skipped' → if the
+    // human just supplied an answer, the response is now 'found'. Audit
+    // trail of the original outcome lives in the run-level Run entity
+    // (per [[Run-as-First-Class-Operation]]) — at the response level we
+    // record the final state.
+    if (nextOutcome !== 'found') nextOutcome = 'found';
+  }
+
+  const next: ResponseRecord = {
+    ...existing,
+    structured: nextStructured,
+    outcome: nextOutcome,
+    edited_at: new Date().toISOString(),
+  };
+  data.responses[response_id] = next;
+  await persist();
+  return next;
+}
+
 export async function flagResponse(
   response_id: string,
   flag: ResponseFlag,
