@@ -7,7 +7,10 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
+revisions:
+  - 2026-05-25 — Initial draft.
+  - 2026-05-25 — **Design pivot from `profiles.<source>` columns to a single `socials` JSON column per row, mirroring `helpful_links`.** Triggered by smoke-run feedback: spawning N new columns per pack obscured the result (no row-level view of which platforms were filled in) and broke the dynamic-schema discipline that "row columns are CSV-derived." New shape: one row-level column `socials: SocialProfile[]` containing all accepted pack profiles. Acceptance of a pack response routes through `row.socials.add` (replace-by-pack_id semantics — one entity has one LinkedIn) instead of `row.update` against a per-pack output_column. See §Row write-back below for the schema + capabilities.
 tags:
   - Blueprint
   - Augment-It
@@ -152,8 +155,8 @@ type Candidate = {
 
 Provenance discipline: every response carries `source_name`,
 `source_version`, and `retrieved_at` — these are not optional. They
-land in response-store unchanged and ride through the promote-to-
-canonical flow into the row's `profiles.<source>` cluster.
+land in response-store unchanged and ride through accept into the
+row's single `socials` JSON column (see §Row write-back).
 
 ### 3. The extraction schema
 
@@ -276,7 +279,8 @@ Every bundle invokes `profiles.dedup.scan` before its roster fires.
 The scan:
 
 1. Reads the target row's `helpful_links` array.
-2. Reads any existing `profiles.<source>` clusters from prior runs.
+2. Reads the target row's `socials` array from prior runs (see
+   §Row write-back below).
 3. For each pack in the roster: checks if a matching URL is already
    present (URL-shape match per the pack's source domain).
 4. Returns a per-row, per-pack object: `{ skip: bool, prepopulate?:
@@ -376,6 +380,77 @@ Each maps to a distinct render:
   as `good`)
 - `pending`: spinner row
 
+## Row write-back — one `socials` column, JSON-shaped
+
+**Revised 2026-05-25 — supersedes the earlier `profiles.<source>` cluster.**
+Accepting a pack response writes the chosen candidate into a single
+row-level column called `socials`, mirroring the shape `helpful_links`
+already follows. Rationale:
+
+- **Visibility.** Record Collector's generic renderer surfaces every
+  `row.fields` key. One `socials` column shows up as one cell the user
+  can see; six `profiles.linkedin`, `profiles.x`, `profiles.bluesky`,
+  …columns push real data off-screen and obscure which platforms have
+  been filled in.
+- **Dynamic-schema discipline.** [[feedback_augment_it_dynamic_schema]]:
+  row columns derive from CSV headers, never get user/system-predefined.
+  Spawning N system columns per pack run violates that; one `socials`
+  field (added at first accept) keeps the discipline intact.
+- **Familiarity.** `helpful_links` already proved this pattern for
+  per-row arrays of structured items. `socials` matches it shape-for-
+  shape so the rendering + edit affordances compose.
+
+### Shape
+
+```typescript
+type SocialProfile = {
+  socials_id: string;                    // mirrors helpful_links.link_id
+  pack_id: string;                       // 'linkedin-pack', etc.
+  url: string;
+  display_name: string;
+  confidence: number;
+  snippet?: string;
+  source_metadata?: Record<string, unknown>;
+  response_id: string;                   // provenance — which response was accepted
+  accepted_at: string;                   // ISO timestamp
+};
+
+// On the row:
+row.fields.socials: SocialProfile[]
+```
+
+### Capabilities (mirror helpful_links)
+
+- `row.socials.add` — accept handler routes here for any response whose
+  `pack_id !== null`. **Replace-by-pack_id semantics** — one row has
+  exactly one entry per pack_id (a row's "LinkedIn" is one URL, not
+  many). Accepting a second LinkedIn candidate for the same row
+  replaces the first; the previous response remains in response-store
+  for audit (its `accepted` flag stays true historically but the row
+  fields no longer reference it).
+- `row.socials.remove` — drop one entry by `socials_id`.
+
+### Accept routing
+
+The existing `response.accept.requested` handler in response-store
+forks at acceptance time:
+
+- `response.pack_id === null` → existing path: `row.update` against
+  `response.output_column`. Pre-pack prompt-runner responses keep
+  working unchanged.
+- `response.pack_id !== null` → new path: `row.socials.add`. The
+  `output_column` field becomes informational only for pack responses
+  (still stored on the response for provenance, but not used as a
+  cell target).
+
+### What pack responses set as `output_column`
+
+For pack responses, set `output_column: 'socials'`. It's not used to
+key the cell write (the new accept path writes to the array), but
+keeping it consistent makes the response shape uniform — every
+response has an output_column, and pack responses point at the same
+visible row column the renderer surfaces.
+
 ## Naming conventions
 
 - Packs: `<source>-pack` (lowercase, hyphenated). Examples:
@@ -424,20 +499,29 @@ Navigator (six). The other 14 Tier-2 sources are opt-in per dataset.
 
 ## Implementation order — the smallest end-to-end slice
 
-For Spec-Kit when ready:
+Revised 2026-05-25 to reflect the design pivot to `socials` JSON column.
+Status: Response Reviewer extension + common-six social packs have
+landed; the `socials` write-back is next.
 
-1. **One pack** — `linkedin-pack` is the natural first. Tier 1, known
-   URL shape, most-needed across entity types, exposes the search-
-   then-confirm scraping shape that other Tier-1 social packs will
-   reuse.
-2. **One bundle** — `profile-builder.common` with just two packs
-   (LinkedIn + X) to prove the bundle orchestration end-to-end
-   without the full common-five.
-3. **Response Reviewer structured-output extension** — sibling-
-   payload, confidence pill, outcome enum rendering.
-4. **Pre-flight dedup capability** — `profiles.dedup.scan`.
-5. **Then iterate**: add packs to the roster, add entity-typed
-   bundles, add two-pass orchestration.
+1. ✅ Response Reviewer structured-output extension (commit 288ecec).
+2. ✅ Common-six social packs end-to-end (commit 38751d3) — produces
+   pack responses with structured payloads. Accept currently writes to
+   `profiles.<source>` columns; superseded by step 3.
+3. **`row.socials.add` + `row.socials.remove` capabilities** (next) —
+   row-store gains the pair; response-store's accept handler forks on
+   `pack_id` and routes pack responses to `row.socials.add` instead of
+   `row.update`. Cleanup script (`scrap-pack-artifacts.ts`) removes the
+   in-progress `profiles.<source>` writes from the 2026-05-25 smoke run.
+4. **Render `row.fields.socials` in Record Collector** — generic-
+   renderer extension; ideally a chip-row showing one badge per
+   pack_id with the URL on click. Helpful-links pattern is the model.
+5. **Pre-flight dedup capability** — `profiles.dedup.scan` reads
+   `row.fields.socials` + `row.fields.helpful_links` and pre-populates
+   the bundle roster.
+6. **`profile-builder.common` bundle** — first bundle abstraction
+   wrapping the existing six packs with orchestration + dedup.
+7. **Then iterate**: entity-typed bundles, two-pass orchestration with
+   carry-forward.
 
 ## References
 
@@ -448,8 +532,9 @@ For Spec-Kit when ready:
 - [[Original-and-Enhanced-Record-Instances]] — the record-instance
   model the verified responses get promoted into
 - [[Enhanced-Records-List-and-Promotion-Checkpoint]] — the promote-to-
-  canonical mechanic that writes verified profiles into the row's
-  `profiles.<source>` cluster
+  canonical mechanic. With the 2026-05-25 pivot, promote no longer
+  needs to fold `profiles.<source>` clusters; the row-level `socials`
+  array rides through promote untouched like every other row field.
 - [[In-App-Chat-v0-0-1-for-Augment-It]] — the chat surface that
   registers bundle verbs (McpCapability + SkillCapability adapter work
   is the v0.0.2 prerequisite for bundles to fire)

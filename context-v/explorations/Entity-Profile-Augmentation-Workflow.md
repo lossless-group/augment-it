@@ -7,8 +7,9 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.4
+semantic_version: 0.0.0.5
 revisions:
+  - 2026-05-25 — Pivot from `profiles.<source>` cluster to a single `socials` JSON column per row (mirrors helpful_links). Triggered by smoke-run feedback — six new columns per pack obscured the result and broke the dynamic-schema discipline. Affected sections: Layer 3 verification, two-pass orchestration callouts, Q5 resolution. Full design now lives in [[Packs-and-Bundles-Pattern]] §Row write-back.
   - 2026-05-25 — Initial draft.
   - 2026-05-25 — User answered 6 of 7 open questions inline. Resolutions folded back: two-pass execution with data carry-forward; pre-flight agent-scan against existing helpful_links; confidence as numeric 0-100 with color pill; sibling-payload + optional archival-markdown for structured responses; `outcome` enum for response types. Q7 (user's additional philanthropy sources) still open.
   - 2026-05-25 — Pack vs bundle distinction introduced per user. **Pack** = atomic, source-bound, one-per-microfrontend/microservice (deployment unit). **Bundle** = workflow-shaped composition of packs (orchestration unit). Layer 2 re-split; blueprint fork renamed to `Packs-and-Bundles-Pattern`.
@@ -184,8 +185,13 @@ What this means concretely:
   as an open question below).
 
 The promote-to-canonical flow handles the rest: verified responses get
-written back to the row's `profiles.<source>` cluster on promote, the
-same way every other shipped enrichment lands.
+written back to the row's single `socials` JSON column (one row-level
+array, shape mirroring `helpful_links`, replace-by-pack_id semantics).
+See [[Packs-and-Bundles-Pattern]] §Row write-back for the schema +
+capabilities. *Earlier drafts of this exploration proposed
+`profiles.<source>` clusters; that was superseded 2026-05-25 because
+six new columns per pack run obscured the result in the row table and
+broke the dynamic-schema discipline.*
 
 ## The entity-type taxonomy
 
@@ -352,8 +358,9 @@ blueprint:
   USER: I think an agent should scan and see if there are existing links, and if so, pre-populate the response as `good` with the existing URL.
 
   → **Resolution:** Before a bundle runs, an agent pre-flight step
-  scans each target row's `helpful_links` (and any existing
-  `profiles.*` cluster from prior runs). For each source the bundle
+  scans each target row's `helpful_links` (and the `socials` JSON
+  column from prior runs — see [[Packs-and-Bundles-Pattern]] §Row
+  write-back). For each source the bundle
   would fire, if a matching URL already exists, that source's response
   is pre-populated as `good` with the existing URL and skipped from
   the run. Surfaced in the chat narration ("3 of 8 sources already

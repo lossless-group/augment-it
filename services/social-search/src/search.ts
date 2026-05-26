@@ -167,7 +167,12 @@ function publishResponse(
       record_set_id: args.record_set_id,
       // Packs don't write to a column (yet — that's the promote-to-canonical
       // session). For now: a per-pack placeholder column.
-      output_column: `profiles.${args.pack_id.replace(/-pack$/, '')}`,
+      // Per the 2026-05-25 design pivot, all pack responses target the
+      // single row-level `socials` JSON column. The accept handler will
+      // fork on pack_id to route into row.socials.add (not row.update);
+      // until that handler lands, output_column is informational only.
+      // Spec: context-v/blueprints/Packs-and-Bundles-Pattern.md §Row write-back
+      output_column: 'socials',
       model: 'tavily',
       request_body: { pack_id: args.pack_id, entity_name: args.entity_name },
       response_text: args.response_text,
