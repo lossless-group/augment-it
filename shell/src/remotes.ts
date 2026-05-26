@@ -49,13 +49,6 @@ export const REMOTES: RemoteEntry[] = [
     // @ts-expect-error — federation remote, type comes from the MF runtime
     importMount: () => import('enhancedRecordsList/mount'),
   },
-  {
-    id: 'packRunner',
-    label: 'Pack Runner',
-    description: 'Fire the common-six social packs against rows — results flow to Response Reviewer',
-    // @ts-expect-error — federation remote, type comes from the MF runtime
-    importMount: () => import('packRunner/mount'),
-  },
 ];
 
 // CHAT_REMOTE is intentionally NOT in REMOTES. The chat surface is a
@@ -73,6 +66,26 @@ export const CHAT_REMOTE: RemoteEntry = {
   // @ts-expect-error — federation remote, type comes from the MF runtime
   importMount: () => import('chat/mount'),
 };
+
+// PACK_RUNNER_REMOTE is intentionally NOT in REMOTES. Per the
+// [[Run-as-First-Class-Operation]] plan §Part 1: Pack Runner is the
+// alternative to authoring a custom prompt, reached as an "option" from
+// prompt-template-manager, not as a sibling tile in the peek-deck. The
+// federation registration is still in rsbuild.config.ts so the PAIRING
+// lookup + cross-remote navigation event continue to work.
+export const PACK_RUNNER_REMOTE: RemoteEntry = {
+  id: 'packRunner',
+  label: 'Pack Runner',
+  description: 'Fire the common-six social packs against rows — results flow to Response Reviewer',
+  // @ts-expect-error — federation remote, type comes from the MF runtime
+  importMount: () => import('packRunner/mount'),
+};
+
+// "Extra" remotes — federation-registered + reachable via PAIRING /
+// augment-it:navigate, but excluded from the peek-deck rotation in REMOTES.
+// Same shape as CHAT_REMOTE; aggregated here so remoteById() can fall back
+// to look them up without each caller having to know about each extra.
+const EXTRA_REMOTES: RemoteEntry[] = [CHAT_REMOTE, PACK_RUNNER_REMOTE];
 
 // Co-existence pairings — which two remotes share the viewport in Mode B,
 // and the default left-panel width %. Different pairs want different
@@ -100,8 +113,18 @@ export const PAIRINGS: Pairing[] = [
     right: 'enhancedRecordsList',
     defaultLeftPct: 25, // record-collector narrower; the checkpoint table needs room
   },
+  {
+    // Per [[Run-as-First-Class-Operation]] §Part 1: prompt-templates and
+    // pack-runner are the two ways to enrich a record set (custom LLM
+    // prompt vs source-bound pack), so they belong in one viewport.
+    // Equal billing by default — neither dominates the workflow.
+    key: 'packRunner+promptTemplateManager',
+    left: 'promptTemplateManager',
+    right: 'packRunner',
+    defaultLeftPct: 50,
+  },
 ];
 
 export function remoteById(id: string): RemoteEntry | undefined {
-  return REMOTES.find((r) => r.id === id);
+  return REMOTES.find((r) => r.id === id) ?? EXTRA_REMOTES.find((r) => r.id === id);
 }

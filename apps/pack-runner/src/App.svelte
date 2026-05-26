@@ -17,12 +17,45 @@
   const TOKEN_KEY = 'augment-it:session-token';
   const WS_URL = 'ws://localhost:3001/ws';
 
+  // Remember the user's last record-set + column picks so re-entry doesn't
+  // require re-selecting everything. Keys keep the augment-it prefix per
+  // the existing localStorage convention.
+  const RECORD_SET_KEY = 'augment-it:pack-runner:record-set';
+  const ENTITY_FIELD_KEY = 'augment-it:pack-runner:entity-name-field';
+
+  // Shared enrichment-mode state — mirrored from prompt-template-manager so
+  // the pair panels stay in sync.
+  const ENRICHMENT_MODE_KEY = 'augment-it:enrichment-mode';
+  const ENRICHMENT_MODE_EVENT = 'augment-it:enrichment-mode';
+  type EnrichmentMode = 'prompt' | 'pack';
+
+  function readMode(): EnrichmentMode {
+    if (typeof localStorage === 'undefined') return 'pack';
+    return (localStorage.getItem(ENRICHMENT_MODE_KEY) as EnrichmentMode) ?? 'pack';
+  }
+  function setMode(mode: EnrichmentMode): void {
+    enrichmentMode = mode;
+    if (typeof localStorage !== 'undefined') localStorage.setItem(ENRICHMENT_MODE_KEY, mode);
+    window.dispatchEvent(new CustomEvent(ENRICHMENT_MODE_EVENT, { detail: { mode } }));
+  }
+  let enrichmentMode = $state<EnrichmentMode>(readMode());
+
+  function readStored(key: string): string | null {
+    if (typeof localStorage === 'undefined') return null;
+    return localStorage.getItem(key);
+  }
+  function writeStored(key: string, value: string | null): void {
+    if (typeof localStorage === 'undefined') return;
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  }
+
   let status = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
   let recordSets = $state<RecordSet[]>([]);
-  let selectedRecordSetId = $state<string | null>(null);
+  let selectedRecordSetId = $state<string | null>(readStored(RECORD_SET_KEY));
   let rowsForSelected = $state<Row[]>([]);
   let selectedRowIds = $state<Set<string>>(new Set());
-  let entityNameField = $state<string>('');
+  let entityNameField = $state<string>(readStored(ENTITY_FIELD_KEY) ?? '');
   let enabledPackIds = $state<Set<string>>(new Set(PACKS.map((p) => p.pack_id)));
   let firing = $state(false);
   let lastResult = $state<string>('');
@@ -32,7 +65,52 @@
   );
   const columns = $derived(selectedSet?.schema.fields.map((f) => f.name) ?? []);
   const enabledPackCount = $derived(enabledPackIds.size);
-  const selectedRowCount = $derived(selectedRowIds.size);
+
+  // Row filter — heuristic v1: classify each row by whether its `url` column
+  // already has a real value vs being empty/'unknown'. Maps to the user's
+  // "rows that did/didn't get a valid url in the last run" framing. The
+  // proper version (read `triage_states` cemented at promote time) is
+  // sequenced for the Run-entity work in
+  // [[Run-as-First-Class-Operation]] §Part 5 — once that lands, the filter
+  // chips here flip to consult the cemented state.
+  type RowStatus = 'has-url' | 'no-url';
+  let rowFilter = $state<'all' | RowStatus>('all');
+
+  function classifyRow(row: Row): RowStatus {
+    const raw = (row.fields as Record<string, unknown>).url;
+    const value = typeof raw === 'string' ? raw.trim() : '';
+    if (value.length === 0) return 'no-url';
+    if (value.toLowerCase() === 'unknown') return 'no-url';
+    return 'has-url';
+  }
+
+  // The rows the picker should display, after applying the row filter.
+  const visibleRows = $derived(
+    rowFilter === 'all'
+      ? rowsForSelected
+      : rowsForSelected.filter((r) => classifyRow(r) === rowFilter),
+  );
+
+  // Per-filter counts so the chips show "(N)" — no full re-classify cost
+  // since we tally in one pass.
+  const filterCounts = $derived.by(() => {
+    const c = { all: rowsForSelected.length, 'has-url': 0, 'no-url': 0 };
+    for (const r of rowsForSelected) {
+      const k = classifyRow(r);
+      c[k] += 1;
+    }
+    return c;
+  });
+
+  // Fire operates on `selected ∩ visible` — filter naturally constrains
+  // what fires without requiring the user to re-click "all visible" every
+  // time they change filter. User adjusts within-visible via checkboxes or
+  // the all/none buttons; rows in selectedRowIds but outside visibleRows
+  // are preserved (silently waiting for filter to surface them again).
+  const effectiveSelection = $derived(
+    visibleRows.filter((r) => selectedRowIds.has(r.row_id)),
+  );
+  const selectedRowCount = $derived(effectiveSelection.length);
   const cellsToFire = $derived(enabledPackCount * selectedRowCount);
 
   onMount(() => {
@@ -43,6 +121,14 @@
       onStatus: (s) => (status = s),
     });
     void loadRecordSets();
+
+    // Listen for mode flips from the pair panel (prompt-template-manager).
+    const onMode = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { mode?: EnrichmentMode } | undefined;
+      if (detail?.mode) enrichmentMode = detail.mode;
+    };
+    window.addEventListener(ENRICHMENT_MODE_EVENT, onMode);
+    return () => window.removeEventListener(ENRICHMENT_MODE_EVENT, onMode);
   });
 
   async function loadRecordSets() {
@@ -50,6 +136,22 @@
       const r = (await workspace.invoke('record_set.list', {})) as { record_sets: RecordSet[] };
       // Keep non-archived first; archived sets at the bottom (skipped from UI here for simplicity).
       recordSets = r.record_sets.filter((rs) => !rs.archived);
+      // Auto-restore last selection if it still exists. Or — if there's a
+      // single non-archived set — pick that. Either way the user doesn't
+      // have to re-choose what they were already looking at.
+      const restoredId =
+        selectedRecordSetId && recordSets.some((rs) => rs.record_set_id === selectedRecordSetId)
+          ? selectedRecordSetId
+          : recordSets.length === 1
+            ? recordSets[0].record_set_id
+            : null;
+      if (restoredId) {
+        await selectRecordSet(restoredId);
+      } else if (selectedRecordSetId) {
+        // Stored id is stale (set was deleted/archived). Clear the persistence.
+        selectedRecordSetId = null;
+        writeStored(RECORD_SET_KEY, null);
+      }
     } catch (err: unknown) {
       console.error('record_set.list', err);
     }
@@ -57,24 +159,42 @@
 
   async function selectRecordSet(record_set_id: string) {
     selectedRecordSetId = record_set_id;
+    writeStored(RECORD_SET_KEY, record_set_id);
     rowsForSelected = [];
     selectedRowIds = new Set();
     try {
       const r = (await workspace.invoke('row.list', { record_set_id })) as { rows: Row[] };
       rowsForSelected = r.rows;
-      // Best-guess default for the entity-name field — prefer one of these
-      // commonly-named columns if present.
-      const candidates = ['name', 'organization', 'org', 'company', 'foundation', 'entity'];
-      const cols = (selectedSet?.schema.fields ?? []).map((f) => f.name);
-      entityNameField =
-        candidates.find((c) => cols.some((col) => col.toLowerCase() === c)) ??
-        cols.find((c) => candidates.some((cand) => c.toLowerCase().includes(cand))) ??
-        cols[0] ??
-        '';
+      // Auto-select all rows by default — the user's natural intent on
+      // landing in Pack Runner is "fire against this set." Filtering
+      // narrows the visible/fired subset (via effectiveSelection); the
+      // checkboxes refine. Avoids the "everything visible but Fire is
+      // disabled" trap.
+      selectedRowIds = new Set(r.rows.map((row) => row.row_id));
+      // Restore last entity-name-field choice if the column still exists in
+      // this set's schema; otherwise fall back to a best-guess.
+      const stored = readStored(ENTITY_FIELD_KEY);
+      const cols = (recordSets.find((rs) => rs.record_set_id === record_set_id)?.schema.fields ?? []).map((f) => f.name);
+      if (stored && cols.includes(stored)) {
+        entityNameField = stored;
+      } else {
+        const candidates = ['name', 'organization', 'org', 'company', 'foundation', 'entity'];
+        entityNameField =
+          candidates.find((c) => cols.some((col) => col.toLowerCase() === c)) ??
+          cols.find((c) => candidates.some((cand) => c.toLowerCase().includes(cand))) ??
+          cols[0] ??
+          '';
+        writeStored(ENTITY_FIELD_KEY, entityNameField || null);
+      }
     } catch (err: unknown) {
       console.error('row.list', err);
     }
   }
+
+  // Persist the entity-name column whenever the user changes the dropdown.
+  $effect(() => {
+    if (entityNameField) writeStored(ENTITY_FIELD_KEY, entityNameField);
+  });
 
   function togglePack(pack_id: string) {
     const next = new Set(enabledPackIds);
@@ -90,12 +210,19 @@
     selectedRowIds = next;
   }
 
+  // all/none operate on the CURRENTLY VISIBLE rows so the user can scope
+  // "all" to "all rows that have a url" (or any other filter) without
+  // having to per-row check.
   function selectAllRows() {
-    selectedRowIds = new Set(rowsForSelected.map((r) => r.row_id));
+    const next = new Set(selectedRowIds);
+    for (const r of visibleRows) next.add(r.row_id);
+    selectedRowIds = next;
   }
 
   function clearAllRows() {
-    selectedRowIds = new Set();
+    const next = new Set(selectedRowIds);
+    for (const r of visibleRows) next.delete(r.row_id);
+    selectedRowIds = next;
   }
 
   async function fire() {
@@ -105,7 +232,11 @@
     try {
       const r = (await workspace.invoke('pack.fan_out', {
         pack_ids: Array.from(enabledPackIds),
-        row_ids: Array.from(selectedRowIds),
+        // Fire against the effective selection (selected ∩ visible), not the
+        // raw selectedRowIds. That way the filter the user has set acts as
+        // a hard scope — narrowing to "has url" and firing won't accidentally
+        // also fire the no-url rows that were selected before the filter.
+        row_ids: effectiveSelection.map((r) => r.row_id),
         record_set_id: selectedRecordSetId,
         entity_name_field: entityNameField,
       })) as { ok: boolean; cells_fired?: number; error?: string };
@@ -126,6 +257,38 @@
   <div class="pr-status-bar">
     consumes <code>@augment-it/workspace</code> · <code>{WS_URL}</code> ·
     <span class="status status-{status}">{status}</span>
+  </div>
+
+  <!-- Symmetric mode-switch — mirrors prompt-template-manager. Shared
+       state via the augment-it:enrichment-mode window event + localStorage
+       so both pair panels reflect the same selection. -->
+  <div class="pr-mode-switch" role="tablist" aria-label="Enrichment mode">
+    <button
+      class="pr-mode"
+      class:active={enrichmentMode === 'prompt'}
+      role="tab"
+      aria-selected={enrichmentMode === 'prompt'}
+      onclick={() => {
+        setMode('prompt');
+        window.dispatchEvent(
+          new CustomEvent('augment-it:navigate', {
+            detail: { remoteId: 'promptTemplateManager' },
+          }),
+        );
+      }}
+      title="Author a custom LLM prompt instead of using a pre-built pack"
+    >
+      ← Custom Prompt
+    </button>
+    <button
+      class="pr-mode"
+      class:active={enrichmentMode === 'pack'}
+      role="tab"
+      aria-selected={enrichmentMode === 'pack'}
+      onclick={() => setMode('pack')}
+    >
+      Pre-built Pack
+    </button>
   </div>
 
   <div class="pr-body">
@@ -168,12 +331,35 @@
 
       <section class="card">
         <h3>3 · Rows to fire against ({selectedRowCount}/{rowsForSelected.length})</h3>
+        <div class="row-filter-chips" role="tablist" aria-label="Filter rows by status">
+          <button
+            class="chip"
+            class:active={rowFilter === 'all'}
+            onclick={() => (rowFilter = 'all')}
+          >all <span class="chip-count">{filterCounts.all}</span></button>
+          <button
+            class="chip"
+            class:active={rowFilter === 'has-url'}
+            onclick={() => (rowFilter = 'has-url')}
+            title="Rows whose `url` is already populated — likely candidates for further enrichment"
+          >has url <span class="chip-count">{filterCounts['has-url']}</span></button>
+          <button
+            class="chip"
+            class:active={rowFilter === 'no-url'}
+            onclick={() => (rowFilter = 'no-url')}
+            title="Rows whose `url` is empty or 'unknown' — likely need client clarification before pack-firing"
+          >no url <span class="chip-count">{filterCounts['no-url']}</span></button>
+        </div>
         <div class="row-actions">
-          <button class="chip" onclick={selectAllRows}>all</button>
+          <button class="chip" onclick={selectAllRows}>all visible</button>
           <button class="chip" onclick={clearAllRows}>none</button>
+          <span class="muted row-actions-hint">
+            ({rowFilter === 'all' ? rowsForSelected.length : visibleRows.length} visible)
+          </span>
         </div>
         <ul class="rows">
-          {#each rowsForSelected as row (row.row_id)}
+          {#each visibleRows as row (row.row_id)}
+            {@const status = classifyRow(row)}
             <li>
               <label>
                 <input
@@ -181,12 +367,18 @@
                   checked={selectedRowIds.has(row.row_id)}
                   onchange={() => toggleRow(row.row_id)}
                 />
+                <span class="row-status" data-status={status} aria-hidden="true">
+                  {status === 'has-url' ? '✓' : '○'}
+                </span>
                 <span class="row-name">
                   {(row.fields as Record<string, unknown>)[entityNameField] ?? '(no value)'}
                 </span>
               </label>
             </li>
           {/each}
+          {#if visibleRows.length === 0}
+            <li class="muted empty-row">no rows match this filter</li>
+          {/if}
         </ul>
       </section>
 
@@ -212,11 +404,20 @@
           disabled={firing || cellsToFire === 0 || !entityNameField}
           onclick={() => void fire()}
         >
-          {#if firing}firing {cellsToFire} cells…
-          {:else if cellsToFire === 0}select rows and packs to fire
-          {:else}Fire {cellsToFire} cells ({enabledPackCount} packs × {selectedRowCount} rows)
+          {#if firing}
+            firing on {selectedRowCount} {selectedRowCount === 1 ? 'row' : 'rows'}…
+          {:else if cellsToFire === 0}
+            select rows and packs to fire
+          {:else}
+            Fire on {selectedRowCount} {selectedRowCount === 1 ? 'row' : 'rows'}
           {/if}
         </button>
+        {#if cellsToFire > 0 && !firing}
+          <p class="muted fire-sub">
+            {enabledPackCount} {enabledPackCount === 1 ? 'pack' : 'packs'} × {selectedRowCount} {selectedRowCount === 1 ? 'row' : 'rows'}
+            · {cellsToFire} {cellsToFire === 1 ? 'fetch' : 'fetches'} total
+          </p>
+        {/if}
         {#if lastResult}<p class="result muted">{lastResult}</p>{/if}
       </section>
     {/if}

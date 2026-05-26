@@ -33,6 +33,7 @@ export type {
   Row,
   HelpfulLink,
   HelpfulLinkSource,
+  SocialProfile,
   ServerFrame,
   SessionFrame,
   TokenBinding,

@@ -224,6 +224,10 @@
           {@const orderedFields = selectedRs.schema.fields
             .slice()
             .sort((a, b) => a.order - b.order)}
+          {@const socialsRaw = row.fields.socials}
+          {@const socials = Array.isArray(socialsRaw)
+            ? (socialsRaw as Array<{ socials_id: string; pack_id: string; url: string; display_name: string; confidence: number }>)
+            : []}
           <article class="row-card">
             <div class="row-card-top">
               <span class="row-id">{row.row_id}</span>
@@ -236,6 +240,26 @@
                 onclick={() => enrichRecord(row)}
               >enrich ›</button>
             </div>
+            {#if socials.length > 0}
+              <!-- Socials chip row — accepted pack profiles. One badge per
+                   pack_id; replace-by-pack_id semantics mean each platform
+                   appears at most once. See
+                   context-v/blueprints/Packs-and-Bundles-Pattern.md §Row write-back -->
+              <div class="socials">
+                {#each socials as s (s.socials_id)}
+                  <a
+                    class="social-chip"
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`${s.display_name} · ${s.confidence}/100 · ${s.url}`}
+                  >
+                    <span class="social-pack">{s.pack_id.replace(/-pack$/, '')}</span>
+                    <span class="social-confidence" data-band={s.confidence >= 70 ? 'high' : s.confidence >= 40 ? 'med' : 'low'}>{s.confidence}</span>
+                  </a>
+                {/each}
+              </div>
+            {/if}
             <div class="fields">
               {#each orderedFields as f (f.name)}
                 {@const value = row.fields[f.name]}

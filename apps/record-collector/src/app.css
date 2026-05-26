@@ -257,3 +257,61 @@
   white-space: pre-wrap;
   word-break: break-all;
 }
+
+/* -----------------------------------------------------------------------------
+ * Socials chip row — accepted pack profiles. Renders above .fields when
+ * row.fields.socials is non-empty. Spec:
+ * context-v/blueprints/Packs-and-Bundles-Pattern.md §Row write-back
+ * -------------------------------------------------------------------------- */
+.rc-app .socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.45rem 0.7rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-field);
+}
+
+.rc-app .social-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.4rem 0.15rem 0.55rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 0.72rem;
+  color: var(--color-text);
+}
+.rc-app .social-chip:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.rc-app .social-pack {
+  letter-spacing: 0.02em;
+}
+
+.rc-app .social-confidence {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.8em;
+  padding: 0 0.35em;
+  border-radius: 999px;
+  font: 600 0.68em/1 var(--font-mono);
+  border: 1px solid currentColor;
+}
+.rc-app .social-confidence[data-band='low'] {
+  color: var(--color-confidence-low);
+  background: color-mix(in srgb, var(--color-confidence-low) 14%, transparent);
+}
+.rc-app .social-confidence[data-band='med'] {
+  color: var(--color-confidence-med);
+  background: color-mix(in srgb, var(--color-confidence-med) 14%, transparent);
+}
+.rc-app .social-confidence[data-band='high'] {
+  color: var(--color-confidence-high);
+  background: color-mix(in srgb, var(--color-confidence-high) 14%, transparent);
+}

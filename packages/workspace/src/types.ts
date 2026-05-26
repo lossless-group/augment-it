@@ -91,10 +91,11 @@ export type Row = {
   record_set_id: string;                        // which upload this row belongs to
   // Dynamic — schema columns come from the upload's CSV headers. A handful
   // of RESERVED side-channel keys also live here, distinct from CSV columns:
-  //   - 'record_uuid'    string         — stable identity across derivations
-  //   - 'helpful_links'  HelpfulLink[]  — human-captured side-channel links
-  //   - 'archived'       boolean        — row-level archive (drops out of promotion)
-  //   - 'triage_states'  Record<promptId, CementedTriage>  — cemented at promotion
+  //   - 'record_uuid'    string                     — stable identity across derivations
+  //   - 'helpful_links'  HelpfulLink[]              — human-captured side-channel links
+  //   - 'archived'       boolean                    — row-level archive (drops out of promotion)
+  //   - 'triage_states'  Record<promptId, CementedTriage> — cemented at promotion
+  //   - 'socials'        SocialProfile[]            — accepted pack-response profiles, one per pack_id
   // Reserved keys are NEVER ingested from CSV headers; the ingest service
   // refuses or namespaces any incoming column that collides.
   fields: Record<string, unknown>;
@@ -115,6 +116,25 @@ export type HelpfulLink = {
   source: HelpfulLinkSource;
   added_at: string;
   response_id: string | null; // the response being triaged when this was saved
+};
+
+// A verified public profile captured into a row's `socials` array when the
+// user accepts a pack response. Mirrors HelpfulLink in shape — array-on-row
+// rather than spawned columns. Replace-by-pack_id semantics: one row has at
+// most one entry per pack_id; accepting a new candidate for the same pack
+// replaces the previous entry on the row (the previous response stays in
+// response-store for audit).
+// See context-v/blueprints/Packs-and-Bundles-Pattern.md §Row write-back.
+export type SocialProfile = {
+  socials_id: string;                      // mirrors helpful_links.link_id
+  pack_id: string;                         // 'linkedin-pack', 'x-pack', ...
+  url: string;
+  display_name: string;
+  confidence: number;                      // 0-100
+  snippet: string;                         // empty allowed
+  source_metadata: Record<string, unknown>;
+  response_id: string;                     // provenance — which response was accepted
+  accepted_at: string;                     // ISO
 };
 
 export type ActiveView =

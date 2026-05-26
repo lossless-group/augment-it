@@ -8,6 +8,7 @@
 import { JSONCodec, type NatsConnection } from 'nats';
 import {
   addHelpfulLink,
+  addSocial,
   archiveRecordSet,
   archiveRow,
   createRecordSet,
@@ -18,6 +19,7 @@ import {
   listRows,
   promoteRecordSet,
   removeHelpfulLink,
+  removeSocial,
   updateRow,
   type ColumnSchema,
   type RecordSet,
@@ -168,6 +170,66 @@ export function registerHandlers(nc: NatsConnection): void {
       };
       try {
         const row = await removeHelpfulLink(row_id, link_id);
+        if (msg.reply) msg.respond(jc.encode({ row }));
+        nc.publish(
+          'row.updated',
+          jc.encode({
+            row_id: row.row_id,
+            record_set_id: row.record_set_id,
+            fields: row.fields,
+          }),
+        );
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // row.socials.add.requested — upsert a SocialProfile into row.fields.socials.
+  // Replace-by-pack_id: at most one entry per pack_id on a row. See
+  // context-v/blueprints/Packs-and-Bundles-Pattern.md §Row write-back.
+  (async () => {
+    const sub = nc.subscribe('row.socials.add.requested');
+    for await (const msg of sub) {
+      const params = jc.decode(msg.data) as {
+        row_id: string;
+        pack_id: string;
+        url: string;
+        display_name: string;
+        confidence: number;
+        snippet?: string;
+        source_metadata?: Record<string, unknown>;
+        response_id: string;
+      };
+      try {
+        const row = await addSocial(params);
+        if (msg.reply) msg.respond(jc.encode({ row }));
+        nc.publish(
+          'row.updated',
+          jc.encode({
+            row_id: row.row_id,
+            record_set_id: row.record_set_id,
+            fields: row.fields,
+          }),
+        );
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // row.socials.remove.requested — drop one profile by socials_id.
+  (async () => {
+    const sub = nc.subscribe('row.socials.remove.requested');
+    for await (const msg of sub) {
+      const { row_id, socials_id } = jc.decode(msg.data) as {
+        row_id: string;
+        socials_id: string;
+      };
+      try {
+        const row = await removeSocial(row_id, socials_id);
         if (msg.reply) msg.respond(jc.encode({ row }));
         nc.publish(
           'row.updated',

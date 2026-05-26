@@ -10,6 +10,39 @@
   font-size: 11px;
 }
 
+/* Enrichment-mode switch — symmetric with prompt-template-manager. */
+.pr-app .pr-mode-switch {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.5rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background);
+}
+
+.pr-app .pr-mode {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+.pr-app .pr-mode:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.pr-app .pr-mode.active {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+  cursor: default;
+}
+.pr-app .pr-mode.active:hover {
+  color: var(--color-on-accent);
+}
+
 .pr-app .pr-body { padding: 1.25rem 1.5rem; max-width: 900px; }
 
 .pr-app .pr-head { margin-bottom: 1rem; }
@@ -65,10 +98,61 @@
 
 .pr-app select:focus { outline: 1px solid var(--color-accent-2); }
 
+.pr-app .row-filter-chips {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pr-app .row-filter-chips .chip.active {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+}
+
+.pr-app .chip-count {
+  background: color-mix(in srgb, var(--color-text) 12%, transparent);
+  padding: 0 0.4em;
+  border-radius: 999px;
+  margin-left: 0.3rem;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+.pr-app .row-filter-chips .chip.active .chip-count {
+  background: color-mix(in srgb, var(--color-on-accent) 22%, transparent);
+  color: var(--color-on-accent);
+}
+
 .pr-app .row-actions {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.6rem;
+}
+
+.pr-app .row-actions-hint {
+  font-size: 0.75rem;
+}
+
+.pr-app .row-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2em;
+  font-size: 0.8em;
+  font-weight: 700;
+}
+.pr-app .row-status[data-status='has-url'] {
+  color: var(--color-confidence-high);
+}
+.pr-app .row-status[data-status='no-url'] {
+  color: var(--color-text-muted);
+}
+
+.pr-app .empty-row {
+  padding: 0.5rem 0.6rem;
+  font-style: italic;
 }
 
 .pr-app .chip {
@@ -132,6 +216,12 @@
   background: var(--color-background);
   border: 0;
   padding: 0.5rem 0 0;
+}
+
+.pr-app .fire-sub {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
 }
 
 .pr-app .fire {

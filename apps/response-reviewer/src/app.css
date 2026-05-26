@@ -540,3 +540,196 @@
 @keyframes resp-spin {
   to { transform: rotate(360deg); }
 }
+
+/* -----------------------------------------------------------------------------
+ * View-mode switch + by-record list. Per the 2026-05-25 pack-firehose
+ * feedback: stepping through hundreds of pack responses one-at-a-time is
+ * untenable; this surface groups them per row so an entity's N parallel
+ * candidates can be triaged at a glance.
+ * -------------------------------------------------------------------------- */
+.resp-app .resp-view-switch {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.5rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background);
+}
+
+.resp-app .resp-view {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.resp-app .resp-view:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.resp-app .resp-view.active {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+  cursor: default;
+}
+
+.resp-app .by-record-hint {
+  margin: 0.6rem 0 0.8rem;
+  font-size: 0.78rem;
+}
+
+.resp-app .record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.resp-app .record-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.resp-app .record-card-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.55rem 0.85rem;
+  background: var(--color-field);
+  border-bottom: 1px solid var(--color-border);
+}
+.resp-app .record-card-header h3 {
+  margin: 0;
+  color: var(--color-text);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.92rem;
+}
+.resp-app .record-card-count {
+  font-size: 0.75rem;
+}
+
+.resp-app .record-responses {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.resp-app .record-response {
+  display: grid;
+  grid-template-columns: 8.5rem 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.resp-app .record-response:last-child {
+  border-bottom: 0;
+}
+.resp-app .record-response.flag-good {
+  background: color-mix(in srgb, var(--color-ok-text) 5%, transparent);
+}
+.resp-app .record-response.flag-wrong,
+.resp-app .record-response.flag-needs-human {
+  background: color-mix(in srgb, var(--color-error-text) 6%, transparent);
+}
+.resp-app .record-response.flag-partial {
+  background: color-mix(in srgb, var(--color-confidence-med) 6%, transparent);
+}
+
+.resp-app .record-response-source {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.resp-app .outcome-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  font-size: 0.7rem;
+}
+.resp-app .outcome-badge.outcome-not_found {
+  /* informational — match the existing thin-row signal */
+  color: var(--color-text-muted);
+}
+.resp-app .outcome-badge.outcome-error {
+  color: var(--color-error-text);
+  border-color: var(--color-error-text);
+}
+.resp-app .outcome-badge.outcome-skipped {
+  color: var(--color-confidence-high);
+  border-color: var(--color-confidence-high);
+}
+.resp-app .outcome-badge.outcome-pending {
+  color: var(--color-accent-2);
+  border-color: var(--color-accent-2);
+}
+
+.resp-app .prompt-badge {
+  /* slight visual differentiation so prompt responses don't read as packs */
+  border-color: var(--color-accent-2);
+  color: var(--color-accent-2);
+}
+
+.resp-app .record-response-body {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  min-width: 0; /* let the URL break */
+}
+
+.resp-app .record-url {
+  color: var(--color-accent);
+  text-decoration: none;
+  word-break: break-all;
+}
+.resp-app .record-url:hover { text-decoration: underline; }
+
+.resp-app .record-display-name {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.resp-app .record-prose {
+  color: var(--color-text);
+  white-space: pre-wrap;
+}
+
+.resp-app .record-response-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.resp-app .inline-btn {
+  background: var(--color-field);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  font: 600 0.78rem var(--font-mono);
+  cursor: pointer;
+}
+.resp-app .inline-btn:hover { border-color: var(--color-accent); }
+.resp-app .inline-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.resp-app .inline-btn.good { color: var(--color-confidence-high); }
+.resp-app .inline-btn.good:hover { border-color: var(--color-confidence-high); }
+.resp-app .inline-btn.wrong { color: var(--color-confidence-low); }
+.resp-app .inline-btn.wrong:hover { border-color: var(--color-confidence-low); }
+.resp-app .inline-btn.partial { color: var(--color-confidence-med); }
+.resp-app .inline-btn.partial:hover { border-color: var(--color-confidence-med); }
+.resp-app .inline-btn.accept {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+}
+.resp-app .inline-btn.accept:hover:not(:disabled) { box-shadow: var(--fx-accent-glow); }

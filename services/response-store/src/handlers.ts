@@ -165,8 +165,14 @@ export function registerHandlers(nc: NatsConnection): void {
     }
   })();
 
-  // response.accept.requested — mark accepted + write the value into the
-  // row's output-column cell via row-store.
+  // response.accept.requested — mark accepted + write into the row.
+  // Two write paths:
+  //   - Pack responses (pack_id !== null, structured !== null) route to
+  //     row.socials.add — the structured Candidate gets upserted into the
+  //     row's `socials` array, replace-by-pack_id. Per
+  //     context-v/blueprints/Packs-and-Bundles-Pattern.md §Row write-back.
+  //   - Everything else (prompt-runner responses) keeps the legacy path:
+  //     row.update against response.output_column.
   (async () => {
     const sub = nc.subscribe('response.accept.requested');
     for await (const msg of sub) {
@@ -176,14 +182,36 @@ export function registerHandlers(nc: NatsConnection): void {
       };
       try {
         const { response, cell_value } = await acceptResponse(response_id, value);
-        await nc.request(
-          'row.update.requested',
-          jc.encode({
-            row_id: response.row_id,
-            fields: { [response.output_column]: cell_value },
-          }),
-          { timeout: 10_000 },
-        );
+
+        if (response.pack_id && response.structured) {
+          // Pack write-back: upsert into row.fields.socials
+          await nc.request(
+            'row.socials.add.requested',
+            jc.encode({
+              row_id: response.row_id,
+              pack_id: response.pack_id,
+              url: response.structured.url,
+              display_name: response.structured.display_name,
+              confidence: response.structured.confidence,
+              snippet: response.structured.snippet ?? '',
+              source_metadata: response.structured.source_metadata ?? {},
+              response_id: response.response_id,
+            }),
+            { timeout: 10_000 },
+          );
+        } else {
+          // Legacy prompt-response path: write the cell value into the
+          // output column.
+          await nc.request(
+            'row.update.requested',
+            jc.encode({
+              row_id: response.row_id,
+              fields: { [response.output_column]: cell_value },
+            }),
+            { timeout: 10_000 },
+          );
+        }
+
         if (msg.reply) msg.respond(jc.encode({ response }));
         nc.publish(
           'response.flagged',

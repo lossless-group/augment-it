@@ -249,6 +249,81 @@ export async function removeHelpfulLink(row_id: string, link_id: string): Promis
   return next;
 }
 
+// --- Socials (pack-response write-back) ---
+// Per [[Packs-and-Bundles-Pattern]] §Row write-back. One row-level array
+// column, replace-by-pack_id semantics — a row has at most one entry per
+// pack_id (one LinkedIn, one X, one Wikipedia). Accepting a new pack
+// response replaces the previous entry for the same pack on this row;
+// the previous response stays in response-store for audit.
+
+export type SocialProfile = {
+  socials_id: string;
+  pack_id: string;
+  url: string;
+  display_name: string;
+  confidence: number;
+  snippet: string;
+  source_metadata: Record<string, unknown>;
+  response_id: string;
+  accepted_at: string;
+};
+
+export type SocialProfileInput = {
+  row_id: string;
+  pack_id: string;
+  url: string;
+  display_name: string;
+  confidence: number;
+  snippet?: string;
+  source_metadata?: Record<string, unknown>;
+  response_id: string;
+};
+
+function getSocials(row: Row): SocialProfile[] {
+  const raw = row.fields.socials;
+  return Array.isArray(raw) ? (raw as SocialProfile[]) : [];
+}
+
+export async function addSocial(params: SocialProfileInput): Promise<Row> {
+  const existing = data.rows[params.row_id];
+  if (!existing) throw new Error(`row not found: ${params.row_id}`);
+  const url = params.url.trim();
+  if (!url) throw new Error('url is required');
+  const profile: SocialProfile = {
+    socials_id: `soc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    pack_id: params.pack_id,
+    url,
+    display_name: params.display_name,
+    confidence: params.confidence,
+    snippet: (params.snippet ?? '').trim(),
+    source_metadata: params.source_metadata ?? {},
+    response_id: params.response_id,
+    accepted_at: new Date().toISOString(),
+  };
+  // Replace-by-pack_id: drop any existing entry for the same pack first.
+  const remaining = getSocials(existing).filter((s) => s.pack_id !== params.pack_id);
+  const next: Row = {
+    ...existing,
+    fields: { ...existing.fields, socials: [...remaining, profile] },
+  };
+  data.rows[params.row_id] = next;
+  await persist();
+  return next;
+}
+
+export async function removeSocial(row_id: string, socials_id: string): Promise<Row> {
+  const existing = data.rows[row_id];
+  if (!existing) throw new Error(`row not found: ${row_id}`);
+  const filtered = getSocials(existing).filter((s) => s.socials_id !== socials_id);
+  const next: Row = {
+    ...existing,
+    fields: { ...existing.fields, socials: filtered },
+  };
+  data.rows[row_id] = next;
+  await persist();
+  return next;
+}
+
 // --- Promotion + archive helpers ---
 // Implementation of the Enhanced-Records-List spec §"The promotion action".
 // See context-v/specs/Enhanced-Records-List-and-Promotion-Checkpoint.md.

@@ -19,11 +19,34 @@
 
   const FLAGS: ResponseFlag[] = ['good', 'partial', 'wrong', 'needs-rerun', 'needs-human'];
 
+  // View modes — single-response stepper (the original UI, best for prompt
+  // responses where each row has one verbose response to read) OR by-record
+  // (groups all responses for a row into one card, best for pack responses
+  // where each row has N parallel results to triage quickly). Per the user's
+  // feedback in the 2026-05-25 pack smoke: stepping through 402 unflagged
+  // pack responses one-by-one was untenable; per-record collapses the same
+  // data into ~67 row-cards. Persisted so refresh sticks.
+  type ViewMode = 'single' | 'by-record';
+  const VIEW_MODE_KEY = 'augment-it:response-reviewer:view-mode';
+  function readViewMode(): ViewMode {
+    if (typeof localStorage === 'undefined') return 'single';
+    return (localStorage.getItem(VIEW_MODE_KEY) as ViewMode) ?? 'single';
+  }
+  let viewMode = $state<ViewMode>(readViewMode());
+  $effect(() => {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(VIEW_MODE_KEY, viewMode);
+  });
+
   let status = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
 
   let responses = $state<ResponseRecord[]>([]);
   let promptsById = $state<Record<string, PromptTemplate>>({});
   let recordSetsById = $state<Record<string, RecordSet>>({});
+
+  // By-record view needs to know each row's entity name (and other fields).
+  // Loaded lazily when entering by-record mode — see `loadRowsForByRecord`.
+  let rowsByRowId = $state<Record<string, Row>>({});
+  let rowBusyId = $state<string>(''); // shows the spinner on per-row triage clicks
 
   let filter = $state<'all' | 'unflagged' | ResponseFlag>('all');
   let index = $state(0);
@@ -295,8 +318,111 @@
     refreshing = true;
     try {
       await Promise.all([loadResponses(), loadPrompts(), loadRecordSets()]);
+      if (viewMode === 'by-record') await loadRowsForByRecord();
     } finally {
       refreshing = false;
+    }
+  }
+
+  // By-record view: load every row referenced by the currently-filtered
+  // responses so we can show the entity name + use row.fields for
+  // disambiguation. Batches per record_set_id via the existing row.list
+  // capability. Cheap enough for the foundation-dataset scale.
+  async function loadRowsForByRecord() {
+    const setIds = new Set<string>();
+    for (const r of filtered) setIds.add(r.record_set_id);
+    const next: Record<string, Row> = { ...rowsByRowId };
+    for (const record_set_id of setIds) {
+      try {
+        const r = (await workspace.invoke('row.list', { record_set_id })) as { rows: Row[] };
+        for (const row of r.rows) next[row.row_id] = row;
+      } catch (e) {
+        console.error('row.list (by-record)', record_set_id, e);
+      }
+    }
+    rowsByRowId = next;
+  }
+
+  // The columns we look in to find an entity's display name. In order — the
+  // user's foundation dataset puts the org in "Prospect / Organization";
+  // fallbacks cover common shapes seen across CSVs.
+  const NAME_COLUMNS = ['Prospect / Organization', 'name', 'organization', 'org', 'company', 'foundation', 'entity'];
+  function entityNameFor(row: Row | undefined): string {
+    if (!row) return '';
+    const fields = row.fields as Record<string, unknown>;
+    for (const c of NAME_COLUMNS) {
+      const v = fields[c];
+      if (typeof v === 'string' && v.trim().length > 0) return v.trim();
+    }
+    // Case-insensitive fallback — match the first field that smells like a
+    // name column. Avoids re-hunting on CSVs with different casing.
+    for (const k of Object.keys(fields)) {
+      if (NAME_COLUMNS.some((c) => k.toLowerCase() === c.toLowerCase())) {
+        const v = fields[k];
+        if (typeof v === 'string' && v.trim().length > 0) return v.trim();
+      }
+    }
+    return '';
+  }
+
+  // By-record grouping. Groups filtered responses by row_id, preserves
+  // recency order (newest response first), and ranks rows by entity name
+  // (alphabetical) so the user steps through "A → Z" rather than a random
+  // response-id order.
+  type RowGroup = { row_id: string; entity_name: string; responses: ResponseRecord[] };
+  const byRecord = $derived.by<RowGroup[]>(() => {
+    const groups: Record<string, RowGroup> = {};
+    for (const r of filtered) {
+      if (!groups[r.row_id]) {
+        groups[r.row_id] = {
+          row_id: r.row_id,
+          entity_name: entityNameFor(rowsByRowId[r.row_id]),
+          responses: [],
+        };
+      }
+      groups[r.row_id].responses.push(r);
+    }
+    return Object.values(groups).sort((a, b) => {
+      const an = a.entity_name || a.row_id;
+      const bn = b.entity_name || b.row_id;
+      return an.localeCompare(bn);
+    });
+  });
+
+  // Lazy-load rows whenever entering by-record mode and the response set
+  // grows (manual refresh refreshes too — see manualRefresh).
+  $effect(() => {
+    if (viewMode !== 'by-record') return;
+    // Touch the response list size so this re-fires when new responses
+    // arrive via the broadcast.
+    void responses.length;
+    void loadRowsForByRecord();
+  });
+
+  // Inline triage in by-record mode — bypass the per-cell editText
+  // machinery. Just flips the flag (and writes to row.socials on accept
+  // via the existing response.accept fork).
+  async function flagInline(response_id: string, f: ResponseFlag) {
+    rowBusyId = response_id;
+    try {
+      await workspace.invoke('response.flag', { response_id, flag: f });
+      await loadResponses();
+    } catch (e) {
+      console.error('response.flag (inline)', e);
+    } finally {
+      rowBusyId = '';
+    }
+  }
+
+  async function acceptInline(response_id: string) {
+    rowBusyId = response_id;
+    try {
+      await workspace.invoke('response.accept', { response_id });
+      await loadResponses();
+    } catch (e) {
+      console.error('response.accept (inline)', e);
+    } finally {
+      rowBusyId = '';
     }
   }
 
@@ -434,6 +560,30 @@
   </div>
 
   <div class="resp-body">
+    <!-- View-mode toggle: By Response (single-card stepper, original UI) vs
+         By Record (row-grouped triage for pack-firehose workflows). -->
+    <div class="resp-view-switch" role="tablist" aria-label="Review mode">
+      <button
+        class="resp-view"
+        class:active={viewMode === 'single'}
+        role="tab"
+        aria-selected={viewMode === 'single'}
+        onclick={() => (viewMode = 'single')}
+      >
+        By Response
+      </button>
+      <button
+        class="resp-view"
+        class:active={viewMode === 'by-record'}
+        role="tab"
+        aria-selected={viewMode === 'by-record'}
+        onclick={() => (viewMode = 'by-record')}
+        title="Group all responses for a row into one card — efficient for pack triage"
+      >
+        By Record
+      </button>
+    </div>
+
     <div class="resp-head">
       <h2>Response Reviewer</h2>
       <div class="filters">
@@ -470,6 +620,94 @@
         No responses{filter === 'all' ? ' yet' : ` match “${filter}”`}. Fire a
         prompt from Request Reviewer and they land here.
       </p>
+    {:else if viewMode === 'by-record'}
+      <!-- By-record view: one card per row, all responses for that row
+           grouped inside. Designed for pack-firehose triage where the user
+           wants to verify N parallel candidates for the same entity at once
+           rather than stepping through them individually. -->
+      <p class="muted by-record-hint">
+        {byRecord.length} {byRecord.length === 1 ? 'record' : 'records'} ·
+        {filtered.length} {filtered.length === 1 ? 'response' : 'responses'}
+        in scope · click ✓/✗ inline to triage
+      </p>
+      <div class="record-list">
+        {#each byRecord as group (group.row_id)}
+          <article class="record-card">
+            <header class="record-card-header">
+              <h3>{group.entity_name || group.row_id}</h3>
+              <span class="muted record-card-count">{group.responses.length} {group.responses.length === 1 ? 'response' : 'responses'}</span>
+            </header>
+            <ul class="record-responses">
+              {#each group.responses as resp (resp.response_id)}
+                <li
+                  class="record-response"
+                  class:flag-good={resp.flag === 'good'}
+                  class:flag-partial={resp.flag === 'partial'}
+                  class:flag-wrong={resp.flag === 'wrong'}
+                  class:flag-needs-human={resp.flag === 'needs-human'}
+                  class:flag-needs-rerun={resp.flag === 'needs-rerun'}
+                >
+                  <div class="record-response-source">
+                    {#if resp.pack_id}
+                      <span class="source-badge" title="pack response">{resp.pack_id.replace(/-pack$/, '')}</span>
+                    {:else}
+                      <span class="source-badge prompt-badge" title="prompt response">
+                        {promptsById[resp.prompt_id]?.name ?? 'prompt'}
+                      </span>
+                    {/if}
+                    {#if resp.outcome && resp.outcome !== 'found'}
+                      <span class="outcome-badge outcome-{resp.outcome}">{resp.outcome}</span>
+                    {/if}
+                  </div>
+                  <div class="record-response-body">
+                    {#if resp.structured}
+                      <ConfidencePill confidence={resp.structured.confidence} />
+                      <a class="record-url" href={resp.structured.url} target="_blank" rel="noopener noreferrer">
+                        {resp.structured.url}
+                      </a>
+                      <span class="record-display-name">{resp.structured.display_name}</span>
+                    {:else if resp.response_text}
+                      <span class="record-prose">{resp.response_text}</span>
+                    {:else}
+                      <span class="muted">—</span>
+                    {/if}
+                  </div>
+                  <div class="record-response-actions">
+                    {#if resp.accepted}
+                      <span class="flag accepted">accepted</span>
+                    {:else}
+                      <button
+                        class="inline-btn good"
+                        disabled={rowBusyId === resp.response_id}
+                        onclick={() => void flagInline(resp.response_id, 'good')}
+                        title="Mark good"
+                      >✓</button>
+                      <button
+                        class="inline-btn wrong"
+                        disabled={rowBusyId === resp.response_id}
+                        onclick={() => void flagInline(resp.response_id, 'wrong')}
+                        title="Mark wrong"
+                      >✗</button>
+                      <button
+                        class="inline-btn partial"
+                        disabled={rowBusyId === resp.response_id}
+                        onclick={() => void flagInline(resp.response_id, 'partial')}
+                        title="Mark partial"
+                      >~</button>
+                      <button
+                        class="inline-btn accept"
+                        disabled={rowBusyId === resp.response_id || !resp.structured}
+                        onclick={() => void acceptInline(resp.response_id)}
+                        title={resp.structured ? 'Accept → write to row.socials' : 'No structured payload to accept'}
+                      >→ accept</button>
+                    {/if}
+                  </div>
+                </li>
+              {/each}
+            </ul>
+          </article>
+        {/each}
+      </div>
     {:else if current}
       <div class="stepper">
         <button onclick={() => step(-1)} disabled={index === 0}>◀</button>

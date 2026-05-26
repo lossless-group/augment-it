@@ -23,6 +23,11 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'row.update': 'row.update.requested',
   'row.helpful_links.add': 'row.helpful_links.add.requested',
   'row.helpful_links.remove': 'row.helpful_links.remove.requested',
+  // Packs-and-bundles: pack-response accepts route to socials.add (replace-
+  // by-pack_id). Mirrors the helpful_links pair shape. Spec:
+  // context-v/blueprints/Packs-and-Bundles-Pattern.md §Row write-back
+  'row.socials.add': 'row.socials.add.requested',
+  'row.socials.remove': 'row.socials.remove.requested',
   'row.archive': 'row.archive.requested',
   // prompt template operations
   'prompt.list': 'prompt.list.requested',

@@ -175,9 +175,21 @@
         | undefined;
       if (!detail?.remoteId) return;
       const idx = REMOTES.findIndex((r) => r.id === detail.remoteId);
-      if (idx < 0) return;
-      layout.setFocusIndex(idx);
-      layout.setMode(detail.mode ?? 'full');
+      if (idx >= 0) {
+        // Standard rotation remote — switch focus + mode as requested.
+        layout.setFocusIndex(idx);
+        layout.setMode(detail.mode ?? 'full');
+        return;
+      }
+      // Not in the rotation — might be a "pair-only" remote like packRunner.
+      // If a PAIRING includes it, open the pair in co-existence mode so the
+      // user lands somewhere usable rather than nowhere.
+      const pairing = PAIRINGS.find(
+        (p) => p.left === detail.remoteId || p.right === detail.remoteId,
+      );
+      if (pairing) {
+        layout.openPair(pairing.key);
+      }
     };
     window.addEventListener('augment-it:navigate', onNavigate);
     return () => window.removeEventListener('augment-it:navigate', onNavigate);
