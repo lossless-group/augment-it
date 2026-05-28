@@ -547,6 +547,26 @@
  * untenable; this surface groups them per row so an entity's N parallel
  * candidates can be triaged at a glance.
  * -------------------------------------------------------------------------- */
+/* Record-set scope chip tier — sits above the flag chips when responses
+   span more than one record set. The 'orphan' chip is visually muted to
+   signal "leftover audit, not active work." */
+.resp-app .resp-record-set-scope {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background);
+}
+.resp-app .resp-record-set-scope .chip.orphan-chip {
+  color: var(--color-text-muted);
+  border-style: dashed;
+}
+.resp-app .resp-record-set-scope .chip.orphan-chip.active {
+  color: var(--color-on-accent);
+  border-style: solid;
+}
+
 .resp-app .resp-view-switch {
   display: flex;
   gap: 0.4rem;

@@ -49,6 +49,37 @@
   let rowBusyId = $state<string>(''); // shows the spinner on per-row triage clicks
 
   let filter = $state<'all' | 'unflagged' | ResponseFlag>('all');
+
+  // Record-set scope filter — narrows the response list to one record set.
+  // Surfaced after the 2026-05-26 by-record diagnosis: response-store
+  // outlives row-store (responses survive when their parent record set
+  // is deleted), so without scoping the by-record view shows orphan
+  // responses with row_id headers (no entity name resolvable).
+  //
+  // Two-state model: a value + an isExplicit flag. isExplicit=false means
+  // "the user hasn't picked yet — feel free to auto-default." Only the
+  // click handlers (via setRecordSetFilter) mark it explicit + persist.
+  // The auto-default effect picks the largest non-orphan bucket once
+  // responses load, so a returning user sees their active dataset first
+  // and orphans drop out.
+  // v2 key — bumped 2026-05-26 when the storage semantics changed: the v1
+  // key was written on every reactive change (including the initial 'all'
+  // default), so it can't be used to distinguish "user picked all" from
+  // "code never ran auto-default." v2 is only written by explicit click
+  // handlers via setRecordSetFilter.
+  const RECORD_SET_FILTER_KEY = 'augment-it:response-reviewer:record-set-filter-v2';
+  const initialStoredRSF =
+    typeof localStorage !== 'undefined' ? localStorage.getItem(RECORD_SET_FILTER_KEY) : null;
+  let recordSetFilter = $state<string>(initialStoredRSF ?? 'all');
+  let recordSetFilterIsExplicit = $state<boolean>(initialStoredRSF !== null);
+
+  function setRecordSetFilter(value: string): void {
+    recordSetFilter = value;
+    recordSetFilterIsExplicit = true;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(RECORD_SET_FILTER_KEY, value);
+    }
+  }
   let index = $state(0);
   let editText = $state('');
   let busy = $state('');
@@ -76,8 +107,18 @@
   // edit of the same response.
   let editTextForId = '';
 
+  // Apply the record-set scope BEFORE the flag filter so flag-counts
+  // reflect what the user is currently focused on. '__orphan__' is the
+  // synthetic bucket for responses whose parent record set was deleted.
+  const scopedByRecordSet = $derived.by(() => {
+    if (recordSetFilter === 'all') return responses;
+    if (recordSetFilter === '__orphan__') {
+      return responses.filter((r) => !recordSetsById[r.record_set_id]);
+    }
+    return responses.filter((r) => r.record_set_id === recordSetFilter);
+  });
   const filtered = $derived(
-    responses.filter((r) => {
+    scopedByRecordSet.filter((r) => {
       if (filter === 'all') return true;
       if (filter === 'unflagged') return r.flag === null;
       return r.flag === filter;
@@ -85,10 +126,11 @@
   );
   const current = $derived(filtered[index] ?? null);
 
-  // Per-bucket counts for the filter chips, computed once per responses change.
+  // Per-bucket counts for the FLAG chips — scoped to the active record set
+  // so the counts match what the user actually sees.
   const counts = $derived.by(() => {
     const c: Record<string, number> = {
-      all: responses.length,
+      all: scopedByRecordSet.length,
       unflagged: 0,
       good: 0,
       partial: 0,
@@ -96,11 +138,57 @@
       'needs-rerun': 0,
       'needs-human': 0,
     };
-    for (const r of responses) {
+    for (const r of scopedByRecordSet) {
       if (r.flag === null) c.unflagged += 1;
       else c[r.flag] = (c[r.flag] ?? 0) + 1;
     }
     return c;
+  });
+
+  // Per-record-set counts for the new record-set chip tier. Includes an
+  // 'orphan' bucket for responses whose record_set_id doesn't resolve to
+  // a known record set (parent set was deleted / archived after the
+  // response was recorded).
+  type RecordSetBucket = {
+    id: string;          // record_set_id or '__orphan__'
+    label: string;       // display label
+    count: number;
+  };
+  // Auto-default the record-set filter to the largest non-orphan bucket the
+  // first time responses load. Marks isExplicit=false so the user's later
+  // click on "all sets" or "(orphan)" sticks. Skips when the user has
+  // already picked something (recordSetFilterIsExplicit).
+  $effect(() => {
+    if (recordSetFilterIsExplicit) return;
+    if (responses.length === 0) return;
+    const tallies: Record<string, number> = {};
+    for (const r of responses) tallies[r.record_set_id] = (tallies[r.record_set_id] ?? 0) + 1;
+    let best: { id: string; count: number } | null = null;
+    for (const [id, n] of Object.entries(tallies)) {
+      if (!recordSetsById[id]) continue; // orphan — skip
+      if (!best || n > best.count) best = { id, count: n };
+    }
+    if (best && best.id !== recordSetFilter) recordSetFilter = best.id;
+  });
+
+  const recordSetBuckets = $derived.by<RecordSetBucket[]>(() => {
+    const counts: Record<string, number> = {};
+    for (const r of responses) counts[r.record_set_id] = (counts[r.record_set_id] ?? 0) + 1;
+    const buckets: RecordSetBucket[] = [];
+    let orphanCount = 0;
+    for (const [setId, n] of Object.entries(counts)) {
+      const rs = recordSetsById[setId];
+      if (rs) {
+        buckets.push({ id: setId, label: rs.name, count: n });
+      } else {
+        orphanCount += n;
+      }
+    }
+    buckets.sort((a, b) => b.count - a.count);
+    if (orphanCount > 0) {
+      buckets.push({ id: '__orphan__', label: 'orphan (parent set gone)', count: orphanCount });
+    }
+    return buckets;
   });
 
   const firedPrompt = $derived.by(() => {
@@ -718,6 +806,29 @@
         By Record
       </button>
     </div>
+
+    <!-- Record-set scope chips. Only render the tier when there's more
+         than one bucket (single-set datasets stay uncluttered). -->
+    {#if recordSetBuckets.length > 1}
+      <div class="resp-record-set-scope" role="tablist" aria-label="Record-set scope">
+        <button
+          class="chip"
+          class:active={recordSetFilter === 'all'}
+          onclick={() => setRecordSetFilter('all')}
+        >all sets <span class="chip-count">{responses.length}</span></button>
+        {#each recordSetBuckets as b (b.id)}
+          <button
+            class="chip"
+            class:active={recordSetFilter === b.id}
+            class:orphan-chip={b.id === '__orphan__'}
+            onclick={() => setRecordSetFilter(b.id)}
+            title={b.id === '__orphan__'
+              ? 'Responses whose parent record set was deleted (still in history, no rows to resolve)'
+              : `Scope to record set: ${b.label}`}
+          >{b.label} <span class="chip-count">{b.count}</span></button>
+        {/each}
+      </div>
+    {/if}
 
     <div class="resp-head">
       <h2>Response Reviewer</h2>
