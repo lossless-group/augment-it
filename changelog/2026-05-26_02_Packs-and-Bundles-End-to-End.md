@@ -25,7 +25,7 @@ files_changed:
   - context-v/explorations/Entity-Profile-Augmentation-Workflow.md
   - context-v/blueprints/Packs-and-Bundles-Pattern.md
   - context-v/plans/Run-as-First-Class-Operation.md
-  - context-v/issues/Switch-Search-Substrate-from-Tavily-to-Searxng.md
+  - context-v/issues/Search-Providers-as-First-Class-SearXNG-Default.md
   - context-v/prompts/Response-Reviewer-Structured-Output-Extension.md
   - context-v/prompts/Common-Six-Social-Packs.md
   - apps/response-reviewer/src/App.svelte
@@ -158,7 +158,7 @@ The session-closing commit. Three threads:
 
 - **Editable entity-name inline in the by-record header.** When the researcher needs to clean up a row's name to make subsequent searches work ("Accelerate the Future (ACH, GW Match)" → "Accelerate the Future"), they edit it without leaving the surface. `entityFieldFor()` returns both the resolved column name and the value so the header knows which `row.fields` key to write back to; `saveRowNameEdit` fires `row.update` on blur and re-pulls rows so the canonical value re-sorts the alphabetical group order. Read-only fallback to `<h3>` when no candidate name column matches the row.
 - **Instagram pack.** Common-six → common-seven. Domain whitelist matches `instagram.com` hostnames (both `instagram.com/<handle>/` profile pages and `instagram.com/p/<id>/` post URLs — the URL-shape verifier alone can't distinguish them, so the user corrects via the inline URL edit when Tavily returns the wrong shape). Pack Runner UI gets the matching Instagram checkbox.
-- **`context-v/issues/Switch-Search-Substrate-from-Tavily-to-Searxng.md` — the next architectural decision filed but not executed.** Documents the symptom (Tavily missing obvious social profiles that manual googling finds in seconds), the three-issue diagnosis (thin RAG index for social pages, over-constrained query construction, hardcoded coupling to one connector), the decision (SearXNG primary for social, Tavily stays as peer connector for future content-RAG packs like deep-research), and the architectural goal: **separate pack concerns from connector concerns**. Today packs hardcode a Tavily-shaped query schema; the proposed shape pulls connectors into a `connectors/` directory with a common interface and a discriminated-union `PackConfig` that names which connector each pack uses. Eight-step proposed work, acceptance criterion (≥60% of previously-not_found social rows resolve on re-fire), explicit out-of-scopes (don't tear out Tavily, defer per-pack quality scorecards).
+- **`context-v/issues/Search-Providers-as-First-Class-SearXNG-Default.md` — the next architectural decision filed but not executed.** Documents the symptom (Tavily missing obvious social profiles that manual googling finds in seconds), the three-issue diagnosis (thin RAG index for social pages, over-constrained query construction, hardcoded coupling to one connector), the decision (SearXNG primary for social, Tavily stays as peer connector for future content-RAG packs like deep-research), and the architectural goal: **separate pack concerns from connector concerns**. Today packs hardcode a Tavily-shaped query schema; the proposed shape pulls connectors into a `connectors/` directory with a common interface and a discriminated-union `PackConfig` that names which connector each pack uses. Eight-step proposed work, acceptance criterion (≥60% of previously-not_found social rows resolve on re-fire), explicit out-of-scopes (don't tear out Tavily, defer per-pack quality scorecards).
 
 ## The system that exists now
 
@@ -282,6 +282,6 @@ The load-bearing seven lines. They let pack-runner (pair-only) and chat (pair-on
 - **The exploration that opened the arc:** [Entity-Profile-Augmentation-Workflow.md](../context-v/explorations/Entity-Profile-Augmentation-Workflow.md).
 - **The blueprint that locked the contracts:** [Packs-and-Bundles-Pattern.md](../context-v/blueprints/Packs-and-Bundles-Pattern.md) — the durable pattern for every pack/bundle across the Lossless family.
 - **The plan for the next deliberate arc:** [Run-as-First-Class-Operation.md](../context-v/plans/Run-as-First-Class-Operation.md) — six parts, Part 1 shipped, the rest sequenced.
-- **The next architectural decision filed:** [Switch-Search-Substrate-from-Tavily-to-Searxng.md](../context-v/issues/Switch-Search-Substrate-from-Tavily-to-Searxng.md).
+- **The next architectural decision filed:** [Search-Providers-as-First-Class-SearXNG-Default.md](../context-v/issues/Search-Providers-as-First-Class-SearXNG-Default.md).
 - **The previous changelog this entry picks up from:** [2026-05-23_03_All-Data-Continues-Generic-Rendering.md](./2026-05-23_03_All-Data-Continues-Generic-Rendering.md) — the multi-tenant rule the structured-output extension respects (type-driven, not name-driven).
 - **The federation-host lessons that this arc depended on:** [2026-05-21_03_Shell-Federation-Three-Lessons.md](./2026-05-21_03_Shell-Federation-Three-Lessons.md) — what made adding `pack-runner` at :3009 a small change rather than a big one.
