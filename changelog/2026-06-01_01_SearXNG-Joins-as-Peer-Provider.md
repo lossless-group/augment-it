@@ -63,9 +63,9 @@ The single-file `tavily.ts` at the service root is gone; in its place a connecto
 
 `services/social-search/src/packs.ts` — all seven social packs (linkedin, x, bluesky, youtube, facebook, wikipedia, instagram) now declare `connector: 'searxng'`. The pack's default was the only thing that needed to flip; the pack's verification + scoring + extraction layers are provider-agnostic.
 
-`services/social-search/src/search.ts` — `runOnePackSearch` resolves provider as `args.provider_override ?? pack.connector`. The `provider` is recorded on every published response (as `model` for legacy compatibility) so the by-record UI can render the badge accurately. Network errors and missing keys are caught and surfaced as `outcome: 'error'` rather than crashing the cell.
+`services/social-search/src/search.ts` — `runOnePackSearch` resolves provider as `args.provider_override ?? pack.connector`. The `provider` is recorded on every published response (as `model` for legacy compatibility) so the by-record UI can render the badge accurately. Network errors and missing keys are caught and surfaced as `outcome: 'error'` rather than crashing the cell. `source_metadata` is now provider-neutral — `provider`, `raw_url`, `provider_score` replace the old Tavily-specific `tavily_raw_url` / `tavily_score`. Per-row provider history is queryable from the response store the moment the Run entity (Plan Part 2) wants to roll it up; nothing else has to change.
 
-`services/social-search/src/server.ts` — both NATS subjects (`pack.search.requested` for one cell, `pack.fan_out.requested` for the M × N grid) accept an optional `provider_override` on the inbound payload and pass it through to `runOnePackSearch`. The fan-out logs include the override so the trace makes the choice visible.
+`services/social-search/src/server.ts` — both NATS subjects (`pack.search.requested` for one cell, `pack.fan_out.requested` for the M × N grid) accept an optional `provider_override` on the inbound payload and pass it through to `runOnePackSearch`. The fan-out logs include the override so the trace makes the choice visible. The boot guard was rewritten in the same pass: the service no longer rejects every request when `TAVILY_API_KEY` is missing — that test predated provider plurality and would have blocked SearXNG packs which need no key. The boot-time warning is preserved; only packs explicitly routed to Tavily now error when the key is absent, and the error is localized to the affected cell.
 
 ### SearXNG container + settings
 
@@ -73,7 +73,7 @@ The single-file `tavily.ts` at the service root is gone; in its place a connecto
 
 `services/social-search/searxng/settings.yml` + `uwsgi.ini` — the SearXNG instance config. JSON API enabled in `search.formats` (the upstream image doesn't enable it by default); limiter disabled (also default-on upstream) so programmatic access works; a non-default secret and a permissive UA-allow rule for the service hostname.
 
-`services/workspace/src/capabilities.ts` — already-wired `pack.search` + `pack.fan_out` capability mappings now carry the new optional `provider_override` field through without any signature change.
+`services/workspace/src/capabilities.ts` — already-wired `pack.search` + `pack.fan_out` capability mappings now carry the new optional `provider_override` field through without any signature change. `pack.search` also gets an explicit timeout bump to 30 s (up from the 5 s default) — a single SearXNG aggregate query across Google/Bing/DDG/Brave can take several seconds, and the per-record buttons in :3005 would otherwise time out on cells the provider eventually resolves.
 
 ### Per-record per-pack-per-provider triage in Response Reviewer
 
@@ -82,6 +82,14 @@ The single-file `tavily.ts` at the service root is gone; in its place a connecto
 The two arrays that make this real:
 - `PACKS_META` — pack_id + label + glyph + accent, mirroring the pack roster in social-search/packs.ts. The glyph + color live in the UI because federation round-trips for icon metadata aren't worth the latency.
 - `PROVIDERS` — the two wired providers, each with a label and a hint that explains the trade-off ("free metasearch" vs "content-RAG, needs key").
+
+**The additive guarantee.** Clicking a runner icon is strictly additive: `pack.search` publishes a new `ResponseRecord` for triage; it never writes to `row.fields`. The only path that mutates the row is a human accept (`response.accept`) flowing through the existing `pack_id`-branched handler into `row.socials.add`. The iteration loop the seam unlocks therefore can't clobber prior work — a researcher can re-fire LinkedIn through Tavily a dozen times on the same row and the accepted profile from the first SearXNG hit stays put. This is also captured as a memory so future sessions don't have to relitigate it.
+
+**The ✓-accepted affordance.** Each pack icon shows a small ✓ badge when that pack already has a result accepted onto the record — computed as the union of (a) accepted responses in the group with `pack_id === p.pack_id` and (b) `row.fields.socials[].pack_id`. The latter matters because `socials` survives promote across record sets, so a profile accepted in v1 still shows ✓ in v2's by-record view. The badge appears on both the SearXNG and Tavily rows (acceptance is per-pack, not per-provider) so the researcher sees at a glance which packs are still worth running through either engine and which already have ground truth. Hovering the icon swaps the title between "Run LinkedIn on '…' via SearXNG" and "LinkedIn via SearXNG — LinkedIn already accepted on this record; click to re-run (additive)".
+
+### Pattern named — the per-(record × pack × provider) runner grid
+
+The shape that landed in the by-record view is a recurring product pattern, not a one-off. Any future capability that can be invoked per-record with selectable variants (a third search provider; a model picker for prompt re-runs; a connector-vs-direct-API choice for a vertical pack) will want the same grid: rows for variants, columns for capabilities, an additive fire, and a per-(row × cell) badge for the "already-accepted" state. Worth a paragraph in [[../context-v/blueprints/Packs-and-Bundles-Pattern]] §Triage Surface UX Requirements when that doc next gets revised. Not forked into its own blueprint yet — it's one instance; a second consumer is what would justify promoting it.
 
 ### Dev experience
 
@@ -96,6 +104,11 @@ The two arrays that make this real:
 - **The per-row iteration loop** — the natural surface the `provider_override` seam was built for ("re-fire LinkedIn on row Y through Tavily because SearXNG returned `not_found`") is not yet wired as a workflow UI. The seam exists; the loop is a follow-up.
 - **Content-RAG packs** — Tavily is wired in as a peer connector, but the content-RAG packs that would naturally use it (SEC filings, Crunchbase, etc.) haven't been written yet. Tavily currently has no default consumers.
 - **A third connector** — adding one would be one file in `connectors/` + one line in `index.ts`. Not in scope here.
+- **Dedup-on-fire.** Re-firing a pack that returned `not_found` produces another `not_found` response record rather than coalescing — the by-record card can grow a stack of empty rows if the user keeps trying providers. Each fire is its own response by design (provenance + comparability), but a "collapse same-(row × pack × outcome=not_found)" UI rule is a reasonable follow-up.
+- **✓ is a hint, not a filter.** A pack already accepted on a record is marked but not gated — re-firing is still allowed and still additive. That's intentional (the iteration loop sometimes wants a second opinion even after acceptance), but if the researcher just wants "show me what's left to find," that filter would be its own affordance.
+- **Pack Runner (:3009) still fires each pack through its default provider.** The bulk-fan-out surface has no provider toggle yet; the per-record split lives only in Response Reviewer's by-record view. Mirroring the SearXNG/Tavily split into Pack Runner's pack-checkboxes is the obvious next step if cross-provider fan-outs become a thing the user wants to compose pre-flight.
+- **The by-record runner only appears on records with ≥1 response.** The by-record view groups response records, not rows — a record the user has never enriched is absent from the surface, so the runners can't be reached there. That's Pack Runner's job today; if zero-response records ever need to be reachable from :3005, the view's grouping basis would have to widen.
+- **README port table predates this session and disagrees with `scripts/dev.sh`** (shell `:3100` vs README `:3000`; record-collector `:3002` vs README `:3001`; enhanced-records-list `:3007` vs README `:3002`). Pre-existing drift, but flagged here since the README was touched.
 
 ## Related
 
