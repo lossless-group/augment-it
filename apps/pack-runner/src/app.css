@@ -212,16 +212,30 @@
 .pr-app .pack-chip:hover { border-color: var(--color-accent); }
 .pr-app .pack-chip input { margin: 0; }
 
+/* Pinned to the bottom of the scroll container so the run action stays
+   reachable no matter how long the row/pack lists get. */
 .pr-app .fire-card {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   background: var(--color-background);
   border: 0;
-  padding: 0.5rem 0 0;
+  border-top: 1px solid var(--color-border);
+  padding: 0.75rem 0;
+  margin-top: 0.5rem;
 }
 
 .pr-app .fire-sub {
   margin: 0.4rem 0 0;
   font-size: 0.78rem;
   color: var(--color-text-muted);
+}
+
+.pr-app .fire-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .pr-app .fire {
@@ -233,6 +247,17 @@
   font: 600 0.85rem var(--font-mono);
   cursor: pointer;
 }
+
+.pr-app .to-reviewer {
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  padding: 0.6rem 1rem;
+  border-radius: 4px;
+  font: 600 0.85rem var(--font-mono);
+  cursor: pointer;
+}
+.pr-app .to-reviewer:hover { box-shadow: var(--fx-accent-glow); }
 .pr-app .fire:hover:not(:disabled) { box-shadow: var(--fx-accent-glow); }
 .pr-app .fire:disabled {
   background: var(--color-field);

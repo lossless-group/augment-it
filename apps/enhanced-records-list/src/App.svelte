@@ -219,6 +219,18 @@
     promoteSuccess = null;
   }
 
+  // "Do another round" starts the next enrichment pass: send the user to
+  // Prompt Templates via the shell's cross-remote navigate event (shell
+  // defaults the mode to 'full'), then clear the banner.
+  function anotherRound(): void {
+    window.dispatchEvent(
+      new CustomEvent('augment-it:navigate', {
+        detail: { remoteId: 'promptTemplateManager' },
+      }),
+    );
+    promoteSuccess = null;
+  }
+
   const canPromote = $derived(records.length > 0 && !promoting && connectionStatus === 'open');
 </script>
 
@@ -264,7 +276,7 @@
           archived <strong>{promoteSuccess.archivedCount}</strong> predecessor set{promoteSuccess.archivedCount === 1 ? '' : 's'}
         </div>
         <div class="success-actions">
-          <button class="success-primary" onclick={dismissSuccess}>
+          <button class="success-primary" onclick={anotherRound}>
             Do another round of enhancements →
           </button>
           <button class="success-secondary" onclick={dismissSuccess}>

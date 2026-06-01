@@ -242,7 +242,7 @@
         entity_name_field: entityNameField,
       })) as { ok: boolean; cells_fired?: number; error?: string };
       if (r.ok) {
-        lastResult = `Fired ${r.cells_fired ?? cellsToFire} cells. Switch to Response Reviewer to triage.`;
+        lastResult = `Fired ${r.cells_fired ?? cellsToFire} cells — all settled. Open Response Reviewer to triage.`;
       } else {
         lastResult = `fan_out failed — ${r.error ?? 'unknown error'}`;
       }
@@ -251,6 +251,18 @@
     } finally {
       firing = false;
     }
+  }
+
+  // fan_out runs server-side and only replies once every cell has settled, but
+  // each cell writes its result to the store as it completes — so the user can
+  // hop to Response Reviewer and watch results stream in rather than waiting on
+  // a blocked button. Reuses the shell's cross-remote navigate event.
+  function goToResponseReviewer(): void {
+    window.dispatchEvent(
+      new CustomEvent('augment-it:navigate', {
+        detail: { remoteId: 'responseReviewer' },
+      }),
+    );
   }
 </script>
 
@@ -400,20 +412,30 @@
       </section>
 
       <section class="card fire-card">
-        <button
-          class="fire"
-          disabled={firing || cellsToFire === 0 || !entityNameField}
-          onclick={() => void fire()}
-        >
-          {#if firing}
-            firing on {selectedRowCount} {selectedRowCount === 1 ? 'row' : 'rows'}…
-          {:else if cellsToFire === 0}
-            select rows and packs to fire
-          {:else}
-            Fire on {selectedRowCount} {selectedRowCount === 1 ? 'row' : 'rows'}
-          {/if}
-        </button>
-        {#if cellsToFire > 0 && !firing}
+        <div class="fire-actions">
+          <button
+            class="fire"
+            disabled={firing || cellsToFire === 0 || !entityNameField}
+            onclick={() => void fire()}
+          >
+            {#if firing}
+              firing on {selectedRowCount} {selectedRowCount === 1 ? 'row' : 'rows'}…
+            {:else if cellsToFire === 0}
+              select rows and packs to fire
+            {:else}
+              Fire on {selectedRowCount} {selectedRowCount === 1 ? 'row' : 'rows'}
+            {/if}
+          </button>
+          <button class="to-reviewer" onclick={goToResponseReviewer}>
+            Response Reviewer →
+          </button>
+        </div>
+        {#if firing}
+          <p class="muted fire-sub">
+            Running server-side — results stream into Response Reviewer as each
+            cell completes. Click <strong>Response Reviewer →</strong> to watch them land.
+          </p>
+        {:else if cellsToFire > 0}
           <p class="muted fire-sub">
             {enabledPackCount} {enabledPackCount === 1 ? 'pack' : 'packs'} × {selectedRowCount} {selectedRowCount === 1 ? 'row' : 'rows'}
             · {cellsToFire} {cellsToFire === 1 ? 'fetch' : 'fetches'} total
