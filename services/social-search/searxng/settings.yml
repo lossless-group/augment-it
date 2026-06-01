@@ -1,0 +1,27 @@
+# SearXNG settings for augment-it's internal social-search provider.
+#
+# `use_default_settings: true` merges this on top of the image's bundled
+# defaults, so we only override what programmatic access needs:
+#   - the JSON output format (off by default — the connector parses JSON)
+#   - the limiter / bot-detection (would 429 our per-record fan-out)
+#
+# This instance is reachable only on the internal Docker network (searxng:8080)
+# and is not a public instance, so disabling the limiter is safe here.
+#
+# Spec: context-v/issues/Search-Providers-as-First-Class-SearXNG-Default.md
+
+use_default_settings: true
+
+server:
+  # Any non-empty secret; internal-only instance. Overridable via SEARXNG_SECRET.
+  secret_key: "augment-it-local-dev-secret"
+  limiter: false
+  image_proxy: false
+
+search:
+  formats:
+    - html
+    - json
+  # Aggregate the general engines a manual browser search would hit — this is
+  # the whole point of routing social packs here instead of a RAG index.
+  default_lang: "en"

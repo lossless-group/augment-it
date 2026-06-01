@@ -655,6 +655,88 @@
   font-size: 0.75rem;
 }
 
+/* Per-record source runners — two rows (one per provider), one icon button
+   per pack/API. Firing is additive (a new candidate response lands below for
+   triage); the ✓ badge marks packs already accepted onto this record. */
+.resp-app .record-pack-runners {
+  border-bottom: 1px solid var(--color-border);
+}
+.resp-app .record-pack-runner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0.35rem 0.85rem;
+  background: var(--color-surface);
+}
+/* a hairline between the two provider rows, and a provider-colored left rail */
+.resp-app .record-pack-runner + .record-pack-runner {
+  border-top: 1px dashed var(--color-border);
+}
+.resp-app .record-pack-runner {
+  border-left: 3px solid transparent;
+}
+.resp-app .record-pack-runner.provider-searxng { border-left-color: var(--color-accent); }
+.resp-app .record-pack-runner.provider-tavily { border-left-color: var(--color-accent-2); }
+.resp-app .record-pack-runner-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  min-width: 3.6rem;
+  margin-right: 0.15rem;
+}
+.resp-app .record-pack-runner.provider-searxng .record-pack-runner-label { color: var(--color-accent); }
+.resp-app .record-pack-runner.provider-tavily .record-pack-runner-label { color: var(--color-accent-2); }
+.resp-app .pack-icon-btn {
+  position: relative;
+  min-width: 1.9rem;
+  height: 1.55rem;
+  padding: 0 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-field);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--pack-accent, var(--color-border));
+  border-radius: 3px;
+  font: 700 0.74rem var(--font-mono);
+  cursor: pointer;
+}
+.resp-app .pack-icon-btn:hover:not(:disabled) {
+  border-color: var(--pack-accent, var(--color-accent));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--pack-accent, var(--color-accent)) 40%, transparent);
+}
+.resp-app .pack-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.resp-app .pack-icon-btn.accepted {
+  background: color-mix(in srgb, var(--pack-accent) 16%, transparent);
+  border-color: var(--pack-accent);
+}
+.resp-app .pack-icon-btn.accepted::after {
+  content: "✓";
+  position: absolute;
+  top: -6px;
+  right: -5px;
+  font-size: 0.58rem;
+  line-height: 1;
+  padding: 1px 2px;
+  color: var(--color-confidence-high);
+  background: var(--color-surface);
+  border-radius: 50%;
+}
+.resp-app .pack-icon-btn .spinner {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--pack-accent, var(--color-accent));
+  border-radius: 50%;
+  animation: resp-spin 0.8s linear infinite;
+}
+
 .resp-app .record-responses {
   list-style: none;
   margin: 0;
@@ -663,7 +745,7 @@
 
 .resp-app .record-response {
   display: grid;
-  grid-template-columns: 8.5rem 1fr auto;
+  grid-template-columns: 10rem 1fr auto;
   align-items: center;
   gap: 0.6rem;
   padding: 0.45rem 0.85rem;
@@ -698,6 +780,26 @@
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
   font-size: 0.7rem;
+}
+
+/* which search provider produced this result — lets SearXNG vs Tavily results
+   be told apart at a glance in the response list. */
+.resp-app .provider-badge {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 0.64rem;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  background: var(--color-background);
+}
+.resp-app .provider-badge.provider-searxng {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+.resp-app .provider-badge.provider-tavily {
+  color: var(--color-accent-2);
+  border-color: var(--color-accent-2);
 }
 .resp-app .outcome-badge.outcome-not_found {
   /* informational — match the existing thin-row signal */

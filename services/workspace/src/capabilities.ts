@@ -77,8 +77,12 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   // apply wraps prompt.run; needs the same generous budget
   'prompt.apply': 600_000,
   // pack.fan_out can run many cells in sequence; give it room. The
-  // service caps concurrency at 4 Tavily calls, so N cells ≈ N/4 × per-cell.
+  // service caps concurrency at 4 calls, so N cells ≈ N/4 × per-cell.
   'pack.fan_out': 600_000,
+  // one pack × one row, but a SearXNG aggregate query (Google/Bing/DDG/Brave)
+  // can take several seconds — the 5s default is too tight for the per-record
+  // run buttons in the by-record triage view.
+  'pack.search': 30_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {

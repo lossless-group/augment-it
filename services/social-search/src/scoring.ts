@@ -10,7 +10,7 @@
 //
 // Spec: context-v/prompts/Common-Six-Social-Packs.md §Confidence scoring
 
-import type { TavilyResult } from './tavily';
+import type { ConnectorResult } from './connectors/types';
 
 function normalize(s: string): string {
   return s
@@ -82,15 +82,15 @@ export function scoreCandidate(args: {
 }
 
 /**
- * Given Tavily's results list, pick the candidate (top result among
+ * Given a connector's results list, pick the candidate (top result among
  * whitelist-matching ones) and the sibling count from the same domain.
  * Returns null if no result has a whitelist-matching hostname.
  */
 export function pickCandidate(
-  results: TavilyResult[],
+  results: ConnectorResult[],
   whitelist: RegExp,
-): { chosen: TavilyResult; siblings_from_same_domain: number } | null {
-  const matches: { result: TavilyResult; hostname: string }[] = [];
+): { chosen: ConnectorResult; siblings_from_same_domain: number } | null {
+  const matches: { result: ConnectorResult; hostname: string }[] = [];
   for (const r of results) {
     try {
       const h = new URL(r.url).hostname;

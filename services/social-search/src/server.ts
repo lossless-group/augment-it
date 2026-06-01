@@ -1,17 +1,22 @@
-// social-search-service — fans out to Tavily for the common-six social packs.
+// social-search-service — runs the common-seven social packs through their
+// configured search provider (SearXNG by default; Tavily as a peer).
 //
 // Subjects:
 //   pack.search.requested    — one pack × one row → one ResponseRecord
 //   pack.fan_out.requested   — N packs × M rows  → N×M ResponseRecords,
 //                              concurrency-bounded; reply when all done
 //
-// Refuses to start without TAVILY_API_KEY.
+// Starts regardless of keys: SearXNG (the default) needs none. A pack routed
+// to Tavily without TAVILY_API_KEY records a localized outcome:'error' for that
+// cell — it never blocks the rest of the run.
 //
 // Spec: context-v/prompts/Common-Six-Social-Packs.md
+//       context-v/issues/Search-Providers-as-First-Class-SearXNG-Default.md
 
 import { connect, JSONCodec } from 'nats';
 import { PACK_IDS } from './packs';
 import { runOnePackSearch, type SearchInput } from './search';
+import type { ProviderId } from './connectors';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 const MAX_CONCURRENT = Number.parseInt(process.env.SOCIAL_SEARCH_CONCURRENCY ?? '4', 10);
@@ -42,17 +47,17 @@ async function withLimit<T>(
 }
 
 async function main(): Promise<void> {
-  const hasTavilyKey = Boolean(process.env.TAVILY_API_KEY);
-  if (!hasTavilyKey) {
-    // Start anyway so `pnpm stack up` works without the key. The pack.search
-    // and pack.fan_out handlers will reject requests with a clear error
-    // message until the key lands in .env. Different from prompt-runner,
-    // which fast-exits because every prompt.run needs the key; pack search
-    // is a single opt-in feature in the stack.
+  if (!process.env.TAVILY_API_KEY) {
+    // Not fatal: SearXNG (the default provider for every social pack) needs no
+    // key. Only packs explicitly routed to Tavily will error without it, and
+    // that error is localized to the affected cell.
     console.warn(
-      'social-search: TAVILY_API_KEY is not set — handlers will reject pack requests until it lands in .env',
+      'social-search: TAVILY_API_KEY is not set — Tavily-routed packs will error; SearXNG packs run fine',
     );
   }
+  console.log(
+    JSON.stringify({ level: 'info', msg: 'searxng url', url: process.env.SEARXNG_URL ?? 'http://searxng:8080' }),
+  );
 
   const nc = await connect({ servers: NATS_URL, name: 'social-search-service' });
   console.log(JSON.stringify({ level: 'info', msg: 'nats connected', url: NATS_URL }));
@@ -63,14 +68,6 @@ async function main(): Promise<void> {
     const sub = nc.subscribe('pack.search.requested');
     for await (const msg of sub) {
       const args = jc.decode(msg.data) as SearchInput;
-      if (!hasTavilyKey) {
-        if (msg.reply) {
-          msg.respond(
-            jc.encode({ ok: false, error: 'TAVILY_API_KEY is not set on social-search-service' }),
-          );
-        }
-        continue;
-      }
       try {
         const result = await runOnePackSearch(nc, args);
         if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
@@ -79,6 +76,7 @@ async function main(): Promise<void> {
           msg: 'pack.search',
           pack_id: result.pack_id,
           row_id: result.row_id,
+          provider: result.provider,
           outcome: result.outcome,
         }));
       } catch (err: unknown) {
@@ -98,21 +96,16 @@ async function main(): Promise<void> {
         row_ids: string[];
         record_set_id: string;
         entity_name_field?: string;
+        // Optional — override every pack's default provider for this fan-out.
+        provider_override?: ProviderId;
       };
-      if (!hasTavilyKey) {
-        if (msg.reply) {
-          msg.respond(
-            jc.encode({ ok: false, error: 'TAVILY_API_KEY is not set on social-search-service' }),
-          );
-        }
-        continue;
-      }
       console.log(JSON.stringify({
         level: 'info',
         msg: 'fan_out started',
         packs: args.pack_ids.length,
         rows: args.row_ids.length,
         record_set_id: args.record_set_id,
+        provider_override: args.provider_override ?? null,
       }));
 
       const tasks: Array<() => Promise<unknown>> = [];
@@ -124,6 +117,7 @@ async function main(): Promise<void> {
               row_id,
               record_set_id: args.record_set_id,
               entity_name_field: args.entity_name_field,
+              provider_override: args.provider_override,
             }).catch((err) => {
               // Per-cell failures don't abort the run. Log and continue.
               console.error(JSON.stringify({

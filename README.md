@@ -3,7 +3,7 @@
 
 # Augment It
 
-A multi-tenant web app for augmenting tabular data with AI. Upload a CSV, fire enrichment passes against it (custom LLM prompts or source-bound packs like LinkedIn / X / Bluesky / Wikipedia), triage the responses, accept the good ones back onto rows, promote enhanced rows into new canonical record sets, and continue.
+A multi-tenant web app for augmenting tabular data with AI. Upload a CSV or spreadsheet, fire enrichment passes against it (custom LLM prompts or source-bound packs like LinkedIn / X / Bluesky / Wikipedia), triage the responses, accept the good ones back onto rows, promote enhanced rows into new canonical record sets, and continue.
 
 The codebase is a federated set of small Svelte 5 microfrontends mounted into a shell, backed by stateless TypeScript microservices that talk over NATS. Every column on every row is tenant-defined — no hardcoded schema anywhere — so the same tool serves a foundation's grantee pipeline, a VC's deal flow, a recruiter's candidate list, or whatever spreadsheet a user happens to upload.
 
@@ -27,7 +27,7 @@ The codebase is a federated set of small Svelte 5 microfrontends mounted into a 
 - **NATS** as the message bus — every service subscribes to a subject; the browser talks to the backend via the workspace capabilities router
 - **libSQL** / **JSON-stored row + response data** behind small TS services
 - **Anthropic** for free-form prompt enrichment (via `prompt-runner`)
-- **Tavily** for source-bound pack search (via `social-search`); a SearXNG substrate migration is filed as an issue, not yet executed
+- **Search providers are pluggable** (via `social-search`): a `connectors/` seam with a common `Connector` interface, dispatched per-fire with an optional `provider_override`. **SearXNG** (self-hosted, no API key) is the default for the social packs; **Tavily** stays wired in as a peer for content-RAG packs. Response Reviewer's by-record view exposes both — each record has a SearXNG row and a Tavily row of per-pack run icons, so any source can be re-fired on any record through either provider (additive; never overrides accepted data)
 
 ## App structure
 
@@ -40,27 +40,36 @@ augment-it/
 │   ├── request-reviewer/        :3004 # Pre-flight review of fan-out plans
 │   ├── response-reviewer/       :3005 # By-record triage cockpit (post-flight)
 │   ├── chat/                    :3006 # In-app chat verb surface (v0.0.1)
-│   └── pack-runner/             :3009 # Source-bound pack invocation (paired with PTM)
+│   ├── pack-runner/             :3009 # Source-bound pack invocation (paired with PTM)
+│   ├── highlight-collector/           # planned — collect highlights from AI responses (scaffold)
+│   └── insight-manager/               # planned — manage insights across responses (scaffold)
 │
 ├── shell/                       :3000 # Window manager, peek-deck rotation, pair-mode
 │
 ├── services/                          # Stateless TS over NATS
+│   ├── ingest/                        # CSV → record_set.create (dynamic schema from headers)
+│   ├── xlsx-ingest/                   # XLSX workbook → record_set.create (same shape as CSV)
 │   ├── workspace/                     # Browser-facing capabilities router
-│   ├── row-store/                     # Rows, record sets, promote-fold, row.fields write-back
-│   ├── response-store/                # Sibling payload (prose + structured Candidate)
+│   ├── row-store/                     # Rows, record sets, promote-fold, row.fields write-back (+ socials)
+│   ├── prompt-store/                  # Persists custom prompt templates
 │   ├── prompt-runner/                 # Anthropic, custom prompts, per-row fan-out
-│   └── social-search/                 # Tavily, the seven packs, fan-out with concurrency cap
+│   ├── response-store/                # Sibling payload (prose + structured Candidate)
+│   └── social-search/                 # Pack search/fan-out, pluggable connectors (SearXNG default, Tavily peer)
 │
 ├── packages/                          # Shared code
 │   ├── workspace/                     # Shared types (Row, ResponseRecord, Candidate, SocialProfile)
 │   ├── theme/                         # CSS tokens, three modes
-│   └── shared-ui/                     # First reusable Svelte components (ConfidencePill, …)
+│   ├── shared-ui/                     # First reusable Svelte components (ConfidencePill, …)
+│   ├── config/                        # planned — cross-app/package config (scaffold)
+│   └── shared-services/               # planned — shared service helpers (scaffold)
 │
 ├── context-v/                         # Living documentation
 │   ├── blueprints/                    # Durable pattern codifications (Packs-and-Bundles, …)
 │   ├── explorations/                  # Pre-spec investigation
+│   ├── specs/                         # Checkpoint specifications
 │   ├── plans/                         # In-flight implementation arcs
 │   ├── prompts/                       # Scoping docs for build sessions
+│   ├── reminders/                     # Session pickup notes
 │   └── issues/                        # Filed-but-not-yet-executed decisions
 │
 ├── changelog/                         # Ship log — every coherent build session writes one
@@ -91,9 +100,12 @@ Provide API keys via `.env` (see `.env.example`):
 
 ```bash
 ANTHROPIC_API_KEY=…   # required for prompt-runner
-TAVILY_API_KEY=…      # optional — pack search is opt-in; without it, social-search starts
-                      # but pack.search handlers reply with a clean error
+TAVILY_API_KEY=…      # optional — only packs routed to the Tavily connector need it.
+                      # Social packs default to SearXNG (self-hosted container, no key),
+                      # so pack search works out of the box without this.
 ```
+
+Pack search runs against a **SearXNG** container that comes up with the stack — no account, no API key. SearXNG isn't an index of its own; it's a metasearch *aggregator* that queries upstream engines (Google, Bing, DuckDuckGo, Brave) and merges their results, which is why we get metasearch breadth for free. Override its instance secret with `SEARXNG_SECRET` if you like (a dev default is baked in).
 
 ## Get started
 

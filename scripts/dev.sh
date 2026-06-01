@@ -33,6 +33,7 @@ WORKSPACE_URL="http://localhost:3001/"
 backend_up() {
   echo "▶ backend — docker compose up --build (rebuilds images so code changes land)"
   docker compose up --build -d
+  echo "    searxng (pack search)   http://localhost:8080  (JSON: /search?q=test&format=json)"
 }
 
 wait_for_workspace() {

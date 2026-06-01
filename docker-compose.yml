@@ -77,16 +77,35 @@ services:
     volumes:
       - response-store-data:/data
 
+  # Self-hosted metasearch aggregator — the default provider for social packs.
+  # No API key, free. Reached by social-search at searxng:8080 on the internal
+  # network. The mounted settings.yml enables the JSON API and disables the
+  # limiter (both off by default in the upstream image).
+  searxng:
+    image: searxng/searxng:latest
+    environment:
+      # Any non-empty string; this instance is internal-only.
+      SEARXNG_SECRET: ${SEARXNG_SECRET:-augment-it-local-dev-secret}
+    volumes:
+      - ./services/social-search/searxng:/etc/searxng:rw
+    ports:
+      # Exposed for debugging the JSON API directly; not required by the stack.
+      - "8080:8080"
+
   social-search:
     build: ./services/social-search
     depends_on:
       - nats
+      - searxng
     environment:
       NATS_URL: nats://nats:4222
-      # Only this container holds the Tavily key. Sourced from
-      # augment-it/.env (gitignored; Docker Compose auto-reads it).
+      # Default provider for every social pack — no key needed.
+      SEARXNG_URL: http://searxng:8080
+      # Tavily stays wired in as a peer connector (content-RAG packs). Only
+      # packs routed to Tavily need this; sourced from augment-it/.env.
       TAVILY_API_KEY: ${TAVILY_API_KEY}
-      # Cap concurrent Tavily calls — the free tier is rate-limited.
+      # Cap concurrent search calls — the Tavily free tier is rate-limited, and
+      # bursting SearXNG can trip upstream-engine throttling.
       SOCIAL_SEARCH_CONCURRENCY: ${SOCIAL_SEARCH_CONCURRENCY:-4}
 
 volumes:

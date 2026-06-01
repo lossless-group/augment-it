@@ -1,15 +1,21 @@
-// One pack search end-to-end: get entity_name from the row, call Tavily,
-// pick + score a candidate, publish to response-store. Pure orchestration —
-// reusable from both the pack.search NATS handler (one row × one pack) and
-// the pack.fan_out NATS handler (M rows × N packs).
+// One pack search end-to-end: get entity_name from the row, run the pack's
+// search provider, pick + score a candidate, publish to response-store. Pure
+// orchestration — reusable from both the pack.search NATS handler (one row ×
+// one pack) and the pack.fan_out NATS handler (M rows × N packs).
+//
+// Provider is resolved per-fire: provider_override (if the caller passed one)
+// wins over the pack's default connector. That single seam is what lets the
+// per-row iteration loop re-fire a pack through a different provider without
+// touching the pack definition.
 
 import { JSONCodec, type NatsConnection } from 'nats';
-import { getPack, type PackConfig } from './packs';
-import { searchTavily } from './tavily';
+import { getPack, buildQuery, type PackConfig } from './packs';
+import { getConnector, type ProviderId } from './connectors';
 import { verifyUrl } from './verification';
 import { pickCandidate, scoreCandidate } from './scoring';
 
 const jc = JSONCodec();
+const MAX_RESULTS = 3;
 
 export type SearchInput = {
   pack_id: string;
@@ -19,6 +25,10 @@ export type SearchInput = {
   // reads `row.fields[entity_name_field]`.
   entity_name?: string;
   entity_name_field?: string;
+  // Override the pack's default search provider for this fire. Lets the
+  // iteration-loop surfaces (re-search a row through a different engine) reuse
+  // this path without a second refactor.
+  provider_override?: ProviderId;
   // Optional — for response-store correlation. Pack fires need not be
   // associated with a prompt template; for now we accept whatever the caller
   // passes and fall back to a synthetic id.
@@ -30,6 +40,7 @@ export type SearchResult = {
   outcome: 'found' | 'not_found' | 'error';
   pack_id: string;
   row_id: string;
+  provider: ProviderId;
 };
 
 type RowGetReply = {
@@ -56,7 +67,8 @@ async function fetchEntityName(
  * response-store's existing `response.create.requested` subject — the
  * pack-aware fields (pack_id, outcome, structured) ride on the same
  * createResponse signature thanks to the schema extension that shipped in
- * 288ecec.
+ * 288ecec. This NEVER writes to row.fields; the response only becomes row data
+ * when a human accepts it in the triage cockpit.
  */
 export async function runOnePackSearch(
   nc: NatsConnection,
@@ -69,8 +81,11 @@ export async function runOnePackSearch(
       outcome: 'error',
       pack_id: args.pack_id,
       row_id: args.row_id,
+      provider: args.provider_override ?? 'searxng',
     };
   }
+
+  const provider: ProviderId = args.provider_override ?? pack.connector;
 
   let entityName: string;
   try {
@@ -82,39 +97,49 @@ export async function runOnePackSearch(
     publishResponse(nc, {
       ...args,
       pack_id: pack.pack_id,
+      provider,
+      entity_name: args.entity_name,
       outcome: 'error',
       response_text: `Could not resolve entity name: ${message}`,
       structured: null,
     });
-    return { response_id: null, outcome: 'error', pack_id: pack.pack_id, row_id: args.row_id };
+    return { response_id: null, outcome: 'error', pack_id: pack.pack_id, row_id: args.row_id, provider };
   }
 
-  // The Tavily call. Network errors land as outcome='error'.
-  let tavilyResp;
+  // The provider call. Network errors / missing keys land as outcome='error'.
+  let results;
   try {
-    tavilyResp = await searchTavily(pack, entityName);
+    const connector = getConnector(provider);
+    results = await connector(buildQuery(pack, entityName), {
+      include_domains: pack.include_domains,
+      max_results: MAX_RESULTS,
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     publishResponse(nc, {
       ...args,
       pack_id: pack.pack_id,
+      provider,
+      entity_name: entityName,
       outcome: 'error',
       response_text: message,
       structured: null,
     });
-    return { response_id: null, outcome: 'error', pack_id: pack.pack_id, row_id: args.row_id };
+    return { response_id: null, outcome: 'error', pack_id: pack.pack_id, row_id: args.row_id, provider };
   }
 
-  const picked = pickCandidate(tavilyResp.results, pack.domain_whitelist);
+  const picked = pickCandidate(results, pack.domain_whitelist);
   if (!picked) {
     publishResponse(nc, {
       ...args,
       pack_id: pack.pack_id,
+      provider,
+      entity_name: entityName,
       outcome: 'not_found',
       response_text: '',
       structured: null,
     });
-    return { response_id: null, outcome: 'not_found', pack_id: pack.pack_id, row_id: args.row_id };
+    return { response_id: null, outcome: 'not_found', pack_id: pack.pack_id, row_id: args.row_id, provider };
   }
 
   const { chosen, siblings_from_same_domain } = picked;
@@ -130,6 +155,8 @@ export async function runOnePackSearch(
   publishResponse(nc, {
     ...args,
     pack_id: pack.pack_id,
+    provider,
+    entity_name: entityName,
     outcome: 'found',
     response_text: chosen.content || chosen.title,
     structured: {
@@ -138,21 +165,24 @@ export async function runOnePackSearch(
       confidence,
       snippet: chosen.content || undefined,
       source_metadata: {
-        tavily_raw_url: chosen.url,
-        tavily_score: chosen.score,
+        provider,
+        raw_url: chosen.url,
+        provider_score: chosen.score,
         siblings_from_same_domain,
         ...(chosen.published_date ? { published_date: chosen.published_date } : {}),
       },
     },
   });
 
-  return { response_id: null, outcome: 'found', pack_id: pack.pack_id, row_id: args.row_id };
+  return { response_id: null, outcome: 'found', pack_id: pack.pack_id, row_id: args.row_id, provider };
 }
 
 function publishResponse(
   nc: NatsConnection,
   args: SearchInput & {
     pack_id: string;
+    provider: ProviderId;
+    entity_name?: string;
     outcome: 'found' | 'not_found' | 'error';
     response_text: string;
     structured: unknown;
@@ -165,16 +195,16 @@ function publishResponse(
       prompt_id: args.prompt_id ?? `synthetic_pack_${args.pack_id}`,
       row_id: args.row_id,
       record_set_id: args.record_set_id,
-      // Packs don't write to a column (yet — that's the promote-to-canonical
-      // session). For now: a per-pack placeholder column.
-      // Per the 2026-05-25 design pivot, all pack responses target the
-      // single row-level `socials` JSON column. The accept handler will
-      // fork on pack_id to route into row.socials.add (not row.update);
-      // until that handler lands, output_column is informational only.
+      // Per the 2026-05-25 design pivot, all pack responses target the single
+      // row-level `socials` JSON column. The accept handler forks on pack_id to
+      // route into row.socials.add (not row.update). output_column is
+      // informational; nothing here writes to the row — only human accept does.
       // Spec: context-v/blueprints/Packs-and-Bundles-Pattern.md §Row write-back
       output_column: 'socials',
-      model: 'tavily',
-      request_body: { pack_id: args.pack_id, entity_name: args.entity_name },
+      // The provider that produced this result — surfaced in the triage UI's
+      // "Model" line and recorded in source_metadata for per-row provider history.
+      model: args.provider,
+      request_body: { pack_id: args.pack_id, entity_name: args.entity_name, provider: args.provider },
       response_text: args.response_text,
       outcome: args.outcome,
       structured: args.structured,

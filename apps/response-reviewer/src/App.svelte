@@ -8,6 +8,7 @@
     type ResponseFlag,
     type Row,
     type HelpfulLink,
+    type SocialProfile,
   } from '@augment-it/workspace';
   import ConfidencePill from '@augment-it/shared-ui/ConfidencePill.svelte';
   import { MOCK_PACKS_FIXTURE } from './fixtures/mock-packs';
@@ -18,6 +19,33 @@
   const WS_URL = 'ws://localhost:3001/ws';
 
   const FLAGS: ResponseFlag[] = ['good', 'partial', 'wrong', 'needs-rerun', 'needs-human'];
+
+  // Per-pack metadata for the inline "run a source on this record" buttons in
+  // the by-record view. Source of truth for pack identity is
+  // services/social-search/src/packs.ts; the glyph + accent live here so the
+  // UI renders without a round-trip. If a pack lands or is renamed, update
+  // both this list and pack-runner's PACKS.
+  const PACKS_META: { pack_id: string; label: string; glyph: string; accent: string }[] = [
+    { pack_id: 'linkedin-pack', label: 'LinkedIn', glyph: 'in', accent: '#0a66c2' },
+    { pack_id: 'x-pack', label: 'X / Twitter', glyph: 'X', accent: '#1d9bf0' },
+    { pack_id: 'bluesky-pack', label: 'Bluesky', glyph: 'bs', accent: '#1185fe' },
+    { pack_id: 'youtube-pack', label: 'YouTube', glyph: 'YT', accent: '#ff0000' },
+    { pack_id: 'facebook-pack', label: 'Facebook', glyph: 'f', accent: '#1877f2' },
+    { pack_id: 'wikipedia-pack', label: 'Wikipedia', glyph: 'W', accent: '#888a8c' },
+    { pack_id: 'instagram-pack', label: 'Instagram', glyph: 'IG', accent: '#e1306c' },
+  ];
+
+  // The two wired search providers. Each pack can be fired through either one
+  // per-record — SearXNG (free, the social-pack default) or Tavily (content-RAG
+  // index, needs a key). They're separated in the UI so the user can compare
+  // recall provider-by-provider and escalate row-by-row. Maps to the backend's
+  // provider_override seam. Spec:
+  // context-v/issues/Search-Providers-as-First-Class-SearXNG-Default.md
+  type Provider = 'searxng' | 'tavily';
+  const PROVIDERS: { id: Provider; label: string; hint: string }[] = [
+    { id: 'searxng', label: 'SearXNG', hint: 'Free metasearch (Google/Bing/DDG/Brave) — the social-pack default' },
+    { id: 'tavily', label: 'Tavily', hint: 'Content-RAG index — needs TAVILY_API_KEY; thinner on social-profile pages' },
+  ];
 
   // View modes — single-response stepper (the original UI, best for prompt
   // responses where each row has one verbose response to read) OR by-record
@@ -622,6 +650,62 @@
     }
   }
 
+  // Per-(row × pack × provider) in-flight state for the inline "run a source"
+  // buttons in the by-record header. Keyed `${row_id}::${pack_id}::${provider}`
+  // so firing the same pack through both providers shows independent spinners.
+  let packBusy = $state<Set<string>>(new Set());
+  const packBusyKey = (row_id: string, pack_id: string, provider: Provider) =>
+    `${row_id}::${pack_id}::${provider}`;
+
+  // Which packs already have a result accepted onto this record — from accepted
+  // responses in the group AND from profiles already written to row.socials
+  // (the latter survives across promotes/record sets). Drives the ✓ badge so
+  // the user can tell at a glance what's "not already accepted" and worth
+  // re-running. Re-running an accepted pack stays allowed — it's additive.
+  function acceptedPackIds(group: RowGroup): Set<string> {
+    const ids = new Set<string>();
+    for (const r of group.responses) {
+      if (r.accepted && r.pack_id) ids.add(r.pack_id);
+    }
+    const socials = (rowsByRowId[group.row_id]?.fields as Record<string, unknown> | undefined)?.socials;
+    if (Array.isArray(socials)) {
+      for (const s of socials as SocialProfile[]) if (s?.pack_id) ids.add(s.pack_id);
+    }
+    return ids;
+  }
+
+  // Run ONE pack against ONE record through ONE provider from the by-record
+  // card. This is the per-row iteration loop: re-fire a source on a specific
+  // record through the provider of your choice (SearXNG or Tavily) without
+  // recreating a whole fan-out. Strictly ADDITIVE — it produces a new candidate
+  // response for triage and NEVER writes to row.fields; only a human accept
+  // does that, so accepted data is never overridden.
+  async function runPackOnRecord(group: RowGroup, pack_id: string, provider: Provider) {
+    const entity_name = group.entity_name.trim();
+    if (entity_name.length === 0) return; // nothing to search on
+    const key = packBusyKey(group.row_id, pack_id, provider);
+    if (packBusy.has(key)) return;
+    packBusy = new Set(packBusy).add(key);
+    try {
+      await workspace.invoke('pack.search', {
+        pack_id,
+        row_id: group.row_id,
+        record_set_id: group.record_set_id,
+        entity_name,
+        entity_name_field: group.entity_field ?? undefined,
+        provider_override: provider,
+      });
+      await loadResponses();
+      if (viewMode === 'by-record') await loadRowsForByRecord();
+    } catch (e) {
+      console.error('pack.search (by-record)', e);
+    } finally {
+      const next = new Set(packBusy);
+      next.delete(key);
+      packBusy = next;
+    }
+  }
+
   // Inline triage in by-record mode — bypass the per-cell editText
   // machinery. Just flips the flag (and writes to row.socials on accept
   // via the existing response.accept fork).
@@ -874,10 +958,14 @@
       <p class="muted by-record-hint">
         {byRecord.length} {byRecord.length === 1 ? 'record' : 'records'} ·
         {filtered.length} {filtered.length === 1 ? 'response' : 'responses'}
-        in scope · click ✓/✗ inline to triage
+        in scope · click ✓/✗ inline to triage · each record has a
+        <strong>SearXNG</strong> and a <strong>Tavily</strong> row — click a pack
+        icon to run that source on that record (✓ = already accepted)
       </p>
       <div class="record-list">
         {#each byRecord as group (group.row_id)}
+          {@const accepted = acceptedPackIds(group)}
+          {@const canRun = group.entity_name.trim().length > 0}
           <article class="record-card">
             <header class="record-card-header">
               {#if group.entity_field}
@@ -905,6 +993,49 @@
               {/if}
               <span class="muted record-card-count">{group.responses.length} {group.responses.length === 1 ? 'response' : 'responses'}</span>
             </header>
+
+            <!-- Per-record source runners, one row per provider. Click a pack
+                 icon to fire that source on THIS record through THAT provider
+                 via pack.search. Result lands as a new candidate row below for
+                 triage. Additive — never overrides anything already accepted.
+                 The ✓ badge marks packs already accepted onto this record so
+                 the user can see what's still worth running, on either row. -->
+            <div class="record-pack-runners">
+              {#each PROVIDERS as prov (prov.id)}
+                <div
+                  class="record-pack-runner provider-{prov.id}"
+                  role="group"
+                  aria-label={`Run a source on this record via ${prov.label}`}
+                >
+                  <span class="record-pack-runner-label" title={prov.hint}>{prov.label}</span>
+                  {#each PACKS_META as p (p.pack_id)}
+                    {@const busyKey = `${group.row_id}::${p.pack_id}::${prov.id}`}
+                    {@const isAccepted = accepted.has(p.pack_id)}
+                    <button
+                      class="pack-icon-btn"
+                      class:accepted={isAccepted}
+                      class:busy={packBusy.has(busyKey)}
+                      style={`--pack-accent: ${p.accent}`}
+                      disabled={!canRun || packBusy.has(busyKey)}
+                      onclick={() => void runPackOnRecord(group, p.pack_id, prov.id)}
+                      title={!canRun
+                        ? `No name column resolved for this record — can't search`
+                        : isAccepted
+                          ? `${p.label} via ${prov.label} — ${p.label} already accepted on this record; click to re-run (additive)`
+                          : `Run ${p.label} on “${group.entity_name}” via ${prov.label}`}
+                      aria-label={`Run ${p.label} via ${prov.label} on this record`}
+                    >
+                      {#if packBusy.has(busyKey)}
+                        <span class="spinner" aria-hidden="true"></span>
+                      {:else}
+                        {p.glyph}
+                      {/if}
+                    </button>
+                  {/each}
+                </div>
+              {/each}
+            </div>
+
             <ul class="record-responses">
               {#each group.responses as resp (resp.response_id)}
                 <li
@@ -918,6 +1049,9 @@
                   <div class="record-response-source">
                     {#if resp.pack_id}
                       <span class="source-badge" title="pack response">{resp.pack_id.replace(/-pack$/, '')}</span>
+                      {#if resp.model}
+                        <span class="provider-badge provider-{resp.model}" title="search provider that produced this result">{resp.model}</span>
+                      {/if}
                     {:else}
                       <span class="source-badge prompt-badge" title="prompt response">
                         {promptsById[resp.prompt_id]?.name ?? 'prompt'}

@@ -2,15 +2,16 @@
 title: "Search Providers as First-Class — Stand Up SearXNG as the New Default for Social Packs; Tavily Stays as a Peer; Per-Row Iteration as the Workflow We're Building Toward"
 lede: "The social packs route through Tavily today, but Tavily is a content-RAG index — wrong substrate for sparse-text JS-rendered social-profile pages. The fix is **not** to swap Tavily out. The fix is to make **search provider** a first-class concern in the architecture, stand SearXNG up as a peer, flip the common-seven social packs so SearXNG becomes their new default, and keep Tavily wired in as a peer for the content-RAG packs/bundles that will want it (deep-research, document extraction, annual-report summarization). The deeper goal — the reason this is more than a refactor — is that the product is being shaped around an **iteration loop**: a user finds a `not_found` or low-confidence response in the by-record triage view, suspects the provider is the issue, and wants to re-fire the same pack against the same row through a different provider (SearXNG → Brave → Google CSE → direct-API connector) until the accurate data surfaces with the fewest API calls. That loop only exists if providers are plural and selectable per-fire."
 date_created: 2026-05-26
-date_modified: 2026-05-27
+date_modified: 2026-05-28
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.2
+semantic_version: 0.0.0.3
 revisions:
   - 2026-05-26 — Initial draft as "Switch Search Substrate from Tavily to SearXNG." Framed the move as a substrate swap with Tavily preserved as a side-effect. (semver 0.0.0.1)
   - 2026-05-27 — Reframed. The decision is **provider plurality as a first-class architectural concern**, not a substrate swap. SearXNG becomes the new default for social packs; Tavily stays as a peer for content-RAG packs; future providers (Brave, Google CSE, ProPublica NPO, Candid, LinkedIn-direct, MCP-server-as-provider) plug in via the same connector interface. Added §The iteration loop we're building toward — per-row, per-pack provider selection as a future product affordance. File renamed from `Switch-Search-Substrate-from-Tavily-to-Searxng.md` to `Search-Providers-as-First-Class-SearXNG-Default.md` to match. (semver 0.0.0.2)
+  - 2026-05-28 — Layer 1 (the connector plumbing, proposed-work steps 1–6) landed in code. `connectors/{types,index,tavily,searxng}.ts` exist, `PackConfig` is provider-aware, all common-seven social packs default to `connector: 'searxng'`, `runOnePackSearch` dispatches on provider and accepts `provider_override`, and the SearXNG container + `settings.yml` are in `docker-compose.yml`. Steps 7 (foundation-dataset smoke / the ≥60% acceptance number) and 8 (blueprint write-up) remain, as does the per-record iteration UI in response-reviewer :3005. (semver 0.0.0.3)
 tags:
   - Issue
   - Augment-It
@@ -237,6 +238,33 @@ None of those surfaces ship in this issue. But they shape the connector
 interface — specifically, the dispatcher in `search.ts` should accept an
 optional `provider_override` argument so that the chat verb and the UI
 affordances above don't need a second refactor when they arrive.
+
+## Implementation status (2026-05-28)
+
+**Layer 1 — connector plumbing — landed** (steps 1–6 below):
+
+- ✅ `connectors/types.ts` — `Connector`, `ConnectorResult`, `ConnectorOpts`, `ProviderId`.
+- ✅ `connectors/tavily.ts` — the old `searchTavily` REST client behind the `Connector` interface; old `src/tavily.ts` removed.
+- ✅ `connectors/searxng.ts` — `GET /search?format=json` client reading `SEARXNG_URL` (default `http://searxng:8080`).
+- ✅ `connectors/index.ts` — registry + `getConnector(id)`.
+- ✅ `packs.ts` — `PackConfig` is provider-aware (`connector` + neutral `query_template` + `include_domains`); all common-seven default to `connector: 'searxng'`; templates broadened (quotes + `site:` dropped — the `domain_whitelist` in `pickCandidate` is the real gate).
+- ✅ `search.ts` — `runOnePackSearch` resolves `provider = provider_override ?? pack.connector`, dispatches via `getConnector`, records `provider` + `raw_url` in `source_metadata` and as the response `model`. **Never writes to `row.fields`** — additive by construction.
+- ✅ `server.ts` — no longer rejects when `TAVILY_API_KEY` is absent (SearXNG needs none); `provider_override` threads through `pack.fan_out.requested`.
+- ✅ `docker-compose.yml` — `searxng` container (no key) + `SEARXNG_URL` on social-search; `services/social-search/searxng/settings.yml` enables the JSON format and disables the limiter.
+
+**Not yet done:**
+
+- ⏳ Step 7 — foundation-dataset smoke / the ≥60% acceptance number. Needs `pnpm stack up` against real data (deferred: Docker daemon was down when layer 1 landed, so no live run yet).
+- ⏳ Step 8 — the connector pattern written up in [[Packs-and-Bundles-Pattern]].
+
+**Layer 2 — the per-record iteration UI in response-reviewer :3005 — landed (2026-05-28):**
+
+- ✅ Each record card in the **By Record** view has a per-pack icon button so any source can be run on any record. The runner is split into **two provider-labeled rows** — SearXNG and Tavily — so the provider is selectable per-(record × pack), not buried behind the default. Each click fires `pack.search` with the chosen `provider_override`.
+- ✅ Strictly **additive** — a run produces a new candidate response for triage and never writes to `row.fields`; only a human accept does. Honors the user's "never override accepted fields" constraint.
+- ✅ A ✓ badge on a pack icon marks packs already accepted onto that record (from accepted responses + `row.fields.socials`), so the user can see what's "not already accepted" and worth running.
+- ✅ Each result row is tagged with the provider that produced it (`searxng` / `tavily` badge), so recall can be compared provider-by-provider.
+- ✅ `pack.search` capability timeout bumped 5s → 30s (a SearXNG aggregate query is slower than a Tavily call).
+- ⏳ Still open within layer 2: "surface only candidates not already accepted" is currently a visual ✓ hint, not a filter; re-firing a `not_found` pack accumulates duplicate `not_found` rows (no dedup-on-fire yet); the runner rows only appear on records that already have ≥1 response (by-record groups response records).
 
 ## Proposed work — in rough sequence
 
