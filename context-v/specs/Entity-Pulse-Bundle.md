@@ -1,18 +1,19 @@
 ---
 title: "Entity-Pulse Bundle — Press Releases, News Mentions, and the Social Voice of a Record"
-lede: "Profile Builder finds the canonical accounts an entity lives at. Entity Pulse finds what that entity has been *saying* and what's been said *about* it lately. Three packs, three shapes — a site-scrape pack that walks the entity's own domain for press / blog / updates links, a news-API pack that queries Google News (and other free APIs) for outside coverage, and an agent-bound pack that consumes the accepted social account links from a prior Profile Builder run to scan recent posts and summarize the entity's own voice with links back. Augmenting a record set with this bundle answers 'what's the current shape of this entity's public conversation?' in one fire."
+lede: "Profile Builder finds the canonical accounts an entity lives at. Entity Pulse finds what that entity has been *saying* and what's been said *about* it lately. Three categories — **Official Updates** (blog + press release + entity's own social posts), **Media Mentions** (news coverage + thematic inclusion + deep analysis), **Socials Mentions** (third-party mentions across platforms) — fan out across seven source-bound packs in pass 1 and aggregate via three agent-bound rollup packs in pass 2. Each item carries two 0-100 scores (confidence + relevance against a fundraise brief); each category lands as a three-layer Pulse Curation state (immutable raw_output / live curated_output / immutable finalized_output snapshot) so the human gates every item with full audit trail. Augmenting a record set with this bundle answers 'what's the current shape of this entity's public conversation, and what survives our curation?' in one fire."
 date_created: 2026-06-01
-date_modified: 2026-06-01
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.3
+semantic_version: 0.0.0.4
+date_modified: 2026-06-02
 revisions:
   - 2026-06-01 — Initial draft (0.0.0.1).
   - 2026-06-02 — SerpApi added as a peer provider; news pack stays on the free path. Lock: Google News RSS as the v1 default for `news-mentions-pack` (with GDELT immediate peer); SerpApi `engine: 'google_news'` is available behind `provider_override` but never default. `official-site-updates-pack` provider section split into find-index vs extract-posts stages — SerpApi (`engine: 'google'` with `site:`-restrict) is the strongest find-index option; Firecrawl stays for extract-posts. Provider-override shape grows from a single string to `{ find?, extract? }` to match the two-stage economy. New open question: per-bundle cost budget (surfaces in Decision §10's adaptive RR as a candidate pre-fire estimate line). Resolved open question: news provider priority.
   - 2026-06-02 — Engineering-handoff sharpening, two pieces locked: (a) every returned item carries two independent 0-100 scores — `confidence` (Profile-Builder-style: link valid + informative) and `relevance` (LLM-scored against a `relevance_context` brief). Each has a 90-100 / 51-89 / 0-50 tier with semantics tied to triage default-accept / human-review / default-skip behaviour. Worked example (Reach University's apprenticeship-degrees fundraise) shows how a 3-year-old article can score higher on relevance than yesterday's news. (b) No hard cap on returned items — structured response wraps `all` (master, sorted by combined score), `most_recent` and `most_relevant` (each soft cap 20). Sort and tie-break rules locked; per-fire `provider_override.score: 'llm' | 'keywords-only' | 'none'` escape hatch added. Cost discipline section names the batching + cheap-model + pre-filter pattern that keeps LLM scoring viable at fan-out scale.
   - 2026-06-02 — Added top-level **Philosophy** section locking Augment-It's stance on LLM web research: leverage LLM speed/breadth/randomness AND keep quality-gating + relevance-sorting with the human in the loop. Frames the two-score + no-hard-cap + provider-override choices as instances of one principle — *LLMs fan out, humans filter in*. Candidate cross-cutting principle for the Packs-and-Bundles-Pattern blueprint.
+  - 2026-06-02 — Major restructure to v0.0.0.4: **two-pass orchestration across three categories**. Pass 1 grows from three packs to seven, decomposed into OfficialUpdates (blog + press_release + own-social), MediaMentions (news_coverage + thematic_inclusion + deep_analysis), and SocialsMentions (third-party mentions across platforms with `row.socials` filter-out). Pass 2 adds three agent-bound rollup-agents that synthesize per-category Rollup records. The Rollup shape is "true rollup" — carries every constituent item plus indexed views (`by_content_type`, `most_recent`, `most_relevant`) referencing items by index rather than copying. Target columns become `official_updates_pulse / media_mentions_pulse / socials_mentions_pulse`. Each rollup lands in a `PulseCategoryState<Rollup>` wrapper with the three-layer curation model from the NEW sibling spec [[Pulse-Curation-Layer-and-UI]] — immutable `raw_output`, live `curated_output`, immutable `finalized_output` snapshot when the human marks the category done. Three triage actions (accept-canonical / accept-additional-context / discard) plus bulk variants. Migration plan re-sequenced across multiple PRs given the larger scope; first concrete step is now `media-news-coverage-pack` standalone against Google News RSS, with no LLM scoring, no curation layer, just the pack-runner ergonomics smoke. Legacy per-pack detail sections removed (note left in place explaining the decomposition).
 tags:
   - Spec
   - Augment-It
@@ -38,8 +39,16 @@ entity been doing or saying lately?** That's a different operation
 from "find the LinkedIn URL." It needs different sources, different
 mechanics, and a different unit of result (a *feed*, not a *profile*).
 
-Three sources cover that question between them, and a bundle is the
-right abstraction because they fire as a unit against the same row.
+Three *categories* — OfficialUpdates (the entity's own voice),
+MediaMentions (outside voice about the entity), and SocialsMentions
+(third-party mentions across social platforms) — cover that
+question between them. A bundle is the right abstraction because
+they fire as a unit against the same row, and a **two-pass**
+bundle is the right shape because each category needs both
+source-bound fan-out (pass 1) AND agent-bound synthesis across
+those sources into a per-category rollup (pass 2). The output of
+this bundle is three rollups per row, each with its own three-
+layer Pulse Curation state per [[Pulse-Curation-Layer-and-UI]].
 
 ## Philosophy — LLM web research with human-in-the-loop gating
 
@@ -189,138 +198,202 @@ present **two ranked views** plus an `all` master list. If a soft cap
 is needed (UI density, response payload size), it's **20 most recent +
 20 most relevant** with overlap allowed.
 
-### Structured response shape for list-shaped packs
+### Structured response shape — pass-1 packs (list-shaped)
 
-The pack-1 (`official-site-updates-pack`) and pack-2
-(`news-mentions-pack`) outputs are wrapped in a structured response
-rather than a bare array. Sketch:
+Each pass-1 pack returns an `EntityPulseListResponse<ItemType>` —
+its contribution to the eventual category rollup. The pass-2
+rollup-agent merges these.
 
 ```ts
 type EntityPulseListResponse<T extends EntityPulseItem> = {
-  // The complete deduped, scored, sorted-by-combined-score set.
-  // The default "everything we found" array — no cap unless the
-  // provider hard-limits us. Always render first.
-  all: T[];
-
-  // Top-N by published_date, descending. Soft cap 20 — populated only
-  // if `all.length > 20`; otherwise omitted (the UI can sort `all`
-  // itself).
-  most_recent?: T[];
-
-  // Top-N by relevance score, descending. Soft cap 20. Same rule:
-  // omitted when the master list is small enough to sort in place.
-  most_relevant?: T[];
-
+  items: T[];          // every item this pack found (no soft cap at pack level)
   meta: {
-    // What was scored against; surfaces in Request Reviewer per §10.
     relevance_context: string;
-    // Raw count BEFORE any soft cap or quality-floor filter.
     total_found: number;
-    // Items dropped by quality-floor (confidence < 30, etc.).
     dropped_low_confidence: number;
-    // What the bundle thinks of the entity's volume — useful for UI
-    // expectation-setting ("we found 9 items; that's normal for a
-    // small organization" vs "we found 240 items; here are the top
-    // 20 by each ranking").
-    activity_volume: 'sparse' | 'moderate' | 'high';
-    // Per-provider attribution — which connectors fed how many items
-    // into `all`. Lets the user diagnose "did GDELT get throttled?"
     by_provider: Record<string, number>;
+    pack_id: string;
+    generated_at: string;
   };
 };
 
-// The per-item base — `confidence` and `relevance` are first-class.
+// The per-item base — confidence and relevance are first-class.
 type EntityPulseItem = {
   url: string;
   title: string;
   snippet: string;
-  published_date: string;       // ISO-8601; required (we filter out items we can't date)
-  age_days: number;             // computed at fan-out time so the UI can sort without re-parsing
-  confidence: number;           // 0-100, per scale above
-  relevance: number;            // 0-100, per scale above
-  relevance_reasoning?: string; // one-line "why" from the LLM scoring step; useful in triage
+  published_date: string;       // ISO-8601; required
+  age_days: number;             // computed at fan-out time
+  confidence: number;           // 0-100
+  relevance: number;            // 0-100
+  relevance_reasoning?: string;
 };
 
-// Pack 1 extension
+// OfficialUpdate items — three content_types across three packs.
 type OfficialUpdateItem = EntityPulseItem & {
-  content_type: 'press' | 'blog' | 'update' | 'rss-item';
-  source_index_url?: string;    // which index page surfaced this item
+  content_type:
+    | 'official_blog_entry'        // on entity's own domain
+    | 'official_press_release'     // on wire-service URL, verbatim
+    | 'official_social_post_item'; // on entity's own social account
+  source_index_url?: string;       // index page that surfaced it (blog packs)
+  wire_service?: string;           // 'prnewswire' | 'businesswire' | ... (PR pack)
+  platform?: string;               // 'linkedin' | 'x' | ... (own-social pack)
 };
 
-// Pack 2 extension
-type NewsMentionItem = EntityPulseItem & {
-  source: string;               // publication / domain
-  sentiment?: number | null;    // -100 to 100; v1: null
+// MediaMention items — three content_types across three packs.
+type MediaMentionItem = EntityPulseItem & {
+  content_type:
+    | 'news_coverage'              // standard article about the entity
+    | 'thematic_inclusion'         // entity is one of N examples in a trend piece
+    | 'deep_analysis';             // entity IS the story; long-form
+  source: string;                  // publication / domain
+  sentiment?: number | null;       // -100 to 100; v1: null
+  is_long_form?: boolean;          // word_count > threshold
+};
+
+// SocialsMention items — third-party mentions on social platforms.
+type SocialsMentionItem = EntityPulseItem & {
+  platform: 'linkedin' | 'x' | 'bluesky' | 'youtube' | 'facebook' | 'instagram' | 'other';
+  author_url?: string;             // who posted the mention (NOT the entity)
+  engagement_hint?: { likes?: number; reposts?: number; replies?: number };
 };
 ```
 
-### Structured response shape for pack 3 (social-pulse)
+### Structured response shape — pass-2 rollups
 
-Pack 3 produces a single record per row, not a list — but the per-
-`recent_posts[]` entries inside it carry the same `confidence` +
-`relevance` per item, and the surrounding aggregate carries an
-overall `relevance_summary` brief. Updated shape lives in the pack-3
-section below.
+Each rollup-agent produces a single `*Rollup` record per row, per
+category. The rollup carries **every item** (the "true rollup"
+framing) plus the synthesis layer and indexed views:
+
+```ts
+// Shared rollup base — all three categories share this shape.
+type PulseRollup<T extends EntityPulseItem> = {
+  // Synthesis layer — LLM-produced over the items.
+  summary: string;                    // one-paragraph synthesis
+  themes: string[];                   // top-level themes
+  summary_confidence: number;         // 0-100; signal strength of underlying corpus
+  summary_relevance: number;          // 0-100; relevance of overall summary to relevance_context
+
+  // The true-rollup part: every item that fed the synthesis.
+  items: T[];
+
+  // Indexed views — references into items[] by index, not copies.
+  by_content_type: Record<string, number[]>;  // content_type → indices
+  most_recent: number[];                       // soft cap 20, indices into items
+  most_relevant: number[];                     // soft cap 20, indices into items
+
+  meta: {
+    relevance_context: string;
+    total_found: number;                       // raw across all contributing packs
+    dropped_low_confidence: number;
+    dropped_duplicates: number;
+    activity_volume: 'sparse' | 'moderate' | 'high';
+    by_provider: Record<string, number>;       // attribution per connector
+    by_pack: Record<string, number>;           // attribution per pass-1 pack
+    generated_at: string;                      // when the rollup-agent ran
+    model_id: string;                          // LLM used for synthesis + scoring
+  };
+};
+
+type OfficialUpdatesRollup  = PulseRollup<OfficialUpdateItem>;
+type MediaMentionsRollup    = PulseRollup<MediaMentionItem>;
+type SocialsMentionsRollup  = PulseRollup<SocialsMentionItem>;
+```
+
+### Why indexed views (not copies)
+
+The `most_recent` and `most_relevant` arrays hold *indices* into
+`items[]`, not full item objects. Three reasons:
+
+1. **No duplication.** A single item appears in multiple views (it
+   can be both recent AND relevant) but exists once in storage.
+2. **Curation coherence.** When the human discards item #7, every
+   view that referenced index 7 reflects the discard automatically.
+3. **Cheaper persistence.** The curation layer's three layers (raw /
+   curated / finalized) each carry a `Rollup`; indexed views keep
+   the JSON payload bounded.
 
 ### Sort and tie-break rules
 
-`all` is sorted by **combined score** — a simple weighted sum
-`0.4 * (100 - age_days_normalized) + 0.6 * relevance` by default. The
-weight is tunable per fire; the default leans on relevance because
-the user told us that's the load-bearing dimension when the two
-diverge. Ties break by `confidence` descending, then `published_date`
-descending.
+`items` is sorted by **combined score** = `0.4 * (100 -
+age_days_normalized) + 0.6 * relevance` by default. Weight tunable
+per fire; default leans on relevance per the user's framing. Ties
+break by `confidence` desc, then `published_date` desc.
 
-`most_recent` sorts on `published_date` only (with `confidence`
-as the tie-break — we don't surface unverified recent items above
-verified ones).
+`most_recent` sorts on `published_date` (tie-break: `confidence`
+desc — don't surface unverified recent items above verified).
 
-`most_relevant` sorts on `relevance` only (with `published_date` as
-the tie-break — when two items score the same on relevance, the
-fresher one wins).
+`most_relevant` sorts on `relevance` (tie-break: `published_date`
+desc — when two items tie on relevance, the fresher one wins).
 
 ### LLM-scored relevance — cost discipline
 
-Computing `relevance` requires reading the snippet (and ideally the
-page body) and asking an LLM "how does this map to the
-`relevance_context`?" That's a per-item LLM call. At entity-pulse
-fan-out scale (3 packs × 67 rows × ~10-20 items each), naive scoring
-runs ~2000-4000 LLM calls per fan-out — non-trivial.
+Computing `relevance` requires the LLM to map a snippet (and ideally
+page body) against `relevance_context`. At entity-pulse fan-out
+scale (7 pass-1 packs × 67 rows × ~10-20 items each, plus 3 rollup
+synthesis calls), naive scoring runs many thousands of LLM calls per
+fan-out. Four disciplines apply, in priority order:
 
-Disciplines, in priority order:
-
-1. **Score in batches per row.** One LLM call per row per pack
-   takes all that row's items and returns scores together. Reduces
-   call count by ~15×.
-2. **Keyword pre-filter cheap-rejects.** Build a small keyword set
-   from `relevance_context` (LLM-generated once per fan-out, cached);
-   items with zero keyword hits skip the LLM call and get
-   `relevance: 0` with `relevance_reasoning: "no terms from brief
-   present in snippet."` Human can override in triage.
-3. **Use a cheap model.** Haiku-class for scoring; the heavy-context
-   reasoning isn't needed — "does this snippet relate to this brief"
-   is a simple judgment.
+1. **Score in batches per row per pack.** One LLM call per row per
+   pack scores all of that row's items together. ~15× reduction.
+2. **Keyword pre-filter cheap-rejects.** LLM-generate a keyword set
+   from `relevance_context` once per fan-out (cached); items with
+   zero keyword hits skip the LLM call and get `relevance: 0` with
+   `relevance_reasoning: "no terms from brief present in snippet."`
+   Human can override in triage.
+3. **Use a cheap model.** Haiku-class for scoring — "does this
+   snippet relate to this brief" is a simple judgment.
 4. **Surface the budget pre-fire.** Decision §10's adaptive Request
    Reviewer renders the LLM call estimate alongside the fan-out
    payload before the user clicks Fire.
 
 `provider_override.score?: 'llm' | 'keywords-only' | 'none'` is the
-per-fire seam if the user wants to skip scoring entirely (and get
-ranked-by-recency-only).
+per-fire seam if the user wants to skip scoring entirely.
 
 ## Bundle shape
+
+### Two-pass orchestration
+
+The bundle is **two-pass** per the orchestration pattern named in
+[[../blueprints/Packs-and-Bundles-Pattern]]:
+
+- **Pass 1** — seven source-bound packs across three categories.
+  Each pack fetches from one source and returns typed items.
+- **Pass 2** — three agent-bound *rollup* packs. Each consumes the
+  pass-1 output for its category and produces a single Rollup
+  record (synthesis + the constituent items + ranked views) that
+  lands in the row.
 
 ```ts
 export const ENTITY_PULSE: BundleConfig = {
   bundle_id: 'entity-pulse',
   display_name: 'Entity Pulse',
   description: 'What this entity has been saying + what is being said about them — press, news, social',
-  passes: 1,
-  target_columns: ['official_updates', 'news_mentions', 'social_pulse'],
+  passes: 2,
+  target_columns: [
+    'official_updates_pulse',
+    'media_mentions_pulse',
+    'socials_mentions_pulse',
+  ],
   members: [
-    { pack_id: 'official-site-updates-pack', default: true,  pass: 1, required: false },
-    { pack_id: 'news-mentions-pack',         default: true,  pass: 1, required: false },
-    { pack_id: 'social-pulse-pack',          default: true,  pass: 1, required: true  },
+    // --- Pass 1: source-bound packs ---
+    // OfficialUpdate packs — what the entity says about itself
+    { pack_id: 'official-blog-pack',          default: true, pass: 1, required: false },
+    { pack_id: 'official-pressrelease-pack',  default: true, pass: 1, required: false },
+    { pack_id: 'official-social-posts-pack',  default: true, pass: 1, required: false },
+    // MediaMention packs — what others say about the entity
+    { pack_id: 'media-news-coverage-pack',    default: true, pass: 1, required: false },
+    { pack_id: 'media-thematic-pack',         default: true, pass: 1, required: false },
+    { pack_id: 'media-deep-analysis-pack',    default: true, pass: 1, required: false },
+    // SocialsMention pack — third-party mentions on social platforms
+    { pack_id: 'socials-mentions-pack',       default: true, pass: 1, required: false },
+    // --- Pass 2: agent-bound rollups ---
+    { pack_id: 'official-updates-rollup-agent', default: true, pass: 2, required: true,
+      depends_on: ['official-blog-pack', 'official-pressrelease-pack', 'official-social-posts-pack'] },
+    { pack_id: 'media-mentions-rollup-agent',   default: true, pass: 2, required: true,
+      depends_on: ['media-news-coverage-pack', 'media-thematic-pack', 'media-deep-analysis-pack'] },
+    { pack_id: 'socials-mentions-rollup-agent', default: true, pass: 2, required: true,
+      depends_on: ['socials-mentions-pack'] },
   ],
   // Free-text brief that the LLM scoring step uses to compute the
   // `relevance` score per item. Resolution order at fire time:
@@ -333,233 +406,269 @@ export const ENTITY_PULSE: BundleConfig = {
 };
 ```
 
-**Three target columns, one per pack.** Each pack writes to its own
-output column so a user can triage one source at a time in Response
-Reviewer (*"accept the news mentions but skip the social pulse"*).
-Open question: collapse to a single `pulse` JSON column for simpler
-schema? Default = three for the per-source-accept UX; revisit when
-the triage surface gives us a feel.
+**Target-column semantics.** Each rollup-agent's output lands in
+its `<category>_pulse` column — but per
+[[Pulse-Curation-Layer-and-UI]] the column doesn't hold a bare
+Rollup; it holds a `PulseCategoryState<Rollup>` wrapper with three
+layers (raw / curated / finalized). The bundle's writes always
+target the `current.raw_output` slot; the curated and finalized
+layers are managed by the Response Reviewer triage actions.
 
-**Single-pass.** No carry-forward between packs in v1. v2 candidate:
-two-pass where social-pulse uses official-site-update mentions as
-priors.
+### Pass-1 pack roster — three categories
 
-**Pack 3 (`social-pulse-pack`) marked `required: true`** because the
-output is what users will read most. Failing silently on the social
-voice while still claiming "we found the pulse" is misleading; if the
-agent pack errors, the bundle reports failure.
+| Category | content_type | Pack | Source |
+|---|---|---|---|
+| **OfficialUpdates** | `official_blog_entry` | `official-blog-pack` | Entity's own domain (find-index + extract via SerpApi + Firecrawl, RSS where available) |
+| OfficialUpdates | `official_press_release` | `official-pressrelease-pack` | Wire services (PRNewswire, BusinessWire, GlobeNewswire) via news-API or SerpApi |
+| OfficialUpdates | `official_social_post_item` | `official-social-posts-pack` | Walks `row.socials[]` (entity's accepted social accounts) for that entity's *own* posts |
+| **MediaMentions** | `news_coverage` | `media-news-coverage-pack` | News APIs (Google News RSS default, GDELT peer) |
+| MediaMentions | `thematic_inclusion` | `media-thematic-pack` | News APIs filtered for trend-piece patterns ("among", "including", listicles) |
+| MediaMentions | `deep_analysis` | `media-deep-analysis-pack` | Long-form sources (Substack, industry publications, academic indexes) |
+| **SocialsMentions** | per platform | `socials-mentions-pack` | SerpApi with `engine: 'google'` site-restrict per platform; filters out posts FROM `row.socials[]` accounts |
 
-## The three packs
+Each pass-1 pack returns `EntityPulseListResponse<ItemType>` where
+ItemType is the per-category item discriminated by content_type.
+Details per pack below.
 
-### 1. `official-site-updates-pack` — what the entity says about itself
+### Pass-2 rollup-agent roster
 
-**Input:** `row.url` (the entity's primary website, populated either
-manually or by an earlier `url-finder` pack).
-**Output:** an array of `{ url, title, published_date, snippet,
-content_type }` for recent posts on the entity's own domain. v1
-returns up to 10; v2 picks a cap by recency.
-**Output column:** `official_updates`.
+| Category | Rollup type | Agent depends on |
+|---|---|---|
+| OfficialUpdates | `OfficialUpdatesRollup` | All three OfficialUpdate pass-1 packs |
+| MediaMentions | `MediaMentionsRollup` | All three MediaMention pass-1 packs |
+| SocialsMentions | `SocialsMentionsRollup` | The single socials-mentions pass-1 pack |
 
-**Mechanic:**
+Each rollup-agent's job: read all pass-1 items for its category,
+dedupe across the constituent packs, run the per-item LLM scoring
+(see "LLM-scored relevance — cost discipline" above), generate a
+summary + themes, build the `most_recent` / `most_relevant` indexed
+views, and emit the typed `*Rollup` record.
 
-1. From `row.url`, derive candidate index pages: `/press`, `/news`,
-   `/blog`, `/updates`, `/insights`, `/posts`, RSS at `/feed`,
-   `/rss`, `/atom.xml`, and the homepage.
-2. Fetch each (small concurrency, polite delays, cache by URL).
-3. Parse for `<article>` / `<a>`-with-date heuristics, JSON-LD
-   `Article` schema, and standard RSS / Atom feeds. RSS wins when
-   present — saves parsing.
-4. Filter to posts within a recency window (default: last 12 months;
-   per-fire override candidate).
-5. Per item, emit `{ url, title, published_date, snippet
-   (extracted summary or first paragraph), content_type ('press'
-   | 'blog' | 'update' | 'rss-item') }`.
+The Rollup carries **every constituent item** (the user's "true
+rollup" framing — has the synthesis AND the items, not just the
+synthesis), with the index-based views referencing items rather than
+duplicating them.
 
-**Provider:** the mechanic is two-stage: **find index pages**, then
-**extract posts from them**. Different providers shine at different
-stages.
+**Three target columns, one per category.** Each *rollup-agent*
+writes to its own `<category>_pulse` column (so the row carries
+three independent pulse states per [[Pulse-Curation-Layer-and-UI]]).
+A user triages one category at a time in Response Reviewer.
 
-*Find-index stage* candidates:
-- **SerpApi** (`engine: 'google'`) with `site:<row.url> press OR blog
-  OR news OR updates`. Cheap per-request, returns ranked URLs +
-  snippets without scraping. Doesn't fetch bodies — that's the next
-  stage. The strongest option for *finding* the right pages because
-  Google has already indexed them.
-- **Path-guessing** (the homepage walk listed in the mechanic above).
-  Zero-cost but misses non-standard URL structures.
+**All three pass-2 rollup-agents marked `required: true`.** The
+pass-1 source-bound packs are individually `required: false` — any
+one of them missing is fine; the rollup-agent gracefully aggregates
+across whichever packs succeeded. But the rollup-agent itself failing
+means the category produced no synthesized record, which IS a bundle-
+level failure to report.
 
-*Extract-posts stage* candidates:
-- **Firecrawl** (already wired in the MCP server set; production-
-  grade extraction; paid per request). Lean for v1: yes.
-- **Tavily**'s `crawl` endpoint — already a peer provider in
-  augment-it for search; reusing it here makes provider-plurality
-  fall through naturally (per
-  [[../issues/Search-Providers-as-First-Class-SearXNG-Default]]).
-- **Hand-rolled** (HTTP + Cheerio + a small RSS parser). Cheap, no
-  external dependency, fragile against single-page-app sites.
+## Curation layer
 
-**Recommended composition:** SerpApi for find-index (one cheap call
-per row) → Firecrawl for extract-posts (~1-3 calls per row after
-recency filter). Falls back to homepage-walk + hand-rolled when
-provider override or budget says so.
+Outputs land in `row.<category>_pulse` as a `PulseCategoryState<Rollup>`
+wrapper per [[Pulse-Curation-Layer-and-UI]]. The bundle's writes
+always target the `current.raw_output` slot; the curated and finalized
+layers are managed by the Response Reviewer triage actions. Triage is
+**per item, with three actions** (accept-canonical / accept-context /
+discard) plus bulk variants. Finalize is per-category.
 
-Provider-override seam is `provider_override?: { find?: 'serpapi' |
-'self'; extract?: 'firecrawl' | 'tavily' | 'self' }` — split-stage
-because the two phases have independent provider economies.
+This bundle is the **first instance** of the Pulse Curation pattern.
+The pattern itself is bigger than this spec's scope — it covers any
+bundle whose output is a multi-item structured rollup, and a future
+retroactive adoption candidate is Profile Builder (whose `row.socials`
+is half-an-instance today).
 
-**Failure modes:** no robots.txt-allowed pages → outcome `not_found`
-(NOT `error`; the entity just doesn't blog). 404 on every candidate
-→ `not_found`. Network timeout / 5xx after retries → `error`.
-JS-only sites with no SSR → `not_found` for v1; firecrawl handles
-some of these.
+## Pass-1 pack details
 
-### 2. `news-mentions-pack` — what others say about the entity
+### OfficialUpdates packs (three; share `OfficialUpdateItem`)
 
-**Input:** `entity_name` (resolved per Decision §9's auto-inference)
-+ optional `entity_type` (from the active bundle or row).
-**Output:** an array of `{ url, title, source, published_date,
-snippet, sentiment? }` for recent news articles mentioning the
-entity. Default cap: 15 most-recent.
-**Output column:** `news_mentions`.
+#### `official-blog-pack` — `content_type: 'official_blog_entry'`
 
-**Mechanic:**
+**Input:** `row.url` (entity's primary website).
+**Mechanic:** two-stage find-index + extract-posts.
 
-1. Construct a query: `"<entity_name>"` quoted, optional
-   site-restrict to a curated list of news sources by entity_type.
-2. Fire against the active news-API provider.
-3. Filter to a recency window (default: last 6 months for orgs,
-   12 months for individuals).
-4. De-dupe by canonical URL + title-similarity.
-5. Per item, emit normalized record. Optional sentiment is left
-   `null` in v1; v2 candidate to run a tiny classifier on the
-   snippet.
+*Find-index:* SerpApi (`engine: 'google'`) with `site:<row.url>
+press OR blog OR news OR updates` to surface canonical index pages;
+fallback to path-guessing (`/press`, `/news`, `/blog`, `/updates`,
+RSS at `/feed`, `/rss`, `/atom.xml`, homepage).
 
-**Provider stance — news stays free.** Unlike the social packs (where
-SerpApi joins as a paid quality-leader peer), news has a strong free
-path and the cost calculus says use it. The user's framing
-2026-06-02: *"Google News feels like we can do free and separate."*
-This pack keeps free-tier providers as the primary, with paid options
-explicitly available via override but never the default.
+*Extract-posts:* Firecrawl (lean for v1; production-grade), or
+Tavily-crawl, or hand-rolled (HTTP + Cheerio + small RSS parser).
+RSS wins when present.
 
-**Provider candidates, free first:**
-- **Google News RSS** — undocumented but stable; query-by-RSS
-  (`news.google.com/rss/search?q=...&hl=en-US&gl=US`). Free, no
-  auth, geo-aware. v1 first-choice for "free and separate" per the
-  user's framing.
-- **GDELT** — fully open, no auth, global news index, recency
-  excellent. Strong v1 alternative or peer.
-- **NewsAPI.org** — free tier with attribution requirement +
-  rate limits. Easy JSON; useful as a third peer when the first
-  two miss.
-- **Bing News Search API** — free tier via Azure, generous limits,
-  has gone through deprecation rumors — verify viability before
-  building against it.
+**Provider-override seam:** `{ find?: 'serpapi' | 'self'; extract?:
+'firecrawl' | 'tavily' | 'self' }` — split-stage because the
+economies differ.
 
-**Available but NOT the default for this pack — `SerpApi`
-(`engine: 'google_news'`)** returns the highest-quality Google News
-results structurally, but it's paid per request. Available behind
-`provider_override` for the per-row iteration loop or when a user
-opens the "force quality" escape hatch on a specific row. Not the
-pack's default because the free path is good enough at fan-out
-scale.
+**Failure modes:** no robots.txt-allowed pages → `not_found`. 404 on
+every candidate → `not_found`. JS-only sites with no SSR → v1
+`not_found`; Firecrawl handles some.
 
-Pack carries a `connector` field defaulting to `google-news-rss`;
-`provider_override` lets the per-fire surface swap to GDELT,
-NewsAPI, or — explicitly — SerpApi when paying for quality is
-warranted. Start with one free option (Google News RSS) for v1; add
-the second as the second consumer; SerpApi joins behind the
-provider-override seam without ever becoming the default.
+#### `official-pressrelease-pack` — `content_type: 'official_press_release'`
 
-**Failure modes:** zero results → `not_found`. Rate-limit hit →
-provider auto-falls-through to the next in priority order
-(matches the social-search pattern). Persistent failure → `error`.
+**Input:** `entity_name` + optional `row.url` (helps disambiguate).
+**Output:** entries on PR wire services (PRNewswire, BusinessWire,
+GlobeNewswire, etc.) that are the entity's verbatim release —
+NOT third-party coverage.
 
-### 3. `social-pulse-pack` — the entity's own voice across platforms
+**Mechanic:** query each wire service for `"<entity_name>"`, filter
+results where the *byline* is the entity (or its PR team / agency
+of record). Wire-service detection is URL-pattern based
+(`prnewswire.com/news-releases/...`, etc.).
 
-**The interesting one.** This pack is *not* source-bound the way
-LinkedIn-pack or Wikipedia-pack is. Its input is **the accepted
-output of a prior Profile Builder run** — specifically
-`row.socials[]` — and its job is to walk each accepted social
-profile URL and summarize what the entity has been posting lately.
-Plus return the source links for human review.
+**Providers, free first:** Google News RSS site-restricted to wire
+services; GDELT with publisher-filter; SerpApi (`engine: 'google'`
+with site-restrict) as paid override.
 
-**Input:**
-- `entity_name` (for context in the LLM prompt).
-- `row.socials[]` — the array of accepted `{ pack_id, url,
-  display_name, confidence }` from a Profile Builder run. If
-  `row.socials` is empty, the pack returns `outcome: 'not_found'`
-  with a hint: *"no accepted socials yet — run Profile Builder
-  first."*
+**Failure modes:** zero releases → `not_found`. Wire-service block /
+paywall → `not_found` per source, continue across the others.
 
-**Output:** a single JSON record. Posts inside it carry the same
-`confidence` + `relevance` pair as items in packs 1 and 2 (see §"Two
-scores per item" above):
+#### `official-social-posts-pack` — `content_type: 'official_social_post_item'`
 
-```jsonc
-{
-  "summary": "Brief paragraph in the entity's voice describing the public posture across platforms.",
-  "themes": ["theme tag 1", "theme tag 2", ...],
-  "summary_relevance": 78,           // 0-100; relevance of the overall summary to relevance_context
-  "summary_confidence": 92,          // 0-100; signal strength of the underlying corpus
-  "recent_posts": [
-    {
-      "platform": "linkedin",
-      "url": "https://...",
-      "posted_at": "2026-05-28",
-      "age_days": 5,
-      "excerpt": "...",
-      "engagement_hint": "...",
-      "confidence": 95,              // platform handle resolved + post visible
-      "relevance": 88,               // matches fundraise context
-      "relevance_reasoning": "explicit grant announcement for workforce training"
-    }
-  ],
-  // Top recent posts across all scanned platforms, soft cap 20
-  "most_recent": ["post_url_1", "post_url_2", ...],
-  // Top relevant posts across all scanned platforms, soft cap 20
-  "most_relevant": ["post_url_3", "post_url_4", ...],
-  "platforms_scanned": ["linkedin", "x", "youtube"],
-  "platforms_skipped": [{ "platform": "instagram", "reason": "private profile" }],
-  "meta": {
-    "relevance_context": "[the brief used for scoring]",
-    "total_posts_scanned": 47,
-    "dropped_low_confidence": 3,
-    "activity_volume": "moderate"
-  }
-}
-```
+**Input:** `row.socials[]` — the entity's accepted social account
+URLs (from a prior Profile Builder run).
+**Output:** the entity's *own* recent posts across those platforms.
 
-**Output column:** `social_pulse` (single JSON column — unlike packs
-1 and 2 which write arrays of items).
+**Mechanic:** walk each social URL; fetch recent posts (most-recent
+20 per platform); normalize into `OfficialUpdateItem` with
+`platform` field set.
 
-**Mechanic — this is where it diverges from prior packs:**
+**Providers:** firecrawl or per-platform scraping. The
+`platforms_skipped[]` field captures platforms that block scrapers
+(private profiles, geo-blocked, paywall).
 
-1. The pack body is **an agent skill**, not a single API call.
-2. The agent reads `row.socials`, walks each URL with a content-
-   fetcher (firecrawl or an MCP-driven scraper), extracts the
-   most recent N posts per platform.
-3. Per platform: dedupe, normalize the excerpt, attach the URL.
-4. Aggregate across platforms into the structured response.
-5. Run a small LLM step to produce `summary` + `themes` from the
-   raw excerpts. The model id is configurable per-fire (same seam
-   as Prompt Templates).
+**Failure modes:** `row.socials` empty → `not_found` with hint
+("run Profile Builder first"). All platforms inaccessible →
+`error`. Some platforms inaccessible → emit in `platforms_skipped`,
+continue.
 
-**Why this is a new pack *type* worth naming.** Existing packs in
-[[../blueprints/Packs-and-Bundles-Pattern]] are *provider-bound*:
-one source, one connector, one query. This one is *agent-bound*:
-the pack is a skill that orchestrates multiple fetches + an LLM
-summarization. It depends on prior accepted data (`row.socials`).
-That's a meaningful evolution of the pack concept and the
-blueprint should grow a section for it when this spec lands —
-"Agent packs" or "Composite packs." Flagged below in Open
-questions.
+### MediaMention packs (three; share `MediaMentionItem`)
 
-**Failure modes:** `row.socials` empty → `not_found` with hint.
-Some platforms inaccessible (private, geo-blocked) → emit them in
-`platforms_skipped` with reason; not a pack-level failure unless
-ALL platforms are inaccessible. LLM step errors → `error`. Total
-silent failure across all sources → `error` with diagnostic.
+#### `media-news-coverage-pack` — `content_type: 'news_coverage'`
 
+**Input:** `entity_name` + optional `entity_type`.
+**Output:** standard news articles ABOUT the entity (the entity is
+the primary subject).
+
+**Mechanic:** query news APIs, classify each result for primary-
+subject vs. passing-mention (LLM step or heuristic: title contains
+entity_name, snippet's first sentence references entity). Pass
+items classified as primary-subject; emit the rest as zero relevance
+with reasoning.
+
+**Providers, free first:** Google News RSS (v1 default), GDELT,
+NewsAPI.org; SerpApi `engine: 'google_news'` as paid override.
+
+#### `media-thematic-pack` — `content_type: 'thematic_inclusion'`
+
+**Input:** `entity_name` + `relevance_context` (the brief; needed
+for thematic detection).
+**Output:** articles where the entity is *one of several* examples
+in a broader trend piece (listicles, "among other foundations",
+sector roundups).
+
+**Mechanic:** query news APIs broadly, then run LLM detection on
+each candidate: "is the entity a primary subject, or one of many
+examples?" Items in the latter bucket pass to this pack; others
+fall to `media-news-coverage-pack`.
+
+**Providers:** same as news-coverage (same connectors, different
+post-classification step).
+
+**Why separate from news-coverage:** thematic inclusion is often
+*more* relevant to a fundraise context than direct coverage —
+"the foundation funded apprenticeship programs" inside a list of
+seven similar foundations is exactly the relevance signal Reach
+University would want. The split lets the user triage by intent.
+
+#### `media-deep-analysis-pack` — `content_type: 'deep_analysis'`
+
+**Input:** `entity_name`.
+**Output:** long-form pieces where the entity IS the story —
+profiles, investigative work, in-depth analysis.
+
+**Mechanic:** query long-form-leaning sources (Substack search,
+The Atlantic, ProPublica, industry journals, academic indexes);
+filter by `word_count > 1500` heuristic; LLM-confirm "is this a
+deep treatment of the entity?"
+
+**Providers:** SerpApi `engine: 'google'` site-restricted to
+long-form publishers; Google Scholar for academic-leaning;
+Substack-specific search. None free-tier-perfect; this is the
+expensive pack of the bundle.
+
+**Failure modes:** zero matches → `not_found` (deep analysis is
+rare and that's fine).
+
+### SocialsMentions pack (one; uses `SocialsMentionItem`)
+
+#### `socials-mentions-pack` — third-party mentions across platforms
+
+**Input:** `entity_name` + `row.socials[]` (to filter OUT the
+entity's own posts).
+**Output:** posts that mention the entity but were NOT posted by
+the entity's own accounts. One pack handles all platforms; the
+`platform` field discriminates per item.
+
+**Mechanic:** for each platform in scope (`linkedin`, `x`, `bluesky`,
+`youtube`, `facebook`, `instagram`), construct a query with
+`"<entity_name>"` quoted + platform restriction (SerpApi
+`engine: 'google'` with `site:<platform>` is the cheapest path).
+Filter results where the author URL matches any URL in
+`row.socials[]` — those are the entity's own posts, exclude them
+(they belong to the OfficialUpdate category, not here).
+
+**Providers:** SerpApi default (Google site-restricted across
+platforms in parallel). Per-platform native APIs as future peers
+where they exist and are affordable.
+
+**Failure modes:** zero mentions → `not_found`. Platform rate-limit
+→ partial; record the throttled platform in `meta.by_provider`.
+
+## Pass-2 rollup-agent details
+
+Each rollup-agent is an LLM-orchestrated process, not a single API
+call. The agent:
+
+1. Reads all pass-1 results for its category (e.g. for
+   `official-updates-rollup-agent`: the outputs of the three
+   OfficialUpdate packs).
+2. Dedupes items by canonical-URL + title-similarity (per Open
+   question on the algorithm).
+3. Runs per-item LLM scoring against `relevance_context` (per the
+   cost-discipline pattern; batched per row).
+4. Generates `summary` + `themes` via a second LLM call that reads
+   the deduped, scored items.
+5. Builds the indexed views (`by_content_type`, `most_recent`,
+   `most_relevant`).
+6. Emits the typed Rollup record into `row.<category>_pulse.current.raw_output`.
+
+**Failure modes:** any single pass-1 pack failing is graceful — the
+rollup still produces a Rollup from the surviving inputs, with the
+failed pack recorded in `meta.by_pack` (count = 0). All pass-1 packs
+in a category failing → the rollup-agent emits `error` and the
+bundle reports the category as failed.
+
+**Provider-override:** rollup-agents respect `provider_override.score:
+'llm' | 'keywords-only' | 'none'` for the scoring step. The
+synthesis step (summary + themes) is LLM-only; it skips entirely if
+`scoring: 'none'` is set, with a reasoned warning in `meta`.
+
+<!-- Legacy per-pack detail sections (`official-site-updates-pack`,
+     `news-mentions-pack`, `social-pulse-pack`) removed 2026-06-02.
+     The new per-category framing is in "Pass-1 pack details" above
+     (seven packs across three categories) and "Pass-2 rollup-agent
+     details" (three rollup agents). The legacy `social-pulse-pack`
+     decomposed into `official-social-posts-pack` (entity's own posts
+     in OfficialUpdates) and `socials-mentions-pack` (third-party
+     mentions in SocialsMentions). -->
+
+> *Per-pack detail sections for the legacy `official-site-updates-pack`,
+> `news-mentions-pack`, and `social-pulse-pack` were removed in the
+> 2026-06-02 restructure. The new per-category framing lives in
+> "Pass-1 pack details" and "Pass-2 rollup-agent details" above. The
+> legacy `social-pulse-pack` decomposed into
+> `official-social-posts-pack` (entity's own posts — OfficialUpdates
+> category) and `socials-mentions-pack` (third-party mentions —
+> SocialsMentions category).*
 ## Request Reviewer view for this bundle
 
 Because this bundle ships AFTER Decision §10 (adaptive Request
@@ -597,72 +706,112 @@ or a soft hint? Lean: soft hint; the user knows their data.
 ## Open questions
 
 - **Bundle naming.** Entity Pulse vs Recent Activity vs Voice &
-  Mentions vs … the working name is Entity Pulse because it
-  captures both directions (the entity's voice + outside voice
-  about the entity). Confirm or rename.
-- **One target column or three?** v1 says three for per-source
-  accept granularity in Response Reviewer. If the triage surface
-  groups by pack already, three columns might be redundant. Revisit
-  after the triage surface gets its next pass.
-- ~~**News provider priority.**~~ — RESOLVED 2026-06-02 as
-  **Google News RSS first**, GDELT as immediate peer. SerpApi's
-  `google_news` engine is available behind `provider_override` but
-  never the default (free path is good enough at fan-out scale).
-- **Per-bundle cost budget.** New question surfaced 2026-06-02 by
-  SerpApi joining the registry. Fan-out arithmetic at the entity-pulse
-  shape is significant — 3 packs × 67 rows = 201 cells. If a user
-  toggles `provider_override.serpapi` for the whole fan-out, the cost
-  jumps from ~zero to ~$2-4 at SerpApi's entry-tier rate. Worth a
-  pre-fire cost estimate line in the Request Reviewer (Decision §10's
-  adaptive RR is a natural surface for it). v2 candidate; v1 ships
-  without budget enforcement and lets the user notice from their
-  monthly bill.
-- **Agent-pack pattern formalization.** The social-pulse pack is
-  the first agent-bound pack. The blueprint
-  [[../blueprints/Packs-and-Bundles-Pattern]] should grow a
-  section formalizing this pattern when this spec lands: agent
-  packs are skill-driven, depend on prior accepted data, and the
-  fan-out semantics are different (agent runs N sub-fetches; the
-  pack-level outcome aggregates).
-- **Skill registration.** The social-pulse pack is also a candidate
-  chat verb (`/voice-of-entity`?). Decide whether it registers as
-  a verb when it ships, or after.
-- **Recency window per pack.** Defaults named above (12mo official,
-  6mo news, configurable for social). Per-fire override surface
-  candidate; not v1.
-- **Sentiment in `news_mentions`.** v1 leaves `null`; v2 candidate.
-- **De-dup across packs.** A press release from the entity's own
-  site that also got picked up in news mentions — does Pack 2 dedupe
-  against Pack 1? Lean: no in v1; let the triage surface handle it.
-  The user reviewing news_mentions can recognize and skip the
-  duplicate.
+  Mentions vs … the working name captures both directions (the
+  entity's voice + outside voice). Confirm or rename.
+- ~~**One target column or three?**~~ — RESOLVED 2026-06-02 as
+  **three target columns**, one per category, each holding a
+  `PulseCategoryState<Rollup>` per [[Pulse-Curation-Layer-and-UI]].
+  The three-layer curation state argues against collapsing.
+- ~~**News provider priority.**~~ — RESOLVED 2026-06-02 as Google
+  News RSS first, GDELT immediate peer; SerpApi available behind
+  override but never default.
+- ~~**Agent-pack pattern formalization.**~~ — Now affirmed and
+  expanded by the 2026-06-02 restructure: this bundle has FOUR
+  agent-bound packs (one pass-1 — `official-social-posts-pack`
+  walks `row.socials` with LLM extraction — plus all three pass-2
+  rollup-agents). The
+  [[../blueprints/Packs-and-Bundles-Pattern]] addendum becomes a
+  blocker for ship; needs to formalize agent-pack semantics
+  (dependencies, retry, partial-failure, the LLM step) before this
+  bundle's pass-2 is implementable.
+- **Per-bundle cost budget.** Same fan-out-arithmetic concern as
+  before but multiplied by the 7+3 structure. At the new shape:
+  7 pass-1 packs × 67 rows × ~10-20 items each + 3 pass-2 rollup
+  syntheses × 67 rows = LLM scoring on the order of 7,000-14,000
+  cells + 200 syntheses. Cost discipline (batching, keyword
+  pre-filter, Haiku-class) keeps it viable but a pre-fire estimate
+  in Decision §10's RR becomes much more load-bearing. v1 ships
+  without budget enforcement.
+- **Skill registration.** Three candidate chat verbs now —
+  `/entity-pulse` (whole bundle), `/voice-of-entity` (just
+  OfficialUpdates), `/who-mentions-us` (MediaMentions +
+  SocialsMentions). Decide as the bundle ships.
+- **Recency window per pack.** Defaults per the legacy version
+  (12mo official, 6mo news) carry across to the renamed packs;
+  per-fire override surface is v2 candidate.
+- **Sentiment in `media_news_coverage`.** v1 leaves null; v2
+  candidate.
+- **De-dup across packs WITHIN a category.** The rollup-agent
+  dedupes by canonical-URL + title-similarity inside its category
+  (e.g. a press release picked up by both
+  `official-pressrelease-pack` AND `media-news-coverage-pack`
+  appears once in the OfficialUpdates rollup, once in the
+  MediaMentions rollup — two different categories, two
+  different rollups, and that's intended). Cross-category dedupe
+  is not done; the human triages each category independently and
+  can recognize cross-category duplicates if it matters.
+- **De-dup ACROSS pack runs (re-fire).** New question raised by
+  the Pulse Curation Layer: when a re-fire produces an item with
+  the same URL as a previously-finalized canonical entry, the
+  rollup-agent should mark `previously_accepted: true` in the new
+  raw_output's `meta` per item, so the curation UI can de-emphasize
+  but not silently drop. Aligns with the curation spec's "Re-fire
+  merge resolution" open question — same question, two-spec
+  resolution.
+- **`relevance_context` resolution UX.** The three-tier resolution
+  (per-fire → record_set → bundle default) is locked in the bundle
+  config, but Pack Runner / Request Reviewer chrome for editing /
+  inheriting / overriding hasn't been designed. UX work belongs in
+  [[Pulse-Curation-Layer-and-UI]]'s sibling spec — or here as
+  this bundle's Request Reviewer view.
 
 ## Migration / first concrete implementation step
 
-When picked up, the smallest shippable v1 is:
+The 2026-06-02 restructure makes the bundle a meaningfully bigger
+landing — 7 pass-1 packs + 3 pass-2 rollup-agents + a curation
+layer + three new connectors. Smallest-shippable now sequences
+across several PRs:
 
-1. **The `news-mentions-pack` standalone**, against **Google News
-   RSS** (free, no auth, geo-aware — the locked v1 default per the
-   2026-06-02 resolution above), with `target_columns:
-   ['news_mentions']` and a single-pack bundle `news-pulse` for
-   testing. This gets the pack-runner UI exercised against a
-   non-`socials` target column and provides a quick "is this useful?"
-   signal — *without paying for SerpApi to get the first signal.*
-2. **Add `official-site-updates-pack`** behind firecrawl. Now two-
-   pack bundle.
-3. **Add `social-pulse-pack`** as the agent-bound pack. By this
-   point Decision §10's adaptive Request Reviewer should be
-   shipping in parallel so the JSON-view review can be tested on
-   this bundle's shape.
+1. **`media-news-coverage-pack` standalone** (free path only: Google
+   News RSS). Single-pack mini-bundle `news-pulse`. Output type
+   `MediaMentionItem[]` (no rollup yet; just the list per pack-1).
+   No curation layer yet; just write to a transient column. Purpose:
+   get the pack-runner UI exercised against a non-`socials` target
+   column; signal "is this useful?" without paying for any LLM
+   scoring (`provider_override.score: 'none'`).
+2. **Add `confidence` scoring** to pack-1 output. Still no LLM
+   relevance; confidence is verification-driven (URL resolves, entity
+   in snippet). v1 of the confidence pipeline.
+3. **Pulse Curation Layer minimum** ([[Pulse-Curation-Layer-and-UI]]).
+   Three layers (raw_output / curated_output / finalized_output) for
+   the single existing category. Response Reviewer surface gets per-
+   category card chrome and the three triage actions. Profile Builder
+   retroactive adoption STAYS OUT — it's the cleanest test of the
+   pattern in isolation first.
+4. **Add `media-thematic-pack` + `media-deep-analysis-pack`** and the
+   `media-mentions-rollup-agent` (pass 2). Now the bundle has one full
+   category with rollup synthesis. Decision §10's adaptive RR ships in
+   parallel to handle the bundle-request JSON view.
+5. **Add OfficialUpdates packs** (blog + pressrelease + own-socials)
+   and `official-updates-rollup-agent`. Multi-category curation.
+6. **Add SocialsMentions pack + rollup-agent.** Full bundle.
+7. **(Parallel)** SerpApi connector lands when first needed (likely
+   in step 4 for the long-form sources of `media-deep-analysis-pack`).
 
-Each ships against `feat/<pack-name>` (or trunk per the new branch-
-cadence rule — single-file additions to a service can land direct).
+Per the branch-cadence rule: trunk for single-file additions
+(connectors, types) and small spec edits; named branch + PR for any
+PR-shaped feature step above. The Pulse Curation Layer (step 3) is
+unambiguously a branch.
 
 ## Related
 
+- [[Pulse-Curation-Layer-and-UI]] — the three-layer (raw /
+  curated / finalized) data model + per-item triage UX this
+  bundle's outputs live in. Entity Pulse is the first instance.
 - [[../blueprints/Packs-and-Bundles-Pattern]] — the pattern this
-  bundle instances. The agent-pack subtype this spec proposes is
-  a candidate addendum to that blueprint.
+  bundle instances. Pulse-shaped bundles (rollups + curation +
+  agent packs + two-pass) are a candidate addendum to the
+  blueprint when this lands.
 - [[Shell-and-Micro-Frontend-UX-Coherence]] §Decision §10 — the
   adaptive Request Reviewer that should render this bundle's
   fan-out payload + sample queries in the JSON view.
