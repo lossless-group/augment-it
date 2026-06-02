@@ -28,6 +28,13 @@ export type BundleConfig = {
   entity_type?: string;        // matches the .common / .nonprofit suffix on chat verbs
   passes: 1 | 2;               // single-pass for v1
   members: BundleMember[];
+  // What gets richer when a fan-out succeeds and a human accepts the
+  // responses. v1: every pack writes into row.socials per the 2026-05-25
+  // design pivot, so every bundle targets ['socials']. Future bundles
+  // whose packs write to other columns can list multiple targets here;
+  // the Pack Runner UI surfaces the union near the Fire button so the
+  // user always knows what column(s) get improved (spec Decision §9).
+  target_columns: string[];
 };
 
 export const PROFILE_BUILDER: BundleConfig = {
@@ -35,6 +42,7 @@ export const PROFILE_BUILDER: BundleConfig = {
   display_name: 'Profile Builder',
   description: 'Common-five social packs + Wikipedia — for any entity that lives on the public web',
   passes: 1,
+  target_columns: ['socials'],
   members: [
     { pack_id: 'linkedin-pack',  default: true,  pass: 1, required: false },
     { pack_id: 'x-pack',         default: true,  pass: 1, required: false },
@@ -52,6 +60,7 @@ export const PROFILE_BUILDER_NONPROFIT: BundleConfig = {
   description: 'Common-five + Wikipedia, biased for org-shaped entities; nonprofit-specific packs (Candid, ProPublica, IRS 990) opt-in once they ship',
   entity_type: 'nonprofit',
   passes: 1,
+  target_columns: ['socials'],
   members: [
     { pack_id: 'linkedin-pack',  default: true,  pass: 1, required: false },
     { pack_id: 'x-pack',         default: true,  pass: 1, required: false },
