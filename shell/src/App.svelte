@@ -405,14 +405,19 @@
     box-shadow: var(--fx-card-shadow);
   }
 
-  /* peek neighbour click-capture overlay */
+  /* peek neighbour click-capture overlay.
+     Labels anchor at the slice's left margin (spec Decision §6) — they
+     are landmarks, not floating titles. Uniform left-anchor across prev
+     and next peeks for now; if the right-peek's inner-edge label reads
+     wrong against the focused pane, revisit with role-aware positioning. */
   .peek-overlay {
     position: absolute;
     inset: 0;
     display: flex;
     align-items: flex-start;
-    justify-content: center;
+    justify-content: flex-start;
     padding-top: 1.5rem;
+    padding-left: 0.75rem;
     background: color-mix(in srgb, var(--color-background) 55%, transparent);
     border: 0;
     border-left: 1px solid var(--color-border);
