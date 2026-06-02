@@ -10,14 +10,14 @@
 // are the one adapter; swapping the storage is swapping this file's two
 // private functions, nothing else.
 
-import { REMOTES, PAIRINGS } from './remotes';
+import { ROTATION, PAIRINGS } from './remotes';
 
-export type LayoutMode = 'peek-deck' | 'co-existence' | 'full';
+export type LayoutMode = 'peek-flow' | 'co-existence' | 'full';
 
 export type ShellLayoutPreference = {
   mode: LayoutMode;
-  focusIndex: number;                       // peek-deck / full: position in REMOTES
-  focusedWidthPct: number;                  // peek-deck: user-adjusted focused width
+  focusIndex: number;                       // peek-flow / full: position in REMOTES
+  focusedWidthPct: number;                  // peek-flow: user-adjusted focused width
   coExistenceRatios: Record<string, number>; // pair key → left-panel %
   defaultMode: LayoutMode;
 };
@@ -25,20 +25,36 @@ export type ShellLayoutPreference = {
 const STORAGE_KEY = 'augment-it:shell-layout';
 
 const DEFAULTS: ShellLayoutPreference = {
-  mode: 'peek-deck',
+  mode: 'peek-flow',
   focusIndex: 0,
   focusedWidthPct: 90,
   coExistenceRatios: {},
-  defaultMode: 'peek-deck',
+  defaultMode: 'peek-flow',
 };
+
+// One-time migration for the Deck → Flow rename (spec Decision §7).
+// Old persisted snapshots have mode/defaultMode as 'peek-deck'; map to
+// 'peek-flow' on read so existing users don't lose their layout.
+function migrateMode(mode: unknown): LayoutMode | undefined {
+  if (mode === 'peek-deck') return 'peek-flow';
+  if (mode === 'peek-flow' || mode === 'co-existence' || mode === 'full') return mode;
+  return undefined;
+}
 
 function readStored(): ShellLayoutPreference {
   if (typeof localStorage === 'undefined') return { ...DEFAULTS };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULTS };
-    const parsed = JSON.parse(raw) as Partial<ShellLayoutPreference>;
-    return { ...DEFAULTS, ...parsed, coExistenceRatios: { ...parsed.coExistenceRatios } };
+    const parsed = JSON.parse(raw) as Partial<ShellLayoutPreference> & {
+      mode?: unknown; defaultMode?: unknown;
+    };
+    const migrated: Partial<ShellLayoutPreference> = {
+      ...parsed,
+      mode: migrateMode(parsed.mode),
+      defaultMode: migrateMode(parsed.defaultMode),
+    };
+    return { ...DEFAULTS, ...migrated, coExistenceRatios: { ...parsed.coExistenceRatios } };
   } catch {
     return { ...DEFAULTS };
   }
@@ -62,7 +78,7 @@ class ShellLayout {
   constructor() {
     const p = readStored();
     this.mode = $state<LayoutMode>(p.mode);
-    this.focusIndex = $state<number>(clamp(p.focusIndex, 0, REMOTES.length - 1));
+    this.focusIndex = $state<number>(clamp(p.focusIndex, 0, ROTATION.length - 1));
     this.focusedWidthPct = $state<number>(clamp(p.focusedWidthPct, FOCUSED_WIDTH_MIN, FOCUSED_WIDTH_MAX));
     this.coExistenceRatios = $state<Record<string, number>>(p.coExistenceRatios);
     this.defaultMode = $state<LayoutMode>(p.defaultMode);
@@ -92,11 +108,11 @@ class ShellLayout {
 
   /** No wrap — clamped to the sequence ends. */
   setFocusIndex(index: number): void {
-    this.focusIndex = clamp(index, 0, REMOTES.length - 1);
+    this.focusIndex = clamp(index, 0, ROTATION.length - 1);
     this.persist();
   }
 
-  /** Drag the focused panel's edge (peek-deck). */
+  /** Drag the focused panel's edge (peek-flow). */
   setFocusedWidth(pct: number): void {
     this.focusedWidthPct = clamp(pct, FOCUSED_WIDTH_MIN, FOCUSED_WIDTH_MAX);
     this.persist();

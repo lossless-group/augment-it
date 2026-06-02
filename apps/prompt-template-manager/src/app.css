@@ -205,40 +205,5 @@
   border-radius: 4px;
 }
 
-/* -----------------------------------------------------------------------------
- * Enrichment-mode switch — Custom Prompt (active) vs Pre-built Pack (link
- * out to pack-runner via augment-it:navigate). Spec:
- * context-v/plans/Run-as-First-Class-Operation.md §Part 1
- * -------------------------------------------------------------------------- */
-.ptm-app .ptm-mode-switch {
-  display: flex;
-  gap: 0.4rem;
-  padding: 0.5rem 1.5rem;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-background);
-}
-
-.ptm-app .ptm-mode {
-  background: transparent;
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-  padding: 0.35rem 0.85rem;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  letter-spacing: 0.02em;
-}
-.ptm-app .ptm-mode:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-.ptm-app .ptm-mode.active {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border-color: var(--color-accent);
-  cursor: default;
-}
-.ptm-app .ptm-mode.active:hover {
-  /* don't tint when already active */
-  color: var(--color-on-accent);
-}
+/* Enrichment-mode switch moved to packages/shared-ui as ToggleHeader__PromptOrPackage--Icons
+ * (Phase 2c). The shell renders it as the composite slot's header. */

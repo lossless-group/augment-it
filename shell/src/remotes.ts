@@ -3,6 +3,15 @@
 // Adding a remote is a REMOTES entry + a `remotes` map line in
 // rsbuild.config.ts — nothing else in the shell. Adding a co-existence
 // pairing is a PAIRINGS entry.
+//
+// A PAIRING slot may reference either a remote id (the common case) or a
+// composite id from composites.ts (a slot that hosts one-of-N remotes
+// based on shared state — see [[Shell-and-Micro-Frontend-UX-Coherence-Refactor]]
+// Phase 2c). slotById() resolves either kind.
+
+import { compositeById, type CompositeEntry } from './composites';
+export { compositeById } from './composites';
+export type { CompositeEntry } from './composites';
 
 export type RemoteEntry = {
   id: string;
@@ -12,6 +21,23 @@ export type RemoteEntry = {
   // (any name, or a default export) — see MountHost's generic loader.
   importMount: () => Promise<Record<string, unknown>>;
 };
+
+/**
+ * Ordered list of slot ids that walk the peek-flow rotation (and the
+ * full-mode focus sequence). Each id resolves via slotById() to either
+ * a federated remote or a composite. Composites are peers in the
+ * rotation, so the in-slot toggle (e.g. enrichment's PTM⇄Pack-Runner
+ * pair) works in every layout mode, not just co-existence.
+ *
+ * Phase 2d of the refactor — see context-v/plans/Shell-and-Micro-Frontend-UX-Coherence-Refactor.md
+ */
+export const ROTATION: string[] = [
+  'recordCollector',
+  'enrichment',          // composite — PTM ⇄ Pack Runner via in-slot toggle
+  'requestReviewer',
+  'responseReviewer',
+  'enhancedRecordsList',
+];
 
 export const REMOTES: RemoteEntry[] = [
   {
@@ -70,7 +96,7 @@ export const CHAT_REMOTE: RemoteEntry = {
 // PACK_RUNNER_REMOTE is intentionally NOT in REMOTES. Per the
 // [[Run-as-First-Class-Operation]] plan §Part 1: Pack Runner is the
 // alternative to authoring a custom prompt, reached as an "option" from
-// prompt-template-manager, not as a sibling tile in the peek-deck. The
+// prompt-template-manager, not as a sibling tile in the peek-flow. The
 // federation registration is still in rsbuild.config.ts so the PAIRING
 // lookup + cross-remote navigation event continue to work.
 export const PACK_RUNNER_REMOTE: RemoteEntry = {
@@ -82,7 +108,7 @@ export const PACK_RUNNER_REMOTE: RemoteEntry = {
 };
 
 // "Extra" remotes — federation-registered + reachable via PAIRING /
-// augment-it:navigate, but excluded from the peek-deck rotation in REMOTES.
+// augment-it:navigate, but excluded from the peek-flow rotation in REMOTES.
 // Same shape as CHAT_REMOTE; aggregated here so remoteById() can fall back
 // to look them up without each caller having to know about each extra.
 const EXTRA_REMOTES: RemoteEntry[] = [CHAT_REMOTE, PACK_RUNNER_REMOTE];
@@ -99,10 +125,14 @@ export type Pairing = {
 
 export const PAIRINGS: Pairing[] = [
   {
-    key: 'recordCollector+promptTemplateManager',
+    // The enrichment composite (PTM ⇄ Pack Runner) paired with Record
+    // Collector. Replaces the two former pairings recordCollector+PTM and
+    // packRunner+PTM. The composite owns the in-slot toggle; the shell
+    // mounts only the active member at a time. Phase 2c of the refactor.
+    key: 'recordCollector+enrichment',
     left: 'recordCollector',
-    right: 'promptTemplateManager',
-    defaultLeftPct: 30, // record-collector 30 / prompt-template-manager 70
+    right: 'enrichment',
+    defaultLeftPct: 30,
   },
   {
     // Per Enhanced-Records-List spec §"Surface": pair the new checkpoint
@@ -113,18 +143,25 @@ export const PAIRINGS: Pairing[] = [
     right: 'enhancedRecordsList',
     defaultLeftPct: 25, // record-collector narrower; the checkpoint table needs room
   },
-  {
-    // Per [[Run-as-First-Class-Operation]] §Part 1: prompt-templates and
-    // pack-runner are the two ways to enrich a record set (custom LLM
-    // prompt vs source-bound pack), so they belong in one viewport.
-    // Equal billing by default — neither dominates the workflow.
-    key: 'packRunner+promptTemplateManager',
-    left: 'promptTemplateManager',
-    right: 'packRunner',
-    defaultLeftPct: 50,
-  },
 ];
 
 export function remoteById(id: string): RemoteEntry | undefined {
   return REMOTES.find((r) => r.id === id) ?? EXTRA_REMOTES.find((r) => r.id === id);
+}
+
+/**
+ * A slot in a layout can be either a single remote or a composite that
+ * hosts one-of-N remotes. Use slotById when you need to handle both —
+ * e.g. when rendering a PAIRING half.
+ */
+export type Slot =
+  | { kind: 'remote'; remote: RemoteEntry }
+  | { kind: 'composite'; composite: CompositeEntry };
+
+export function slotById(id: string): Slot | undefined {
+  const r = remoteById(id);
+  if (r) return { kind: 'remote', remote: r };
+  const c = compositeById(id);
+  if (c) return { kind: 'composite', composite: c };
+  return undefined;
 }

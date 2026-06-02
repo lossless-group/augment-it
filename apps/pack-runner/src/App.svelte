@@ -24,23 +24,6 @@
   const RECORD_SET_KEY = 'augment-it:pack-runner:record-set';
   const ENTITY_FIELD_KEY = 'augment-it:pack-runner:entity-name-field';
 
-  // Shared enrichment-mode state — mirrored from prompt-template-manager so
-  // the pair panels stay in sync.
-  const ENRICHMENT_MODE_KEY = 'augment-it:enrichment-mode';
-  const ENRICHMENT_MODE_EVENT = 'augment-it:enrichment-mode';
-  type EnrichmentMode = 'prompt' | 'pack';
-
-  function readMode(): EnrichmentMode {
-    if (typeof localStorage === 'undefined') return 'pack';
-    return (localStorage.getItem(ENRICHMENT_MODE_KEY) as EnrichmentMode) ?? 'pack';
-  }
-  function setMode(mode: EnrichmentMode): void {
-    enrichmentMode = mode;
-    if (typeof localStorage !== 'undefined') localStorage.setItem(ENRICHMENT_MODE_KEY, mode);
-    window.dispatchEvent(new CustomEvent(ENRICHMENT_MODE_EVENT, { detail: { mode } }));
-  }
-  let enrichmentMode = $state<EnrichmentMode>(readMode());
-
   function readStored(key: string): string | null {
     if (typeof localStorage === 'undefined') return null;
     return localStorage.getItem(key);
@@ -122,14 +105,6 @@
       onStatus: (s) => (status = s),
     });
     void loadRecordSets();
-
-    // Listen for mode flips from the pair panel (prompt-template-manager).
-    const onMode = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { mode?: EnrichmentMode } | undefined;
-      if (detail?.mode) enrichmentMode = detail.mode;
-    };
-    window.addEventListener(ENRICHMENT_MODE_EVENT, onMode);
-    return () => window.removeEventListener(ENRICHMENT_MODE_EVENT, onMode);
   });
 
   async function loadRecordSets() {
@@ -270,38 +245,6 @@
   <div class="pr-status-bar">
     consumes <code>@augment-it/workspace</code> · <code>{WS_URL}</code> ·
     <span class="status status-{status}">{status}</span>
-  </div>
-
-  <!-- Symmetric mode-switch — mirrors prompt-template-manager. Shared
-       state via the augment-it:enrichment-mode window event + localStorage
-       so both pair panels reflect the same selection. -->
-  <div class="pr-mode-switch" role="tablist" aria-label="Enrichment mode">
-    <button
-      class="pr-mode"
-      class:active={enrichmentMode === 'prompt'}
-      role="tab"
-      aria-selected={enrichmentMode === 'prompt'}
-      onclick={() => {
-        setMode('prompt');
-        window.dispatchEvent(
-          new CustomEvent('augment-it:navigate', {
-            detail: { remoteId: 'promptTemplateManager' },
-          }),
-        );
-      }}
-      title="Author a custom LLM prompt instead of using a pre-built pack"
-    >
-      ← Custom Prompt
-    </button>
-    <button
-      class="pr-mode"
-      class:active={enrichmentMode === 'pack'}
-      role="tab"
-      aria-selected={enrichmentMode === 'pack'}
-      onclick={() => setMode('pack')}
-    >
-      Pre-built Pack
-    </button>
   </div>
 
   <div class="pr-body">

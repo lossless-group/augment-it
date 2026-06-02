@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./ConfidencePill.svelte": "./src/ConfidencePill.svelte"
+    "./ConfidencePill.svelte": "./src/ConfidencePill.svelte",
+    "./ToggleHeader__PromptOrPackage--Icons.svelte": "./src/ToggleHeader__PromptOrPackage--Icons.svelte"
   },
   "peerDependencies": {
     "svelte": "^5.0.0"
