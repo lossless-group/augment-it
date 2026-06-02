@@ -4,10 +4,12 @@
 import type { Connector, ProviderId } from './types';
 import { tavilyConnector } from './tavily';
 import { searxngConnector } from './searxng';
+import { serpapiConnector } from './serpapi';
 
 const CONNECTORS: Record<ProviderId, Connector> = {
   tavily: tavilyConnector,
   searxng: searxngConnector,
+  serpapi: serpapiConnector,
 };
 
 export function getConnector(id: ProviderId): Connector {

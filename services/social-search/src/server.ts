@@ -2,9 +2,15 @@
 // configured search provider (SearXNG by default; Tavily as a peer).
 //
 // Subjects:
-//   pack.search.requested    — one pack × one row → one ResponseRecord
-//   pack.fan_out.requested   — N packs × M rows  → N×M ResponseRecords,
-//                              concurrency-bounded; reply when all done
+//   pack.search.requested        — one pack × one row → one ResponseRecord
+//   pack.fan_out.requested       — N packs × M rows  → N×M ResponseRecords,
+//                                  concurrency-bounded; reply when all done
+//   pack.entity_pulse.requested  — list-shaped Entity Pulse pack run (Phase 1).
+//                                  Step-1 scope: official-blog-pack only;
+//                                  reply with EntityPulseListResponse JSON, no
+//                                  response-store write yet (curation layer +
+//                                  rollup come in later phases). See
+//                                  context-v/specs/Entity-Pulse-Bundle.md.
 //
 // Starts regardless of keys: SearXNG (the default) needs none. A pack routed
 // to Tavily without TAVILY_API_KEY records a localized outcome:'error' for that
@@ -17,6 +23,11 @@ import { connect, JSONCodec } from 'nats';
 import { PACK_IDS } from './packs';
 import { runOnePackSearch, type SearchInput } from './search';
 import type { ProviderId } from './connectors';
+import {
+  runOfficialBlogPack,
+  OFFICIAL_BLOG_PACK_ID,
+  type OfficialBlogPackInput,
+} from './entity-pulse/packs/official-blog-pack';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 const MAX_CONCURRENT = Number.parseInt(process.env.SOCIAL_SEARCH_CONCURRENCY ?? '4', 10);
@@ -163,6 +174,49 @@ async function main(): Promise<void> {
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
         console.error(JSON.stringify({ level: 'error', msg: 'fan_out failed', error }));
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // pack.entity_pulse.requested — list-shaped Entity Pulse pack run.
+  // Step-1 scope (per Entity-Pulse-Bundle migration step 1): only
+  // official-blog-pack is wired here. The reply carries the full
+  // EntityPulseListResponse JSON; no response-store write yet — the
+  // curation layer + rollup-agent land in later phases.
+  (async () => {
+    const sub = nc.subscribe('pack.entity_pulse.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as OfficialBlogPackInput & {
+        pack_id: string;
+      };
+      try {
+        if (args.pack_id !== OFFICIAL_BLOG_PACK_ID) {
+          throw new Error(
+            `entity_pulse: unknown pack_id "${args.pack_id}"; step-1 supports only "${OFFICIAL_BLOG_PACK_ID}"`,
+          );
+        }
+        const response = await runOfficialBlogPack(args);
+        console.log(JSON.stringify({
+          level: 'info',
+          msg: 'pack.entity_pulse',
+          pack_id: args.pack_id,
+          row_id: args.row_id,
+          items_found: response.items.length,
+          source_indexes: response.meta.source_indexes?.length ?? 0,
+        }));
+        if (msg.reply) {
+          msg.respond(jc.encode({ ok: true, outcome: 'found', response }));
+        }
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        console.error(JSON.stringify({
+          level: 'error',
+          msg: 'pack.entity_pulse failed',
+          pack_id: args.pack_id,
+          row_id: args.row_id,
+          error,
+        }));
         if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
       }
     }
