@@ -243,6 +243,51 @@
   margin-left: 0.2rem;
 }
 
+/* Entity-name hint affordance (spec Decision §9) — read-only line with
+   change-link. Replaces the prior Step 2 dropdown-as-primary-step. */
+.pr-app .entity-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.8rem;
+}
+.pr-app .entity-col {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+.pr-app .entity-warn { color: var(--color-warn-text, var(--color-text)); }
+.pr-app .entity-change {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}
+.pr-app .entity-change:hover {
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+}
+.pr-app .entity-select {
+  font-size: 0.8rem;
+  padding: 0.2rem 0.4rem;
+}
+
+/* Target-column line in the fire-card subhead (spec Decision §9) —
+   "Augmenting `socials` on N rows". Names what gets richer. */
+.pr-app .fire-target { margin-bottom: 0.15rem; }
+.pr-app .target-col {
+  color: var(--color-accent);
+  background: var(--color-field);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
 /* Pinned to the bottom of the scroll container so the run action stays
    reachable no matter how long the row/pack lists get. */
 .pr-app .fire-card {

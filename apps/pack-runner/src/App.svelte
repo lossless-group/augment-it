@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { workspace, type RecordSet, type Row } from '@augment-it/workspace';
-  import { BUNDLES, getBundle, packDisplayName, type BundleConfig } from './bundles';
+  import { BUNDLES, getBundle, packDisplayName, inferEntityNameField, type BundleConfig } from './bundles';
 
   const TOKEN_KEY = 'augment-it:session-token';
   const WS_URL = 'ws://localhost:3001/ws';
@@ -18,7 +18,12 @@
   // sessions, then write canonical on every change going forward.
   const ACTIVE_RECORD_SET_KEY = 'augment-it:active-record-set';
   const LEGACY_RECORD_SET_KEY = 'augment-it:pack-runner:record-set';
-  const ENTITY_FIELD_KEY = 'augment-it:pack-runner:entity-name-field';
+  // Per-record-set override for the inferred entity-name column (spec
+  // Decision §9). Keyed by record_set_id so overrides don't leak across
+  // sets. The legacy global key is read once as a migration fallback when
+  // no per-set override exists yet.
+  const ENTITY_FIELD_KEY_PREFIX = 'augment-it:entity-name-field:';
+  const LEGACY_ENTITY_FIELD_KEY = 'augment-it:pack-runner:entity-name-field';
   // Bundle-aware persistence (Phase 3): the active bundle id, plus per-bundle
   // roster-override sets so swapping bundles doesn't lose user tuning per bundle.
   const BUNDLE_ID_KEY = 'augment-it:pack-runner:bundle-id';
@@ -67,7 +72,13 @@
   );
   let rowsForSelected = $state<Row[]>([]);
   let selectedRowIds = $state<Set<string>>(new Set());
-  let entityNameField = $state<string>(readStored(ENTITY_FIELD_KEY) ?? '');
+  let entityNameField = $state<string>('');
+  // Whether the user has explicitly picked a different entity-name column
+  // than the inference. Drives the "we're reading entity names from X"
+  // hint vs the dropdown affordance.
+  let entityNameOverridden = $state<boolean>(false);
+  // When the user clicks `change ›`, expose the dropdown inline.
+  let entityNamePickerOpen = $state<boolean>(false);
   let activeBundleId = $state<string>(initialBundle.bundle_id);
   let enabledPackIds = $state<Set<string>>(
     readRoster(initialBundle.bundle_id) ?? defaultRoster(initialBundle),
@@ -80,6 +91,12 @@
   );
   const columns = $derived(selectedSet?.schema.fields.map((f) => f.name) ?? []);
   const activeBundle = $derived(getBundle(activeBundleId) ?? BUNDLES[0]);
+  // Target columns — what gets richer when responses land + are accepted.
+  // For v1 this is always 'socials' (per the 2026-05-25 pivot baked into
+  // services/social-search/src/search.ts). Future bundles whose packs
+  // write to other columns can declare additional targets on the bundle
+  // and we'll render the union. Spec Decision §9.
+  const targetColumns = $derived<string[]>(activeBundle.target_columns ?? ['socials']);
   const enabledPackCount = $derived(enabledPackIds.size);
   const rosterSize = $derived(activeBundle.members.length);
 
@@ -196,30 +213,59 @@
       // checkboxes refine. Avoids the "everything visible but Fire is
       // disabled" trap.
       selectedRowIds = new Set(r.rows.map((row) => row.row_id));
-      // Restore last entity-name-field choice if the column still exists in
-      // this set's schema; otherwise fall back to a best-guess.
-      const stored = readStored(ENTITY_FIELD_KEY);
+      // Entity-name column resolution (spec Decision §9):
+      //   1. Per-record-set override (the explicit pick the user has
+      //      saved for THIS set) wins. Persisted under
+      //      augment-it:entity-name-field:<record_set_id>.
+      //   2. Otherwise infer from the ENTITY_NAME_CANDIDATES list against
+      //      the set's schema field names — first match wins.
+      //   3. Migration fallback: the pre-Phase-§9 global key
+      //      augment-it:pack-runner:entity-name-field is read once if no
+      //      per-set override exists, in case the user had configured it
+      //      manually before. Not written going forward.
+      //   4. Last resort: first column, if any. Hint will say "no match;
+      //      pick a column" — entityNameOverridden stays false so the
+      //      change-link is visible by default.
+      const setOverrideKey = ENTITY_FIELD_KEY_PREFIX + record_set_id;
+      const setOverride = readStored(setOverrideKey);
       const cols = (recordSets.find((rs) => rs.record_set_id === record_set_id)?.schema.fields ?? []).map((f) => f.name);
-      if (stored && cols.includes(stored)) {
-        entityNameField = stored;
+      if (setOverride && cols.includes(setOverride)) {
+        entityNameField = setOverride;
+        entityNameOverridden = true;
       } else {
-        const candidates = ['name', 'organization', 'org', 'company', 'foundation', 'entity'];
-        entityNameField =
-          candidates.find((c) => cols.some((col) => col.toLowerCase() === c)) ??
-          cols.find((c) => candidates.some((cand) => c.toLowerCase().includes(cand))) ??
-          cols[0] ??
-          '';
-        writeStored(ENTITY_FIELD_KEY, entityNameField || null);
+        const inferred = inferEntityNameField(cols);
+        if (inferred) {
+          entityNameField = inferred;
+          entityNameOverridden = false;
+        } else {
+          const legacy = readStored(LEGACY_ENTITY_FIELD_KEY);
+          if (legacy && cols.includes(legacy)) {
+            entityNameField = legacy;
+            entityNameOverridden = true;
+            // Migrate the legacy global into the per-set key.
+            writeStored(setOverrideKey, legacy);
+          } else {
+            entityNameField = cols[0] ?? '';
+            entityNameOverridden = false;
+          }
+        }
       }
+      entityNamePickerOpen = false;
     } catch (err: unknown) {
       console.error('row.list', err);
     }
   }
 
-  // Persist the entity-name column whenever the user changes the dropdown.
-  $effect(() => {
-    if (entityNameField) writeStored(ENTITY_FIELD_KEY, entityNameField);
-  });
+  // When the user explicitly overrides the inferred entity-name column,
+  // persist it per-record-set (the key the loader reads on re-entry).
+  function commitEntityNameOverride(field: string) {
+    entityNameField = field;
+    entityNameOverridden = true;
+    entityNamePickerOpen = false;
+    if (selectedRecordSetId) {
+      writeStored(ENTITY_FIELD_KEY_PREFIX + selectedRecordSetId, field);
+    }
+  }
 
   // Roster operations — all persist the override under the active bundle's
   // key. They mutate the *current bundle's* roster only; switching bundles
@@ -359,20 +405,42 @@
     </section>
 
     {#if selectedSet}
-      <section class="card">
-        <h3>2 · Entity-name column</h3>
-        <p class="muted hint">
-          Which column holds the name to search for? (LinkedIn for X, Wikipedia for Y, etc.)
-        </p>
-        <select bind:value={entityNameField}>
-          {#each columns as col (col)}
-            <option value={col}>{col}</option>
-          {/each}
-        </select>
-      </section>
+      <!-- Inferred entity-name column (spec Decision §9). Read-only hint
+           with a change-link drop-down; no longer a full numbered step.
+           Pack Runner infers the column from a small candidate list;
+           override is persisted per record_set_id. -->
+      <div class="entity-hint" aria-live="polite">
+        {#if entityNameField}
+          <span class="muted">
+            Reading entity names from
+            <strong class="entity-col">{entityNameField}</strong>{#if entityNameOverridden} <span class="muted">(your override)</span>{/if}
+          </span>
+        {:else}
+          <span class="muted entity-warn">No entity-name column inferred — pick one:</span>
+        {/if}
+        {#if !entityNamePickerOpen}
+          <button
+            type="button"
+            class="entity-change"
+            onclick={() => (entityNamePickerOpen = true)}
+          >change ›</button>
+        {/if}
+        {#if entityNamePickerOpen || !entityNameField}
+          <select
+            class="entity-select"
+            value={entityNameField}
+            onchange={(e) => commitEntityNameOverride((e.currentTarget as HTMLSelectElement).value)}
+          >
+            <option value="" disabled>— pick a column —</option>
+            {#each columns as col (col)}
+              <option value={col}>{col}</option>
+            {/each}
+          </select>
+        {/if}
+      </div>
 
       <section class="card">
-        <h3>3 · Rows to fire against ({selectedRowCount}/{rowsForSelected.length})</h3>
+        <h3>2 · Rows to fire against ({selectedRowCount}/{rowsForSelected.length})</h3>
         <div class="row-filter-chips" role="tablist" aria-label="Filter rows by status">
           <button
             class="chip"
@@ -425,7 +493,7 @@
       </section>
 
       <section class="card">
-        <h3>4 · Bundle</h3>
+        <h3>3 · Bundle</h3>
         <p class="muted hint">
           A bundle is a named composition of packs with a default roster.
           Pick one to set what fires; tune the roster below if you need to.
@@ -448,7 +516,7 @@
       </section>
 
       <section class="card">
-        <h3>5 · Roster ({enabledPackCount}/{rosterSize})</h3>
+        <h3>4 · Roster ({enabledPackCount}/{rosterSize})</h3>
         <p class="muted hint">
           The bundle's packs — defaults are checked. Toggle to override; use
           <strong>solo</strong> next to a pack to fire just that one.
@@ -500,6 +568,17 @@
             Response Reviewer →
           </button>
         </div>
+        <!-- Target-column line (spec Decision §9): name what gets richer
+             when responses are accepted. Always visible when there are
+             rows in scope; reads "Augmenting `socials` on 67 rows" so the
+             user knows the property they're improving. -->
+        {#if cellsToFire > 0 || firing}
+          <p class="muted fire-sub fire-target">
+            Augmenting
+            {#each targetColumns as col, i (col)}<code class="target-col">{col}</code>{#if i < targetColumns.length - 1}, {/if}{/each}
+            on {selectedRowCount} {selectedRowCount === 1 ? 'row' : 'rows'}
+          </p>
+        {/if}
         {#if firing}
           <p class="muted fire-sub">
             Running server-side — results stream into Response Reviewer as each

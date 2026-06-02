@@ -20,6 +20,9 @@ export type BundleConfig = {
   entity_type?: string;
   passes: 1 | 2;
   members: BundleMember[];
+  // What gets richer when responses are accepted. v1: every pack writes to
+  // row.socials → ['socials']. See spec Decision §9.
+  target_columns: string[];
 };
 
 export const PROFILE_BUILDER: BundleConfig = {
@@ -27,6 +30,7 @@ export const PROFILE_BUILDER: BundleConfig = {
   display_name: 'Profile Builder',
   description: 'Common-five social packs + Wikipedia — for any entity that lives on the public web',
   passes: 1,
+  target_columns: ['socials'],
   members: [
     { pack_id: 'linkedin-pack',  default: true,  pass: 1, required: false },
     { pack_id: 'x-pack',         default: true,  pass: 1, required: false },
@@ -44,6 +48,7 @@ export const PROFILE_BUILDER_NONPROFIT: BundleConfig = {
   description: 'Common-five + Wikipedia, biased for org-shaped entities; nonprofit-specific packs (Candid, ProPublica, IRS 990) opt-in once they ship',
   entity_type: 'nonprofit',
   passes: 1,
+  target_columns: ['socials'],
   members: [
     { pack_id: 'linkedin-pack',  default: true,  pass: 1, required: false },
     { pack_id: 'x-pack',         default: true,  pass: 1, required: false },
@@ -74,4 +79,31 @@ export const PACK_DISPLAY_NAMES: Record<string, string> = {
 
 export function packDisplayName(pack_id: string): string {
   return PACK_DISPLAY_NAMES[pack_id] ?? pack_id;
+}
+
+/**
+ * Ordered candidate list for auto-inferring which column holds the entity
+ * name. First match against the record set's schema wins. Spec Decision §9.
+ * The user can still override the choice via the small change-link in the
+ * Pack Runner head; the override is persisted per record_set_id.
+ */
+export const ENTITY_NAME_CANDIDATES: string[] = [
+  'Prospect / Organization',
+  'Organization',
+  'organization',
+  'Company',
+  'company',
+  'Name',
+  'name',
+  'entity_name',
+  'Entity Name',
+  'Full Name',
+];
+
+/** Pick the first candidate that exists in the supplied schema field names. */
+export function inferEntityNameField(fieldNames: string[]): string | null {
+  for (const candidate of ENTITY_NAME_CANDIDATES) {
+    if (fieldNames.includes(candidate)) return candidate;
+  }
+  return null;
 }
