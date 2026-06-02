@@ -7,7 +7,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.2
+semantic_version: 0.0.0.3
 revisions:
   - 2026-06-01 — Initial draft (0.0.0.1).
   - 2026-06-01 — Replaced Phase 2a's "none/solo/all helpers on flat pack
@@ -18,6 +18,19 @@ revisions:
     bundle migration. Better to introduce Bundle as the primary selector
     now and let `none`/`solo`/`all` become roster-override helpers on a
     bundle's pack roster, where they belong. Subsequent phases renumbered.
+  - 2026-06-01 — **Spike resolved: Option C — composite slot in the shell
+    + shared toggle component.** Trying Phase 2b's intra-remote off-mode-
+    hide in the browser made the architectural error visible — both
+    remotes stayed mounted side-by-side; one just rendered empty. The
+    correct shape is one slot in the shell that hosts one-of-N remotes
+    based on shared state. Phase 2b is superseded by a new Phase 2c that
+    (a) reverts the intra-remote mode UI in PTM and Pack Runner,
+    (b) introduces a `CompositeEntry` concept in the shell,
+    (c) adds a shared-ui `ToggleHeader__PromptOrPackage--Icons.svelte`,
+    (d) defines `ENRICHMENT_COMPOSITE` ({ PTM, Pack Runner }) and a
+    `recordCollector+enrichment` pairing that replaces the now-obsolete
+    `packRunner+promptTemplateManager` and `recordCollector+promptTemplateManager`
+    pairings. The spike no longer gates Phase 5.
 tags:
   - Plan
   - Augment-It
@@ -396,12 +409,13 @@ a new `enrichmentSurface` remote — depends on it.
 | 0 — Branch + plan | ⏳ | — | this commit |
 | 1 — Deck→Flow rename | ⏳ | — | |
 | 2a — Peek labels anchor left | ⏳ | — | |
-| 2b — Enrichment-mode exclusive UI | ⏳ | — | |
+| 2b — Enrichment-mode exclusive UI (intra-remote) | ✅→↩ | 62731fd | superseded by 2c |
+| 2c — Composite slot + shared toggle | ⏳ | — | resolves the spike |
 | 3 — Bundle-first Pack Runner | ⏳ | — | supersedes spec §1 helpers |
 | 4 — Flow widget | ⏳ | — | |
 | 5 — Augment This Set + key unification | ⏳ | — | gated on spike |
 | 6 — Principles + audit harvest | ⏳ | — | |
-| Spike — enrichment composition | ⏳ | — | gates Phase 5 |
+| Spike — enrichment composition | ✅ | — | resolved as Option C (composite slot), Phase 2c is the landing |
 
 ## Related
 

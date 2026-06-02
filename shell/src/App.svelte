@@ -2,7 +2,23 @@
   import { onMount } from 'svelte';
   import ModeToggle from './ModeToggle.svelte';
   import MountHost from './MountHost.svelte';
-  import { REMOTES, PAIRINGS, CHAT_REMOTE, remoteById, type RemoteEntry } from './remotes';
+  import ToggleHeader from '@augment-it/shared-ui/ToggleHeader__PromptOrPackage--Icons.svelte';
+  import {
+    REMOTES,
+    PAIRINGS,
+    CHAT_REMOTE,
+    remoteById,
+    slotById,
+    type RemoteEntry,
+    type Slot,
+  } from './remotes';
+  import {
+    COMPOSITES,
+    readActiveMemberId,
+    writeActiveMemberId,
+    compositeFor,
+    type CompositeEntry,
+  } from './composites';
   import { layout, type LayoutMode } from './layout.svelte';
 
   // Chat rail visibility — persistent left-side companion to the focused
@@ -24,18 +40,56 @@
     }
   }
 
+  // ---- composite slots — active-member state ----------------------------
+  // A composite slot hosts one-of-N remotes based on shared state. We
+  // keep the active member id per composite as reactive state so the
+  // stage derived re-builds when the user clicks the in-slot toggle.
+  // The state is also published via the composite's modeKey window event,
+  // so external dispatchers (e.g. cross-remote augment-it:navigate) keep
+  // working.
+  let activeMembers = $state<Record<string, string>>(
+    Object.fromEntries(COMPOSITES.map((c) => [c.id, readActiveMemberId(c)])),
+  );
+
+  function setCompositeMember(c: CompositeEntry, memberId: string): void {
+    activeMembers = { ...activeMembers, [c.id]: memberId };
+    writeActiveMemberId(c, memberId);
+  }
+
   // ---- geometry constants -------------------------------------------------
   const HOVER_PCT = 38;       // a hovered peek neighbour expands to this width
   const MIN_PEEK = 4;         // a peek neighbour never narrower than this
 
   type StageRole = 'focused' | 'prev' | 'next' | 'pair-left' | 'pair-right' | 'full';
   type StageItem = {
-    id: string;
+    id: string;             // includes ':' + active-member id for composites so MountHost re-mounts on toggle
     remote: RemoteEntry;
     widthPct: number;
     zIndex: number;
     role: StageRole;
+    composite?: CompositeEntry;  // when set, render ToggleHeader above MountHost
   };
+
+  function materializeSlot(slot: Slot, widthPct: number, role: StageRole): StageItem | null {
+    if (slot.kind === 'remote') {
+      return { id: slot.remote.id, remote: slot.remote, widthPct, zIndex: 1, role };
+    }
+    const c = slot.composite;
+    const activeId = activeMembers[c.id] ?? c.defaultMemberId;
+    const remote = remoteById(activeId);
+    if (!remote) return null;
+    // Key the StageItem so toggling re-mounts MountHost (MountHost only
+    // runs its dynamic import in onMount; without a key change, swapping
+    // the `remote` prop would leak the previous member.)
+    return {
+      id: `${c.id}:${activeId}`,
+      remote,
+      widthPct,
+      zIndex: 1,
+      role,
+      composite: c,
+    };
+  }
 
   // ---- transient interaction state (never persisted) ----------------------
   let hoveredNeighborId = $state<string | null>(null);
@@ -53,14 +107,16 @@
     if (layout.mode === 'co-existence') {
       const pairing = PAIRINGS.find((p) => p.key === layout.activePairKey) ?? PAIRINGS[0];
       if (!pairing) return [];
-      const left = remoteById(pairing.left);
-      const right = remoteById(pairing.right);
-      if (!left || !right) return [];
+      const leftSlot = slotById(pairing.left);
+      const rightSlot = slotById(pairing.right);
+      if (!leftSlot || !rightSlot) return [];
       const leftPct = layout.ratioFor(pairing.key, pairing.defaultLeftPct);
-      return [
-        { id: left.id, remote: left, widthPct: leftPct, zIndex: 1, role: 'pair-left' },
-        { id: right.id, remote: right, widthPct: 100 - leftPct, zIndex: 1, role: 'pair-right' },
-      ];
+      const items: StageItem[] = [];
+      const l = materializeSlot(leftSlot, leftPct, 'pair-left');
+      const r = materializeSlot(rightSlot, 100 - leftPct, 'pair-right');
+      if (l) items.push(l);
+      if (r) items.push(r);
+      return items;
     }
 
     // peek-flow
@@ -181,9 +237,19 @@
         layout.setMode(detail.mode ?? 'full');
         return;
       }
-      // Not in the rotation — might be a "pair-only" remote like packRunner.
-      // If a PAIRING includes it, open the pair in co-existence mode so the
-      // user lands somewhere usable rather than nowhere.
+      // Might be a composite member (e.g. packRunner inside enrichment).
+      // Set the composite's active member to the requested remote, then
+      // open the pairing that contains the composite.
+      const composite = compositeFor(detail.remoteId);
+      if (composite) {
+        setCompositeMember(composite, detail.remoteId);
+        const pair = PAIRINGS.find(
+          (p) => p.left === composite.id || p.right === composite.id,
+        );
+        if (pair) layout.openPair(pair.key);
+        return;
+      }
+      // Otherwise — a "pair-only" remote referenced directly by a PAIRING.
       const pairing = PAIRINGS.find(
         (p) => p.left === detail.remoteId || p.right === detail.remoteId,
       );
@@ -192,7 +258,26 @@
       }
     };
     window.addEventListener('augment-it:navigate', onNavigate);
-    return () => window.removeEventListener('augment-it:navigate', onNavigate);
+
+    // Listen for external composite-mode broadcasts so peer surfaces that
+    // change a composite's active member (e.g. a future analytics overlay)
+    // stay in sync. Internal toggle clicks update activeMembers directly
+    // via setCompositeMember; this handler covers everything else.
+    const compositeListeners = COMPOSITES.map((c) => {
+      const handler = (ev: Event) => {
+        const d = (ev as CustomEvent).detail as { memberId?: string } | undefined;
+        if (d?.memberId && d.memberId !== activeMembers[c.id]) {
+          activeMembers = { ...activeMembers, [c.id]: d.memberId };
+        }
+      };
+      window.addEventListener(c.modeKey, handler);
+      return () => window.removeEventListener(c.modeKey, handler);
+    });
+
+    return () => {
+      window.removeEventListener('augment-it:navigate', onNavigate);
+      compositeListeners.forEach((off) => off());
+    };
   });
 
   const MODE_BUTTONS: { mode: LayoutMode; label: string }[] = [
@@ -254,8 +339,15 @@
   >
   {#each stage as item (item.id)}
     {@const isInteractive = item.role !== 'prev' && item.role !== 'next'}
-    <section class="slot" class:slot-peek={!isInteractive}
+    <section class="slot" class:slot-peek={!isInteractive} class:slot-composite={!!item.composite}
       style="width: {item.widthPct}%; z-index: {item.zIndex};">
+      {#if item.composite}
+        <ToggleHeader
+          members={item.composite.members.map((m) => ({ id: m.remoteId, icon: m.icon, label: m.label }))}
+          activeId={activeMembers[item.composite.id] ?? item.composite.defaultMemberId}
+          onSelect={(memberId) => setCompositeMember(item.composite!, memberId)}
+        />
+      {/if}
       <MountHost remote={item.remote} />
 
       {#if !isInteractive}
@@ -403,6 +495,17 @@
   /* the focused / interactive slot reads as raised */
   .slot:not(.slot-peek) {
     box-shadow: var(--fx-card-shadow);
+  }
+
+  /* Composite slots stack the toggle header above the mounted remote;
+     the MountHost takes the remaining vertical space (Phase 2c). */
+  .slot-composite {
+    display: flex;
+    flex-direction: column;
+  }
+  .slot-composite :global(.mount-host) {
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   /* peek neighbour click-capture overlay.

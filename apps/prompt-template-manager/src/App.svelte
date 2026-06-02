@@ -6,24 +6,6 @@
   const WS_URL = 'ws://localhost:3001/ws';
   const TOKEN_RE = /\{\{\s*([^{}]+?)\s*\}\}/g;
 
-  // Shared "which enrichment mode is selected" state, mirrored in pack-runner.
-  // Persisted to localStorage + broadcast via window event so the pair
-  // panels stay in sync without a transport round-trip.
-  const ENRICHMENT_MODE_KEY = 'augment-it:enrichment-mode';
-  const ENRICHMENT_MODE_EVENT = 'augment-it:enrichment-mode';
-  type EnrichmentMode = 'prompt' | 'pack';
-
-  function readMode(): EnrichmentMode {
-    if (typeof localStorage === 'undefined') return 'prompt';
-    return (localStorage.getItem(ENRICHMENT_MODE_KEY) as EnrichmentMode) ?? 'prompt';
-  }
-  function setMode(mode: EnrichmentMode): void {
-    enrichmentMode = mode;
-    if (typeof localStorage !== 'undefined') localStorage.setItem(ENRICHMENT_MODE_KEY, mode);
-    window.dispatchEvent(new CustomEvent(ENRICHMENT_MODE_EVENT, { detail: { mode } }));
-  }
-  let enrichmentMode = $state<EnrichmentMode>(readMode());
-
   let status = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
 
   // editor state — selectedPromptId null means "new, unsaved"
@@ -80,14 +62,6 @@
       onStatus: (s) => (status = s),
     });
     void refreshPrompts();
-
-    // Listen for mode flips from the pair panel (pack-runner).
-    const onMode = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { mode?: EnrichmentMode } | undefined;
-      if (detail?.mode) enrichmentMode = detail.mode;
-    };
-    window.addEventListener(ENRICHMENT_MODE_EVENT, onMode);
-    return () => window.removeEventListener(ENRICHMENT_MODE_EVENT, onMode);
   });
 
   // prompt CRUD events — seq-cursor dedup so a stale event re-fire on any
@@ -226,47 +200,6 @@
     </span>
   </div>
 
-  <!-- Enrichment-mode switch — icon-with-tooltip pair (spec Decision §5,
-       Phase 2b). Custom Prompt and Pre-built Pack are peer alternatives
-       for enriching a record set; the small-control icon pattern is the
-       shell-wide affordance for binary picks (also used by Decision §8's
-       Split/Full layout toggles). Shared state via the
-       augment-it:enrichment-mode window event + localStorage; the Pack
-       option also dispatches augment-it:navigate so the shell opens the
-       prompt-templates ⇄ pack-runner pair. -->
-  <div class="ptm-mode-switch" role="tablist" aria-label="Enrichment mode">
-    <button
-      class="ptm-mode"
-      class:active={enrichmentMode === 'prompt'}
-      role="tab"
-      aria-selected={enrichmentMode === 'prompt'}
-      aria-label="Custom prompt — author a free-text LLM prompt"
-      title="Custom prompt — author a free-text LLM prompt"
-      onclick={() => setMode('prompt')}
-    >
-      <span aria-hidden="true">✎</span>
-    </button>
-    <button
-      class="ptm-mode"
-      class:active={enrichmentMode === 'pack'}
-      role="tab"
-      aria-selected={enrichmentMode === 'pack'}
-      aria-label="Pre-built pack — fire a source-bound pack against the record set"
-      title="Pre-built pack — fire a source-bound pack against the record set"
-      onclick={() => {
-        setMode('pack');
-        window.dispatchEvent(
-          new CustomEvent('augment-it:navigate', {
-            detail: { remoteId: 'packRunner' },
-          }),
-        );
-      }}
-    >
-      <span aria-hidden="true">⊞</span>
-    </button>
-  </div>
-
-  {#if enrichmentMode === 'prompt'}
   <div class="ptm-layout">
     <aside>
       <h2>Prompts</h2>
@@ -361,5 +294,4 @@
       {/if}
     </section>
   </div>
-  {/if}
 </div>

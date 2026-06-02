@@ -419,6 +419,9 @@ importers:
 
   shell:
     dependencies:
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../packages/theme
