@@ -7,11 +7,12 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.3
+semantic_version: 0.0.1.0
 revisions:
   - 2026-05-28 — Initial audit + 8 locked decisions (0.0.0.1).
   - 2026-06-01 — Shipped Phases 0–2d of [[../plans/Shell-and-Micro-Frontend-UX-Coherence-Refactor]]. Marked Decisions §6 (peek labels), §7 (Deck → Flow), and §5 (composition) as shipped. The §5 open question "wrapper remote vs shared-state" resolved as **Option C — shell-level composite slot**; recorded in Decision §5 and removed from Open questions. Decision §1 (pack selection helpers on a flat list) **superseded** by Phase 3 bundle-first refactor — the plan's reconciliation against [[../blueprints/Packs-and-Bundles-Pattern]] showed that polishing a flat 7-pack list cements a model the blueprint says is wrong. Open question about Enrichment in the Flow strip resolved: **one bubble**, locked by the `ROTATION` shape shipped in Phase 2d. Per-surface audit updated with shipped status. Plan-level history lives in the plan; spec-level history is just the decisions changing.
   - 2026-06-01 — Phases 3, 4, 5 shipped (bundle-first Pack Runner, hierarchical Flow widget, Augment This Set). Added evidence #13 (Pack Runner doesn't show what it's improving + asks for input it could infer) and Decision §9 (surface the target column near the Fire button + auto-infer the entity-name column with a small change-link affordance). Seeded by the user re-walking the flow end-to-end after Phase 5 with fresh eyes.
+  - 2026-06-01 — Phase 6 — **cross-cutting principles promoted from commented candidates to a stable list** (12 principles, partitioned by the three failure shapes + a dual-identity cross-class). Each principle is *earned* by named evidence + decisions — they're not abstract preferences. Per-surface audit closed out — every row now reads as ✅ shipped, deferred-with-link to a child spec, or `needs-audit` with a clear scope. Spec moves from 0.0.0.x to **0.0.1.0** because the principles section is a stable contract future affordances should consult. Closes the refactor's planning loop: the spec captures decisions, the plan captures sequencing + status, the principles capture the patterns earned.
 tags:
   - Spec
   - Augment-It
@@ -235,40 +236,57 @@ Raw capture, tagged by failure shape. The seed data for the audit.
 Scaffold — one entry per federated surface. Fill as we walk each. `needs-audit`
 means no deliberate pass yet this session.
 
-- **Shell** (peek-flow / split / cross-remote nav) — `augment-it:navigate`
-  event works; **now composite-aware** (Phase 2c+2d): dispatching with a
-  composite-member remoteId sets the composite's active member and focuses
-  the composite slot. ✅ Peek labels anchored at slice's left margin
-  (Phase 2a). ✅ Deck → Flow rename (Phase 1). Still `needs-audit`:
-  hierarchical Flow widget with bubble progress (Phase 4 / Decision §8);
-  chat rail framing.
-- **Record Collector** — the only forward action is a *per-row* `enrich ›`
-  button (`enrichRecord()` → `augment-it:enrich-record`, which the shell turns
-  into "open the recordCollector+enrichment pair" with packRunner as the
-  default composite member). There is **no set-level forward action** yet.
-  [Hidden/Mismatched] — the next step is at the wrong grain. **Decision: add
-  "Augment This Set"** (Decisions §4, slated for Phase 5).
+- **Shell** (peek-flow / split / cross-remote nav) — ✅ `augment-it:navigate`
+  composite-aware (Phase 2c+2d). ✅ Peek labels anchored left (Phase 2a).
+  ✅ Deck → Flow rename (Phase 1). ✅ Hierarchical Flow widget with
+  bubble-progress strip (Phase 4 / Decision §8). Remaining `needs-audit`:
+  **chat rail framing** — the four-roles model lives in
+  [[../blueprints/Chat-As-Verb-Surface-Patterns]]; revisit when the chat
+  surface gets its next pass. Forward link: the dual-identity blueprint
+  ([[../blueprints/Augment-It-as-Working-App-and-Architecture-Demo]])
+  also touches the shell.
+- **Record Collector** — ✅ "Augment This Set" set-level forward action
+  (Phase 5, Decision §4) lands on the Enrichment composite with the
+  record set pre-selected via the canonical `augment-it:active-record-set`
+  key. Per-row `enrich ›` retained for one-off enrichment. No
+  outstanding audit items at this layer; deeper record-instance
+  modelling (per-row context carrying THROUGH to the enrichment pane)
+  remains on the Run-entity / record-instance roadmap.
 - **Prompt Template Manager** — ✅ part of `ENRICHMENT_COMPOSITE` since
   Phase 2c. Mode UI lives at the shell level (composite slot header); PTM
-  is pure body with no mode awareness. The shared toggle component is the
-  model others should copy when they need a binary in-slot switcher. Has
-  the working `augment-it:navigate` dispatch pattern.
-- **Request Reviewer** — `needs-audit`.
-- **Response Reviewer** — by-record triage view is the strong surface; auto-
-  refreshes on `response.created`. Source of the "run a pack = click-to-fire"
-  model that Pack Runner contradicts (mismatch resolved when Phase 3 ships
-  bundle-as-the-unit semantics).
-- **Enhanced Records List** — promote success banner had a dead primary button
-  (fixed). `needs-audit` for the rest of the promote flow.
-- **Chat** — `needs-audit`.
-- **Pack Runner** — ✅ part of `ENRICHMENT_COMPOSITE` since Phase 2c. Mode
-  UI moved to shell. Items 1–7 above (the foundation-dataset failure list)
-  mostly pending — Phase 3 (bundle-first) is the architectural lift that
-  closes #1 (no "run just this pack" path), #2 (cross-surface verb
-  mismatch — bundle becomes the unit), and sets up #4 (live progress) and
-  #5 (path to results) via Run-as-First-Class-Operation Part 4. ✅ #6
-  (sticky Fire + nav button to Response Reviewer). #3 and #7 remain
-  parked (entity-name foot-gun + default-scope).
+  is pure body with no mode awareness. PTM does **not** currently bind
+  to the canonical record-set key — that's a follow-up when PTM grows
+  per-record-set awareness; the seam (the canonical key) already exists.
+- **Request Reviewer** — `needs-audit`. Defer-with-link: surfaced in
+  [[Initial-User-Experience]] (stubbed 2026-06-01) for first-contact
+  framing; deeper review when Request Reviewer's pre-flight model
+  evolves.
+- **Response Reviewer** — by-record triage view is the strong surface;
+  auto-refreshes on `response.created`. ✅ The "run a pack = click-to-fire"
+  vs Pack Runner multi-select mismatch is **structurally resolved** by
+  Phase 3's bundle-first model — both surfaces speak in bundles, the
+  mismatch is gone. Group-by-bundle (made possible by `bundle_id` landing
+  on every ResponseRecord in Phase 3) is its own follow-up. `needs-audit`
+  for the by-record card's secondary affordances; deeper review is
+  scoped under [[Response-Reviewer-and-Response-Store]].
+- **Enhanced Records List** — promote success banner dead button (fixed
+  pre-spec). `needs-audit` remains for the rest of the promote flow;
+  scoped under [[Enhanced-Records-List-and-Promotion-Checkpoint]].
+- **Chat** — `needs-audit`. The chat's role-in-the-shell story lives in
+  [[../blueprints/Chat-As-Verb-Surface-Patterns]]; the affordance
+  coherence pass against principles 1-12 above is deferred to its
+  next implementation increment.
+- **Pack Runner** — ✅ part of `ENRICHMENT_COMPOSITE` since Phase 2c.
+  ✅ Phase 3 (bundle-first) closes evidence #1 (bundle is the orchestration
+  unit; `none`/`all`/`solo` are roster overrides). ✅ Phase 5 unifies the
+  record-set key (one write pre-selects). ✅ Decision §9 (target column
+  visible near Fire; entity-name auto-inferred with change-link).
+  ✅ Sticky Fire + nav to Response Reviewer (pre-spec). **Parked**:
+  evidence #3 (entity-name foot-gun on default `url` column) and #7
+  (default-scope all×all firehose) — both touched by Decision §9's
+  inference but the broader "warn when the picked column looks like
+  URLs" + "first-run bias small" haven't been picked up yet; revisit
+  when needed.
 
 ## Decisions locked this session
 
@@ -422,23 +440,109 @@ means no deliberate pass yet this session.
      the surface can infer"* and *"name what the surface is doing right
      where the action lives."*
 
-## Cross-cutting principles (to develop)
+## Cross-cutting principles
 
-<!-- TBD with the user. Candidates seeded by the failure shapes and the
-     decisions already locked:
-  - Primary action is always in view (sticky footer, or above the fold).
-  - Sibling controls get symmetric helpers (if ROWS has none/all, PACKS does).
-  - Same verb = same gesture across surfaces (resolve "run a pack").
-  - Long operations always report progress + offer a path to results.
-  - No silent failure: a control that can't act says why.
-  - Icon-with-tooltip is the standard small-control affordance — already
-    used by Decisions §5 (enrichment mode) and §8 (Flow's Split/Full layout
-    toggles); promote from instance to shell-wide pattern.
-  - Honor the dual identity (see Project context): every affordance should
-    work for an outside user AND make the underlying architecture legible
-    to a demo visitor. When the two are in tension, name the tension
-    rather than picking one default silently.
--->
+Promoted 2026-06-01 (Phase 6) from the commented candidates to a stable
+list. Each principle is *earned* by specific evidence + decisions —
+they're not abstract design preferences, they're the patterns the
+refactor itself proved are load-bearing. New surfaces and new affordances
+should consult this list before re-litigating any of the same fights.
+
+The principles partition into three classes that mirror the audit's three
+failure shapes: **affordance discoverability** (counters *Hidden*),
+**affordance liveness** (counters *Dead*), and **affordance coherence**
+(counters *Mismatched* + *Misnamed*).
+
+### Affordance discoverability — counter *Hidden*
+
+1. **Primary action is always in view.** Sticky-pin the primary CTA
+   instead of relying on the user to scroll for it. macOS overlay
+   scrollbars hide that scrolling is possible. *Earned by evidence #6
+   (Fire button below the fold → sticky `.fire-card`).*
+2. **Sibling controls get symmetric helpers.** If one section has
+   `all` / `none`, its peer section has the same — not by accident, by
+   convention. *Earned by evidence #1 (PACKS missing the helpers ROWS
+   had); shipped as roster-overrides inside the bundle (Phase 3
+   roster panel).*
+3. **Name what the surface is doing, right where the action lives.**
+   Don't make the user infer the *target* of a fire from context. The
+   fire-card subhead says what gets richer; the chip on the row says
+   what verb produced it. *Earned by evidence #13 and Decision §9
+   ("Augmenting `socials` on N rows" line near the Fire button).*
+
+### Affordance liveness — counter *Dead*
+
+4. **No silent failure: a control that can't act says why.** A control
+   that fires-into-nothing (no result, no error) is the worst kind
+   because the user can't diagnose. Either fix the underlying state or
+   show the obstacle. *Earned by evidence #6 (SearXNG silent-fire
+   failure) and the operational fix of bringing the container up; the
+   permanent fix is provider-plurality, see [[../issues/Search-Providers-as-First-Class-SearXNG-Default]].*
+5. **Long operations always report progress + offer a path to
+   results.** A button that sits on "firing…" for minutes with no
+   feedback is dead-shaped. The path to results is its own
+   affordance — surface it. *Earned by evidence #4 + #5; partially
+   shipped (Pack Runner's "Response Reviewer →" nav button), full
+   landing is [[../plans/Run-as-First-Class-Operation]] Part 4 with
+   live `run.updated` progress.*
+6. **Don't ask the user for what the surface can infer.** If a small
+   ordered candidate list + the active context (record set schema,
+   active bundle, active record) can answer the question, answer it.
+   Surface the answer as a read-only hint with a change-link, not as
+   a primary visible step. *Earned by evidence #13 and Decision §9
+   (entity-name auto-inference + change-link affordance).*
+
+### Affordance coherence — counter *Mismatched* + *Misnamed*
+
+7. **Same verb = same gesture across surfaces.** When a single user
+   intent ("run a pack", "augment this set", "open the toggle") shows
+   up on multiple surfaces, the interaction model must be identical.
+   *Earned by evidence #2 (Response Reviewer click-to-fire vs Pack
+   Runner multi-select); resolved structurally by Phase 3's bundle-
+   first model — "run" means "fire a bundle," same everywhere.*
+8. **Icon-with-tooltip is the standard small-control affordance.**
+   When a binary or short-list pick needs to live in chrome (not in a
+   numbered step), use icon + `title` + `aria-label`. *Earned by
+   Decisions §5 (enrichment ⇄ toggle), §8 (Flow widget's Split/Full),
+   and §9 (Pack Runner's `change ›`). The shared component is
+   `@augment-it/shared-ui/ToggleHeader__PromptOrPackage--Icons.svelte`;
+   the pattern is the rule.*
+9. **The toggle belongs to the slot, not the layout mode.** Mode
+   switches that pretend to be intra-remote but are actually shell-
+   level slot choices will break in some layout modes. Composite slots
+   in the shell host one-of-N remotes; the in-slot toggle is the
+   shell's responsibility, not each remote's. *Earned by Phase 2b's
+   shipped-then-reverted intra-remote toggle; resolved in Phases 2c
+   (composite slot) and 2d (composites are peers in `ROTATION`).*
+10. **Labels evoke the right model.** A label whose connotation maps
+    onto a different mental model than the underlying behaviour is a
+    `Misnamed` foot-gun. Audit early; rename without ceremony. *Earned
+    by evidence #11 (Deck → Flow) and Decision §7.*
+11. **Same information should not render in two places at once.** When
+    a piece of information (e.g. "where am I in the flow") has both a
+    primary indicator and a secondary one, hide the secondary when the
+    primary is sufficient. *Earned by Decision §8 (peek-labels collapse
+    when the Flow widget is on the left rail) — same information in two
+    locations is silly.*
+
+### Cross-class — augment-it's dual identity
+
+12. **Honor the dual identity.** Every affordance should work for an
+    outside user AND make the underlying architecture legible to a
+    demo visitor. When the two are in tension, *name the tension* in
+    the spec rather than picking one default silently. *Earned by the
+    Project context framing (2026-06-01) and stubbed in
+    [[../blueprints/Augment-It-as-Working-App-and-Architecture-Demo]];
+    the first concrete instance is
+    [[API-First-In-App-Documentation]].*
+
+### How to use this list
+
+When you propose a new affordance, walk it through 1-12. If a principle
+applies and the proposed shape violates it, the violation is a deliberate
+choice to be defended in the spec — not an oversight. If a principle is
+*missing* for the affordance you're designing, add it here when you
+ship — principles are earned, not invented.
 
 ## Wish list / parked for a future spec
 

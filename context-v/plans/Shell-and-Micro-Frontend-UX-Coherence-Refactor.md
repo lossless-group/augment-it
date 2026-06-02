@@ -422,7 +422,7 @@ a new `enrichmentSurface` remote — depends on it.
 | 3 — Bundle-first Pack Runner | ✅ | 126a534 | supersedes spec §1 helpers; on feat/bundle-first-pack-runner |
 | 4 — Flow widget | ⏳→✅ | feat/hierarchical-flow-widget | parent Flow + bubble strip + Split/Full icons + top/left position toggle |
 | 5 — Augment This Set + key unification | ⏳→✅ | feat/augment-this-set | spike resolved in 2c; canonical key 'augment-it:active-record-set' + RC button |
-| 6 — Principles + audit harvest | ⏳ | — | |
+| 6 — Principles + audit harvest | ⏳→✅ | spec/phase-6-principles-and-audit-harvest | 12 principles promoted to stable list; per-surface audit closed |
 | Spike — enrichment composition | ✅ | — | resolved as Option C (composite slot), Phase 2c is the landing |
 
 ## Related
