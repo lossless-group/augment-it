@@ -33,6 +33,10 @@ export type SearchInput = {
   // associated with a prompt template; for now we accept whatever the caller
   // passes and fall back to a synthetic id.
   prompt_id?: string;
+  // Optional — the bundle this fan-out belongs to. Lands on every
+  // ResponseRecord produced by this run so Response Reviewer can group by
+  // bundle when it shows results. See bundles.ts.
+  bundle_id?: string;
 };
 
 export type SearchResult = {
@@ -209,7 +213,7 @@ function publishResponse(
       outcome: args.outcome,
       structured: args.structured,
       pack_id: args.pack_id,
-      bundle_id: null,
+      bundle_id: args.bundle_id ?? null,
       pass: null,
     }),
   );

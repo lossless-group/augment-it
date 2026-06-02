@@ -98,6 +98,10 @@ async function main(): Promise<void> {
         entity_name_field?: string;
         // Optional — override every pack's default provider for this fan-out.
         provider_override?: ProviderId;
+        // Optional — the bundle this fan-out belongs to. Rides on every
+        // ResponseRecord produced by this run; lets Response Reviewer group
+        // results by bundle.
+        bundle_id?: string;
       };
       console.log(JSON.stringify({
         level: 'info',
@@ -106,6 +110,7 @@ async function main(): Promise<void> {
         rows: args.row_ids.length,
         record_set_id: args.record_set_id,
         provider_override: args.provider_override ?? null,
+        bundle_id: args.bundle_id ?? null,
       }));
 
       const tasks: Array<() => Promise<unknown>> = [];
@@ -118,6 +123,7 @@ async function main(): Promise<void> {
               record_set_id: args.record_set_id,
               entity_name_field: args.entity_name_field,
               provider_override: args.provider_override,
+              bundle_id: args.bundle_id,
             }).catch((err) => {
               // Per-cell failures don't abort the run. Log and continue.
               console.error(JSON.stringify({
