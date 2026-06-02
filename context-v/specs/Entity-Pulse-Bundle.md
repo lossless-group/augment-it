@@ -7,7 +7,10 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
+revisions:
+  - 2026-06-01 — Initial draft (0.0.0.1).
+  - 2026-06-02 — SerpApi added as a peer provider; news pack stays on the free path. Lock: Google News RSS as the v1 default for `news-mentions-pack` (with GDELT immediate peer); SerpApi `engine: 'google_news'` is available behind `provider_override` but never default. `official-site-updates-pack` provider section split into find-index vs extract-posts stages — SerpApi (`engine: 'google'` with `site:`-restrict) is the strongest find-index option; Firecrawl stays for extract-posts. Provider-override shape grows from a single string to `{ find?, extract? }` to match the two-stage economy. New open question: per-bundle cost budget (surfaces in Decision §10's adaptive RR as a candidate pre-fire estimate line). Resolved open question: news provider priority.
 tags:
   - Spec
   - Augment-It
@@ -95,20 +98,37 @@ returns up to 10; v2 picks a cap by recency.
    (extracted summary or first paragraph), content_type ('press'
    | 'blog' | 'update' | 'rss-item') }`.
 
-**Provider:** a crawler. Options:
+**Provider:** the mechanic is two-stage: **find index pages**, then
+**extract posts from them**. Different providers shine at different
+stages.
+
+*Find-index stage* candidates:
+- **SerpApi** (`engine: 'google'`) with `site:<row.url> press OR blog
+  OR news OR updates`. Cheap per-request, returns ranked URLs +
+  snippets without scraping. Doesn't fetch bodies — that's the next
+  stage. The strongest option for *finding* the right pages because
+  Google has already indexed them.
+- **Path-guessing** (the homepage walk listed in the mechanic above).
+  Zero-cost but misses non-standard URL structures.
+
+*Extract-posts stage* candidates:
 - **Firecrawl** (already wired in the MCP server set; production-
-  grade extraction; paid). Lean: yes for v1; the verification
-  service surface in social-search already follows a similar
-  pattern.
-- **Tavily** has a `crawl` endpoint too — already a peer provider in
+  grade extraction; paid per request). Lean for v1: yes.
+- **Tavily**'s `crawl` endpoint — already a peer provider in
   augment-it for search; reusing it here makes provider-plurality
   fall through naturally (per
   [[../issues/Search-Providers-as-First-Class-SearXNG-Default]]).
 - **Hand-rolled** (HTTP + Cheerio + a small RSS parser). Cheap, no
   external dependency, fragile against single-page-app sites.
 
-Provider-override seam is `provider_override?: 'firecrawl' |
-'tavily' | 'self'` — the same shape every other pack uses.
+**Recommended composition:** SerpApi for find-index (one cheap call
+per row) → Firecrawl for extract-posts (~1-3 calls per row after
+recency filter). Falls back to homepage-walk + hand-rolled when
+provider override or budget says so.
+
+Provider-override seam is `provider_override?: { find?: 'serpapi' |
+'self'; extract?: 'firecrawl' | 'tavily' | 'self' }` — split-stage
+because the two phases have independent provider economies.
 
 **Failure modes:** no robots.txt-allowed pages → outcome `not_found`
 (NOT `error`; the entity just doesn't blog). 404 on every candidate
@@ -137,20 +157,41 @@ entity. Default cap: 15 most-recent.
    `null` in v1; v2 candidate to run a tiny classifier on the
    snippet.
 
-**Provider candidates (free-tier first per the brief):**
+**Provider stance — news stays free.** Unlike the social packs (where
+SerpApi joins as a paid quality-leader peer), news has a strong free
+path and the cost calculus says use it. The user's framing
+2026-06-02: *"Google News feels like we can do free and separate."*
+This pack keeps free-tier providers as the primary, with paid options
+explicitly available via override but never the default.
+
+**Provider candidates, free first:**
+- **Google News RSS** — undocumented but stable; query-by-RSS
+  (`news.google.com/rss/search?q=...&hl=en-US&gl=US`). Free, no
+  auth, geo-aware. v1 first-choice for "free and separate" per the
+  user's framing.
 - **GDELT** — fully open, no auth, global news index, recency
-  excellent. First-choice for v1.
-- **Google News RSS** — undocumented but stable; scrape-RSS by
-  query. Free, no auth, geo-aware.
+  excellent. Strong v1 alternative or peer.
 - **NewsAPI.org** — free tier with attribution requirement +
-  rate limits. Easy JSON.
+  rate limits. Easy JSON; useful as a third peer when the first
+  two miss.
 - **Bing News Search API** — free tier via Azure, generous limits,
   has gone through deprecation rumors — verify viability before
   building against it.
 
-Pack carries a `connector` field defaulting to `gdelt`; `provider_
-override` lets the per-fire surface swap. Start with one (GDELT or
-Google News RSS), add the second as the second consumer.
+**Available but NOT the default for this pack — `SerpApi`
+(`engine: 'google_news'`)** returns the highest-quality Google News
+results structurally, but it's paid per request. Available behind
+`provider_override` for the per-row iteration loop or when a user
+opens the "force quality" escape hatch on a specific row. Not the
+pack's default because the free path is good enough at fan-out
+scale.
+
+Pack carries a `connector` field defaulting to `google-news-rss`;
+`provider_override` lets the per-fire surface swap to GDELT,
+NewsAPI, or — explicitly — SerpApi when paying for quality is
+warranted. Start with one free option (Google News RSS) for v1; add
+the second as the second consumer; SerpApi joins behind the
+provider-override seam without ever becoming the default.
 
 **Failure modes:** zero results → `not_found`. Rate-limit hit →
 provider auto-falls-through to the next in priority order
@@ -267,10 +308,19 @@ or a soft hint? Lean: soft hint; the user knows their data.
   accept granularity in Response Reviewer. If the triage surface
   groups by pack already, three columns might be redundant. Revisit
   after the triage surface gets its next pass.
-- **News provider priority.** GDELT (full-open) or Google News RSS
-  (zero-cost, geo-aware) for v1? Pick one and ship; the
-  provider-override seam lets the other join as a peer the day it's
-  needed.
+- ~~**News provider priority.**~~ — RESOLVED 2026-06-02 as
+  **Google News RSS first**, GDELT as immediate peer. SerpApi's
+  `google_news` engine is available behind `provider_override` but
+  never the default (free path is good enough at fan-out scale).
+- **Per-bundle cost budget.** New question surfaced 2026-06-02 by
+  SerpApi joining the registry. Fan-out arithmetic at the entity-pulse
+  shape is significant — 3 packs × 67 rows = 201 cells. If a user
+  toggles `provider_override.serpapi` for the whole fan-out, the cost
+  jumps from ~zero to ~$2-4 at SerpApi's entry-tier rate. Worth a
+  pre-fire cost estimate line in the Request Reviewer (Decision §10's
+  adaptive RR is a natural surface for it). v2 candidate; v1 ships
+  without budget enforcement and lets the user notice from their
+  monthly bill.
 - **Agent-pack pattern formalization.** The social-pulse pack is
   the first agent-bound pack. The blueprint
   [[../blueprints/Packs-and-Bundles-Pattern]] should grow a
@@ -295,11 +345,13 @@ or a soft hint? Lean: soft hint; the user knows their data.
 
 When picked up, the smallest shippable v1 is:
 
-1. **The `news-mentions-pack` standalone**, against GDELT, with
-   `target_columns: ['news_mentions']` and a single-pack bundle
-   `news-pulse` for testing. This gets the pack-runner UI exercised
-   against a non-`socials` target column and provides a quick "is
-   this useful?" signal.
+1. **The `news-mentions-pack` standalone**, against **Google News
+   RSS** (free, no auth, geo-aware — the locked v1 default per the
+   2026-06-02 resolution above), with `target_columns:
+   ['news_mentions']` and a single-pack bundle `news-pulse` for
+   testing. This gets the pack-runner UI exercised against a
+   non-`socials` target column and provides a quick "is this useful?"
+   signal — *without paying for SerpApi to get the first signal.*
 2. **Add `official-site-updates-pack`** behind firecrawl. Now two-
    pack bundle.
 3. **Add `social-pulse-pack`** as the agent-bound pack. By this
