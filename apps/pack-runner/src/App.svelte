@@ -272,15 +272,20 @@
     <span class="status status-{status}">{status}</span>
   </div>
 
-  <!-- Symmetric mode-switch — mirrors prompt-template-manager. Shared
-       state via the augment-it:enrichment-mode window event + localStorage
-       so both pair panels reflect the same selection. -->
+  <!-- Symmetric mode-switch — icon-with-tooltip pair (spec Decision §5,
+       Phase 2b). Mirrors prompt-template-manager; shared state via the
+       augment-it:enrichment-mode window event + localStorage so both pair
+       panels reflect the same selection. The Custom Prompt option also
+       dispatches augment-it:navigate so the focused pane swaps in the
+       split. -->
   <div class="pr-mode-switch" role="tablist" aria-label="Enrichment mode">
     <button
       class="pr-mode"
       class:active={enrichmentMode === 'prompt'}
       role="tab"
       aria-selected={enrichmentMode === 'prompt'}
+      aria-label="Custom prompt — author a free-text LLM prompt"
+      title="Custom prompt — author a free-text LLM prompt"
       onclick={() => {
         setMode('prompt');
         window.dispatchEvent(
@@ -289,21 +294,23 @@
           }),
         );
       }}
-      title="Author a custom LLM prompt instead of using a pre-built pack"
     >
-      ← Custom Prompt
+      <span aria-hidden="true">✎</span>
     </button>
     <button
       class="pr-mode"
       class:active={enrichmentMode === 'pack'}
       role="tab"
       aria-selected={enrichmentMode === 'pack'}
+      aria-label="Pre-built pack — fire a source-bound pack against the record set"
+      title="Pre-built pack — fire a source-bound pack against the record set"
       onclick={() => setMode('pack')}
     >
-      Pre-built Pack
+      <span aria-hidden="true">⊞</span>
     </button>
   </div>
 
+  {#if enrichmentMode === 'pack'}
   <div class="pr-body">
     <div class="pr-head">
       <h2>Pack Runner</h2>
@@ -445,4 +452,5 @@
       </section>
     {/if}
   </div>
+  {/if}
 </div>

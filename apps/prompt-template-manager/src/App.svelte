@@ -226,27 +226,33 @@
     </span>
   </div>
 
-  <!-- Enrichment-mode switch — per [[Run-as-First-Class-Operation]] §Part 1:
-       prompt-template-manager and pack-runner are the two ways to enrich a
-       record set. The switch surfaces both as discoverable options here so
-       the user picks the flavor without hunting for a separate tile. The
-       Pack option dispatches the existing augment-it:navigate event; the
-       shell catches it and opens the prompt-templates ⇄ pack-runner pair. -->
+  <!-- Enrichment-mode switch — icon-with-tooltip pair (spec Decision §5,
+       Phase 2b). Custom Prompt and Pre-built Pack are peer alternatives
+       for enriching a record set; the small-control icon pattern is the
+       shell-wide affordance for binary picks (also used by Decision §8's
+       Split/Full layout toggles). Shared state via the
+       augment-it:enrichment-mode window event + localStorage; the Pack
+       option also dispatches augment-it:navigate so the shell opens the
+       prompt-templates ⇄ pack-runner pair. -->
   <div class="ptm-mode-switch" role="tablist" aria-label="Enrichment mode">
     <button
       class="ptm-mode"
       class:active={enrichmentMode === 'prompt'}
       role="tab"
       aria-selected={enrichmentMode === 'prompt'}
+      aria-label="Custom prompt — author a free-text LLM prompt"
+      title="Custom prompt — author a free-text LLM prompt"
       onclick={() => setMode('prompt')}
     >
-      Custom Prompt
+      <span aria-hidden="true">✎</span>
     </button>
     <button
       class="ptm-mode"
       class:active={enrichmentMode === 'pack'}
       role="tab"
       aria-selected={enrichmentMode === 'pack'}
+      aria-label="Pre-built pack — fire a source-bound pack against the record set"
+      title="Pre-built pack — fire a source-bound pack against the record set"
       onclick={() => {
         setMode('pack');
         window.dispatchEvent(
@@ -255,12 +261,12 @@
           }),
         );
       }}
-      title="Use a pre-built source-bound pack instead of authoring a custom prompt"
     >
-      Pre-built Pack →
+      <span aria-hidden="true">⊞</span>
     </button>
   </div>
 
+  {#if enrichmentMode === 'prompt'}
   <div class="ptm-layout">
     <aside>
       <h2>Prompts</h2>
@@ -355,4 +361,5 @@
       {/if}
     </section>
   </div>
+  {/if}
 </div>
