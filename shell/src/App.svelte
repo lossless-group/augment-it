@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import ModeToggle from './ModeToggle.svelte';
   import MountHost from './MountHost.svelte';
+  import FlowWidget from './FlowWidget.svelte';
   import ToggleHeader from '@augment-it/shared-ui/ToggleHeader__PromptOrPackage--Icons.svelte';
   import {
     ROTATION,
@@ -305,12 +306,6 @@
     };
   });
 
-  const MODE_BUTTONS: { mode: LayoutMode; label: string }[] = [
-    { mode: 'peek-flow', label: 'Flow' },
-    { mode: 'co-existence', label: 'Split' },
-    { mode: 'full', label: 'Full' },
-  ];
-
   function selectMode(mode: LayoutMode): void {
     if (mode === 'co-existence') {
       const pairing = PAIRINGS[0];
@@ -318,6 +313,22 @@
     } else {
       layout.setMode(mode);
     }
+  }
+
+  // Click a bubble in the Flow widget — navigate to that rotation step.
+  // In peek-flow we just move focusIndex; in co-existence / full we move
+  // focusIndex AND drop back to peek-flow (the user picked a step, not a
+  // pairing). Matches the augment-it:navigate handler's behaviour when the
+  // caller doesn't request a specific mode.
+  function selectStep(slotId: string): void {
+    const idx = ROTATION.findIndex((id) => id === slotId);
+    if (idx < 0) return;
+    layout.setFocusIndex(idx);
+    if (layout.mode !== 'peek-flow') layout.setMode('peek-flow');
+  }
+
+  function toggleFlowWidgetPosition(): void {
+    layout.setFlowWidgetPosition(layout.flowWidgetPosition === 'top' ? 'left' : 'top');
   }
 
   const showSplitter = $derived(layout.mode === 'co-existence' && stage.length === 2);
@@ -328,13 +339,18 @@
     <strong>augment-it</strong>
     <span class="muted">· shell</span>
   </div>
-  <nav>
-    {#each MODE_BUTTONS as b (b.mode)}
-      <button class:active={layout.mode === b.mode} onclick={() => selectMode(b.mode)}>
-        {b.label}
-      </button>
-    {/each}
-  </nav>
+  {#if layout.flowWidgetPosition === 'top'}
+    <FlowWidget
+      activeIndex={layout.focusIndex}
+      mode={layout.mode}
+      orientation="top"
+      onSelectStep={selectStep}
+      onSelectMode={selectMode}
+      onTogglePosition={toggleFlowWidgetPosition}
+    />
+  {:else}
+    <div class="header-flow-placeholder" aria-hidden="true"></div>
+  {/if}
   <div class="metrics">
     <button
       class="chat-toggle"
@@ -350,7 +366,19 @@
   </div>
 </header>
 
-<div class="below-header" class:has-chat={chatVisible}>
+<div class="below-header" class:has-chat={chatVisible} class:has-flow-rail={layout.flowWidgetPosition === 'left'}>
+  {#if layout.flowWidgetPosition === 'left'}
+    <aside class="flow-rail" aria-label="Workflow rail">
+      <FlowWidget
+        activeIndex={layout.focusIndex}
+        mode={layout.mode}
+        orientation="left"
+        onSelectStep={selectStep}
+        onSelectMode={selectMode}
+        onTogglePosition={toggleFlowWidgetPosition}
+      />
+    </aside>
+  {/if}
   {#if chatVisible}
     <aside class="chat-rail" aria-label="Chat panel">
       <MountHost remote={CHAT_REMOTE} />
@@ -386,7 +414,11 @@
       {#if !isInteractive}
         <!-- peek neighbour: a click-capture overlay. Hover expands it,
              click commits it as the new focus. The live app underneath is
-             not interactive while it is a neighbour. -->
+             not interactive while it is a neighbour.
+             When the Flow widget is on the left rail, the bubble strip
+             carries the "where am I" information, so we hide the per-slot
+             label here to avoid double-rendering it (spec §8 coherence
+             with §6 — same information, two locations is silly). -->
         <button
           class="peek-overlay"
           aria-label={`Focus ${item.label}`}
@@ -394,7 +426,9 @@
           onmouseleave={() => (hoveredNeighborId = null)}
           onclick={() => commitFocus(item.id)}
         >
-          <span class="peek-label">{item.label}</span>
+          {#if layout.flowWidgetPosition !== 'left'}
+            <span class="peek-label">{item.label}</span>
+          {/if}
         </button>
       {/if}
 
@@ -442,22 +476,7 @@
   }
   .brand strong { color: var(--color-accent); font-size: 1.05rem; }
   .brand .muted { color: var(--color-text-muted); }
-  nav { display: flex; gap: 0.5rem; }
-  nav button {
-    background: transparent;
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-    padding: 4px 12px;
-    border-radius: 4px;
-    font: inherit;
-    cursor: pointer;
-  }
-  nav button:hover { border-color: var(--color-accent); }
-  nav button.active {
-    background: var(--color-selected-tint);
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-  }
+  .header-flow-placeholder { /* keeps the grid columns even when widget is on left rail */ }
   .metrics { display: flex; gap: 0.75rem; align-items: center; font-size: 11px; }
   .muted { color: var(--color-text-muted); }
 
@@ -497,6 +516,18 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+  }
+  /* Flow widget when positioned as a left rail (spec §8 + Phase 4).
+     Persistent vertical workflow indicator; sits outside the chat-rail
+     so the order is: flow-rail | chat-rail | stage. */
+  .flow-rail {
+    width: 64px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--color-border);
+    background: var(--color-surface-raised, var(--color-background));
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
   }
 
   /* ---- the tiling stage ---- */

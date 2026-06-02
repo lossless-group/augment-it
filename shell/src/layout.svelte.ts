@@ -14,12 +14,15 @@ import { ROTATION, PAIRINGS } from './remotes';
 
 export type LayoutMode = 'peek-flow' | 'co-existence' | 'full';
 
+export type FlowWidgetPosition = 'top' | 'left';
+
 export type ShellLayoutPreference = {
   mode: LayoutMode;
   focusIndex: number;                       // peek-flow / full: position in REMOTES
   focusedWidthPct: number;                  // peek-flow: user-adjusted focused width
   coExistenceRatios: Record<string, number>; // pair key → left-panel %
   defaultMode: LayoutMode;
+  flowWidgetPosition: FlowWidgetPosition;   // where the Flow widget renders (Phase 4)
 };
 
 const STORAGE_KEY = 'augment-it:shell-layout';
@@ -30,6 +33,7 @@ const DEFAULTS: ShellLayoutPreference = {
   focusedWidthPct: 90,
   coExistenceRatios: {},
   defaultMode: 'peek-flow',
+  flowWidgetPosition: 'top',
 };
 
 // One-time migration for the Deck → Flow rename (spec Decision §7).
@@ -73,6 +77,7 @@ class ShellLayout {
   focusedWidthPct: number;
   coExistenceRatios: Record<string, number>;
   defaultMode: LayoutMode;
+  flowWidgetPosition: FlowWidgetPosition;
   activePairKey: string | null; // co-existence: which pairing is showing
 
   constructor() {
@@ -82,6 +87,7 @@ class ShellLayout {
     this.focusedWidthPct = $state<number>(clamp(p.focusedWidthPct, FOCUSED_WIDTH_MIN, FOCUSED_WIDTH_MAX));
     this.coExistenceRatios = $state<Record<string, number>>(p.coExistenceRatios);
     this.defaultMode = $state<LayoutMode>(p.defaultMode);
+    this.flowWidgetPosition = $state<FlowWidgetPosition>(p.flowWidgetPosition);
     this.activePairKey = $state<string | null>(PAIRINGS[0]?.key ?? null);
   }
 
@@ -93,12 +99,18 @@ class ShellLayout {
       focusedWidthPct: this.focusedWidthPct,
       coExistenceRatios: { ...this.coExistenceRatios },
       defaultMode: this.defaultMode,
+      flowWidgetPosition: this.flowWidgetPosition,
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
     } catch {
       // storage disabled — layout still works for the session
     }
+  }
+
+  setFlowWidgetPosition(p: FlowWidgetPosition): void {
+    this.flowWidgetPosition = p;
+    this.persist();
   }
 
   setMode(mode: LayoutMode): void {
