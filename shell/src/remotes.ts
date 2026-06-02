@@ -22,6 +22,23 @@ export type RemoteEntry = {
   importMount: () => Promise<Record<string, unknown>>;
 };
 
+/**
+ * Ordered list of slot ids that walk the peek-flow rotation (and the
+ * full-mode focus sequence). Each id resolves via slotById() to either
+ * a federated remote or a composite. Composites are peers in the
+ * rotation, so the in-slot toggle (e.g. enrichment's PTM⇄Pack-Runner
+ * pair) works in every layout mode, not just co-existence.
+ *
+ * Phase 2d of the refactor — see context-v/plans/Shell-and-Micro-Frontend-UX-Coherence-Refactor.md
+ */
+export const ROTATION: string[] = [
+  'recordCollector',
+  'enrichment',          // composite — PTM ⇄ Pack Runner via in-slot toggle
+  'requestReviewer',
+  'responseReviewer',
+  'enhancedRecordsList',
+];
+
 export const REMOTES: RemoteEntry[] = [
   {
     id: 'recordCollector',

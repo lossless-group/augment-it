@@ -10,7 +10,7 @@
 // are the one adapter; swapping the storage is swapping this file's two
 // private functions, nothing else.
 
-import { REMOTES, PAIRINGS } from './remotes';
+import { ROTATION, PAIRINGS } from './remotes';
 
 export type LayoutMode = 'peek-flow' | 'co-existence' | 'full';
 
@@ -78,7 +78,7 @@ class ShellLayout {
   constructor() {
     const p = readStored();
     this.mode = $state<LayoutMode>(p.mode);
-    this.focusIndex = $state<number>(clamp(p.focusIndex, 0, REMOTES.length - 1));
+    this.focusIndex = $state<number>(clamp(p.focusIndex, 0, ROTATION.length - 1));
     this.focusedWidthPct = $state<number>(clamp(p.focusedWidthPct, FOCUSED_WIDTH_MIN, FOCUSED_WIDTH_MAX));
     this.coExistenceRatios = $state<Record<string, number>>(p.coExistenceRatios);
     this.defaultMode = $state<LayoutMode>(p.defaultMode);
@@ -108,7 +108,7 @@ class ShellLayout {
 
   /** No wrap — clamped to the sequence ends. */
   setFocusIndex(index: number): void {
-    this.focusIndex = clamp(index, 0, REMOTES.length - 1);
+    this.focusIndex = clamp(index, 0, ROTATION.length - 1);
     this.persist();
   }
 

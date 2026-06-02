@@ -18,6 +18,13 @@ revisions:
     bundle migration. Better to introduce Bundle as the primary selector
     now and let `none`/`solo`/`all` become roster-override helpers on a
     bundle's pack roster, where they belong. Subsequent phases renumbered.
+  - 2026-06-01 — Added Phase 2d: the user landed on the Phase 2c result in
+    Split mode and observed the toggle only worked there — Flow mode walked
+    `REMOTES`, which composites weren't part of. Introduced `ROTATION: string[]`
+    as a peer to `REMOTES` (rotation order of slot ids, including composite
+    ids) and switched peek-flow / full / `commitFocus` / nav-handler /
+    `layout.setFocusIndex` clamping to walk `ROTATION` via `slotById`.
+    Composites are now first-class in every layout mode.
   - 2026-06-01 — **Spike resolved: Option C — composite slot in the shell
     + shared toggle component.** Trying Phase 2b's intra-remote off-mode-
     hide in the browser made the architectural error visible — both
@@ -410,7 +417,8 @@ a new `enrichmentSurface` remote — depends on it.
 | 1 — Deck→Flow rename | ⏳ | — | |
 | 2a — Peek labels anchor left | ⏳ | — | |
 | 2b — Enrichment-mode exclusive UI (intra-remote) | ✅→↩ | 62731fd | superseded by 2c |
-| 2c — Composite slot + shared toggle | ⏳ | — | resolves the spike |
+| 2c — Composite slot + shared toggle | ✅ | b9b99df | resolves the spike |
+| 2d — Composites are peers in Flow rotation | ⏳ | — | ROTATION peer to REMOTES; in-slot toggle works in Flow & Full too |
 | 3 — Bundle-first Pack Runner | ⏳ | — | supersedes spec §1 helpers |
 | 4 — Flow widget | ⏳ | — | |
 | 5 — Augment This Set + key unification | ⏳ | — | gated on spike |

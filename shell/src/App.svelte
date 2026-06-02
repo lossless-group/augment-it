@@ -4,7 +4,7 @@
   import MountHost from './MountHost.svelte';
   import ToggleHeader from '@augment-it/shared-ui/ToggleHeader__PromptOrPackage--Icons.svelte';
   import {
-    REMOTES,
+    ROTATION,
     PAIRINGS,
     CHAT_REMOTE,
     remoteById,
@@ -62,30 +62,36 @@
 
   type StageRole = 'focused' | 'prev' | 'next' | 'pair-left' | 'pair-right' | 'full';
   type StageItem = {
-    id: string;             // includes ':' + active-member id for composites so MountHost re-mounts on toggle
-    remote: RemoteEntry;
+    id: string;                  // ROTATION slot id (remote id or composite id); stable across composite toggles
+    remote: RemoteEntry;         // the active remote for this slot (resolved composite member, or the remote itself)
+    label: string;               // user-facing label — composite.label for composites, remote.label otherwise
     widthPct: number;
     zIndex: number;
     role: StageRole;
-    composite?: CompositeEntry;  // when set, render ToggleHeader above MountHost
+    composite?: CompositeEntry;  // when set, render ToggleHeader above MountHost and {#key} the mount on active-member changes
   };
 
-  function materializeSlot(slot: Slot, widthPct: number, role: StageRole): StageItem | null {
+  function materializeSlot(slot: Slot, widthPct: number, role: StageRole, zIndex = 1): StageItem | null {
     if (slot.kind === 'remote') {
-      return { id: slot.remote.id, remote: slot.remote, widthPct, zIndex: 1, role };
+      return {
+        id: slot.remote.id,
+        remote: slot.remote,
+        label: slot.remote.label,
+        widthPct,
+        zIndex,
+        role,
+      };
     }
     const c = slot.composite;
     const activeId = activeMembers[c.id] ?? c.defaultMemberId;
     const remote = remoteById(activeId);
     if (!remote) return null;
-    // Key the StageItem so toggling re-mounts MountHost (MountHost only
-    // runs its dynamic import in onMount; without a key change, swapping
-    // the `remote` prop would leak the previous member.)
     return {
-      id: `${c.id}:${activeId}`,
+      id: c.id,
       remote,
+      label: c.label,
       widthPct,
-      zIndex: 1,
+      zIndex,
       role,
       composite: c,
     };
@@ -98,10 +104,17 @@
   let splitting = $state<boolean>(false);
 
   // ---- the stage geometry — derived from layout + interaction -------------
+  // All three modes walk ROTATION (a list of slot ids) and resolve each id
+  // via slotById() — a slot can be a federated remote or a composite. The
+  // composite case keeps a ToggleHeader in the slot in every layout mode,
+  // so the in-slot toggle (e.g. enrichment's PTM⇄Pack-Runner pair) works
+  // in Flow, Split, and Full alike (Phase 2d).
   const stage = $derived.by<StageItem[]>(() => {
     if (layout.mode === 'full') {
-      const r = REMOTES[layout.focusIndex];
-      return r ? [{ id: r.id, remote: r, widthPct: 100, zIndex: 1, role: 'full' }] : [];
+      const slot = slotById(ROTATION[layout.focusIndex]);
+      if (!slot) return [];
+      const item = materializeSlot(slot, 100, 'full');
+      return item ? [item] : [];
     }
 
     if (layout.mode === 'co-existence') {
@@ -121,44 +134,48 @@
 
     // peek-flow
     const i = layout.focusIndex;
-    const focused = REMOTES[i];
-    if (!focused) return [];
-    const prev = REMOTES[i - 1];
-    const next = REMOTES[i + 1];
-    const neighbours = [prev, next].filter(Boolean) as RemoteEntry[];
+    const focusedSlot = slotById(ROTATION[i]);
+    if (!focusedSlot) return [];
+    const prevSlot = i > 0 ? slotById(ROTATION[i - 1]) : undefined;
+    const nextSlot = i < ROTATION.length - 1 ? slotById(ROTATION[i + 1]) : undefined;
+    const neighbourCount = (prevSlot ? 1 : 0) + (nextSlot ? 1 : 0);
     const remainder = 100 - layout.focusedWidthPct;
-    const peekEach = neighbours.length ? Math.max(MIN_PEEK, remainder / neighbours.length) : 0;
+    const peekEach = neighbourCount ? Math.max(MIN_PEEK, remainder / neighbourCount) : 0;
 
-    const hoveredIsNeighbour =
-      hoveredNeighborId !== null && neighbours.some((n) => n.id === hoveredNeighborId);
-    const widthOf = (n: RemoteEntry): number =>
-      hoveredIsNeighbour && n.id === hoveredNeighborId ? HOVER_PCT : peekEach;
+    const slotKey = (s: Slot): string => (s.kind === 'remote' ? s.remote.id : s.composite.id);
+    const isHovered = (s: Slot): boolean =>
+      hoveredNeighborId !== null && slotKey(s) === hoveredNeighborId;
+    const widthOf = (s: Slot): number => (isHovered(s) ? HOVER_PCT : peekEach);
 
     const items: StageItem[] = [];
-    if (prev) {
-      items.push({
-        id: prev.id, remote: prev, widthPct: widthOf(prev),
-        zIndex: prev.id === hoveredNeighborId ? 2 : 1, role: 'prev',
-      });
+    if (prevSlot) {
+      const item = materializeSlot(
+        prevSlot,
+        widthOf(prevSlot),
+        'prev',
+        isHovered(prevSlot) ? 2 : 1,
+      );
+      if (item) items.push(item);
     }
     const consumed =
-      (prev ? widthOf(prev) : 0) + (next ? widthOf(next) : 0);
-    items.push({
-      id: focused.id, remote: focused, widthPct: Math.max(20, 100 - consumed),
-      zIndex: 3, role: 'focused',
-    });
-    if (next) {
-      items.push({
-        id: next.id, remote: next, widthPct: widthOf(next),
-        zIndex: next.id === hoveredNeighborId ? 2 : 1, role: 'next',
-      });
+      (prevSlot ? widthOf(prevSlot) : 0) + (nextSlot ? widthOf(nextSlot) : 0);
+    const focused = materializeSlot(focusedSlot, Math.max(20, 100 - consumed), 'focused', 3);
+    if (focused) items.push(focused);
+    if (nextSlot) {
+      const item = materializeSlot(
+        nextSlot,
+        widthOf(nextSlot),
+        'next',
+        isHovered(nextSlot) ? 2 : 1,
+      );
+      if (item) items.push(item);
     }
     return items;
   });
 
   // ---- peek-flow: commit a neighbour as the new focus ---------------------
-  function commitFocus(remoteId: string): void {
-    const idx = REMOTES.findIndex((r) => r.id === remoteId);
+  function commitFocus(slotId: string): void {
+    const idx = ROTATION.findIndex((id) => id === slotId);
     if (idx >= 0) {
       hoveredNeighborId = null;
       layout.setFocusIndex(idx);
@@ -230,19 +247,27 @@
         | { remoteId?: string; mode?: LayoutMode }
         | undefined;
       if (!detail?.remoteId) return;
-      const idx = REMOTES.findIndex((r) => r.id === detail.remoteId);
-      if (idx >= 0) {
-        // Standard rotation remote — switch focus + mode as requested.
-        layout.setFocusIndex(idx);
+      // Direct rotation hit — the requested id is a slot in the rotation
+      // (a remote or a composite). Set focus + mode and we're done.
+      const rotIdx = ROTATION.findIndex((id) => id === detail.remoteId);
+      if (rotIdx >= 0) {
+        layout.setFocusIndex(rotIdx);
         layout.setMode(detail.mode ?? 'full');
         return;
       }
-      // Might be a composite member (e.g. packRunner inside enrichment).
-      // Set the composite's active member to the requested remote, then
-      // open the pairing that contains the composite.
+      // The id might be a composite member (e.g. `packRunner` inside the
+      // enrichment composite). Set the composite's active member; then
+      // either focus its rotation slot (if the composite is in ROTATION)
+      // or open its co-existence pairing.
       const composite = compositeFor(detail.remoteId);
       if (composite) {
         setCompositeMember(composite, detail.remoteId);
+        const compIdx = ROTATION.findIndex((id) => id === composite.id);
+        if (compIdx >= 0) {
+          layout.setFocusIndex(compIdx);
+          layout.setMode(detail.mode ?? 'full');
+          return;
+        }
         const pair = PAIRINGS.find(
           (p) => p.left === composite.id || p.right === composite.id,
         );
@@ -347,8 +372,16 @@
           activeId={activeMembers[item.composite.id] ?? item.composite.defaultMemberId}
           onSelect={(memberId) => setCompositeMember(item.composite!, memberId)}
         />
+        <!-- {#key activeMember} re-mounts MountHost when the toggle flips.
+             MountHost only runs its dynamic import in onMount, so without
+             the key change a swapped `remote` prop would leak the previous
+             member. -->
+        {#key activeMembers[item.composite.id]}
+          <MountHost remote={item.remote} />
+        {/key}
+      {:else}
+        <MountHost remote={item.remote} />
       {/if}
-      <MountHost remote={item.remote} />
 
       {#if !isInteractive}
         <!-- peek neighbour: a click-capture overlay. Hover expands it,
@@ -356,12 +389,12 @@
              not interactive while it is a neighbour. -->
         <button
           class="peek-overlay"
-          aria-label={`Focus ${item.remote.label}`}
+          aria-label={`Focus ${item.label}`}
           onmouseenter={() => (hoveredNeighborId = item.id)}
           onmouseleave={() => (hoveredNeighborId = null)}
           onclick={() => commitFocus(item.id)}
         >
-          <span class="peek-label">{item.remote.label}</span>
+          <span class="peek-label">{item.label}</span>
         </button>
       {/if}
 
