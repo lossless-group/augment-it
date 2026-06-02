@@ -419,7 +419,7 @@ a new `enrichmentSurface` remote — depends on it.
 | 2b — Enrichment-mode exclusive UI (intra-remote) | ✅→↩ | 62731fd | superseded by 2c |
 | 2c — Composite slot + shared toggle | ✅ | b9b99df | resolves the spike |
 | 2d — Composites are peers in Flow rotation | ⏳ | — | ROTATION peer to REMOTES; in-slot toggle works in Flow & Full too |
-| 3 — Bundle-first Pack Runner | ⏳ | — | supersedes spec §1 helpers |
+| 3 — Bundle-first Pack Runner | ✅ | 126a534 | supersedes spec §1 helpers; on feat/bundle-first-pack-runner |
 | 4 — Flow widget | ⏳ | — | |
 | 5 — Augment This Set + key unification | ⏳ | — | gated on spike |
 | 6 — Principles + audit harvest | ⏳ | — | |
