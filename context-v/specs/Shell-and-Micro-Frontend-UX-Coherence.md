@@ -7,10 +7,11 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.2
+semantic_version: 0.0.0.3
 revisions:
   - 2026-05-28 — Initial audit + 8 locked decisions (0.0.0.1).
   - 2026-06-01 — Shipped Phases 0–2d of [[../plans/Shell-and-Micro-Frontend-UX-Coherence-Refactor]]. Marked Decisions §6 (peek labels), §7 (Deck → Flow), and §5 (composition) as shipped. The §5 open question "wrapper remote vs shared-state" resolved as **Option C — shell-level composite slot**; recorded in Decision §5 and removed from Open questions. Decision §1 (pack selection helpers on a flat list) **superseded** by Phase 3 bundle-first refactor — the plan's reconciliation against [[../blueprints/Packs-and-Bundles-Pattern]] showed that polishing a flat 7-pack list cements a model the blueprint says is wrong. Open question about Enrichment in the Flow strip resolved: **one bubble**, locked by the `ROTATION` shape shipped in Phase 2d. Per-surface audit updated with shipped status. Plan-level history lives in the plan; spec-level history is just the decisions changing.
+  - 2026-06-01 — Phases 3, 4, 5 shipped (bundle-first Pack Runner, hierarchical Flow widget, Augment This Set). Added evidence #13 (Pack Runner doesn't show what it's improving + asks for input it could infer) and Decision §9 (surface the target column near the Fire button + auto-infer the entity-name column with a small change-link affordance). Seeded by the user re-walking the flow end-to-end after Phase 5 with fresh eyes.
 tags:
   - Spec
   - Augment-It
@@ -183,6 +184,40 @@ Raw capture, tagged by failure shape. The seed data for the audit.
     the **same "where am I" information** expressed beside each pane;
     the bubble strip is the same information rolled up at the top/side.
     (2026-06-01)
+13. **[Hidden + foot-gun] Pack Runner doesn't show what it's improving,
+    and asks for input it could infer.** Surfaced 2026-06-01 after Phase 5
+    (Augment-This-Set) shipped, when the user re-walked the flow end-to-end
+    and looked at Pack Runner with fresh eyes. Two related observations:
+    - **What's being improved is invisible.** Pack Runner fires packs
+      whose responses land in `row.socials` (per
+      [[../blueprints/Packs-and-Bundles-Pattern]] §Row write-back —
+      `output_column: 'socials'` is hardcoded service-side for all packs).
+      The pane never tells the user that. "Fire Profile Builder on 67
+      rows" reads as input scope; the *target* — the column / property
+      that will get richer once you accept the responses — is nowhere on
+      screen. Whether you're augmenting `socials` or `url` or
+      `linkedin_url` is a load-bearing piece of context the surface should
+      carry, especially for a future bundle whose packs write to
+      different output columns.
+    - **The entity-name column should be pre-set, not picked.** Step 2
+      ("Entity-name column") today renders as a dropdown asking the user
+      to choose which column holds the name to search for. The blueprint's
+      §"Default to ready-to-fire" already prescribes auto-pick from a
+      small candidate list (`name`, `organization`, etc.), but Pack
+      Runner doesn't do that yet — and the user's stronger framing is:
+      this shouldn't be a *primary visible step* at all. It should be
+      inferred (record set's schema + a small candidate list) and surfaced
+      only as a secondary "what column are we reading?" affordance —
+      tucked under "advanced" or shown inline as a read-only "we're
+      reading entity names from `Prospect / Organization`" hint with a
+      change-link.
+    The two observations cluster under one pattern: **Pack Runner makes
+    the user answer questions Pack Runner already knows the answer to,
+    and hides answers the user actually needs.** Fix flips both: hide
+    the entity-name picker (auto-infer + minor change-link), surface the
+    target column (read-only, prominent, near the Fire button or in the
+    head). See Decision §9 below.
+    (2026-06-01)
 
 ### Already patched this session (record so we don't double-spec)
 
@@ -344,6 +379,48 @@ means no deliberate pass yet this session.
      a peer in `ROTATION`, the Open question "one bubble or two for
      enrichment?" resolves naturally: **one bubble**, because PTM and Pack
      Runner are already collapsed into the composite at the rotation level.
+9. **Pack Runner surfaces its target, infers its inputs.** Added 2026-06-01
+   in response to evidence #13. Two coupled fixes that reframe Pack
+   Runner's pre-fire surface around the **target column** (the property
+   being improved) instead of around inputs the surface could infer.
+   - **Surface the target column, near the Fire button.** A read-only
+     line in the fire-card subhead: *"Augmenting `socials` on 67 rows · 5
+     packs × 67 rows · 335 fetches"*. The target column comes from the
+     bundle (today every pack writes to `'socials'` per the 2026-05-25
+     pivot; future bundles may write to other columns or multiple
+     columns). When more than one target column is in play across the
+     bundle's roster, list them: *"Augmenting `socials`, `linkedin_url` on
+     67 rows · …"*. The user always knows *what gets richer* on accept.
+   - **Hide the entity-name column picker as a primary step; auto-infer.**
+     Step 2 today is a dropdown asking the user to pick which column holds
+     the entity name. Replace with **automatic best-guess** from a small
+     candidate list (`Prospect / Organization`, `name`, `organization`,
+     `company`, `entity_name`) walked against the active record set's
+     schema. The chosen column appears as a small, read-only hint near
+     the Fire button — *"Reading entity names from **Prospect /
+     Organization**"* — with a tiny `change ›` link that drops down the
+     dropdown for the rare case the heuristic is wrong. Persist any
+     manual override per record set in localStorage (keyed by
+     `record_set_id`) so the override doesn't leak across sets.
+   - **Mechanic notes:**
+     - Target-column source: derive from the active bundle's roster — for
+       v1 of the bundle architecture every pack writes to `'socials'`, so
+       this is a constant. For future packs with diverse output columns,
+       resolve `union(roster.map(m => packById(m.pack_id).output_column))`
+       and render the union.
+     - Entity-name heuristic: a small ordered candidate list scanned
+       against `recordSet.schema.fields` — first match wins, fallback to
+       "no inference possible — pick a column" only when none match.
+     - Storage key for per-set override (matches the canonical key
+       pattern from Phase 5):
+       `augment-it:entity-name-field:<record_set_id>`. Cleaner than the
+       current global `augment-it:pack-runner:entity-name-field`, which
+       leaks across sets.
+   - **Failure-shape mapping:** Hidden (what's improved is invisible) +
+     foot-gun (user is asked for input that should be inferred). The fix
+     instances the cross-cutting principle *"don't ask the user for what
+     the surface can infer"* and *"name what the surface is doing right
+     where the action lives."*
 
 ## Cross-cutting principles (to develop)
 
