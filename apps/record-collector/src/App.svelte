@@ -136,7 +136,7 @@
     );
     window.dispatchEvent(
       new CustomEvent('augment-it:navigate', {
-        detail: { remoteId: 'enrichment' },
+        detail: { remoteId: 'augment' },
       }),
     );
   }

@@ -1,14 +1,14 @@
 <script lang="ts">
   /**
-   * Composite-slot header for the enrichment surface.
+   * Composite-slot header — slot label on the left, icon-toggle pair on
+   * the right. The label announces which slot the user is in (the
+   * composite's identity); the icons swap which member remote mounts
+   * within it.
    *
-   * Renders an icon-with-tooltip pair that swaps which member remote the
-   * shell's composite slot mounts (Prompt Templates ✎ vs Pack Runner ⊞).
-   * The shell owns the "which slot, which member" decision — this component
-   * is pure presentation; it reads/writes the active member via a
-   * caller-provided callback and reacts to changes via props.
+   * Pure presentation: receives label + members + activeId + onSelect.
+   * Owns no state. The shell owns "which slot, which member."
    *
-   * Spec: context-v/specs/Shell-and-Micro-Frontend-UX-Coherence.md §5
+   * Spec: context-v/specs/Shell-and-Micro-Frontend-UX-Coherence.md §5, §11
    * Plan: context-v/plans/Shell-and-Micro-Frontend-UX-Coherence-Refactor.md §2c
    */
 
@@ -19,39 +19,59 @@
   };
 
   let {
+    slotLabel,
     members,
     activeId,
     onSelect,
   }: {
+    slotLabel?: string;
     members: Member[];
     activeId: string;
     onSelect: (memberId: string) => void;
   } = $props();
 </script>
 
-<div class="toggle-header" role="tablist" aria-label="Enrichment mode">
-  {#each members as m (m.id)}
-    <button
-      class="toggle"
-      class:active={m.id === activeId}
-      role="tab"
-      aria-selected={m.id === activeId}
-      aria-label={m.label}
-      title={m.label}
-      onclick={() => onSelect(m.id)}
-    >
-      <span aria-hidden="true">{m.icon}</span>
-    </button>
-  {/each}
+<div class="toggle-header" role="tablist" aria-label={slotLabel ?? 'Composite mode'}>
+  {#if slotLabel}
+    <span class="slot-label">{slotLabel}</span>
+  {/if}
+  <div class="toggles">
+    {#each members as m (m.id)}
+      <button
+        class="toggle"
+        class:active={m.id === activeId}
+        role="tab"
+        aria-selected={m.id === activeId}
+        aria-label={m.label}
+        title={m.label}
+        onclick={() => onSelect(m.id)}
+      >
+        <span aria-hidden="true">{m.icon}</span>
+      </button>
+    {/each}
+  </div>
 </div>
 
 <style>
   .toggle-header {
     display: flex;
-    gap: 0.4rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
     padding: 0.5rem 1.5rem;
     border-bottom: 1px solid var(--color-border);
     background: var(--color-background);
+  }
+  .slot-label {
+    color: var(--color-accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .toggles {
+    display: flex;
+    gap: 0.4rem;
   }
   .toggle {
     background: transparent;

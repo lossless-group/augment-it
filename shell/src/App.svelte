@@ -396,6 +396,7 @@
       style="width: {item.widthPct}%; z-index: {item.zIndex};">
       {#if item.composite}
         <ToggleHeader
+          slotLabel={item.composite.label}
           members={item.composite.members.map((m) => ({ id: m.remoteId, icon: m.icon, label: m.label }))}
           activeId={activeMembers[item.composite.id] ?? item.composite.defaultMemberId}
           onSelect={(memberId) => setCompositeMember(item.composite!, memberId)}

@@ -7,7 +7,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.1.2
+semantic_version: 0.0.1.3
 revisions:
   - 2026-05-28 — Initial audit + 8 locked decisions (0.0.0.1).
   - 2026-06-01 — Shipped Phases 0–2d of [[../plans/Shell-and-Micro-Frontend-UX-Coherence-Refactor]]. Marked Decisions §6 (peek labels), §7 (Deck → Flow), and §5 (composition) as shipped. The §5 open question "wrapper remote vs shared-state" resolved as **Option C — shell-level composite slot**; recorded in Decision §5 and removed from Open questions. Decision §1 (pack selection helpers on a flat list) **superseded** by Phase 3 bundle-first refactor — the plan's reconciliation against [[../blueprints/Packs-and-Bundles-Pattern]] showed that polishing a flat 7-pack list cements a model the blueprint says is wrong. Open question about Enrichment in the Flow strip resolved: **one bubble**, locked by the `ROTATION` shape shipped in Phase 2d. Per-surface audit updated with shipped status. Plan-level history lives in the plan; spec-level history is just the decisions changing.
@@ -15,6 +15,7 @@ revisions:
   - 2026-06-01 — Phase 6 — **cross-cutting principles promoted from commented candidates to a stable list** (12 principles, partitioned by the three failure shapes + a dual-identity cross-class). Each principle is *earned* by named evidence + decisions — they're not abstract preferences. Per-surface audit closed out — every row now reads as ✅ shipped, deferred-with-link to a child spec, or `needs-audit` with a clear scope. Spec moves from 0.0.0.x to **0.0.1.0** because the principles section is a stable contract future affordances should consult. Closes the refactor's planning loop: the spec captures decisions, the plan captures sequencing + status, the principles capture the patterns earned.
   - 2026-06-01 — Patch 0.0.1.1: flagged the **Tooltip System hanging issue** on principle §8 + added to Wish list. Native HTML `title=` is unreliable for the icon-with-tooltip pattern that's now load-bearing across the composite header, Flow widget, and Pack Runner's change-link affordance. Stubbed [[Tooltip-System]] so the work is discoverable when picked up. The principle stays — the plumbing needs replacing.
   - 2026-06-01 — Patch 0.0.1.2: **sharpened the Tooltip System scope** after the user named the real shape. Not one component — a family (`Tooltip--Simple`, `Tooltip--Rich`, `Tooltip--Popover`) with shared geometry (`from` directionality with arrow connector, `distance` in rem) and a higher-level **Tooltip-Walkthrough** surface for first-run onboarding and returning-user re-orientation. Locked the framing: *apps succeed at onboarding/orientation, not at functionality.* Updated Wish list entry + §8 annotation to point at the sharpened scope; [[Tooltip-System]] itself moves from stub to scoped (v0.0.0.2).
+  - 2026-06-01 — Patch 0.0.1.3: **two new decisions surfaced by the refactor**, not created by it. Added evidence #14 (Request Reviewer doesn't adapt to the request type — bundle/pack fires skip RR entirely) and Decision §10 (RR becomes a **request-driven composite slot** with two adaptive members: PromptRequestReview stays human-readable, BundleRequestReview is intimidating-but-recognizable JSON that names the translation Augment-It is doing on the user's behalf). Added evidence #15 (composite slot doesn't announce itself + "Enrichment" was data-engineering-speak that didn't match the product's verb) and Decision §11 (composite slots render their `label` in chrome + rename `Enrichment` → `Augment`). §11 is partially shipped in this patch (the rename + label rendering in `ToggleHeader`); §10 is locked-but-pending. Per-surface audit row for Request Reviewer updated to point at Decision §10 instead of generic `needs-audit`.
 tags:
   - Spec
   - Augment-It
@@ -221,6 +222,48 @@ Raw capture, tagged by failure shape. The seed data for the audit.
     target column (read-only, prominent, near the Fire button or in the
     head). See Decision §9 below.
     (2026-06-01)
+14. **[Mismatched + Hidden] Request Reviewer doesn't adapt to the
+    request type; bundle/pack fires skip the pre-flight entirely.**
+    Surfaced 2026-06-01 *by* the refactor — Phase 2c put PTM and Pack
+    Runner in one composite slot, and that put a spotlight on the
+    asymmetry the prior layout had hidden: the **prompt path** goes
+    PTM → Request Reviewer → fire (the human-readable resolved
+    prompt is the pre-flight); the **pack/bundle path** goes Pack
+    Runner → fire, **skipping Request Reviewer entirely.** Same verb
+    ("fire / send the request") routes through two different gestures
+    on two surfaces. Violates principle §7 (same verb = same gesture).
+    More importantly: the user has no pre-fire moment to see what
+    Augment-It is *translating* their human concept (a row + a bundle
+    name) into — the JSON fan-out payload, the per-pack-per-row
+    resolved queries, the providers being called, the response
+    schemas expected. The fix is **make Request Reviewer adaptive**:
+    detect the request type, render the right body. The prompt body
+    stays human (resolved variables, model picker). The bundle body
+    is intimidating-but-recognizable JSON — the fan-out payload, a
+    sample of resolved queries (3 rows × all roster packs), provider
+    per pack, expected response schema. Variable insertion stays
+    visible so the user recognizes their data, but the rest stays
+    technical on purpose. The UX intent: *"thank you for automating
+    this for me"* → Fire. See Decision §10. (2026-06-01)
+15. **[Misnamed + Hidden] The composite slot doesn't announce itself.**
+    Surfaced 2026-06-01 right after Decision §9 shipped — the user
+    pulled up Pack Runner in the composite slot and saw the ✎/⊞
+    icon-toggle floating above a "PACK RUNNER" heading, with no
+    label anywhere telling them what *slot* they were in. The slot
+    has an identity (`composite.label`) but the chrome doesn't
+    render it. Two related problems: (a) without the label,
+    breadcrumbs and orientation suffer — the user can't tell at a
+    glance whether they're in Augment, Request Reviewer, or
+    elsewhere; (b) the legacy label "Enrichment" was
+    data-engineering-speak and didn't match the verb the rest of
+    the product uses (the product is augment-it, the button from
+    Record Collector is "Augment This Set →", the Flow widget
+    parent label is "Flow"). The composite was using a different
+    vocabulary than every adjacent affordance. Fix: render the slot
+    label in the composite-slot header (instance principle §3 —
+    name what the surface is doing), and rename the composite
+    `Enrichment` → `Augment` to align with the product verb. See
+    Decision §11. (2026-06-01)
 
 ### Already patched this session (record so we don't double-spec)
 
@@ -259,10 +302,17 @@ means no deliberate pass yet this session.
   is pure body with no mode awareness. PTM does **not** currently bind
   to the canonical record-set key — that's a follow-up when PTM grows
   per-record-set awareness; the seam (the canonical key) already exists.
-- **Request Reviewer** — `needs-audit`. Defer-with-link: surfaced in
-  [[Initial-User-Experience]] (stubbed 2026-06-01) for first-contact
-  framing; deeper review when Request Reviewer's pre-flight model
-  evolves.
+- **Request Reviewer** — scoped 2026-06-01 by Decision §10: RR
+  becomes a **request-driven composite slot** with two members
+  (`PromptRequestReview` for the existing human-readable resolved-
+  prompt view; `BundleRequestReview` for the new intimidating-but-
+  recognizable JSON view that names the translation Augment-It is
+  doing on behalf of the user). Active member auto-selected from the
+  incoming request type via a shared "pending request" state seam.
+  Pack Runner's fire button becomes "Review →" so both modes route
+  through RR — instances principle §7. Detailed landing lives in
+  [[Request-Reviewer-Pre-Flight-Surface]]; first-contact framing in
+  [[Initial-User-Experience]].
 - **Response Reviewer** — by-record triage view is the strong surface;
   auto-refreshes on `response.created`. ✅ The "run a pack = click-to-fire"
   vs Pack Runner multi-select mismatch is **structurally resolved** by
@@ -441,6 +491,92 @@ means no deliberate pass yet this session.
      instances the cross-cutting principle *"don't ask the user for what
      the surface can infer"* and *"name what the surface is doing right
      where the action lives."*
+10. **Request Reviewer becomes a request-driven composite.** Locked
+    2026-06-01 in response to evidence #14. RR is reshaped as a
+    **composite slot** whose active member is chosen **adaptively from
+    the incoming request type** — no user toggle, no human decision.
+    Two members:
+    - **`PromptRequestReview`** — the existing surface, shipped. Shows
+      the resolved prompt body with `{{variables}}` filled in from the
+      current row, the model picker, the row scope, and a fire button.
+      Human-readable on purpose; the user is reviewing prose they
+      authored.
+    - **`BundleRequestReview`** — new. Shows the **fan-out request
+      payload** (the JSON Pack Runner would send to the social-search
+      service: `{ pack_ids, bundle_id, record_set_id, row_ids,
+      entity_name_field, provider_override }`), plus a **sample of
+      resolved per-pack-per-row queries** (3 rows × full roster, with
+      the entity name substituted: `LinkedIn → "Acme Corp site:linkedin.com"`,
+      `Wikipedia → "Acme Corp nonprofit"`, …), plus the **provider per
+      pack** and the **expected response schema**. Variable insertion
+      stays visible so the user recognizes *their* data going into
+      *that* JSON; the rest stays technical on purpose. The UX intent
+      is the opposite of the prompt path: the prompt path humanizes,
+      the bundle path *intimidates-but-recognizably* so the user lands
+      on *"thank you for automating this for me"* → click Fire.
+    - **Auto-selection mechanism (locked at the seam):** a shared
+      "pending request" state seam — both PTM's *Apply* and Pack
+      Runner's *Review* write a typed payload (`{ kind: 'prompt' | 'bundle', … }`)
+      to a known key + broadcast a window event. RR reads it on mount
+      and listens. The composite's `defaultMemberId` is the fallback
+      when no pending request exists.
+    - **Pack Runner's fire button changes shape.** From "Fire Profile
+      Builder on 67 rows" → "Review → Profile Builder on 67 rows"; the
+      actual fire happens in RR. (Power-user "skip review" preference
+      possible later, but default is review for both paths — that's
+      what makes the verb symmetric.)
+    - **Composability with other composites.** This is the *second*
+      composite the shell hosts (the first is `AUGMENT_COMPOSITE`, see
+      Decision §11). It's also the first **request-driven** composite —
+      the prior pattern was user-toggle. The shell's `CompositeEntry`
+      type supports both; the difference is whether the slot renders the
+      toggle UI in its header. Request-driven composites either hide the
+      toggle entirely or render a small read-only "this is a
+      Prompt/Bundle request" indicator. (Implementation detail —
+      whatever reads cleanest in the chrome.)
+    - **Failure-shape mapping:** Mismatched (same verb, two gestures)
+      + Hidden (the JSON translation was invisible). The fix instances
+      principles §7 (same verb = same gesture) and §3 (name what the
+      surface is doing).
+    - **Implementation surface area (estimated):** the request seam
+      (1 module), the new `BundleRequestReview` remote or sub-view,
+      Pack Runner's fire-button copy + dispatch change, and the
+      composite registration. Deeper detail belongs in the child
+      surface spec — see [[Request-Reviewer-Pre-Flight-Surface]] for
+      the full landing.
+11. **Composite slots render their label, and Enrichment is renamed
+    Augment.** Locked 2026-06-01 in response to evidence #15. Two
+    coupled fixes:
+    - **Render the slot label.** The shared `ToggleHeader__PromptOrPackage--Icons`
+      component takes a `slotLabel` prop. When set, the label renders
+      to the left of the icon-toggle pair in accent color + small-caps
+      letterform — the composite slot announces itself in chrome. The
+      shell passes `composite.label` for every composite stage item.
+      For request-driven composites (Decision §10) where the toggle is
+      hidden, the label still renders on its own.
+    - **Rename `Enrichment` → `Augment`.** The composite's id, label,
+      modeKey, PAIRING key, and ROTATION entry all carry the new
+      vocabulary. The verb the rest of the product uses is *augment*
+      (app name, Record Collector button, Flow widget parent label);
+      "Enrichment" was data-engineering-speak. Concrete surface area:
+      - `shell/src/composites.ts` — `AUGMENT_COMPOSITE` (was
+        `ENRICHMENT_COMPOSITE`, kept as deprecated re-export for one
+        release), id `'augment'`, label `'Augment'`, modeKey
+        `'augment-it:augment-mode'`.
+      - `shell/src/remotes.ts` — `ROTATION` entry `'augment'` (was
+        `'enrichment'`), PAIRING key `'recordCollector+augment'`.
+      - `apps/record-collector/src/App.svelte` —
+        `augment-it:navigate { remoteId: 'augment' }` (was
+        `'enrichment'`).
+      - localStorage migration: `readActiveMemberId()` reads the new
+        key first; falls back to the legacy
+        `'augment-it:enrichment-mode'` so existing users don't lose
+        their last-active member.
+    - **Failure-shape mapping:** Misnamed (slot used vocabulary
+      different from every adjacent affordance) + Hidden (slot had no
+      visible label in chrome). The fix instances principles §3 (name
+      what the surface is doing) and §10 (labels evoke the right
+      model).
 
 ## Cross-cutting principles
 

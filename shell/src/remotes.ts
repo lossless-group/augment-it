@@ -33,7 +33,7 @@ export type RemoteEntry = {
  */
 export const ROTATION: string[] = [
   'recordCollector',
-  'enrichment',          // composite — PTM ⇄ Pack Runner via in-slot toggle
+  'augment',             // composite — PTM ⇄ Pack Runner via in-slot toggle (renamed from 'enrichment' per Decision §11)
   'requestReviewer',
   'responseReviewer',
   'enhancedRecordsList',
@@ -125,13 +125,14 @@ export type Pairing = {
 
 export const PAIRINGS: Pairing[] = [
   {
-    // The enrichment composite (PTM ⇄ Pack Runner) paired with Record
-    // Collector. Replaces the two former pairings recordCollector+PTM and
-    // packRunner+PTM. The composite owns the in-slot toggle; the shell
-    // mounts only the active member at a time. Phase 2c of the refactor.
-    key: 'recordCollector+enrichment',
+    // The Augment composite (PTM ⇄ Pack Runner) paired with Record
+    // Collector. Replaces the two former pairings recordCollector+PTM
+    // and packRunner+PTM. The composite owns the in-slot toggle; the
+    // shell mounts only the active member at a time. Phase 2c of the
+    // refactor; renamed enrichment → augment per Decision §11.
+    key: 'recordCollector+augment',
     left: 'recordCollector',
-    right: 'enrichment',
+    right: 'augment',
     defaultLeftPct: 30,
   },
   {

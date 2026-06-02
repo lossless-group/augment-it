@@ -28,12 +28,19 @@ export type CompositeEntry = {
   defaultMemberId: string;
 };
 
-export const ENRICHMENT_COMPOSITE: CompositeEntry = {
-  id: 'enrichment',
+// The composite previously named ENRICHMENT_COMPOSITE; renamed
+// 2026-06-01 to AUGMENT_COMPOSITE per spec Decision §11. The verb the
+// product uses is "augment" (the app is augment-it, the button from
+// Record Collector says "Augment This Set →"), and "Enrichment" was
+// data-engineering-speak that didn't match. Slot id, label, and
+// modeKey all carry the new vocabulary; the legacy modeKey is read
+// once as a migration fallback so existing users don't lose state.
+export const AUGMENT_COMPOSITE: CompositeEntry = {
+  id: 'augment',
   kind: 'composite',
-  label: 'Enrichment',
+  label: 'Augment',
   description: 'Author a custom prompt OR fire a pre-built pack against the record set',
-  modeKey: 'augment-it:enrichment-mode',
+  modeKey: 'augment-it:augment-mode',
   members: [
     {
       remoteId: 'promptTemplateManager',
@@ -49,7 +56,16 @@ export const ENRICHMENT_COMPOSITE: CompositeEntry = {
   defaultMemberId: 'packRunner',
 };
 
-export const COMPOSITES: CompositeEntry[] = [ENRICHMENT_COMPOSITE];
+/** @deprecated Use AUGMENT_COMPOSITE. Re-exported for one release. */
+export const ENRICHMENT_COMPOSITE = AUGMENT_COMPOSITE;
+
+export const COMPOSITES: CompositeEntry[] = [AUGMENT_COMPOSITE];
+
+// Legacy modeKey we read once during migration so users who saved
+// state under the old key don't lose their last-active member.
+const LEGACY_MODE_KEYS: Record<string, string> = {
+  'augment-it:augment-mode': 'augment-it:enrichment-mode',
+};
 
 export function compositeById(id: string): CompositeEntry | undefined {
   return COMPOSITES.find((c) => c.id === id);
@@ -58,7 +74,14 @@ export function compositeById(id: string): CompositeEntry | undefined {
 /** Read the active member id for a composite from localStorage. */
 export function readActiveMemberId(c: CompositeEntry): string {
   if (typeof localStorage === 'undefined') return c.defaultMemberId;
-  const stored = localStorage.getItem(c.modeKey);
+  // Read the canonical key first; if absent, fall back to the legacy key
+  // (Decision §11's Enrichment → Augment rename). One-time read; future
+  // writes only touch the canonical key.
+  let stored = localStorage.getItem(c.modeKey);
+  if (!stored) {
+    const legacyKey = LEGACY_MODE_KEYS[c.modeKey];
+    if (legacyKey) stored = localStorage.getItem(legacyKey);
+  }
   if (!stored) return c.defaultMemberId;
   // Backwards-compat: Phase 2b stored 'prompt' / 'pack' literals; map them
   // to the new remote-id values. Remove after one release.
