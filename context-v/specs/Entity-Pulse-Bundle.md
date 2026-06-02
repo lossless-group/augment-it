@@ -808,6 +808,12 @@ unambiguously a branch.
 - [[Pulse-Curation-Layer-and-UI]] — the three-layer (raw /
   curated / finalized) data model + per-item triage UX this
   bundle's outputs live in. Entity Pulse is the first instance.
+- [[Connector-Inventory-and-Per-Record-Palette]] — the
+  hot-swap connector registry + per-record palette UX. This
+  bundle's pack declarations adopt `intent` + `short_label` +
+  `preferred_connectors` at migration step 5 of that spec's plan.
+  Resolves engineering-handoff blocker #3 (connector inventory)
+  with a richer pattern than a static checklist.
 - [[../blueprints/Packs-and-Bundles-Pattern]] — the pattern this
   bundle instances. Pulse-shaped bundles (rollups + curation +
   agent packs + two-pass) are a candidate addendum to the

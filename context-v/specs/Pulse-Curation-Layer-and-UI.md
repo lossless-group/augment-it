@@ -421,6 +421,11 @@ finalized_output as read-only.
 
 - [[Entity-Pulse-Bundle]] — the bundle this spec serves; defines the
   per-category rollup shapes referenced here.
+- [[Connector-Inventory-and-Per-Record-Palette]] — adds the per-
+  record palette as a fourth triage-action sibling (refire). Re-fire
+  is additive: it never overwrites items the human has already
+  curated; it appends new items to `raw_output.items[]` with their
+  originating `connector_id` and `triggered_by: 'human-refire'`.
 - [[Shell-and-Micro-Frontend-UX-Coherence]] §Decision §10 — adaptive
   Request Reviewer; Response Reviewer's pulse-curation surface is its
   *post*-flight sibling.
