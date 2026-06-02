@@ -335,22 +335,56 @@
 </script>
 
 <header>
-  <div class="brand">
-    <strong>augment-it</strong>
-    <span class="muted">· shell</span>
+  <div class="header-left">
+    <div class="brand">
+      <strong>augment-it</strong>
+      <span class="muted">· shell</span>
+    </div>
+    {#if layout.flowWidgetPosition === 'top'}
+      <FlowWidget
+        activeIndex={layout.focusIndex}
+        mode={layout.mode}
+        orientation="top"
+        onSelectStep={selectStep}
+        onSelectMode={selectMode}
+        onTogglePosition={toggleFlowWidgetPosition}
+      />
+    {/if}
   </div>
-  {#if layout.flowWidgetPosition === 'top'}
-    <FlowWidget
-      activeIndex={layout.focusIndex}
-      mode={layout.mode}
-      orientation="top"
-      onSelectStep={selectStep}
-      onSelectMode={selectMode}
-      onTogglePosition={toggleFlowWidgetPosition}
-    />
-  {:else}
-    <div class="header-flow-placeholder" aria-hidden="true"></div>
-  {/if}
+
+  <!-- Layout toggles in the center of the header (Phase 4 Decision §8
+       refinement, 2026-06-01). Split / Full are shell-level layout
+       controls about HOW the current Flow step renders — not Flow-step
+       controls. Separating them visually from the bubble strip makes
+       the hierarchy clearer at a glance. They sit centered between the
+       Flow widget (left) and the metrics (right). -->
+  <div class="header-layout-toggles" role="tablist" aria-label="Layout sub-option">
+    <button
+      type="button"
+      class="layout-toggle"
+      class:active={layout.mode === 'co-existence'}
+      role="tab"
+      aria-selected={layout.mode === 'co-existence'}
+      aria-label="Split — two cooperating panes"
+      title="Split — two cooperating panes"
+      onclick={() => selectMode('co-existence')}
+    >
+      <span aria-hidden="true">⊟</span>
+    </button>
+    <button
+      type="button"
+      class="layout-toggle"
+      class:active={layout.mode === 'full'}
+      role="tab"
+      aria-selected={layout.mode === 'full'}
+      aria-label="Full — one pane, full bleed"
+      title="Full — one pane, full bleed"
+      onclick={() => selectMode('full')}
+    >
+      <span aria-hidden="true">▢</span>
+    </button>
+  </div>
+
   <div class="metrics">
     <button
       class="chat-toggle"
@@ -463,8 +497,13 @@
 <style>
   header {
     display: grid;
+    /* Three-section layout: Flow widget anchors left (auto), layout
+       sub-options sit centered in the 1fr column (justify-self), metrics
+       anchor right. Putting Split/Full in the middle gives them their
+       own visual identity instead of being huddled with the Flow step
+       bubbles. */
     grid-template-columns: auto 1fr auto;
-    gap: 1.5rem;
+    gap: 1.25rem;
     align-items: center;
     padding: 0.75rem 1.5rem;
     border-bottom: 1px solid var(--color-border);
@@ -475,9 +514,44 @@
     height: 56px;
     box-sizing: border-box;
   }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
   .brand strong { color: var(--color-accent); font-size: 1.05rem; }
   .brand .muted { color: var(--color-text-muted); }
-  .header-flow-placeholder { /* keeps the grid columns even when widget is on left rail */ }
+  .header-layout-toggles {
+    display: flex;
+    gap: 0.3rem;
+    justify-self: center;
+  }
+  .layout-toggle {
+    background: transparent;
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+    width: 1.6rem;
+    height: 1.6rem;
+    padding: 0;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 0.95rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .layout-toggle:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+  .layout-toggle.active {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    border-color: var(--color-accent);
+    cursor: default;
+  }
   .metrics { display: flex; gap: 0.75rem; align-items: center; font-size: 11px; }
   .muted { color: var(--color-text-muted); }
 

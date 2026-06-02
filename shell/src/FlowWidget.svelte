@@ -71,7 +71,12 @@
 
   <ol class="bubble-strip" aria-label="Workflow steps">
     {#each steps as step, i (step.id)}
-      <li>
+      <li
+        class="step"
+        class:visited={i < activeIndex}
+        class:current={i === activeIndex}
+        class:upcoming={i > activeIndex}
+      >
         <button
           type="button"
           class="bubble"
@@ -82,36 +87,18 @@
         >
           <span class="bubble-num">{i + 1}</span>
         </button>
+        {#if i < steps.length - 1}
+          <span
+            class="connector"
+            class:visited={i < activeIndex}
+            class:current={i === activeIndex}
+            class:upcoming={i >= activeIndex + 1}
+            aria-hidden="true"
+          ></span>
+        {/if}
       </li>
     {/each}
   </ol>
-
-  <div class="layout-toggles" role="tablist" aria-label="Layout sub-option">
-    <button
-      type="button"
-      class="layout-toggle"
-      class:active={mode === 'co-existence'}
-      role="tab"
-      aria-selected={mode === 'co-existence'}
-      aria-label="Split — two cooperating panes"
-      title="Split — two cooperating panes"
-      onclick={() => onSelectMode('co-existence')}
-    >
-      <span aria-hidden="true">⊟</span>
-    </button>
-    <button
-      type="button"
-      class="layout-toggle"
-      class:active={mode === 'full'}
-      role="tab"
-      aria-selected={mode === 'full'}
-      aria-label="Full — one pane, full bleed"
-      title="Full — one pane, full bleed"
-      onclick={() => onSelectMode('full')}
-    >
-      <span aria-hidden="true">▢</span>
-    </button>
-  </div>
 
   <button
     type="button"
@@ -157,19 +144,31 @@
     text-underline-offset: 4px;
   }
 
-  /* Bubble progress strip */
+  /* Bubble progress strip — bubbles connected by a state-aware line.
+     Visited connectors render in muted accent; the current connector
+     fades from glow to muted; upcoming connectors are border-color
+     hairlines. Same convention applies vertically when the widget is
+     on the left rail (orientation-left). */
   .bubble-strip {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0;
     list-style: none;
     margin: 0;
     padding: 0;
   }
   .orientation-left .bubble-strip {
     flex-direction: column;
-    gap: 0.6rem;
   }
+
+  .step {
+    display: inline-flex;
+    align-items: center;
+  }
+  .orientation-left .step {
+    flex-direction: column;
+  }
+
   .bubble {
     background: transparent;
     color: var(--color-text-muted);
@@ -185,52 +184,83 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: border-color 0.12s ease, color 0.12s ease;
+    transition: border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  }
+
+  /* Visited: filled in muted-accent — "you've been here." */
+  .step.visited .bubble {
+    background: color-mix(in srgb, var(--color-accent) 35%, transparent);
+    border-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+    color: var(--color-on-accent, var(--color-text));
+  }
+  /* Current: filled bright + glow halo — "you are here." */
+  .step.current .bubble,
+  .bubble.active {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 25%, transparent),
+                0 0 12px color-mix(in srgb, var(--color-accent) 45%, transparent);
+    cursor: default;
+  }
+  /* Upcoming: hollow with muted border — "you'll get here." */
+  .step.upcoming .bubble {
+    background: transparent;
+    border-color: var(--color-border);
+    color: var(--color-text-muted);
   }
   .bubble:hover {
     border-color: var(--color-accent);
     color: var(--color-accent);
   }
-  .bubble.active {
-    background: var(--color-accent);
-    color: var(--color-on-accent);
-    border-color: var(--color-accent);
-    cursor: default;
+
+  /* Connecting line between bubbles. Each connector sits between bubble i
+     and bubble i+1. State maps to the segment's relationship to current:
+       visited  — both endpoints behind current  → muted accent
+       current  — segment leading INTO current   → gradient muted-accent → glow
+       upcoming — segment after current          → hairline border-color */
+  .connector {
+    display: inline-block;
+    height: 2px;
+    width: 1.2rem;
+    background: var(--color-border);
+    transition: background 0.18s ease, opacity 0.18s ease;
+  }
+  .connector.visited {
+    background: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  }
+  .connector.current {
+    background: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-accent) 55%, transparent),
+      var(--color-accent)
+    );
+    box-shadow: 0 0 6px color-mix(in srgb, var(--color-accent) 40%, transparent);
+  }
+  .connector.upcoming {
+    background: var(--color-border);
+    opacity: 0.65;
   }
 
-  /* Split / Full icon toggles */
-  .layout-toggles {
-    display: flex;
-    gap: 0.3rem;
+  /* Vertical orientation — same states, rotated geometry. */
+  .orientation-left .connector {
+    width: 2px;
+    height: 1.2rem;
+    background: var(--color-border);
   }
-  .orientation-left .layout-toggles {
-    flex-direction: column;
+  .orientation-left .connector.visited {
+    background: color-mix(in srgb, var(--color-accent) 55%, transparent);
   }
-  .layout-toggle {
-    background: transparent;
-    color: var(--color-text-muted);
-    border: 1px solid var(--color-border);
-    width: 1.6rem;
-    height: 1.6rem;
-    padding: 0;
-    border-radius: 4px;
-    font: inherit;
-    font-size: 0.95rem;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
+  .orientation-left .connector.current {
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-accent) 55%, transparent),
+      var(--color-accent)
+    );
   }
-  .layout-toggle:hover {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-  }
-  .layout-toggle.active {
-    background: var(--color-accent);
-    color: var(--color-on-accent);
-    border-color: var(--color-accent);
-    cursor: default;
+  .orientation-left .connector.upcoming {
+    background: var(--color-border);
+    opacity: 0.65;
   }
 
   .position-toggle {
