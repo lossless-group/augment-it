@@ -7,7 +7,7 @@
 //
 // Spec: context-v/issues/Search-Providers-as-First-Class-SearXNG-Default.md
 
-export type ProviderId = 'tavily' | 'searxng' | 'serpapi';
+export type ProviderId = 'tavily' | 'searxng' | 'serpapi' | 'gdelt';
 
 // Normalized result shape every connector returns. Identical to the old
 // TavilyResult so scoring + verification consume it unchanged.

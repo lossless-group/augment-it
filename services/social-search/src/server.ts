@@ -11,6 +11,12 @@
 //                                  response-store write yet (curation layer +
 //                                  rollup come in later phases). See
 //                                  context-v/specs/Entity-Pulse-Bundle.md.
+//   connectors.inventory.requested — read-only registry inventory: returns
+//                                  every registered ConnectorRegistration with
+//                                  status. Powers the per-record palette UI's
+//                                  menu (cost tiers, needs-env affordances)
+//                                  per context-v/specs/Connector-Inventory-
+//                                  and-Per-Record-Palette.md.
 //
 // Starts regardless of keys: SearXNG (the default) needs none. A pack routed
 // to Tavily without TAVILY_API_KEY records a localized outcome:'error' for that
@@ -28,6 +34,9 @@ import {
   OFFICIAL_BLOG_PACK_ID,
   type OfficialBlogPackInput,
 } from './entity-pulse/packs/official-blog-pack';
+import { getRegistry } from './registry/registry';
+import { registerExistingConnectors } from './registry/register-connectors';
+import type { Capability } from './registry/capabilities';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 const MAX_CONCURRENT = Number.parseInt(process.env.SOCIAL_SEARCH_CONCURRENCY ?? '4', 10);
@@ -73,6 +82,21 @@ async function main(): Promise<void> {
   const nc = await connect({ servers: NATS_URL, name: 'social-search-service' });
   console.log(JSON.stringify({ level: 'info', msg: 'nats connected', url: NATS_URL }));
   console.log(JSON.stringify({ level: 'info', msg: 'packs registered', packs: PACK_IDS }));
+
+  // Connector registry — parallel infrastructure for the per-record palette.
+  // No dispatcher rewiring yet; the existing pack.search path keeps using
+  // ./connectors/index.ts directly.
+  const registry = getRegistry();
+  registerExistingConnectors(registry);
+  console.log(JSON.stringify({
+    level: 'info',
+    msg: 'connector registry initialized',
+    connectors: registry.all().map((r) => ({
+      id: r.id,
+      status: r.status,
+      capabilities: r.capabilities.length,
+    })),
+  }));
 
   // pack.search.requested — one pack × one row
   (async () => {
@@ -218,6 +242,27 @@ async function main(): Promise<void> {
           error,
         }));
         if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // connectors.inventory.requested — read-only registry snapshot. Optional
+  // `intent` arg filters to connectors that serve a specific capability
+  // (powers the per-record palette's per-chip connector menu); omit for the
+  // full inventory view. The `fire` function isn't serializable so we strip
+  // it from the wire payload.
+  (async () => {
+    const sub = nc.subscribe('connectors.inventory.requested');
+    for await (const msg of sub) {
+      const args = (msg.data.length > 0
+        ? (jc.decode(msg.data) as { intent?: Capability })
+        : {}) as { intent?: Capability };
+      const all = args.intent
+        ? registry.availableFor(args.intent)
+        : registry.all();
+      const sanitized = all.map(({ fire: _omit, ...rest }) => rest);
+      if (msg.reply) {
+        msg.respond(jc.encode({ ok: true, connectors: sanitized }));
       }
     }
   })();

@@ -18,12 +18,30 @@
 // provider without editing this file.
 
 import type { ProviderId } from './connectors/types';
+import type { Capability } from './registry/capabilities';
 
 export type PackConfig = {
   pack_id: string;
   display_name: string;
   // Default search provider for this pack. Overridable per-fire.
+  // DEPRECATED in favor of `preferred_connectors[0]` once the registry
+  // dispatcher path lands; kept as the source of truth until then.
   connector: ProviderId;
+  // Capability this pack serves — what the human wants ("find the LinkedIn
+  // page"). The registry resolves intent → connectors; the per-record palette
+  // chip names the intent, not the connector. Per
+  // context-v/specs/Connector-Inventory-and-Per-Record-Palette §"Intent ≠ connector".
+  intent: Capability;
+  // Per-record palette chip label. Defaults to SHORT_LABEL_BY_INTENT[intent]
+  // when omitted, but packs can override (e.g. a vertical-specific Facebook
+  // variant might use 'fv' instead of the shared 'f'). Two- or three-char-max.
+  short_label?: string;
+  // Pack's default connector chain for its intent — ordered ConnectorRegistration
+  // ids. The future dispatcher walks this list on fire; first connector to return
+  // results wins. Empty / error / rate-limited → next. The legacy `connector`
+  // field above is effectively `preferred_connectors[0]` until the dispatcher
+  // flips.
+  preferred_connectors: string[];
   // Domain regex applied to result URL hostname. The +60 Tier-1 contribution
   // in scoring.ts depends on a match here, and pickCandidate uses it to filter
   // results down to the right platform regardless of which provider ran.
@@ -37,11 +55,18 @@ export type PackConfig = {
   include_domains: string[];
 };
 
+// Default social-pack connector chain. Free first (SearXNG), then paid
+// fallbacks (Tavily content-RAG, SerpApi Google). Per-pack overrides
+// possible — none needed today; all seven social packs share this chain.
+const SOCIAL_CHAIN = ['searxng', 'tavily', 'serpapi-google'];
+
 export const PACKS: Record<string, PackConfig> = {
   'linkedin-pack': {
     pack_id: 'linkedin-pack',
     display_name: 'LinkedIn',
     connector: 'searxng',
+    intent: 'search.social.linkedin',
+    preferred_connectors: SOCIAL_CHAIN,
     // Accepts both /in/ (people) and /company/ (orgs); single pack covers both.
     domain_whitelist: /(^|\.)linkedin\.com$/i,
     query_template: '{{entity_name}} LinkedIn',
@@ -51,6 +76,8 @@ export const PACKS: Record<string, PackConfig> = {
     pack_id: 'x-pack',
     display_name: 'X / Twitter',
     connector: 'searxng',
+    intent: 'search.social.x',
+    preferred_connectors: SOCIAL_CHAIN,
     domain_whitelist: /(^|\.)(x\.com|twitter\.com)$/i,
     query_template: '{{entity_name}} Twitter X',
     include_domains: ['x.com', 'twitter.com'],
@@ -59,6 +86,8 @@ export const PACKS: Record<string, PackConfig> = {
     pack_id: 'bluesky-pack',
     display_name: 'BlueSky',
     connector: 'searxng',
+    intent: 'search.social.bluesky',
+    preferred_connectors: SOCIAL_CHAIN,
     domain_whitelist: /(^|\.)bsky\.app$/i,
     query_template: '{{entity_name}} Bluesky bsky',
     include_domains: ['bsky.app'],
@@ -67,6 +96,8 @@ export const PACKS: Record<string, PackConfig> = {
     pack_id: 'youtube-pack',
     display_name: 'YouTube',
     connector: 'searxng',
+    intent: 'search.social.youtube',
+    preferred_connectors: SOCIAL_CHAIN,
     domain_whitelist: /(^|\.)youtube\.com$/i,
     query_template: '{{entity_name}} YouTube channel',
     include_domains: ['youtube.com'],
@@ -75,6 +106,8 @@ export const PACKS: Record<string, PackConfig> = {
     pack_id: 'facebook-pack',
     display_name: 'Facebook',
     connector: 'searxng',
+    intent: 'search.social.facebook',
+    preferred_connectors: SOCIAL_CHAIN,
     domain_whitelist: /(^|\.)(facebook\.com|fb\.com)$/i,
     query_template: '{{entity_name}} Facebook',
     include_domains: ['facebook.com', 'fb.com'],
@@ -83,6 +116,10 @@ export const PACKS: Record<string, PackConfig> = {
     pack_id: 'wikipedia-pack',
     display_name: 'Wikipedia',
     connector: 'searxng',
+    intent: 'fetch.wikipedia',
+    // Wikipedia-specific chain: SearXNG (works fine via wikipedia.org
+    // restrict), SerpApi as paid fallback. Tavily isn't great here.
+    preferred_connectors: ['searxng', 'serpapi-google'],
     domain_whitelist: /(^|\.)wikipedia\.org$/i,
     query_template: '{{entity_name}} Wikipedia',
     include_domains: ['en.wikipedia.org'],
@@ -91,6 +128,8 @@ export const PACKS: Record<string, PackConfig> = {
     pack_id: 'instagram-pack',
     display_name: 'Instagram',
     connector: 'searxng',
+    intent: 'search.social.instagram',
+    preferred_connectors: SOCIAL_CHAIN,
     // Both instagram.com/ROOT and instagram.com/p/POST share the hostname; the
     // whitelist matches any. The URL-shape verifier can't tell a profile from a
     // post, so the user corrects via the inline URL edit when needed.
