@@ -1,12 +1,12 @@
 ---
 title: "Entity-Pulse Bundle — Press Releases, News Mentions, and the Social Voice of a Record"
-lede: "Profile Builder finds the canonical accounts an entity lives at. Entity Pulse finds what that entity has been *saying* and what's been said *about* it lately. Three categories — **Official Updates** (blog + press release + entity's own social posts), **Media Mentions** (news coverage + thematic inclusion + deep analysis), **Socials Mentions** (third-party mentions across platforms) — fan out across seven source-bound packs in pass 1 and aggregate via three agent-bound rollup packs in pass 2. Each item carries two 0-100 scores (confidence + relevance against a fundraise brief); each category lands as a three-layer Pulse Curation state (immutable raw_output / live curated_output / immutable finalized_output snapshot) so the human gates every item with full audit trail. Augmenting a record set with this bundle answers 'what's the current shape of this entity's public conversation, and what survives our curation?' in one fire."
+lede: "Profile Builder finds the canonical accounts an entity lives at. Entity Pulse finds what that entity has been *saying* and what's been said *about* it lately. Three categories — **Official Updates** (blog + press release + entity's own social posts), **Media Mentions** (news coverage + thematic inclusion + deep analysis), **Socials Mentions** (third-party mentions across platforms) — fire as a foundation-first four-phase DAG: OfficialUpdates first (identifying the entity's own voice), then a rollup-agent synthesizing that voice into a grounding context, then MediaMentions and SocialsMentions on top (with the OfficialUpdates rollup as relevance prior + cross-category dedup), then their rollup-agents. Each item carries two 0-100 scores (confidence + relevance against a fundraise brief); each category lands as a three-layer Pulse Curation state (immutable raw_output / live curated_output / immutable finalized_output snapshot) so the human gates every item with full audit trail. Augmenting a record set with this bundle answers 'what's the current shape of this entity's public conversation, and what survives our curation?' in one fire."
 date_created: 2026-06-01
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.4
+semantic_version: 0.0.0.5
 date_modified: 2026-06-02
 revisions:
   - 2026-06-01 — Initial draft (0.0.0.1).
@@ -14,6 +14,7 @@ revisions:
   - 2026-06-02 — Engineering-handoff sharpening, two pieces locked: (a) every returned item carries two independent 0-100 scores — `confidence` (Profile-Builder-style: link valid + informative) and `relevance` (LLM-scored against a `relevance_context` brief). Each has a 90-100 / 51-89 / 0-50 tier with semantics tied to triage default-accept / human-review / default-skip behaviour. Worked example (Reach University's apprenticeship-degrees fundraise) shows how a 3-year-old article can score higher on relevance than yesterday's news. (b) No hard cap on returned items — structured response wraps `all` (master, sorted by combined score), `most_recent` and `most_relevant` (each soft cap 20). Sort and tie-break rules locked; per-fire `provider_override.score: 'llm' | 'keywords-only' | 'none'` escape hatch added. Cost discipline section names the batching + cheap-model + pre-filter pattern that keeps LLM scoring viable at fan-out scale.
   - 2026-06-02 — Added top-level **Philosophy** section locking Augment-It's stance on LLM web research: leverage LLM speed/breadth/randomness AND keep quality-gating + relevance-sorting with the human in the loop. Frames the two-score + no-hard-cap + provider-override choices as instances of one principle — *LLMs fan out, humans filter in*. Candidate cross-cutting principle for the Packs-and-Bundles-Pattern blueprint.
   - 2026-06-02 — Major restructure to v0.0.0.4: **two-pass orchestration across three categories**. Pass 1 grows from three packs to seven, decomposed into OfficialUpdates (blog + press_release + own-social), MediaMentions (news_coverage + thematic_inclusion + deep_analysis), and SocialsMentions (third-party mentions across platforms with `row.socials` filter-out). Pass 2 adds three agent-bound rollup-agents that synthesize per-category Rollup records. The Rollup shape is "true rollup" — carries every constituent item plus indexed views (`by_content_type`, `most_recent`, `most_relevant`) referencing items by index rather than copying. Target columns become `official_updates_pulse / media_mentions_pulse / socials_mentions_pulse`. Each rollup lands in a `PulseCategoryState<Rollup>` wrapper with the three-layer curation model from the NEW sibling spec [[Pulse-Curation-Layer-and-UI]] — immutable `raw_output`, live `curated_output`, immutable `finalized_output` snapshot when the human marks the category done. Three triage actions (accept-canonical / accept-additional-context / discard) plus bulk variants. Migration plan re-sequenced across multiple PRs given the larger scope; first concrete step is now `media-news-coverage-pack` standalone against Google News RSS, with no LLM scoring, no curation layer, just the pack-runner ergonomics smoke. Legacy per-pack detail sections removed (note left in place explaining the decomposition).
+  - 2026-06-02 — Foundation-first sequencing locked (v0.0.0.5). User framing: *"the first thing is to identify and pull in their own blog/press-releases, so that is first order of operations. Once that is true, run the different packs."* The bundle goes from two-pass to **four-phase DAG**: Phase 1 = OfficialUpdates source packs; Phase 2 = OfficialUpdates rollup-agent (gating; foundation); Phase 3 = MediaMentions + SocialsMentions source packs (with the OfficialUpdatesRollup as `prior_context` for relevance scoring + cross-category dedup); Phase 4 = MediaMentions + SocialsMentions rollup-agents. Bundle config gains per-member `depends_on` (for DAG edges) and `prior_context` (for carry-forward to scoring). Phase 2 errors block Phases 3 + 4 (with diagnostic); Phase 2 sparse/empty results are graceful — Phases 3 + 4 proceed with empty prior context, scoring falls back to `relevance_context` only. Migration plan re-sequenced as **officials-first**: ship `official-blog-pack` standalone → add the other two OfficialUpdates packs → add OfficialUpdates rollup-agent → add Pulse Curation Layer → THEN add MediaMentions Phase 3 + 4 (which exercises the four-phase orchestrator's gating + carry-forward for the first time) → add remaining MediaMentions packs → add SocialsMentions Phase 3 + 4. Connector palette spec ([[Connector-Inventory-and-Per-Record-Palette]]) lands in parallel.
 tags:
   - Spec
   - Augment-It
@@ -43,12 +44,86 @@ Three *categories* — OfficialUpdates (the entity's own voice),
 MediaMentions (outside voice about the entity), and SocialsMentions
 (third-party mentions across social platforms) — cover that
 question between them. A bundle is the right abstraction because
-they fire as a unit against the same row, and a **two-pass**
-bundle is the right shape because each category needs both
-source-bound fan-out (pass 1) AND agent-bound synthesis across
-those sources into a per-category rollup (pass 2). The output of
-this bundle is three rollups per row, each with its own three-
-layer Pulse Curation state per [[Pulse-Curation-Layer-and-UI]].
+they fire as a unit against the same row.
+
+The bundle is **phased, not parallel** — OfficialUpdates fires
+first and gates the rest. See "Foundation-first sequencing" below
+for the why. The output is three rollups per row, each with its
+own three-layer Pulse Curation state per
+[[Pulse-Curation-Layer-and-UI]].
+
+## Foundation-first sequencing — officials before mentions
+
+**The first thing this bundle does is identify what the entity is
+saying about itself.** OfficialUpdates fires first and completes
+before MediaMentions or SocialsMentions begin. User-locked
+2026-06-02:
+
+> *"The first thing is to identify and pull in their own blog /
+> press-releases, so that is first order of operations. Once that
+> is true, run the different packs."*
+
+Two reasons this matters:
+
+1. **The entity's own voice is the grounding context for
+   everything that follows.** Knowing what the entity says it does
+   — its recent strategic priorities, the language it uses, the
+   programs it announces — sharpens every relevance scoring
+   decision in the later phases. A news mention scored *against
+   the entity's own current narrative* is a much sharper signal
+   than one scored against `relevance_context` alone.
+2. **Cross-category dedup needs officials as the source of
+   truth.** A press release on the entity's own wire AND a
+   third-party news mention of the same release shouldn't both
+   surface as "novel news coverage." MediaMentions can dedupe
+   against the OfficialUpdates rollup because it already has it.
+
+### The four phases
+
+```
+Phase 1 (parallel):  OfficialUpdates source packs
+                       official-blog-pack
+                       official-pressrelease-pack
+                       official-social-posts-pack
+
+Phase 2 (single):    official-updates-rollup-agent
+                       depends on Phase 1 outputs
+
+Phase 3 (parallel):  MediaMentions + SocialsMentions source packs
+                       depends on Phase 2's OfficialUpdatesRollup
+                         as `prior_context` for relevance scoring
+                       media-news-coverage-pack
+                       media-thematic-pack
+                       media-deep-analysis-pack
+                       socials-mentions-pack
+
+Phase 4 (parallel):  Remaining rollup-agents
+                       media-mentions-rollup-agent
+                       socials-mentions-rollup-agent
+```
+
+Phase 1 → Phase 2 is the existing pass-1 → pass-2 pattern within
+OfficialUpdates. Phases 3 + 4 mirror it for MediaMentions and
+SocialsMentions, gated on Phase 2's completion.
+
+### Graceful degradation when officials are sparse
+
+Not every entity blogs. A small foundation may have zero press
+releases. Phase 1's packs are individually `required: false`; an
+empty result is fine. **Phase 2's rollup-agent still produces a
+Rollup record even when items are sparse** — `meta.activity_volume
+= 'sparse'` and `summary` reads *"We found no recent official
+output for this entity; consider whether the entity is active on
+the public web."* Phase 3 then proceeds with an empty `prior_context`
+— relevance scoring falls back to `relevance_context` only, no
+entity-specific priors. The bundle still produces useful
+MediaMentions + SocialsMentions output.
+
+What does NOT cause graceful degradation: Phase 2's rollup-agent
+*erroring* (not just empty). That blocks Phase 3 — the orchestrator
+should not fire 4 more packs against a row whose foundation hasn't
+even succeeded technically. Phase 3 reports `outcome: 'skipped'`
+with a diagnostic.
 
 ## Philosophy — LLM web research with human-in-the-loop gating
 
@@ -352,47 +427,62 @@ per-fire seam if the user wants to skip scoring entirely.
 
 ## Bundle shape
 
-### Two-pass orchestration
+### Phased orchestration (DAG, four phases)
 
-The bundle is **two-pass** per the orchestration pattern named in
-[[../blueprints/Packs-and-Bundles-Pattern]]:
-
-- **Pass 1** — seven source-bound packs across three categories.
-  Each pack fetches from one source and returns typed items.
-- **Pass 2** — three agent-bound *rollup* packs. Each consumes the
-  pass-1 output for its category and produces a single Rollup
-  record (synthesis + the constituent items + ranked views) that
-  lands in the row.
+The bundle is **four-phase**. Phases 1 + 2 land OfficialUpdates as
+the grounding foundation; phases 3 + 4 build MediaMentions and
+SocialsMentions on top, using the Phase 2 rollup as relevance
+prior. Per-pack `pass` is the phase number; per-pack `depends_on`
+captures the DAG edges within a phase boundary; per-pack
+`prior_context` declares which upstream rollup is fed into a pack's
+scoring step.
 
 ```ts
 export const ENTITY_PULSE: BundleConfig = {
   bundle_id: 'entity-pulse',
   display_name: 'Entity Pulse',
   description: 'What this entity has been saying + what is being said about them — press, news, social',
-  passes: 2,
+  passes: 4,
   target_columns: [
     'official_updates_pulse',
     'media_mentions_pulse',
     'socials_mentions_pulse',
   ],
   members: [
-    // --- Pass 1: source-bound packs ---
-    // OfficialUpdate packs — what the entity says about itself
+    // --- Phase 1: OfficialUpdates source-bound packs ---
     { pack_id: 'official-blog-pack',          default: true, pass: 1, required: false },
     { pack_id: 'official-pressrelease-pack',  default: true, pass: 1, required: false },
     { pack_id: 'official-social-posts-pack',  default: true, pass: 1, required: false },
-    // MediaMention packs — what others say about the entity
-    { pack_id: 'media-news-coverage-pack',    default: true, pass: 1, required: false },
-    { pack_id: 'media-thematic-pack',         default: true, pass: 1, required: false },
-    { pack_id: 'media-deep-analysis-pack',    default: true, pass: 1, required: false },
-    // SocialsMention pack — third-party mentions on social platforms
-    { pack_id: 'socials-mentions-pack',       default: true, pass: 1, required: false },
-    // --- Pass 2: agent-bound rollups ---
+
+    // --- Phase 2: OfficialUpdates rollup-agent ---
+    // Required = true: this gates Phases 3 + 4 (the entity's own voice
+    // is the grounding context). Empty input is graceful (Rollup with
+    // activity_volume: 'sparse'); error is NOT graceful (Phases 3 + 4
+    // skip with diagnostic).
     { pack_id: 'official-updates-rollup-agent', default: true, pass: 2, required: true,
       depends_on: ['official-blog-pack', 'official-pressrelease-pack', 'official-social-posts-pack'] },
-    { pack_id: 'media-mentions-rollup-agent',   default: true, pass: 2, required: true,
+
+    // --- Phase 3: MediaMentions + SocialsMentions source-bound packs ---
+    // All three carry prior_context: 'official-updates-rollup-agent' so
+    // their relevance scoring step sees the entity's own current narrative.
+    // depends_on: phase 2 must complete (or be gracefully empty).
+    { pack_id: 'media-news-coverage-pack',    default: true, pass: 3, required: false,
+      depends_on: ['official-updates-rollup-agent'],
+      prior_context: 'official-updates-rollup-agent' },
+    { pack_id: 'media-thematic-pack',         default: true, pass: 3, required: false,
+      depends_on: ['official-updates-rollup-agent'],
+      prior_context: 'official-updates-rollup-agent' },
+    { pack_id: 'media-deep-analysis-pack',    default: true, pass: 3, required: false,
+      depends_on: ['official-updates-rollup-agent'],
+      prior_context: 'official-updates-rollup-agent' },
+    { pack_id: 'socials-mentions-pack',       default: true, pass: 3, required: false,
+      depends_on: ['official-updates-rollup-agent'],
+      prior_context: 'official-updates-rollup-agent' },
+
+    // --- Phase 4: MediaMentions + SocialsMentions rollup-agents ---
+    { pack_id: 'media-mentions-rollup-agent',   default: true, pass: 4, required: true,
       depends_on: ['media-news-coverage-pack', 'media-thematic-pack', 'media-deep-analysis-pack'] },
-    { pack_id: 'socials-mentions-rollup-agent', default: true, pass: 2, required: true,
+    { pack_id: 'socials-mentions-rollup-agent', default: true, pass: 4, required: true,
       depends_on: ['socials-mentions-pack'] },
   ],
   // Free-text brief that the LLM scoring step uses to compute the
@@ -414,35 +504,68 @@ layers (raw / curated / finalized). The bundle's writes always
 target the `current.raw_output` slot; the curated and finalized
 layers are managed by the Response Reviewer triage actions.
 
-### Pass-1 pack roster — three categories
+### Phase-1 pack roster — OfficialUpdates only
 
 | Category | content_type | Pack | Source |
 |---|---|---|---|
 | **OfficialUpdates** | `official_blog_entry` | `official-blog-pack` | Entity's own domain (find-index + extract via SerpApi + Firecrawl, RSS where available) |
 | OfficialUpdates | `official_press_release` | `official-pressrelease-pack` | Wire services (PRNewswire, BusinessWire, GlobeNewswire) via news-API or SerpApi |
 | OfficialUpdates | `official_social_post_item` | `official-social-posts-pack` | Walks `row.socials[]` (entity's accepted social accounts) for that entity's *own* posts |
-| **MediaMentions** | `news_coverage` | `media-news-coverage-pack` | News APIs (Google News RSS default, GDELT peer) |
-| MediaMentions | `thematic_inclusion` | `media-thematic-pack` | News APIs filtered for trend-piece patterns ("among", "including", listicles) |
-| MediaMentions | `deep_analysis` | `media-deep-analysis-pack` | Long-form sources (Substack, industry publications, academic indexes) |
-| **SocialsMentions** | per platform | `socials-mentions-pack` | SerpApi with `engine: 'google'` site-restrict per platform; filters out posts FROM `row.socials[]` accounts |
 
-Each pass-1 pack returns `EntityPulseListResponse<ItemType>` where
-ItemType is the per-category item discriminated by content_type.
-Details per pack below.
+Each Phase-1 pack returns `EntityPulseListResponse<OfficialUpdateItem>`.
 
-### Pass-2 rollup-agent roster
+### Phase-2 rollup-agent — the foundation
+
+| Category | Rollup type | Agent depends on | Gates |
+|---|---|---|---|
+| OfficialUpdates | `OfficialUpdatesRollup` | All three Phase-1 packs | Phases 3 + 4 |
+
+Produces the per-category Rollup record AND becomes the
+`prior_context` consumed by Phase-3 packs for their relevance
+scoring. Graceful empty: still emits Rollup with
+`activity_volume: 'sparse'`. Hard error: blocks Phases 3 + 4 with
+diagnostic.
+
+### Phase-3 pack roster — MediaMentions + SocialsMentions
+
+| Category | content_type | Pack | Source | Prior context |
+|---|---|---|---|---|
+| **MediaMentions** | `news_coverage` | `media-news-coverage-pack` | News APIs (Google News RSS default, GDELT peer) | OfficialUpdatesRollup |
+| MediaMentions | `thematic_inclusion` | `media-thematic-pack` | News APIs filtered for trend-piece patterns | OfficialUpdatesRollup |
+| MediaMentions | `deep_analysis` | `media-deep-analysis-pack` | Long-form sources (Substack, industry pubs, academic) | OfficialUpdatesRollup |
+| **SocialsMentions** | per platform | `socials-mentions-pack` | SerpApi with `engine: 'google'` site-restrict; filters out posts FROM `row.socials[]` | OfficialUpdatesRollup |
+
+Each Phase-3 pack returns its per-category typed
+`EntityPulseListResponse<ItemType>`. The `prior_context` (the
+OfficialUpdatesRollup) feeds the LLM scoring step:
+
+- **Relevance scoring** treats items aligned with the entity's own
+  recent themes as more relevant (boost), AND treats items
+  redundant with the entity's own statements as less relevant
+  (penalty — a third-party news story that's a verbatim wire-
+  republish of the entity's own press release is less novel
+  signal).
+- **Dedup**: items whose canonical URL or title-similarity matches
+  an OfficialUpdates item get marked `cross_category_duplicate: true`
+  in metadata; the curation layer's UI surfaces them with a
+  visual indicator and a default-skip hint.
+
+When `prior_context` is empty (Phase-2 returned a sparse Rollup),
+scoring falls back to `relevance_context` only — no prior-context
+boost or penalty. Pack continues normally.
+
+### Phase-4 rollup-agent roster — MediaMentions + SocialsMentions
 
 | Category | Rollup type | Agent depends on |
 |---|---|---|
-| OfficialUpdates | `OfficialUpdatesRollup` | All three OfficialUpdate pass-1 packs |
-| MediaMentions | `MediaMentionsRollup` | All three MediaMention pass-1 packs |
-| SocialsMentions | `SocialsMentionsRollup` | The single socials-mentions pass-1 pack |
+| MediaMentions | `MediaMentionsRollup` | All three Phase-3 MediaMentions packs |
+| SocialsMentions | `SocialsMentionsRollup` | The single Phase-3 SocialsMentions pack |
 
-Each rollup-agent's job: read all pass-1 items for its category,
-dedupe across the constituent packs, run the per-item LLM scoring
-(see "LLM-scored relevance — cost discipline" above), generate a
-summary + themes, build the `most_recent` / `most_relevant` indexed
-views, and emit the typed `*Rollup` record.
+Each rollup-agent's job: read all Phase-3 items for its category,
+dedupe across the constituent packs (and surface
+`cross_category_duplicate` from Phase 3), run any final scoring,
+generate a summary + themes, build the `most_recent` / `most_relevant`
+indexed views, and emit the typed `*Rollup` record.
 
 The Rollup carries **every constituent item** (the user's "true
 rollup" framing — has the synthesis AND the items, not just the
@@ -767,41 +890,62 @@ or a soft hint? Lean: soft hint; the user knows their data.
 
 ## Migration / first concrete implementation step
 
-The 2026-06-02 restructure makes the bundle a meaningfully bigger
-landing — 7 pass-1 packs + 3 pass-2 rollup-agents + a curation
-layer + three new connectors. Smallest-shippable now sequences
-across several PRs:
+The foundation-first sequencing locked 2026-06-02 reshuffles the
+migration plan: **OfficialUpdates ships first**, then the curation
+layer, then MediaMentions and SocialsMentions stack on top with
+their carry-forward dependency on the OfficialUpdatesRollup.
 
-1. **`media-news-coverage-pack` standalone** (free path only: Google
-   News RSS). Single-pack mini-bundle `news-pulse`. Output type
-   `MediaMentionItem[]` (no rollup yet; just the list per pack-1).
-   No curation layer yet; just write to a transient column. Purpose:
-   get the pack-runner UI exercised against a non-`socials` target
-   column; signal "is this useful?" without paying for any LLM
-   scoring (`provider_override.score: 'none'`).
-2. **Add `confidence` scoring** to pack-1 output. Still no LLM
-   relevance; confidence is verification-driven (URL resolves, entity
-   in snippet). v1 of the confidence pipeline.
-3. **Pulse Curation Layer minimum** ([[Pulse-Curation-Layer-and-UI]]).
-   Three layers (raw_output / curated_output / finalized_output) for
-   the single existing category. Response Reviewer surface gets per-
-   category card chrome and the three triage actions. Profile Builder
-   retroactive adoption STAYS OUT — it's the cleanest test of the
-   pattern in isolation first.
-4. **Add `media-thematic-pack` + `media-deep-analysis-pack`** and the
-   `media-mentions-rollup-agent` (pass 2). Now the bundle has one full
-   category with rollup synthesis. Decision §10's adaptive RR ships in
-   parallel to handle the bundle-request JSON view.
-5. **Add OfficialUpdates packs** (blog + pressrelease + own-socials)
-   and `official-updates-rollup-agent`. Multi-category curation.
-6. **Add SocialsMentions pack + rollup-agent.** Full bundle.
-7. **(Parallel)** SerpApi connector lands when first needed (likely
-   in step 4 for the long-form sources of `media-deep-analysis-pack`).
+1. **`official-blog-pack` standalone** (find-index via SerpApi +
+   extract via Firecrawl). Single-pack mini-bundle `entity-blog`
+   for testing. Output `OfficialUpdateItem[]` (`content_type:
+   'official_blog_entry'`). No rollup yet, no curation layer yet,
+   no LLM scoring (`provider_override.score: 'none'`). Purpose:
+   get the find-index / extract two-stage pattern working end-to-
+   end on a real domain with no orchestration complexity.
+2. **Add `official-pressrelease-pack` + `official-social-posts-pack`**.
+   Three OfficialUpdates packs, still single-bundle, still no
+   rollup. The bundle's roster grows; Pack Runner UI's roster
+   panel gets exercised on a 3-pack bundle.
+3. **`official-updates-rollup-agent` (Phase 2)**. First rollup-
+   agent. Now `entity-blog` becomes a Phase 1 + Phase 2 bundle
+   producing an `OfficialUpdatesRollup`. Output lands in
+   `row.official_updates_pulse.current.raw_output`. Still no
+   curation layer; the row carries the rollup directly.
+4. **Pulse Curation Layer minimum** ([[Pulse-Curation-Layer-and-UI]]).
+   Three layers (raw / curated / finalized) for the single existing
+   category. Response Reviewer gets the per-category card chrome
+   and the three triage actions. Per-record palette **does not**
+   ship yet — it lands with
+   [[Connector-Inventory-and-Per-Record-Palette]] in a parallel
+   step. Profile Builder retroactive adoption stays out for now.
+5. **Add MediaMentions Phase 3 + Phase 4** —
+   `media-news-coverage-pack` against Google News RSS,
+   `media-mentions-rollup-agent`. First cross-phase dependency
+   (`depends_on` + `prior_context` against
+   `official-updates-rollup-agent`). The relevance scoring step
+   now consumes the OfficialUpdatesRollup. Add the cross-category
+   dedup mechanic. Surfaces the four-phase orchestrator's
+   gating logic for the first time. Decision §10's adaptive RR
+   ships in parallel to handle the multi-category bundle-request
+   JSON view.
+6. **Add `media-thematic-pack` + `media-deep-analysis-pack`**.
+   MediaMentions is now full.
+7. **Add `socials-mentions-pack` + `socials-mentions-rollup-agent`**.
+   All three categories live. Full Entity Pulse bundle.
+8. **(Parallel)** [[Connector-Inventory-and-Per-Record-Palette]]
+   migration sequence runs in parallel — registry lands as step 1
+   there; Profile Builder packs adopt the chain pattern; the
+   per-record palette ships into Response Reviewer.
+9. **(Parallel)** SerpApi connector lands when first needed (likely
+   in step 1 above for the OfficialBlog find-index stage; in any
+   case before step 6 — `media-deep-analysis-pack` long-form
+   sources lean on SerpApi).
 
 Per the branch-cadence rule: trunk for single-file additions
-(connectors, types) and small spec edits; named branch + PR for any
-PR-shaped feature step above. The Pulse Curation Layer (step 3) is
-unambiguously a branch.
+(connectors, types, small spec edits); named branch + PR for the
+larger shipping units. The Pulse Curation Layer (step 4), the
+four-phase orchestrator gating logic (step 5), and the per-record
+palette (parallel step 8) are unambiguously branch-shaped.
 
 ## Related
 
