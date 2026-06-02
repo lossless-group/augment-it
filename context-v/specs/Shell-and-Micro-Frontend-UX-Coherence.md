@@ -7,13 +7,14 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.1.1
+semantic_version: 0.0.1.2
 revisions:
   - 2026-05-28 — Initial audit + 8 locked decisions (0.0.0.1).
   - 2026-06-01 — Shipped Phases 0–2d of [[../plans/Shell-and-Micro-Frontend-UX-Coherence-Refactor]]. Marked Decisions §6 (peek labels), §7 (Deck → Flow), and §5 (composition) as shipped. The §5 open question "wrapper remote vs shared-state" resolved as **Option C — shell-level composite slot**; recorded in Decision §5 and removed from Open questions. Decision §1 (pack selection helpers on a flat list) **superseded** by Phase 3 bundle-first refactor — the plan's reconciliation against [[../blueprints/Packs-and-Bundles-Pattern]] showed that polishing a flat 7-pack list cements a model the blueprint says is wrong. Open question about Enrichment in the Flow strip resolved: **one bubble**, locked by the `ROTATION` shape shipped in Phase 2d. Per-surface audit updated with shipped status. Plan-level history lives in the plan; spec-level history is just the decisions changing.
   - 2026-06-01 — Phases 3, 4, 5 shipped (bundle-first Pack Runner, hierarchical Flow widget, Augment This Set). Added evidence #13 (Pack Runner doesn't show what it's improving + asks for input it could infer) and Decision §9 (surface the target column near the Fire button + auto-infer the entity-name column with a small change-link affordance). Seeded by the user re-walking the flow end-to-end after Phase 5 with fresh eyes.
   - 2026-06-01 — Phase 6 — **cross-cutting principles promoted from commented candidates to a stable list** (12 principles, partitioned by the three failure shapes + a dual-identity cross-class). Each principle is *earned* by named evidence + decisions — they're not abstract preferences. Per-surface audit closed out — every row now reads as ✅ shipped, deferred-with-link to a child spec, or `needs-audit` with a clear scope. Spec moves from 0.0.0.x to **0.0.1.0** because the principles section is a stable contract future affordances should consult. Closes the refactor's planning loop: the spec captures decisions, the plan captures sequencing + status, the principles capture the patterns earned.
   - 2026-06-01 — Patch 0.0.1.1: flagged the **Tooltip System hanging issue** on principle §8 + added to Wish list. Native HTML `title=` is unreliable for the icon-with-tooltip pattern that's now load-bearing across the composite header, Flow widget, and Pack Runner's change-link affordance. Stubbed [[Tooltip-System]] so the work is discoverable when picked up. The principle stays — the plumbing needs replacing.
+  - 2026-06-01 — Patch 0.0.1.2: **sharpened the Tooltip System scope** after the user named the real shape. Not one component — a family (`Tooltip--Simple`, `Tooltip--Rich`, `Tooltip--Popover`) with shared geometry (`from` directionality with arrow connector, `distance` in rem) and a higher-level **Tooltip-Walkthrough** surface for first-run onboarding and returning-user re-orientation. Locked the framing: *apps succeed at onboarding/orientation, not at functionality.* Updated Wish list entry + §8 annotation to point at the sharpened scope; [[Tooltip-System]] itself moves from stub to scoped (v0.0.0.2).
 tags:
   - Spec
   - Augment-It
@@ -512,9 +513,14 @@ failure shapes: **affordance discoverability** (counters *Hidden*),
    the native HTML `title=` attribute, which has uncontrollable delay,
    unstyled rendering, and patchy touch / screen-reader support. The
    principle is right; the *plumbing* needs to become a first-class
-   Tooltip system before §8 reads reliably across every surface that
-   instances it. See [[Tooltip-System]] for scope, migration plan, and
-   open questions.
+   Tooltip *system* — a family of primitives (`Tooltip--Simple`,
+   `Tooltip--Rich`, `Tooltip--Popover`) with shared geometry (`from`
+   directionality + arrow connector, `distance` in rem, dismissal
+   discipline), plus a higher-level **Tooltip-Walkthrough** surface
+   for first-run onboarding and returning-user re-orientation tours.
+   See [[Tooltip-System]] (sharpened 2026-06-01) for scope, the
+   family, the geometry props, the walkthrough mechanics, and the
+   migration plan.
 9. **The toggle belongs to the slot, not the layout mode.** Mode
    switches that pretend to be intra-remote but are actually shell-
    level slot choices will break in some layout modes. Composite slots
@@ -558,19 +564,21 @@ Items the user explicitly flagged as "should be mentioned" but not necessarily
 inside this pass. Parked here so they're discoverable; each likely deserves
 its own context-v doc when picked up.
 
-- **Tooltip System — a first-class affordance, not the browser's half-working
-  `title=`.** Surfaced 2026-06-01 after Decision §9 shipped: native HTML
-  `title=` tooltips don't appear reliably (uncontrollable delay, unstyled,
-  patchy on touch / screen readers), which undercuts principle §8
-  ("icon-with-tooltip is the standard small-control affordance") on every
-  surface that instances it (composite header, Flow widget, Pack Runner's
-  `change ›`). The principle is right; the plumbing needs to become a
-  first-class shared component before §8 reads reliably. **Stubbed
-  2026-06-01:** [[Tooltip-System]] (spec). The audit's discipline of
-  "don't patch the instance — fix the pattern" applies here too: rather
-  than reach for a native tooltip workaround per call-site, build one
-  tooltip primitive in `packages/shared-ui` and migrate the four current
-  consumers in one pass.
+- **Tooltip System — a versatile first-class family, plus a Walkthrough
+  for new and returning users.** Surfaced 2026-06-01 after Decision §9
+  shipped; sharpened later the same day. The first cut framed the gap
+  as "native `title=` is unreliable; build one Tooltip component." The
+  sharpened framing is bigger: it's a **family of primitives**
+  (`Tooltip--Simple`, `Tooltip--Rich`, `Tooltip--Popover`) with shared
+  geometry (`from` directionality with arrow connector, `distance` in
+  rem, dismissal + accessibility discipline) AND a higher-level
+  **Tooltip-Walkthrough** surface that uses the family to deliver
+  first-run onboarding and returning-user re-orientation tours since a
+  declared milestone. The locked framing: *most apps don't succeed or
+  fail at functionality; they succeed or fail at onboarding,
+  orientation, and re-orientation.* Tooltips and the walkthrough that
+  uses them are how augment-it earns those moments. **Stubbed and
+  sharpened 2026-06-01:** [[Tooltip-System]] (spec, v0.0.0.2).
 - **Per-remote in-app API documentation (CTA reveals docs *inside* the
   remote).** Each remote, the shell, and each service exposes its own
   documentation surface — not generic external API docs but **relevant**
