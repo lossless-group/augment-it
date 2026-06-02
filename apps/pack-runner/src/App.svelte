@@ -1,19 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { workspace, type RecordSet, type Row } from '@augment-it/workspace';
-
-  // Six pack identities. Source-of-truth lives in services/social-search/src/packs.ts;
-  // keeping the labels here client-side avoids a round-trip just to render the UI.
-  // If a pack lands or is renamed, update both.
-  const PACKS: { pack_id: string; display_name: string }[] = [
-    { pack_id: 'linkedin-pack', display_name: 'LinkedIn' },
-    { pack_id: 'x-pack', display_name: 'X / Twitter' },
-    { pack_id: 'bluesky-pack', display_name: 'BlueSky' },
-    { pack_id: 'youtube-pack', display_name: 'YouTube' },
-    { pack_id: 'facebook-pack', display_name: 'Facebook' },
-    { pack_id: 'wikipedia-pack', display_name: 'Wikipedia' },
-    { pack_id: 'instagram-pack', display_name: 'Instagram' },
-  ];
+  import { BUNDLES, getBundle, packDisplayName, type BundleConfig } from './bundles';
 
   const TOKEN_KEY = 'augment-it:session-token';
   const WS_URL = 'ws://localhost:3001/ws';
@@ -23,6 +11,10 @@
   // the existing localStorage convention.
   const RECORD_SET_KEY = 'augment-it:pack-runner:record-set';
   const ENTITY_FIELD_KEY = 'augment-it:pack-runner:entity-name-field';
+  // Bundle-aware persistence (Phase 3): the active bundle id, plus per-bundle
+  // roster-override sets so swapping bundles doesn't lose user tuning per bundle.
+  const BUNDLE_ID_KEY = 'augment-it:pack-runner:bundle-id';
+  const ROSTER_OVERRIDES_KEY_PREFIX = 'augment-it:pack-runner:roster-overrides:';
 
   function readStored(key: string): string | null {
     if (typeof localStorage === 'undefined') return null;
@@ -34,13 +26,42 @@
     else localStorage.setItem(key, value);
   }
 
+  // Bundle-aware roster reads. A bundle's "effective roster" = its
+  // default-true members, unless the user has saved an override set for
+  // that bundle id (in which case the override IS the roster).
+  function defaultRoster(bundle: BundleConfig): Set<string> {
+    return new Set(bundle.members.filter((m) => m.default).map((m) => m.pack_id));
+  }
+  function readRoster(bundle_id: string): Set<string> | null {
+    const raw = readStored(ROSTER_OVERRIDES_KEY_PREFIX + bundle_id);
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw) as string[];
+      return Array.isArray(parsed) ? new Set(parsed) : null;
+    } catch {
+      return null;
+    }
+  }
+  function writeRoster(bundle_id: string, roster: Set<string>): void {
+    writeStored(ROSTER_OVERRIDES_KEY_PREFIX + bundle_id, JSON.stringify([...roster]));
+  }
+
+  // Active bundle — defaults to the first registered bundle if no preference
+  // is stored. We auto-write the chosen bundle's roster on first load so
+  // every persisted roster is explicit (no implicit "use defaults").
+  const initialBundleId = readStored(BUNDLE_ID_KEY) ?? BUNDLES[0].bundle_id;
+  const initialBundle = getBundle(initialBundleId) ?? BUNDLES[0];
+
   let status = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
   let recordSets = $state<RecordSet[]>([]);
   let selectedRecordSetId = $state<string | null>(readStored(RECORD_SET_KEY));
   let rowsForSelected = $state<Row[]>([]);
   let selectedRowIds = $state<Set<string>>(new Set());
   let entityNameField = $state<string>(readStored(ENTITY_FIELD_KEY) ?? '');
-  let enabledPackIds = $state<Set<string>>(new Set(PACKS.map((p) => p.pack_id)));
+  let activeBundleId = $state<string>(initialBundle.bundle_id);
+  let enabledPackIds = $state<Set<string>>(
+    readRoster(initialBundle.bundle_id) ?? defaultRoster(initialBundle),
+  );
   let firing = $state(false);
   let lastResult = $state<string>('');
 
@@ -48,7 +69,9 @@
     selectedRecordSetId ? recordSets.find((rs) => rs.record_set_id === selectedRecordSetId) ?? null : null,
   );
   const columns = $derived(selectedSet?.schema.fields.map((f) => f.name) ?? []);
+  const activeBundle = $derived(getBundle(activeBundleId) ?? BUNDLES[0]);
   const enabledPackCount = $derived(enabledPackIds.size);
+  const rosterSize = $derived(activeBundle.members.length);
 
   // Row filter — heuristic v1: classify each row by whether its `url` column
   // already has a real value vs being empty/'unknown'. Maps to the user's
@@ -172,11 +195,46 @@
     if (entityNameField) writeStored(ENTITY_FIELD_KEY, entityNameField);
   });
 
+  // Roster operations — all persist the override under the active bundle's
+  // key. They mutate the *current bundle's* roster only; switching bundles
+  // restores that bundle's own override (or its defaults).
   function togglePack(pack_id: string) {
     const next = new Set(enabledPackIds);
     if (next.has(pack_id)) next.delete(pack_id);
     else next.add(pack_id);
     enabledPackIds = next;
+    writeRoster(activeBundleId, next);
+  }
+
+  function rosterAll() {
+    const next = new Set(activeBundle.members.map((m) => m.pack_id));
+    enabledPackIds = next;
+    writeRoster(activeBundleId, next);
+  }
+  function rosterNone() {
+    const next = new Set<string>();
+    enabledPackIds = next;
+    writeRoster(activeBundleId, next);
+  }
+  function rosterSolo(pack_id: string) {
+    const next = new Set<string>([pack_id]);
+    enabledPackIds = next;
+    writeRoster(activeBundleId, next);
+  }
+  function rosterDefaults() {
+    const next = defaultRoster(activeBundle);
+    enabledPackIds = next;
+    writeRoster(activeBundleId, next);
+  }
+
+  function selectBundle(bundle_id: string) {
+    if (bundle_id === activeBundleId) return;
+    const b = getBundle(bundle_id);
+    if (!b) return;
+    activeBundleId = bundle_id;
+    writeStored(BUNDLE_ID_KEY, bundle_id);
+    // Restore that bundle's own override, or its defaults.
+    enabledPackIds = readRoster(bundle_id) ?? defaultRoster(b);
   }
 
   function toggleRow(row_id: string) {
@@ -215,6 +273,9 @@
         row_ids: effectiveSelection.map((r) => r.row_id),
         record_set_id: selectedRecordSetId,
         entity_name_field: entityNameField,
+        // The bundle this fan-out belongs to — rides on every ResponseRecord
+        // so Response Reviewer can group results by bundle. New in Phase 3.
+        bundle_id: activeBundleId,
       })) as { ok: boolean; cells_fired?: number; error?: string };
       if (r.ok) {
         lastResult = `Fired ${r.cells_fired ?? cellsToFire} cells — all settled. Open Response Reviewer to triage.`;
@@ -251,9 +312,8 @@
     <div class="pr-head">
       <h2>Pack Runner</h2>
       <p class="muted">
-        Fire the common-six social packs against rows of a record set.
-        Results land in Response Reviewer with a confidence pill — triage
-        them there.
+        Pick a bundle, scope it to the rows you want, fire it. Results land
+        in Response Reviewer with a confidence pill — triage them there.
       </p>
     </div>
 
@@ -339,17 +399,58 @@
       </section>
 
       <section class="card">
-        <h3>4 · Packs ({enabledPackCount}/{PACKS.length})</h3>
+        <h3>4 · Bundle</h3>
+        <p class="muted hint">
+          A bundle is a named composition of packs with a default roster.
+          Pick one to set what fires; tune the roster below if you need to.
+        </p>
+        <div class="bundle-picker" role="tablist" aria-label="Bundle">
+          {#each BUNDLES as b (b.bundle_id)}
+            <button
+              class="bundle-chip"
+              class:active={b.bundle_id === activeBundleId}
+              role="tab"
+              aria-selected={b.bundle_id === activeBundleId}
+              title={b.description}
+              onclick={() => selectBundle(b.bundle_id)}
+            >
+              {b.display_name}
+            </button>
+          {/each}
+        </div>
+        <p class="muted bundle-desc">{activeBundle.description}</p>
+      </section>
+
+      <section class="card">
+        <h3>5 · Roster ({enabledPackCount}/{rosterSize})</h3>
+        <p class="muted hint">
+          The bundle's packs — defaults are checked. Toggle to override; use
+          <strong>solo</strong> next to a pack to fire just that one.
+        </p>
+        <div class="row-actions">
+          <button class="chip" onclick={rosterAll}>all</button>
+          <button class="chip" onclick={rosterNone}>none</button>
+          <button class="chip" onclick={rosterDefaults}>defaults</button>
+        </div>
         <div class="packs">
-          {#each PACKS as pack (pack.pack_id)}
-            <label class="pack-chip">
-              <input
-                type="checkbox"
-                checked={enabledPackIds.has(pack.pack_id)}
-                onchange={() => togglePack(pack.pack_id)}
-              />
-              <span>{pack.display_name}</span>
-            </label>
+          {#each activeBundle.members as m (m.pack_id)}
+            <div class="pack-row">
+              <label class="pack-chip">
+                <input
+                  type="checkbox"
+                  checked={enabledPackIds.has(m.pack_id)}
+                  onchange={() => togglePack(m.pack_id)}
+                />
+                <span>{packDisplayName(m.pack_id)}</span>
+                {#if !m.default}<span class="muted pack-optin">opt-in</span>{/if}
+              </label>
+              <button
+                type="button"
+                class="solo"
+                title="Fire only {packDisplayName(m.pack_id)} for this bundle"
+                onclick={() => rosterSolo(m.pack_id)}
+              >solo</button>
+            </div>
           {/each}
         </div>
       </section>
@@ -362,11 +463,11 @@
             onclick={() => void fire()}
           >
             {#if firing}
-              firing on {selectedRowCount} {selectedRowCount === 1 ? 'row' : 'rows'}…
+              firing {activeBundle.display_name} on {selectedRowCount} {selectedRowCount === 1 ? 'row' : 'rows'}…
             {:else if cellsToFire === 0}
-              select rows and packs to fire
+              select rows and roster to fire
             {:else}
-              Fire on {selectedRowCount} {selectedRowCount === 1 ? 'row' : 'rows'}
+              Fire {activeBundle.display_name} on {selectedRowCount} {selectedRowCount === 1 ? 'row' : 'rows'}
             {/if}
           </button>
           <button class="to-reviewer" onclick={goToResponseReviewer}>
