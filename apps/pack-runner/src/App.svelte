@@ -9,7 +9,15 @@
   // Remember the user's last record-set + column picks so re-entry doesn't
   // require re-selecting everything. Keys keep the augment-it prefix per
   // the existing localStorage convention.
-  const RECORD_SET_KEY = 'augment-it:pack-runner:record-set';
+  //
+  // The active record set is now stored under the workspace-canonical key
+  // `augment-it:active-record-set` (Phase 5) — one write pre-selects this
+  // set for any surface that reads it, including the Record Collector
+  // "Augment This Set" hand-off. We still read the legacy
+  // `augment-it:pack-runner:record-set` as a fallback for pre-Phase-5
+  // sessions, then write canonical on every change going forward.
+  const ACTIVE_RECORD_SET_KEY = 'augment-it:active-record-set';
+  const LEGACY_RECORD_SET_KEY = 'augment-it:pack-runner:record-set';
   const ENTITY_FIELD_KEY = 'augment-it:pack-runner:entity-name-field';
   // Bundle-aware persistence (Phase 3): the active bundle id, plus per-bundle
   // roster-override sets so swapping bundles doesn't lose user tuning per bundle.
@@ -54,7 +62,9 @@
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
   let recordSets = $state<RecordSet[]>([]);
-  let selectedRecordSetId = $state<string | null>(readStored(RECORD_SET_KEY));
+  let selectedRecordSetId = $state<string | null>(
+    readStored(ACTIVE_RECORD_SET_KEY) ?? readStored(LEGACY_RECORD_SET_KEY),
+  );
   let rowsForSelected = $state<Row[]>([]);
   let selectedRowIds = $state<Set<string>>(new Set());
   let entityNameField = $state<string>(readStored(ENTITY_FIELD_KEY) ?? '');
@@ -128,6 +138,21 @@
       onStatus: (s) => (status = s),
     });
     void loadRecordSets();
+
+    // Listen for the canonical-key change so an "Augment This Set" click
+    // from Record Collector re-targets us even when we're already mounted.
+    // Same pattern as the composite mode broadcast (shell/src/composites.ts).
+    const onActiveRecordSetChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { record_set_id?: string } | undefined;
+      const next = detail?.record_set_id;
+      if (next && next !== selectedRecordSetId) {
+        void selectRecordSet(next);
+      }
+    };
+    window.addEventListener('augment-it:active-record-set-changed', onActiveRecordSetChange);
+    return () => {
+      window.removeEventListener('augment-it:active-record-set-changed', onActiveRecordSetChange);
+    };
   });
 
   async function loadRecordSets() {
@@ -147,9 +172,10 @@
       if (restoredId) {
         await selectRecordSet(restoredId);
       } else if (selectedRecordSetId) {
-        // Stored id is stale (set was deleted/archived). Clear the persistence.
+        // Stored id is stale (set was deleted/archived). Clear both keys.
         selectedRecordSetId = null;
-        writeStored(RECORD_SET_KEY, null);
+        writeStored(ACTIVE_RECORD_SET_KEY, null);
+        writeStored(LEGACY_RECORD_SET_KEY, null);
       }
     } catch (err: unknown) {
       console.error('record_set.list', err);
@@ -158,7 +184,7 @@
 
   async function selectRecordSet(record_set_id: string) {
     selectedRecordSetId = record_set_id;
-    writeStored(RECORD_SET_KEY, record_set_id);
+    writeStored(ACTIVE_RECORD_SET_KEY, record_set_id);
     rowsForSelected = [];
     selectedRowIds = new Set();
     try {

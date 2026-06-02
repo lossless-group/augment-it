@@ -28,6 +28,33 @@
   color: var(--color-accent-2);
 }
 
+/* Set-level header — name + primary "Augment This Set" CTA side by side
+   (spec Decision §4). The button is the set-grain forward action; the
+   per-row `enrich ›` still works for one-off enrichment. */
+.rc-app .set-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+.rc-app .set-header h3 { margin: 0; }
+.rc-app .augment-this-set {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border: 1px solid var(--color-accent);
+  padding: 0.4rem 0.85rem;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.rc-app .augment-this-set:hover {
+  filter: brightness(1.08);
+}
+
 .rc-app .muted {
   color: var(--color-text-muted);
 }

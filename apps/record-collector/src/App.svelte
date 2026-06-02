@@ -108,6 +108,39 @@
     );
   }
 
+  // Set-level enrichment — spec Decision §4. The user's mental model on
+  // landing here is "I picked this record set; now augment it." The
+  // single-record `enrich ›` button is at the wrong grain for that
+  // intent. This button takes the whole selected set to Enrichment.
+  //
+  // Mechanic:
+  //   1. Write the canonical 'augment-it:active-record-set' key (Phase 5).
+  //      Pack Runner reads it and a follow-up surface (PTM) will too.
+  //   2. Broadcast 'augment-it:active-record-set-changed' so any already-
+  //      mounted consumer re-targets without remounting.
+  //   3. Dispatch augment-it:navigate to the 'enrichment' composite slot.
+  //      The composite's last-active member (Pack Runner by default) is
+  //      what mounts; the user toggles in-slot if they want PTM instead.
+  const ACTIVE_RECORD_SET_KEY = 'augment-it:active-record-set';
+  function augmentThisSet(rs: RecordSet) {
+    try {
+      localStorage.setItem(ACTIVE_RECORD_SET_KEY, rs.record_set_id);
+    } catch {
+      // localStorage unavailable — the navigate still works, the
+      // downstream surface just won't have the record set pre-selected.
+    }
+    window.dispatchEvent(
+      new CustomEvent('augment-it:active-record-set-changed', {
+        detail: { record_set_id: rs.record_set_id },
+      }),
+    );
+    window.dispatchEvent(
+      new CustomEvent('augment-it:navigate', {
+        detail: { remoteId: 'enrichment' },
+      }),
+    );
+  }
+
   async function deleteRecordSet(rs: RecordSet) {
     const confirmed = window.confirm(
       `Delete "${rs.name}" and its ${rs.row_ids.length} row${rs.row_ids.length === 1 ? '' : 's'}? This cannot be undone.`,
@@ -218,7 +251,14 @@
     {#if !selectedRs}
       <p class="muted">(pick a record set)</p>
     {:else}
-      <h3>{selectedRs.name}</h3>
+      <div class="set-header">
+        <h3>{selectedRs.name}</h3>
+        <button
+          class="augment-this-set"
+          title="Take the whole set to Enrichment — Pack Runner or Prompt Templates (toggle in-slot)"
+          onclick={() => augmentThisSet(selectedRs)}
+        >Augment This Set →</button>
+      </div>
       <div class="rows-list">
         {#each rowsForSelected as row (row.row_id)}
           {@const orderedFields = selectedRs.schema.fields
