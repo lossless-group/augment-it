@@ -2,12 +2,15 @@
 title: "Shell & Micro-Frontend UX Coherence — Affordances That Are Found, Consistent, and Talk Back"
 lede: "One demo-prep session turned into a chain of 'I can't find / reach / trigger X' failures across Pack Runner, Enhanced Records, and Response Reviewer. Individually each was a one-line patch; together they're a verdict — the augment-it shell's affordances hide, die, or mismatch. This spec audits the whole shell + its micro-frontends through that lens and fixes the pattern, not just the instances."
 date_created: 2026-05-28
-date_modified: 2026-05-28
+date_modified: 2026-06-01
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
+revisions:
+  - 2026-05-28 — Initial audit + 8 locked decisions (0.0.0.1).
+  - 2026-06-01 — Shipped Phases 0–2d of [[../plans/Shell-and-Micro-Frontend-UX-Coherence-Refactor]]. Marked Decisions §6 (peek labels), §7 (Deck → Flow), and §5 (composition) as shipped. The §5 open question "wrapper remote vs shared-state" resolved as **Option C — shell-level composite slot**; recorded in Decision §5 and removed from Open questions. Decision §1 (pack selection helpers on a flat list) **superseded** by Phase 3 bundle-first refactor — the plan's reconciliation against [[../blueprints/Packs-and-Bundles-Pattern]] showed that polishing a flat 7-pack list cements a model the blueprint says is wrong. Open question about Enrichment in the Flow strip resolved: **one bubble**, locked by the `ROTATION` shape shipped in Phase 2d. Per-surface audit updated with shipped status. Plan-level history lives in the plan; spec-level history is just the decisions changing.
 tags:
   - Spec
   - Augment-It
@@ -197,37 +200,54 @@ Raw capture, tagged by failure shape. The seed data for the audit.
 Scaffold — one entry per federated surface. Fill as we walk each. `needs-audit`
 means no deliberate pass yet this session.
 
-- **Shell** (peek-deck / split / cross-remote nav) — `augment-it:navigate`
-  event works but is under-used; remotes don't all expose nav to their natural
-  next step. **Peek/deck position labels are centered rather than anchored to
-  the pane edge** — `.peek-overlay { justify-content: center }` in
-  `shell/src/App.svelte` (legacy from the first cut). See evidence #10,
-  Decision §6. Still `needs-audit` for the rest (discoverability of
-  Deck/Split/Full mode buttons, chat rail framing).
+- **Shell** (peek-flow / split / cross-remote nav) — `augment-it:navigate`
+  event works; **now composite-aware** (Phase 2c+2d): dispatching with a
+  composite-member remoteId sets the composite's active member and focuses
+  the composite slot. ✅ Peek labels anchored at slice's left margin
+  (Phase 2a). ✅ Deck → Flow rename (Phase 1). Still `needs-audit`:
+  hierarchical Flow widget with bubble progress (Phase 4 / Decision §8);
+  chat rail framing.
 - **Record Collector** — the only forward action is a *per-row* `enrich ›`
   button (`enrichRecord()` → `augment-it:enrich-record`, which the shell turns
-  into "open the recordCollector+promptTemplateManager pair"). There is **no
-  set-level forward action**. [Hidden/Mismatched] — the next step is at the
-  wrong grain. **Decision: add "Augment This Set"** (Decisions §4).
-- **Prompt Template Manager** — has the working `augment-it:navigate` (the
-  model others should copy). But in the PTM ⇄ Pack Runner split, **PTM's body
-  stays rendered even when the user has picked Pre-built Pack mode** — both
-  off-mode and on-mode UI compete for the eye. See evidence #9. `needs-audit`
-  for the rest of the surface.
+  into "open the recordCollector+enrichment pair" with packRunner as the
+  default composite member). There is **no set-level forward action** yet.
+  [Hidden/Mismatched] — the next step is at the wrong grain. **Decision: add
+  "Augment This Set"** (Decisions §4, slated for Phase 5).
+- **Prompt Template Manager** — ✅ part of `ENRICHMENT_COMPOSITE` since
+  Phase 2c. Mode UI lives at the shell level (composite slot header); PTM
+  is pure body with no mode awareness. The shared toggle component is the
+  model others should copy when they need a binary in-slot switcher. Has
+  the working `augment-it:navigate` dispatch pattern.
 - **Request Reviewer** — `needs-audit`.
 - **Response Reviewer** — by-record triage view is the strong surface; auto-
   refreshes on `response.created`. Source of the "run a pack = click-to-fire"
-  model that Pack Runner contradicts.
+  model that Pack Runner contradicts (mismatch resolved when Phase 3 ships
+  bundle-as-the-unit semantics).
 - **Enhanced Records List** — promote success banner had a dead primary button
   (fixed). `needs-audit` for the rest of the promote flow.
 - **Chat** — `needs-audit`.
-- **Pack Runner** — items 1–7 above. The most acute surface.
+- **Pack Runner** — ✅ part of `ENRICHMENT_COMPOSITE` since Phase 2c. Mode
+  UI moved to shell. Items 1–7 above (the foundation-dataset failure list)
+  mostly pending — Phase 3 (bundle-first) is the architectural lift that
+  closes #1 (no "run just this pack" path), #2 (cross-surface verb
+  mismatch — bundle becomes the unit), and sets up #4 (live progress) and
+  #5 (path to results) via Run-as-First-Class-Operation Part 4. ✅ #6
+  (sticky Fire + nav button to Response Reviewer). #3 and #7 remain
+  parked (entity-name foot-gun + default-scope).
 
 ## Decisions locked this session
 
-1. **Pack selection stays multi-select; add a `none` button + an "only this"
-   per-pack affordance + a `solo`/"all" pair** mirroring the ROWS section, so
-   narrowing to one pack is one click, not six un-clicks.
+1. **~~Pack selection stays multi-select; add a `none` button + an "only this"
+   per-pack affordance + a `solo`/"all" pair~~** mirroring the ROWS section.
+   **SUPERSEDED 2026-06-01** by Phase 3 of the refactor plan — **bundle-first
+   Pack Runner**. The original call was "conservative on purpose," but
+   reconciling against [[../blueprints/Packs-and-Bundles-Pattern]] showed
+   that polishing a flat 7-pack list cements a model the blueprint says is
+   wrong: the orchestration unit is a **bundle**, not a list of packs. The
+   helpers (`none` / `all` / `solo`) survive — but they operate inside the
+   selected bundle's **roster panel**, where they're conceptually correct,
+   rather than on a universe of all packs. See
+   [[../plans/Shell-and-Micro-Frontend-UX-Coherence-Refactor]] §Phase 3.
 2. **Defaults unchanged** (entity-name + scope) — parked, see Open questions.
 3. **Ship [[../plans/Run-as-First-Class-Operation]] Part 4 properly** rather
    than leaving the by-hand stand-ins: Pack Runner subscribes to `run.updated`
@@ -254,32 +274,44 @@ means no deliberate pass yet this session.
    **small icon-with-tooltip switchers** (one icon for "custom prompt", one
    for "pre-built pack") — replacing the verbose tabs that currently sit at
    the top of both panes. Label/affordance locked by the user (2026-05-28).
-   *Architectural composition is the open detail* (see Open questions): wrap
-   PTM + Pack Runner inside a single `enrichmentSurface` parent remote, vs.
-   keep them as separate remotes that share mode state via the existing
-   `augment-it:enrichment-mode` window event + localStorage.
-6. **Peek-deck position labels anchor to the left margin.** The vertical
+
+   **✅ SHIPPED 2026-06-01 in Phases 2c + 2d.** Architectural composition
+   resolved as **Option C — shell-level composite slot**, not (a) wrapper
+   remote and not (b) shared-state alone. The shell learned about a new
+   concept: a slot that hosts one-of-N remotes based on shared state. The
+   icon-with-tooltip pair lives in `packages/shared-ui` as
+   `ToggleHeader__PromptOrPackage--Icons.svelte`; the shell renders it as
+   the composite slot's header and mounts only the active member. PTM and
+   Pack Runner lost their intra-remote mode state entirely — the shell is
+   the single source of truth for which member is active.
+   **Emergent insight (Phase 2d):** composites must be **peers in the
+   rotation**, not just slots inside pairings. We split `REMOTES` (federated
+   registry) from `ROTATION` (ordered list of slot ids); composites can
+   appear in `ROTATION`, so the in-slot toggle works in Flow, Split, and
+   Full alike. Mechanic: `shell/src/composites.ts` defines
+   `ENRICHMENT_COMPOSITE`; `shell/src/remotes.ts` defines `ROTATION`;
+   `shell/src/App.svelte` walks `ROTATION` via `slotById` + `materializeSlot`.
+6. **Peek-flow position labels anchor to the left margin.** The vertical
    per-pane indicators (e.g. "REQUEST REVIEWER", same for every neighbour)
    move from centered to **anchored at the pane's left margin** — they're
    landmarks, not floating titles. Locked by the user (2026-06-01).
-   Mechanic: change `.peek-overlay { justify-content: center }` to
-   `flex-start` (or equivalent) in `shell/src/App.svelte`; revisit the
-   `padding-top: 1.5rem` so the label sits where the eye expects.
-   Implementation detail: confirm whether left-side and right-side peek
-   neighbours both want the label at the *outer* left edge, or at the
-   *inner* edge (toward the active pane) — call out at build time.
+   **✅ SHIPPED 2026-06-01 (Phase 2a).** `.peek-overlay` switched to
+   `justify-content: flex-start` + `padding-left: 0.75rem`. The
+   left-outer-vs-inner-edge question got a uniform `flex-start` default;
+   the CSS carries a one-line comment flagging the directional re-evaluation
+   for in-browser review if the right-peek's inner-edge label reads wrong.
+   (Renamed from "peek-deck" to "peek-flow" by Decision §7.)
 7. **Rename "Deck" → "Flow" across the shell.** The top-left mode button
    becomes **Flow / Split / Full**. Internal identifier follows the same
-   rename: `LayoutMode = 'peek-flow' | 'co-existence' | 'full'` (or just
-   `'flow'` — implementation detail). Surface area is contained:
-   - `shell/src/App.svelte:199` — UI label `'Deck'` → `'Flow'`.
-   - `shell/src/layout.svelte.ts:15` — type literal `'peek-deck'`; lines
-     28, 32 — `mode: 'peek-deck'` default and `defaultMode`.
-   - Comments in `shell/src/App.svelte` (lines 66, 103, 112) and
-     `shell/src/remotes.ts` (73, 85) and `shell/src/layout.svelte.ts`
-     (6, 19, 20, 99).
-   - Confirm no localStorage key persists `'peek-deck'` (would need a
-     read-old/write-new migration if so). Locked by the user (2026-06-01).
+   rename: `LayoutMode = 'peek-flow' | 'co-existence' | 'full'`. Locked by
+   the user (2026-06-01).
+   **✅ SHIPPED 2026-06-01 (Phase 1).** Type literal, defaults, UI label,
+   and all in-code comments renamed. localStorage *did* persist `'peek-deck'`
+   in `augment-it:shell-layout`; `readStored()` carries a one-line
+   `migrateMode()` that maps the old value on read so existing users keep
+   their layout. The historical context-v doc
+   `Build-the-Shell-Tiling-and-Peek-Deck.md` retains its filename — the
+   doc's identity is its filename.
 8. **Flow is the primary; Split/Full are its layout sub-options;
    progress is bubble-numbered with tooltips.** The flat mode segment
    is restructured into a *hierarchical workflow widget*. Locked
@@ -305,9 +337,13 @@ means no deliberate pass yet this session.
      bubble strip and the peek-labels collapse into one rail — they
      don't both render in the same place.
    - **Implementation note:** the bubble numbers are derived from
-     `REMOTES.findIndex(focused)` — no new data model needed. Step
-     names are `REMOTES[i].label`. Tooltip body could pull from
-     `REMOTES[i].description` (already exists).
+     `ROTATION` (introduced in Phase 2d as the rotation-order peer to
+     `REMOTES`). Step names are `slotById(ROTATION[i]).label` —
+     `composite.label` for composites, `remote.label` otherwise. Tooltip
+     body pulls from `description`. With the `enrichment` composite already
+     a peer in `ROTATION`, the Open question "one bubble or two for
+     enrichment?" resolves naturally: **one bubble**, because PTM and Pack
+     Runner are already collapsed into the composite at the rotation level.
 
 ## Cross-cutting principles (to develop)
 
@@ -359,25 +395,19 @@ its own context-v doc when picked up.
   (to resolve the verb mismatch) or a sweep of the `needs-audit` surfaces?
 - Does the broad audit want to **fork per-surface child specs**, or stay one
   doc with the audit table? (Fork-early discipline if it balloons.)
-- **Enrichment-surface composition (from Decision §5):** is the right shape
-  **(a) a new `enrichmentSurface` wrapper remote** that mounts PTM and Pack
-  Runner as internal views and owns the icon-mode switcher — clean conceptual
-  unit, one tile in the shell — *or* **(b) keep PTM and Pack Runner as
-  separate paired remotes** and have each hide its body when the shared
-  `augment-it:enrichment-mode` says the other mode is active — smaller change,
-  preserves the existing pairing? Either way the visible-mode rule is locked;
-  this is purely *how* to compose it.
+- ~~**Enrichment-surface composition (from Decision §5)**~~ — **RESOLVED
+  2026-06-01** as **Option C — shell-level composite slot.** Neither (a)
+  wrapper remote nor (b) shared-state alone; the shell learned a new
+  concept (a slot that hosts one-of-N remotes). See Decision §5 for the
+  resolution narrative and the shipped mechanic.
 - **Flow widget default position (from Decision §8):** does the bubble strip
   default to **top** (current location, horizontal) or **left-hand column**
-  (vertical rail)? The toggle exists either way; only the default needs
-  picking. Argument for *top*: minimal layout change from today. Argument
-  for *left*: persistent always-visible workflow rail makes "where am I"
-  unmissable, and frees the top chrome for context-bar info.
-- **Enrichment step in the Flow strip:** the `REMOTES` rotation currently
-  has `promptTemplateManager` as a discrete step (#2). With Decision §5
-  unifying PTM ⇄ Pack Runner as one enrichment surface, should the bubble
-  strip render **one "Enrichment" step** that covers both, or two? Two is
-  legacy from before the pair existed; one matches the new mental model.
+  (vertical rail)? The plan defaults to *top* for minimal layout change;
+  the toggle exists either way. Re-open if the eyeball test prefers left.
+- ~~**Enrichment step in the Flow strip**~~ — **RESOLVED 2026-06-01** as
+  **one bubble**, locked by Phase 2d's `ROTATION` shape. The rotation now
+  reads `recordCollector → enrichment → requestReviewer → responseReviewer
+  → enhancedRecordsList`; the bubble strip will derive directly from it.
 
 ## Related
 
