@@ -498,20 +498,18 @@
           A bundle is a named composition of packs with a default roster.
           Pick one to set what fires; tune the roster below if you need to.
         </p>
-        <div class="bundle-picker" role="tablist" aria-label="Bundle">
+        <select
+          class="bundle-select"
+          value={activeBundleId}
+          onchange={(e) => selectBundle((e.currentTarget as HTMLSelectElement).value)}
+          aria-label="Bundle"
+        >
           {#each BUNDLES as b (b.bundle_id)}
-            <button
-              class="bundle-chip"
-              class:active={b.bundle_id === activeBundleId}
-              role="tab"
-              aria-selected={b.bundle_id === activeBundleId}
-              title={b.description}
-              onclick={() => selectBundle(b.bundle_id)}
-            >
+            <option value={b.bundle_id} title={b.description}>
               {b.display_name}
-            </button>
+            </option>
           {/each}
-        </div>
+        </select>
         <p class="muted bundle-desc">{activeBundle.description}</p>
       </section>
 

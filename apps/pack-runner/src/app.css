@@ -183,34 +183,12 @@
 .pr-app .pack-chip:hover { border-color: var(--color-accent); }
 .pr-app .pack-chip input { margin: 0; }
 
-/* Bundle picker (Phase 3) — segmented control above the roster panel.
-   Re-uses the chip aesthetic but with a stronger active state since the
-   bundle decides what fires. */
-.pr-app .bundle-picker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin: 0.4rem 0 0.6rem;
-}
-.pr-app .bundle-chip {
-  background: transparent;
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  letter-spacing: 0.02em;
-}
-.pr-app .bundle-chip:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-.pr-app .bundle-chip.active {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border-color: var(--color-accent);
-  cursor: default;
+/* Bundle picker — dropdown form (matches Step 1's Record Set select for
+   sibling-symmetry per the cross-cutting principles §2). The picker is
+   the primary "what fires" choice; the roster panel below tunes the
+   chosen bundle's members. */
+.pr-app .bundle-select {
+  margin-top: 0.4rem;
 }
 .pr-app .bundle-desc {
   font-size: 0.75rem;
