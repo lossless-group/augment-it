@@ -63,7 +63,7 @@
       ];
     }
 
-    // peek-deck
+    // peek-flow
     const i = layout.focusIndex;
     const focused = REMOTES[i];
     if (!focused) return [];
@@ -100,7 +100,7 @@
     return items;
   });
 
-  // ---- peek-deck: commit a neighbour as the new focus ---------------------
+  // ---- peek-flow: commit a neighbour as the new focus ---------------------
   function commitFocus(remoteId: string): void {
     const idx = REMOTES.findIndex((r) => r.id === remoteId);
     if (idx >= 0) {
@@ -109,7 +109,7 @@
     }
   }
 
-  // ---- focused-panel edge resize (peek-deck) ------------------------------
+  // ---- focused-panel edge resize (peek-flow) ------------------------------
   function startResize(e: PointerEvent): void {
     e.preventDefault();
     resizing = true;
@@ -196,7 +196,7 @@
   });
 
   const MODE_BUTTONS: { mode: LayoutMode; label: string }[] = [
-    { mode: 'peek-deck', label: 'Deck' },
+    { mode: 'peek-flow', label: 'Flow' },
     { mode: 'co-existence', label: 'Split' },
     { mode: 'full', label: 'Full' },
   ];

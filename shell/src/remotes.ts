@@ -70,7 +70,7 @@ export const CHAT_REMOTE: RemoteEntry = {
 // PACK_RUNNER_REMOTE is intentionally NOT in REMOTES. Per the
 // [[Run-as-First-Class-Operation]] plan §Part 1: Pack Runner is the
 // alternative to authoring a custom prompt, reached as an "option" from
-// prompt-template-manager, not as a sibling tile in the peek-deck. The
+// prompt-template-manager, not as a sibling tile in the peek-flow. The
 // federation registration is still in rsbuild.config.ts so the PAIRING
 // lookup + cross-remote navigation event continue to work.
 export const PACK_RUNNER_REMOTE: RemoteEntry = {
@@ -82,7 +82,7 @@ export const PACK_RUNNER_REMOTE: RemoteEntry = {
 };
 
 // "Extra" remotes — federation-registered + reachable via PAIRING /
-// augment-it:navigate, but excluded from the peek-deck rotation in REMOTES.
+// augment-it:navigate, but excluded from the peek-flow rotation in REMOTES.
 // Same shape as CHAT_REMOTE; aggregated here so remoteById() can fall back
 // to look them up without each caller having to know about each extra.
 const EXTRA_REMOTES: RemoteEntry[] = [CHAT_REMOTE, PACK_RUNNER_REMOTE];
