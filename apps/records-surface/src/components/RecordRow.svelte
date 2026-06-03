@@ -2,7 +2,8 @@
   import type { Row } from '@augment-it/workspace';
   import ConnectorButton from './ConnectorButton.svelte';
   import CandidatesPanel from './CandidatesPanel.svelte';
-  import { pickRowName, pickRowUrl } from '../logic/pick-url';
+  import EditableField from './EditableField.svelte';
+  import { resolveRowName, resolveRowUrl } from '../logic/pick-url';
   import { fireConnector } from '../logic/fire';
   import { fires } from '../state/fires.svelte';
   import { records } from '../state/records.svelte';
@@ -18,8 +19,17 @@
   type Props = { row: Row };
   let { row }: Props = $props();
 
-  const name = $derived(pickRowName(row));
-  const url = $derived(pickRowUrl(row));
+  const nameField = $derived(resolveRowName(row));
+  const urlField = $derived(resolveRowUrl(row));
+  const name = $derived(nameField.value);
+  const url = $derived(urlField.value || undefined);
+
+  async function saveName(next: string) {
+    await records.updateRowField(row.row_id, nameField.field_name, next);
+  }
+  async function saveUrl(next: string) {
+    await records.updateRowField(row.row_id, urlField.field_name, next);
+  }
   const fireState = $derived(fires.get(row.row_id));
 
   // Accepted URLs — always read as an array. Backwards-tolerant: if a
@@ -71,12 +81,38 @@
 
 <article class="record-row">
   <header class="record-row-head">
-    <span class="record-row-name">{name}</span>
-    {#if url}
-      <a href={url} target="_blank" rel="noopener noreferrer" class="record-row-url">{url}</a>
-    {:else}
-      <span class="record-row-url-missing">no URL</span>
-    {/if}
+    <span class="record-row-name">
+      <EditableField
+        value={name}
+        label="entity name"
+        kind="name"
+        save={saveName}
+      />
+    </span>
+    <span class="record-row-url-cell">
+      {#if urlField.source === 'helpful_links'}
+        <span
+          class="record-row-url-hint"
+          title="This URL is currently stored in helpful_links. Save will write it to the canonical URL column."
+        >recovered from helpful_links</span>
+      {/if}
+      <EditableField
+        value={url ?? ''}
+        placeholder="paste a URL"
+        label="entity URL"
+        kind="url"
+        save={saveUrl}
+      />
+      {#if url}
+        <a
+          class="record-row-url-open"
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="open in a new tab"
+        >↗</a>
+      {/if}
+    </span>
   </header>
 
   {#if accepted.length > 0}
@@ -131,15 +167,29 @@
     align-items: baseline;
     gap: 1rem;
   }
-  .record-row-name { font-weight: 600; color: var(--color-text); }
-  .record-row-url {
+  .record-row-name { font-weight: 600; color: var(--color-text); flex: 1 1 auto; min-width: 0; }
+  .record-row-url-cell {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 50%;
+  }
+  .record-row-url-hint {
+    font-size: 0.65rem;
+    color: var(--color-accent, var(--color-text));
+    background: var(--color-surface, rgba(0, 0, 0, 0.05));
+    padding: 0.05rem 0.4rem;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .record-row-url-open {
     color: var(--color-text-muted);
     text-decoration: none;
-    font-size: 0.8rem;
-    overflow-wrap: anywhere;
+    font-size: 0.85rem;
   }
-  .record-row-url:hover { text-decoration: underline; color: var(--color-text); }
-  .record-row-url-missing { color: var(--color-text-muted); font-style: italic; font-size: 0.8rem; }
+  .record-row-url-open:hover { color: var(--color-text); }
   .record-row-accepted-list {
     list-style: none;
     margin: 0;

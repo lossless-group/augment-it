@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { workspace, type RecordSet, type Row } from '@augment-it/workspace';
+  import RecordSetsList from './components/RecordSetsList.svelte';
 
   const TOKEN_KEY = 'augment-it:session-token';
   const WS_URL = 'ws://localhost:3001/ws';
@@ -213,32 +214,13 @@
 
 <div class="rc-layout">
   <aside>
-    <h2>Record sets</h2>
-    <button class="secondary" onclick={refreshList}>refresh</button>
-    <ul class="records">
-      {#each recordSets as rs (rs.record_set_id)}
-        <li class:selected={rs.record_set_id === selectedId}>
-          <button
-            type="button"
-            class="rs-select"
-            onclick={() => selectRs(rs.record_set_id)}
-          >
-            <strong>{rs.name}</strong>
-            <span class="muted">{rs.schema.fields.length} cols · {rs.row_ids.length} rows</span>
-          </button>
-          <button
-            type="button"
-            class="rs-delete"
-            title="Delete this record set and all its rows"
-            onclick={() => { void deleteRecordSet(rs); }}
-            aria-label="delete {rs.name}"
-          >×</button>
-        </li>
-      {/each}
-      {#if recordSets.length === 0}
-        <li class="muted empty">no record sets yet — upload below</li>
-      {/if}
-    </ul>
+    <RecordSetsList
+      {recordSets}
+      {selectedId}
+      onselect={(id) => selectRs(id)}
+      ondelete={(rs) => { void deleteRecordSet(rs); }}
+      onrefresh={refreshList}
+    />
 
     <h2>Ingest</h2>
     <input type="file" accept=".csv,.xlsx,text/csv" bind:this={fileInput} />

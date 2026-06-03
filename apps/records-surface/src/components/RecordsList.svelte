@@ -1,6 +1,7 @@
 <script lang="ts">
   import { records } from '../state/records.svelte';
   import RecordRow from './RecordRow.svelte';
+  import PromoteBar from './PromoteBar.svelte';
 </script>
 
 <section class="records-list-wrap">
@@ -26,6 +27,7 @@
   {:else if records.rows.length === 0}
     <p class="records-list-muted">no rows in the active record set</p>
   {:else}
+    <PromoteBar position="top" />
     <ul class="records-list">
       {#each records.rows as row (row.row_id)}
         <li class="records-list-item">
@@ -33,6 +35,7 @@
         </li>
       {/each}
     </ul>
+    <PromoteBar position="bottom" />
   {/if}
 </section>
 

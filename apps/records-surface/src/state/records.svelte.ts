@@ -1,6 +1,7 @@
 // Records store — reads the active record set, lists its rows.
 
 import { workspace, type Row, type RecordSet } from '@augment-it/workspace';
+import { promoteRecordSet, nextVersionName } from '../logic/promote';
 
 const ACTIVE_RECORD_SET_KEY = 'augment-it:active-record-set';
 
@@ -55,6 +56,35 @@ class RecordsStore {
     const idx = this.rows.findIndex((r) => r.row_id === row_id);
     if (idx >= 0) {
       this.rows[idx] = { ...this.rows[idx], fields: { ...this.rows[idx].fields, [field]: value } };
+    }
+  }
+
+  // Promote the active record set to a new canonical version. Reads the
+  // current set's name, computes the next-version name, fires
+  // `record_set.promote`, then auto-switches the Records Surface to the
+  // newly-created set so the user sees their work in the new home.
+  promoting = $state<boolean>(false);
+  lastPromoteError = $state<string | null>(null);
+
+  async promoteActiveRecordSet(): Promise<{ new_record_set_id: string } | null> {
+    if (!this.activeRecordSetId) return null;
+    const source = this.recordSets.find((rs) => rs.record_set_id === this.activeRecordSetId);
+    if (!source) return null;
+    this.promoting = true;
+    this.lastPromoteError = null;
+    try {
+      const name = nextVersionName(source.name);
+      const result = await promoteRecordSet(source.record_set_id, name);
+      // Refresh the list of record sets so the new one shows up in the
+      // picker, then switch to it.
+      await this.loadRecordSets();
+      await this.selectRecordSet(result.record_set.record_set_id);
+      return { new_record_set_id: result.record_set.record_set_id };
+    } catch (err) {
+      this.lastPromoteError = err instanceof Error ? err.message : String(err);
+      return null;
+    } finally {
+      this.promoting = false;
     }
   }
 }
