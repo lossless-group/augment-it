@@ -145,7 +145,6 @@ async function discoverFromHomepage(
       signal,
     });
     const host = hostnameOf(rowUrl);
-    const out: string[] = [];
     const seen = new Set<string>();
     // Crude anchor-text harvesting: for each link, pull the markdown text
     // around it. Cheap heuristic — Firecrawl's markdown surfaces "[News](url)"
@@ -157,6 +156,12 @@ async function discoverFromHomepage(
       const url = m[2].trim();
       if (!anchorMap.has(url) && text.length < 80) anchorMap.set(url, text);
     }
+    // Score each candidate so index-shaped URLs (e.g. /news, /stories) rank
+    // above post-shaped URLs (e.g. /stories/education/one-less-thing). The
+    // homepage typically links to both — its nav points at indexes, but
+    // featured-content blocks also link directly to recent posts. We want
+    // the indexes.
+    const scored: Array<{ url: string; score: number }> = [];
     for (const href of scrape.links ?? []) {
       try {
         const u = new URL(href, rowUrl);
@@ -169,12 +174,28 @@ async function discoverFromHomepage(
         const anchor = anchorMap.get(norm);
         if (!linkLooksLikeIndex(u.pathname, anchor)) continue;
         seen.add(norm);
-        out.push(norm);
+
+        // Score: shallower path + last segment is a keyword = highest.
+        // Each path segment past the first costs 10 points; an exact
+        // last-segment keyword match earns 50; a keyword anywhere in
+        // the path earns 10. Higher score wins.
+        const segments = u.pathname.split('/').filter(Boolean);
+        const depth = segments.length;
+        const lastSegment = (segments[segments.length - 1] ?? '').toLowerCase();
+        const lastSegmentIsKeyword = INDEX_LINK_KEYWORDS.some(
+          (kw) => lastSegment === kw || lastSegment === `${kw}s`,
+        );
+        let score = 0;
+        if (lastSegmentIsKeyword) score += 50;
+        score += 10; // base score for any keyword match
+        score -= (depth - 1) * 10; // penalty per extra path segment
+        scored.push({ url: norm, score });
       } catch {
         continue;
       }
     }
-    return { urls: out };
+    scored.sort((a, b) => b.score - a.score);
+    return { urls: scored.map((s) => s.url) };
   } catch (err) {
     return { urls: [], reason: err instanceof Error ? err.message : String(err) };
   }
@@ -214,8 +235,25 @@ async function findIndexCandidates(
     );
   }
 
-  // Stage 1b — Path-guess fallback. Always added so the pack still works
-  // when SerpApi is unavailable; dedupes against SerpApi hits.
+  // Stage 1b — Homepage discovery. Scrape the entity's homepage and harvest
+  // outbound links whose path or anchor text suggests a blog/news/press
+  // index ("our-work", "grants-news", "publications", etc.). This is the
+  // path that actually works on real foundation websites — root path-guess
+  // returns 404 for nearly every philanthropic foundation, but their nav
+  // bars are full of links to /grants-news, /our-work/stories,
+  // /publications. Cheaper than burning SerpApi when keyed; far higher
+  // recall than path-guessing alone when SerpApi is dark.
+  const home = await discoverFromHomepage(rowUrl, signal);
+  for (const url of home.urls) {
+    if (!candidates.includes(url)) {
+      candidates.push(url);
+      via.homepage += 1;
+    }
+  }
+
+  // Stage 1c — Path-guess fallback. Always added so the pack still works
+  // even if both SerpApi and homepage scrape failed; dedupes against the
+  // earlier hits.
   for (const path of PATH_GUESSES) {
     const guess = `${origin}${path}`;
     if (!candidates.includes(guess)) {
