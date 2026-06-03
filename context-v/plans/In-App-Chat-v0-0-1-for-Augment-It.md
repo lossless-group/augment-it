@@ -2,16 +2,17 @@
 title: "In-App Chat v0.0.1 for Augment-It — The Prompt-Drafting Triad as the Demo Affordance"
 lede: "Revised. The v0.0.1 demo arc is the gated-enhancement pattern made conversational: the user states a goal, the chat drafts a prompt (`prompts.draft`), refines it across one or two turns (`prompts.improve`), then explicitly binds it to records (`prompts.apply`) — a ScriptCapability with postconditions that actually checks whether the enrichment did what the prompt promised. Plus `records.list` to look at the result. Four capabilities total, all per-app; two adapter shapes exercised (TS handler, ScriptCapability). McpCapability and SkillCapability honestly deferred to v0.0.2 — no corpus exists yet for `corpus.search` to query, and no skill is wrapped yet. The blueprint's full Pattern 1 isn't proven by v0.0.1; the gated-enhancement triad is. That's the right trade for a client-meeting demo on fundraising-pipeline development."
 date_created: 2026-05-22
-date_modified: 2026-05-25
+date_modified: 2026-06-03
 date_completed: 2026-05-23
 revisions:
   - 2026-05-22 — Replaced `corpus.search` (no corpus to query yet) with the `prompts.draft → improve → apply` triad as the lead demo affordance. Adapter-shape coverage drops from three to two; that's honest and called out.
   - 2026-05-25 — Status swept to Shipped; v0.0.1 landed in commit 9ac3a50 per changelog 2026-05-23_01. McpCapability + SkillCapability still deferred to v0.0.2 successor.
+  - 2026-06-03 — Appended §"Industry context — how command + skill registration works across the ecosystem" (0.0.0.4). Survey of the three registration sources, two dispatch purposes, and the description-driven dispatch pattern across MCP / Discord / OpenAI tools / Claude Code skills. Maps the existing CAPABILITY_TO_SUBJECT + CHAT_TOOLS substrate to MCP-compatible exposure. Informs v0.0.2's McpCapability + SkillCapability sequencing without changing the shipped v0.0.1 contract.
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.3
+semantic_version: 0.0.0.4
 tags:
   - Plan
   - Augment-It
@@ -434,6 +435,207 @@ mechanics.
 - [ ] Anticipation pills update after each capability completes — `record_set::prompt.draft` shows the improve+apply suggestions, etc.
 
 If any of those fail, edit this section in place with what happened, then add a Session Notes section below capturing the cache-hit ratio and any fit/finish to clean before showing a client.
+
+## Industry context — how command + skill registration works across the ecosystem
+
+Appended 2026-06-03 while planning v0.0.2's McpCapability + SkillCapability
+adapters. Captures the framework so the v0.0.2 work has a clear target and
+augment-it's existing registry pattern slots into the broader ecosystem
+without re-discovering the conventions.
+
+### Two distinct dispatch purposes (often conflated)
+
+1. **Human-typed shortcuts** — `/help`, `/entity-pulse`, `/voice-of-entity`.
+   Autocomplete on `/`, dispatched by exact name match. The human picks the
+   verb; the system runs it. Examples: Discord slash commands, Slack
+   slash commands, Telegram `setMyCommands`, Claude Code commands at
+   `~/.claude/commands/<name>.md`, Continue.dev's slash-command JSON.
+2. **LLM-invoked tools / skills** — the model decides which to call from
+   the *description*. The human never types the name; they describe a
+   goal in natural language and the model routes. Examples: Anthropic
+   tool use (`tool_use` block), OpenAI function calling, MCP `tools/list`,
+   LangChain `@tool` decorator, Claude Code skills (description IS the
+   routing logic).
+
+Some systems do both (Claude Code: slash commands AND skills, separate
+trees). Most pick one and force-fit the other. Augment-It's existing
+shape is **LLM-invoked-with-proposal-gate** — the model picks the verb
+via the four-slab prompt's `CHAT_TOOLS`, but a `chat_propose` mode
+inserts a human-clicks-to-confirm step before invocation. Pattern 4
+from [[Chat-As-Verb-Surface-Patterns]].
+
+### Three registration sources
+
+1. **Manifest files** — static, version-controlled, declarative.
+   Examples: Slack app manifest (YAML), Discord application commands
+   (JSON), MCP server's `tools/list` response (returned from the
+   server), Claude Code `~/.claude/skills/<name>/SKILL.md` with YAML
+   frontmatter. Augment-It's `CAPABILITY_TO_SUBJECT` map in
+   `services/workspace/src/capabilities.ts` is a manifest in code.
+2. **API at boot** — runtime registration but stable across the
+   session. Examples: Discord's `applicationCommands.create()`,
+   Telegram's `setMyCommands`, LangChain's `agent.bind_tools(...)`.
+3. **Hot-add via runtime API** — registration mid-session.
+   Examples: MCP's `notifications/tools/list_changed`, Discord guild
+   commands (instant propagation), Augment-It's NEW Connector Inventory
+   registry (`registry.register(...)` per
+   [[../specs/Connector-Inventory-and-Per-Record-Palette]]). The
+   connector registry is structurally the same shape as MCP's tools
+   registry — that's not a coincidence; it's the same problem.
+
+### The de facto schema
+
+Every modern stack converges on roughly the same shape:
+
+```json
+{
+  "name": "entity_pulse",
+  "description": "Fan out OfficialUpdates + MediaMentions + SocialsMentions across a record set",
+  "inputSchema": {
+    "type": "object",
+    "properties": { "record_set_id": {...}, "relevance_context": {...} },
+    "required": ["record_set_id"]
+  }
+}
+```
+
+JSON Schema for args is the universal language. For LLM-invoked tools,
+**the description IS the dispatch logic** — the model reads it and
+decides whether to call this tool. For human-typed shortcuts, the
+description is UI tooltip.
+
+Augment-It's `CHAT_TOOLS` in `services/workspace/src/chat.ts` already
+matches this shape (Anthropic's tool-use format, which is structurally
+isomorphic to MCP's). The four-slab prompt assembly slots tools into
+the second slab; cache breakpoints make the tool definitions cacheable
+across turns.
+
+### Why MCP is the standard worth caring about
+
+Augment-It already runs firecrawl, chroma, tavily as MCP servers
+(`.mcp.json` at the augment-it root, plus the user-scope config for
+the cross-project Chroma). MCP — Model Context Protocol — is the
+emerging standard for the registration question this section answers.
+Its primitives map directly to v0.0.1's existing patterns:
+
+| MCP primitive | Augment-It equivalent today | Status |
+|---|---|---|
+| `tools/list` — invokable tools | `CHAT_TOOLS` in `chat.ts` | Native shape, just not exposed via MCP yet |
+| `prompts/list` — named prompt templates surfaced as slash commands | None — v0.0.1 doesn't have `/<name>` shortcuts | v0.0.2 candidate |
+| `resources/list` — addressable read-only contexts | `row://`, `record_set://` — implicit in workspace state but not addressable | v0.0.2 candidate |
+| `notifications/tools/list_changed` — hot-reload | Connector Inventory registry's `register/unregister` pattern | NEW (this session) |
+
+MCP is two-way: a process can be an MCP **server** (exposes tools to
+hosts like Claude Code, Cursor, Augment-It's chat) AND an MCP **client**
+(consumes tools from other MCP servers). v0.0.2's McpCapability is the
+client direction; expose-Augment-It-as-an-MCP-server is a separate
+candidate that would let the chat UI of any MCP-aware host (Claude
+Code, Cursor, future) trigger Augment-It enrichments.
+
+### Other systems worth knowing (briefly)
+
+- **Discord application commands** — manifest at registration; client
+  autocompletes the `/` from the registered set. Two-tier scope: global
+  (slow propagation, ~1hr) vs guild (instant). Slash commands have
+  typed options, choices, autocomplete callbacks. Closest analog to
+  the "host autocompletes from the registry" pattern.
+- **Slack app manifests** — YAML/JSON declaration of slash commands +
+  the POST URL each routes to. No LLM dispatch — purely human-typed.
+- **OpenAI function calling / Assistants API** — JSON Schema for args,
+  model decides from description. Tools API; Custom GPTs use a
+  manifest + OpenAPI spec for "actions" instead.
+- **LangChain `@tool` decorator** — Python decorator generates the
+  schema from function signature; `agent.bind_tools(...)` registers at
+  runtime. Description-driven dispatch.
+- **Claude Code skills** — directory + SKILL.md with YAML frontmatter.
+  The description in frontmatter is what Claude reads to decide when
+  to invoke. Different from Claude Code's slash commands, which are
+  `~/.claude/commands/<name>.md` and human-typed. Same product, two
+  trees, two dispatch modes.
+- **Continue.dev / Cursor / Cody** — IDE-embedded; each has a JSON
+  config declaring custom slash commands. Less structured than
+  Claude Code skills, no LLM-decides-from-description tier.
+
+### Mapping Augment-It's path to MCP-compatible exposure (v0.0.2 sequencing)
+
+The shipped v0.0.1 substrate is already structurally MCP-shaped. The
+work to make it MCP-native is largely **wrapping existing layers**, not
+rebuilding them:
+
+1. **Tools** — `CHAT_TOOLS` array becomes the response to MCP
+   `tools/list`. Each entry already has `name`, `description`,
+   `input_schema`. Wrap workspace's NATS dispatch as the tool execution
+   path: MCP `tools/call` → `workspace.invoke()` → existing
+   CAPABILITY_TO_SUBJECT → existing NATS handler. The Connector
+   Inventory registry is already this pattern at a finer grain
+   (connector-level instead of capability-level); the same shape
+   generalizes up.
+2. **Prompts** — surface the bundle chat verbs (`/entity-pulse`,
+   `/voice-of-entity`, `/who-mentions-us` per
+   [[../specs/Entity-Pulse-Bundle]] open questions) as MCP prompt
+   templates. Each prompt template's parameters become `{record_set_id,
+   relevance_context}` etc.; the host UI autocompletes `/`. This gives
+   Augment-It both dispatch modes (LLM-invoked AND human-typed) for
+   free, against the same underlying capability registry.
+3. **Resources** — `row://<row_id>` and `record_set://<id>` URIs
+   addressable through MCP `resources/read`. Useful for the chat
+   surface to attach context without re-fetching, and for external MCP
+   hosts to read Augment-It data without coupling to NATS.
+4. **McpCapability (v0.0.2 deferred adapter)** — consume external MCP
+   servers (firecrawl crawl during `prompts.apply`; tavily for live
+   research; chroma for the Lossless corpus search). Wrap the MCP
+   client SDK so capabilities can be registered from MCP tool
+   discovery — drop a new MCP server in `.mcp.json`, the registry
+   discovers its tools and they become available capabilities at runtime.
+5. **SkillCapability (v0.0.2 deferred adapter)** — wrap a Claude Code
+   skill (the user already has `crawl-fetch-ingest`,
+   `search-lossless-corpus`, etc.). The skill's SKILL.md frontmatter
+   description routes the LLM; the skill's body becomes a chain of
+   capability invocations the chat agent walks. Maps directly onto
+   the LangChain "agent calls a sequence of tools" pattern but with
+   Augment-It's gated-enhancement discipline (each step proposes; the
+   human can break the chain).
+
+### Practical implication for Connector Inventory
+
+The Connector Inventory registry pattern that landed in this branch
+(`feat/bundle-media-packs`) is **the same registration pattern this
+section describes**, applied one level down — connector-level instead
+of capability-level. That's not duplication; that's the registry
+pattern recursing:
+
+- Top level (chat agent): `CAPABILITY_TO_SUBJECT` — verbs the chat
+  knows about.
+- Mid level (bundle): `BUNDLES[id].members[]` — packs that compose
+  a bundle.
+- Bottom level (connector): `ConnectorRegistry.resolve(intent)` —
+  providers that serve a capability.
+
+All three are description-driven, registration-based, hot-swappable.
+When v0.0.2 ships McpCapability, the McpCapability adapter at the top
+level will register MCP-tool-shaped entries into CAPABILITY_TO_SUBJECT;
+those tools may themselves trigger Connector Inventory resolution at
+the bottom; the symmetry is structural.
+
+### One concrete v0.0.2 first step
+
+The cheapest move that proves the framework: **expose `entity-pulse`
+bundle as an MCP prompt**. Three changes:
+
+1. Add an MCP server endpoint to `services/workspace/` (alongside the
+   existing WebSocket) that responds to `prompts/list` with one entry:
+   `entity-pulse` with the bundle's input parameters as MCP prompt
+   arguments.
+2. Wire `prompts/get` to assemble the four-slab prompt with the bundle
+   pre-injected.
+3. Add Augment-It's MCP endpoint to `.mcp.json` of any host (Claude
+   Code, Cursor) and verify `/entity-pulse` autocompletes there.
+
+This is small enough to fit in a single PR, doesn't change the existing
+v0.0.1 contract, and earns Augment-It the "MCP-compatible chat verb"
+property — which is a credibility signal for any future LLM host
+integration. Logical next step after the Entity Pulse Phase 2
+rollup-agent lands and there's something worth firing.
 
 ## Related
 
