@@ -1,7 +1,26 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { workspace, type RecordSet, type Row } from '@augment-it/workspace';
-  import { BUNDLES, getBundle, packDisplayName, inferEntityNameField, type BundleConfig } from './bundles';
+  import {
+    BUNDLES, getBundle, packDisplayName, inferEntityNameField,
+    PACK_PALETTE_META,
+    type BundleConfig,
+  } from './bundles';
+  import ConnectorPalette from './ConnectorPalette.svelte';
+  import type { PaletteConnector, PalettePack } from './ConnectorPalette.svelte';
+
+  // Connector inventory loaded once on mount. Empty during load → palette
+  // chips render with limited info; refreshes when registry replies.
+  let inventory = $state<PaletteConnector[]>([]);
+
+  // Per-(row × pack) in-flight state for the per-row palette. Keyed
+  // `${row_id}::${pack_id}` — one fire per pack per row at a time.
+  let rowPackBusy = $state<Set<string>>(new Set());
+
+  // Per-row map of pack_ids that have completed at least once this session,
+  // for the "found" chip state. Doesn't survive refresh; the real source of
+  // truth lives in response-store, but this gives immediate feedback.
+  let rowPackFired = $state<Record<string, Set<string>>>({});
 
   const TOKEN_KEY = 'augment-it:session-token';
   const WS_URL = 'ws://localhost:3001/ws';
@@ -155,6 +174,7 @@
       onStatus: (s) => (status = s),
     });
     void loadRecordSets();
+    void loadInventory();
 
     // Listen for the canonical-key change so an "Augment This Set" click
     // from Record Collector re-targets us even when we're already mounted.
@@ -197,6 +217,87 @@
     } catch (err: unknown) {
       console.error('record_set.list', err);
     }
+  }
+
+  // Connector inventory — drives the per-row palette's cost-tier / needs-env
+  // affordances. Loaded once on mount, shared across every row in the list.
+  async function loadInventory() {
+    try {
+      const r = (await workspace.invoke('connectors.inventory', {})) as {
+        connectors: PaletteConnector[];
+      };
+      inventory = r.connectors ?? [];
+    } catch (err) {
+      console.warn('connectors.inventory unavailable', err);
+      inventory = [];
+    }
+  }
+
+  // Map registry connector_id → legacy ProviderId (the existing fan_out
+  // path's provider_override field). The registry uses 'serpapi-google'
+  // while the legacy ProviderId union still has 'serpapi'.
+  function connectorIdToProviderId(connector_id: string): string {
+    if (connector_id === 'serpapi-google') return 'serpapi';
+    return connector_id;
+  }
+
+  // Fire ONE pack against ONE row, optionally through an explicit connector.
+  // Mirrors the per-record runner in response-reviewer but lives here in
+  // Augment so the user can iterate row-by-row without bulk fan-out.
+  async function fireOneRow(row: Row, pack_id: string, connector_id?: string) {
+    const key = `${row.row_id}::${pack_id}`;
+    if (rowPackBusy.has(key)) return;
+    rowPackBusy = new Set(rowPackBusy).add(key);
+    try {
+      await workspace.invoke('pack.search', {
+        pack_id,
+        row_id: row.row_id,
+        record_set_id: selectedRecordSetId,
+        entity_name_field: entityNameField,
+        bundle_id: activeBundle?.bundle_id,
+        provider_override: connector_id ? connectorIdToProviderId(connector_id) : undefined,
+      });
+      // Mark as fired so the chip flips to "found" (visual signal — actual
+      // results live in response-store and surface in Response Reviewer).
+      const next = { ...rowPackFired };
+      if (!next[row.row_id]) next[row.row_id] = new Set();
+      next[row.row_id] = new Set(next[row.row_id]).add(pack_id);
+      rowPackFired = next;
+    } catch (err) {
+      console.error('pack.search (per-row)', err);
+    } finally {
+      const next = new Set(rowPackBusy);
+      next.delete(key);
+      rowPackBusy = next;
+    }
+  }
+
+  // Which packs the per-row palette should expose. Tracks the active bundle's
+  // roster, filtered by what's currently enabled in the roster overrides.
+  // Empty when no bundle is selected → palette doesn't render.
+  const palettePacks = $derived.by<PalettePack[]>(() => {
+    if (!activeBundle) return [];
+    const out: PalettePack[] = [];
+    for (const member of activeBundle.members) {
+      if (!enabledPackIds.has(member.pack_id)) continue;
+      const meta = PACK_PALETTE_META[member.pack_id];
+      if (!meta) continue;
+      out.push({ pack_id: member.pack_id, ...meta });
+    }
+    return out;
+  });
+
+  function busyPacksForRow(row_id: string): Set<string> {
+    const out = new Set<string>();
+    const prefix = `${row_id}::`;
+    for (const key of rowPackBusy) {
+      if (key.startsWith(prefix)) out.add(key.slice(prefix.length));
+    }
+    return out;
+  }
+
+  function firedPacksForRow(row_id: string): Set<string> {
+    return rowPackFired[row_id] ?? new Set<string>();
   }
 
   async function selectRecordSet(record_set_id: string) {
@@ -470,8 +571,8 @@
         <ul class="rows">
           {#each visibleRows as row (row.row_id)}
             {@const status = classifyRow(row)}
-            <li>
-              <label>
+            <li class="row-line">
+              <label class="row-label">
                 <input
                   type="checkbox"
                   checked={selectedRowIds.has(row.row_id)}
@@ -484,6 +585,22 @@
                   {(row.fields as Record<string, unknown>)[entityNameField] ?? '(no value)'}
                 </span>
               </label>
+              {#if palettePacks.length > 0}
+                <span class="row-palette">
+                  <ConnectorPalette
+                    row_id={row.row_id}
+                    packs={palettePacks}
+                    {inventory}
+                    accepted_pack_ids={new Set()}
+                    busy_pack_ids={busyPacksForRow(row.row_id)}
+                    result_counts={Object.fromEntries(
+                      [...firedPacksForRow(row.row_id)].map((p) => [p, 1]),
+                    )}
+                    on_fire={(pack_id, connector_id) =>
+                      void fireOneRow(row, pack_id, connector_id)}
+                  />
+                </span>
+              {/if}
             </li>
           {/each}
           {#if visibleRows.length === 0}

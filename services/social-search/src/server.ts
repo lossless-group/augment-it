@@ -44,6 +44,10 @@ import {
   OFFICIAL_SOCIAL_POSTS_PACK_ID,
   type OfficialSocialPostsPackInput,
 } from './entity-pulse/packs/official-social-posts-pack';
+import {
+  isEntityPulsePack,
+  runOneEntityPulsePack,
+} from './entity-pulse/dispatch';
 import { getRegistry } from './registry/registry';
 import { registerExistingConnectors } from './registry/register-connectors';
 import type { Capability } from './registry/capabilities';
@@ -108,12 +112,33 @@ async function main(): Promise<void> {
     })),
   }));
 
-  // pack.search.requested — one pack × one row
+  // pack.search.requested — one pack × one row. Entity Pulse packs route
+  // to runOneEntityPulsePack (publishes N ResponseRecords, one per item);
+  // legacy packs continue through runOnePackSearch.
   (async () => {
     const sub = nc.subscribe('pack.search.requested');
     for await (const msg of sub) {
       const args = jc.decode(msg.data) as SearchInput;
       try {
+        if (isEntityPulsePack(args.pack_id)) {
+          const result = await runOneEntityPulsePack(nc, {
+            pack_id: args.pack_id,
+            row_id: args.row_id,
+            record_set_id: args.record_set_id,
+            entity_name_field: args.entity_name_field,
+            bundle_id: args.bundle_id,
+          });
+          if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+          console.log(JSON.stringify({
+            level: 'info',
+            msg: 'pack.search.entity_pulse',
+            pack_id: result.pack_id,
+            row_id: result.row_id,
+            outcome: result.outcome,
+            items_published: result.items_published,
+          }));
+          continue;
+        }
         const result = await runOnePackSearch(nc, args);
         if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
         console.log(JSON.stringify({
@@ -161,15 +186,24 @@ async function main(): Promise<void> {
       const tasks: Array<() => Promise<unknown>> = [];
       for (const row_id of args.row_ids) {
         for (const pack_id of args.pack_ids) {
-          tasks.push(() =>
-            runOnePackSearch(nc, {
-              pack_id,
-              row_id,
-              record_set_id: args.record_set_id,
-              entity_name_field: args.entity_name_field,
-              provider_override: args.provider_override,
-              bundle_id: args.bundle_id,
-            }).catch((err) => {
+          tasks.push(() => {
+            const run = isEntityPulsePack(pack_id)
+              ? runOneEntityPulsePack(nc, {
+                  pack_id,
+                  row_id,
+                  record_set_id: args.record_set_id,
+                  entity_name_field: args.entity_name_field,
+                  bundle_id: args.bundle_id,
+                })
+              : runOnePackSearch(nc, {
+                  pack_id,
+                  row_id,
+                  record_set_id: args.record_set_id,
+                  entity_name_field: args.entity_name_field,
+                  provider_override: args.provider_override,
+                  bundle_id: args.bundle_id,
+                });
+            return run.catch((err) => {
               // Per-cell failures don't abort the run. Log and continue.
               console.error(JSON.stringify({
                 level: 'error',
@@ -179,8 +213,8 @@ async function main(): Promise<void> {
                 error: err instanceof Error ? err.message : String(err),
               }));
               return null;
-            }),
-          );
+            });
+          });
         }
       }
 

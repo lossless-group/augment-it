@@ -64,6 +64,16 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // concurrency-bounded server-side, single reply when all cells settled.
   'pack.search': 'pack.search.requested',
   'pack.fan_out': 'pack.fan_out.requested',
+  // Entity Pulse — list-shaped pack run (Phase 1). Each handler returns the
+  // full EntityPulseListResponse JSON in the reply (no response-store write
+  // yet — the curation layer lands later). Per
+  // context-v/specs/Entity-Pulse-Bundle.md migration step 2.
+  'pack.entity_pulse': 'pack.entity_pulse.requested',
+  // Connector Inventory — read-only registry snapshot. Powers the per-record
+  // palette UI's chip menu (cost tiers, needs-env affordances). Optional
+  // 'intent' arg filters to connectors serving a specific capability. Per
+  // context-v/specs/Connector-Inventory-and-Per-Record-Palette.md.
+  'connectors.inventory': 'connectors.inventory.requested',
 };
 
 const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
@@ -83,6 +93,10 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   // can take several seconds — the 5s default is too tight for the per-record
   // run buttons in the by-record triage view.
   'pack.search': 30_000,
+  // Entity Pulse packs do multi-stage work (find-index + extract, or multi-
+  // wire parallel queries, or per-platform walks). 60s leaves room without
+  // gold-plating.
+  'pack.entity_pulse': 60_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {

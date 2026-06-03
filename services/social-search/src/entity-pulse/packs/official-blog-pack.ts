@@ -108,6 +108,78 @@ function looksLikePost(href: string, indexUrl: string): boolean {
   }
 }
 
+// Anchor-text / URL-path keywords that signal a link points at a
+// blog/news/press/insights index. Loose on purpose — false positives are
+// cheaper than false negatives at the discovery stage; the curation layer
+// is the human gate.
+const INDEX_LINK_KEYWORDS = [
+  'news', 'press', 'blog', 'insights', 'insight',
+  'stories', 'story', 'articles', 'article',
+  'grants', 'grant', 'publications', 'publication',
+  'newsroom', 'updates', 'update', 'media',
+  'releases', 'release', 'announcements', 'announcement',
+  'features', 'voices', 'commentary', 'perspectives',
+];
+
+function linkLooksLikeIndex(href: string, anchorText: string | undefined): boolean {
+  const hay = `${href} ${anchorText ?? ''}`.toLowerCase();
+  return INDEX_LINK_KEYWORDS.some((kw) =>
+    new RegExp(`(?:^|/|[-_\\s])${kw}(?:[-_/\\s]|$)`, 'i').test(hay),
+  );
+}
+
+// Stage 1c — homepage discovery. Scrape the row URL itself, get its
+// outbound links, and pick same-domain links whose URL or anchor text
+// suggests a news/press/blog/insights/stories index. This is the path
+// that actually works on real foundation websites where standard
+// path-guessing (`/feed`, `/blog`, …) returns 404s — foundations bury
+// their content under custom slugs like `/grants-news`, `/our-work`,
+// `/publications`.
+async function discoverFromHomepage(
+  rowUrl: string,
+  signal?: AbortSignal,
+): Promise<{ urls: string[]; reason?: string }> {
+  try {
+    const scrape = await firecrawlScrape(rowUrl, {
+      formats: ['markdown', 'links'],
+      signal,
+    });
+    const host = hostnameOf(rowUrl);
+    const out: string[] = [];
+    const seen = new Set<string>();
+    // Crude anchor-text harvesting: for each link, pull the markdown text
+    // around it. Cheap heuristic — Firecrawl's markdown surfaces "[News](url)"
+    // shapes for nav-style links; we map href → preceding anchor text.
+    const anchorMap = new Map<string, string>();
+    const markdown = scrape.markdown ?? '';
+    for (const m of markdown.matchAll(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g)) {
+      const text = m[1].trim();
+      const url = m[2].trim();
+      if (!anchorMap.has(url) && text.length < 80) anchorMap.set(url, text);
+    }
+    for (const href of scrape.links ?? []) {
+      try {
+        const u = new URL(href, rowUrl);
+        if (u.host.replace(/^www\./, '') !== host) continue;
+        const norm = u.toString();
+        if (seen.has(norm)) continue;
+        // Skip the homepage itself + obvious non-content (root, login, etc.)
+        if (u.pathname === '/' || u.pathname === '') continue;
+        if (/\/(login|signin|signup|search|donate|contact|about|careers|jobs)\b/i.test(u.pathname)) continue;
+        const anchor = anchorMap.get(norm);
+        if (!linkLooksLikeIndex(u.pathname, anchor)) continue;
+        seen.add(norm);
+        out.push(norm);
+      } catch {
+        continue;
+      }
+    }
+    return { urls: out };
+  } catch (err) {
+    return { urls: [], reason: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 async function findIndexCandidates(
   rowUrl: string,
   signal?: AbortSignal,
@@ -115,10 +187,10 @@ async function findIndexCandidates(
   const host = hostnameOf(rowUrl);
   const origin = originOf(rowUrl);
   const candidates: string[] = [];
-  const via: Record<string, number> = { serpapi: 0, path_guess: 0 };
+  const via: Record<string, number> = { serpapi: 0, homepage: 0, path_guess: 0 };
 
   // Stage 1a — SerpApi find-index. Throws localized if key missing; we catch
-  // so the path-guess fallback can still produce something.
+  // so the homepage + path-guess fallbacks can still produce something.
   try {
     const serpapi = getConnector('serpapi');
     const results = await serpapi(

@@ -4,7 +4,13 @@ services:
     ports:
       - "4222:4222"     # client connections
       - "8222:8222"     # monitoring — the dashboard the client looks at
-    command: ["-js", "-m", "8222"]
+    # Config file holds max_payload: 8MB (default 1MB) — the response.list
+    # reply payload grew past 1MB during Entity Pulse fan-out on 2026-06-02
+    # and crashed response-store. Inline flags didn't parse cleanly in
+    # docker compose; config file is the safe path.
+    volumes:
+      - ./nats.conf:/etc/nats/nats.conf:ro
+    command: ["-c", "/etc/nats/nats.conf"]
 
   workspace-service:
     build: ./services/workspace

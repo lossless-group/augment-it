@@ -327,3 +327,29 @@
   border-radius: 4px;
   color: var(--color-text);
 }
+
+/* Per-row palette layout — checkbox + name on the left, chip palette on the
+   right of each row in the Augment record-picker. Lets the user fire one
+   pack on one record in-place instead of bulk fan-out. */
+.row-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.row-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.row-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.row-palette {
+  flex: 0 0 auto;
+  position: relative;
+}

@@ -4,10 +4,12 @@
 # in the proper order.
 #
 #   ./scripts/dev.sh up        backend (Docker), wait for it, then frontend
+#                              AND streams backend logs into the same terminal
+#                              alongside frontend dev output. One tab, all logs.
 #   ./scripts/dev.sh backend   backend only — Docker, detached
 #   ./scripts/dev.sh frontend  frontend only — rsbuild dev servers
 #   ./scripts/dev.sh down      stop the backend containers
-#   ./scripts/dev.sh logs      follow backend container logs
+#   ./scripts/dev.sh logs      follow backend container logs (standalone)
 #   ./scripts/dev.sh ps        show backend container status
 #
 # Also wired as a pnpm script — `pnpm stack up`, `pnpm stack down`, etc.
@@ -67,10 +69,35 @@ frontend_up() {
     run dev
 }
 
+# Stream backend container logs into the same terminal as the frontend dev
+# output. Backend logs land with a [backend] prefix so they're distinguishable
+# from frontend `apps/* dev:` lines. Started in the background and torn down
+# with the script on Ctrl-C via the trap below.
+backend_logs_attach() {
+  # --no-log-prefix because we add our own [backend|<service>] prefix; the
+  # service name is the more useful filter target than the bare container.
+  # --since=0s replays only newly-arriving lines, not the full history every
+  # time `up` runs (which would dump megabytes per restart cycle).
+  docker compose logs -f --no-log-prefix --since=0s 2>&1 \
+    | sed -u 's/^/[backend] /' &
+  BACKEND_LOGS_PID=$!
+}
+
+trap_cleanup() {
+  # Kill the backend-logs tail when the user Ctrl-Cs the foreground
+  # frontend command. Does NOT stop the backend containers — `dev.sh down`
+  # is the deliberate path for that, same as before this change.
+  if [[ -n "${BACKEND_LOGS_PID:-}" ]] && kill -0 "$BACKEND_LOGS_PID" 2>/dev/null; then
+    kill "$BACKEND_LOGS_PID" 2>/dev/null || true
+  fi
+}
+
 case "${1:-up}" in
   up)
     backend_up
     wait_for_workspace
+    trap trap_cleanup EXIT INT TERM
+    backend_logs_attach
     frontend_up
     ;;
   backend)

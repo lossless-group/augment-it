@@ -12,6 +12,8 @@
   } from '@augment-it/workspace';
   import ConfidencePill from '@augment-it/shared-ui/ConfidencePill.svelte';
   import { MOCK_PACKS_FIXTURE } from './fixtures/mock-packs';
+  import ConnectorPalette from './ConnectorPalette.svelte';
+  import type { PaletteConnector, PalettePack } from './ConnectorPalette.svelte';
 
   // Each remote owns its own workspace singleton + WebSocket — no `shared`
   // federation block (see the 2026-05-21_03 changelog).
@@ -20,32 +22,26 @@
 
   const FLAGS: ResponseFlag[] = ['good', 'partial', 'wrong', 'needs-rerun', 'needs-human'];
 
-  // Per-pack metadata for the inline "run a source on this record" buttons in
-  // the by-record view. Source of truth for pack identity is
-  // services/social-search/src/packs.ts; the glyph + accent live here so the
-  // UI renders without a round-trip. If a pack lands or is renamed, update
-  // both this list and pack-runner's PACKS.
-  const PACKS_META: { pack_id: string; label: string; glyph: string; accent: string }[] = [
-    { pack_id: 'linkedin-pack', label: 'LinkedIn', glyph: 'in', accent: '#0a66c2' },
-    { pack_id: 'x-pack', label: 'X / Twitter', glyph: 'X', accent: '#1d9bf0' },
-    { pack_id: 'bluesky-pack', label: 'Bluesky', glyph: 'bs', accent: '#1185fe' },
-    { pack_id: 'youtube-pack', label: 'YouTube', glyph: 'YT', accent: '#ff0000' },
-    { pack_id: 'facebook-pack', label: 'Facebook', glyph: 'f', accent: '#1877f2' },
-    { pack_id: 'wikipedia-pack', label: 'Wikipedia', glyph: 'W', accent: '#888a8c' },
-    { pack_id: 'instagram-pack', label: 'Instagram', glyph: 'IG', accent: '#e1306c' },
+  // Per-record palette pack roster — one chip per intent, default click walks
+  // the pack's preferred_connectors chain; long-press opens a connector menu.
+  // Source of truth for pack identity is services/social-search/src/packs.ts;
+  // short_label + accent live here so the UI renders without a round-trip.
+  // Migrated from the legacy two-row provider × pack grid 2026-06-03 per
+  // context-v/specs/Connector-Inventory-and-Per-Record-Palette.md.
+  const PACKS_META: PalettePack[] = [
+    { pack_id: 'linkedin-pack',  display_name: 'LinkedIn',     intent: 'search.social.linkedin',  short_label: 'in', accent: '#0a66c2', preferred_connectors: ['searxng', 'tavily', 'serpapi-google'] },
+    { pack_id: 'x-pack',         display_name: 'X / Twitter',  intent: 'search.social.x',         short_label: 'x',  accent: '#1d9bf0', preferred_connectors: ['searxng', 'tavily', 'serpapi-google'] },
+    { pack_id: 'bluesky-pack',   display_name: 'Bluesky',      intent: 'search.social.bluesky',   short_label: 'bs', accent: '#1185fe', preferred_connectors: ['searxng', 'tavily', 'serpapi-google'] },
+    { pack_id: 'youtube-pack',   display_name: 'YouTube',      intent: 'search.social.youtube',   short_label: 'yt', accent: '#ff0000', preferred_connectors: ['searxng', 'tavily', 'serpapi-google'] },
+    { pack_id: 'facebook-pack',  display_name: 'Facebook',     intent: 'search.social.facebook',  short_label: 'f',  accent: '#1877f2', preferred_connectors: ['searxng', 'tavily', 'serpapi-google'] },
+    { pack_id: 'wikipedia-pack', display_name: 'Wikipedia',    intent: 'fetch.wikipedia',         short_label: 'wp', accent: '#888a8c', preferred_connectors: ['searxng', 'serpapi-google'] },
+    { pack_id: 'instagram-pack', display_name: 'Instagram',    intent: 'search.social.instagram', short_label: 'ig', accent: '#e1306c', preferred_connectors: ['searxng', 'tavily', 'serpapi-google'] },
   ];
 
-  // The two wired search providers. Each pack can be fired through either one
-  // per-record — SearXNG (free, the social-pack default) or Tavily (content-RAG
-  // index, needs a key). They're separated in the UI so the user can compare
-  // recall provider-by-provider and escalate row-by-row. Maps to the backend's
-  // provider_override seam. Spec:
-  // context-v/issues/Search-Providers-as-First-Class-SearXNG-Default.md
-  type Provider = 'searxng' | 'tavily';
-  const PROVIDERS: { id: Provider; label: string; hint: string }[] = [
-    { id: 'searxng', label: 'SearXNG', hint: 'Free metasearch (Google/Bing/DDG/Brave) — the social-pack default' },
-    { id: 'tavily', label: 'Tavily', hint: 'Content-RAG index — needs TAVILY_API_KEY; thinner on social-profile pages' },
-  ];
+  // Inventory loaded once via connectors.inventory capability. Shared across
+  // every palette in the by-record view so N rows don't trigger N fetches.
+  // Empty during load; palette degrades to "no connectors available" cleanly.
+  let inventory = $state<PaletteConnector[]>([]);
 
   // View modes — single-response stepper (the original UI, best for prompt
   // responses where each row has one verbose response to read) OR by-record
@@ -254,6 +250,7 @@
     void loadResponses();
     void loadPrompts();
     void loadRecordSets();
+    void loadInventory();
 
     // Belt-and-suspenders: if the user closes the tab or hard-refreshes with
     // an unsaved edit, fire one last best-effort autosave. (Browsers may not
@@ -650,12 +647,13 @@
     }
   }
 
-  // Per-(row × pack × provider) in-flight state for the inline "run a source"
-  // buttons in the by-record header. Keyed `${row_id}::${pack_id}::${provider}`
-  // so firing the same pack through both providers shows independent spinners.
+  // Per-(row × pack) in-flight state for the per-record palette chips. Keyed
+  // `${row_id}::${pack_id}` — one fire per pack per row at a time (a second
+  // click is a no-op until the first settles, by design — the user should
+  // wait for the result before re-firing through a different connector).
   let packBusy = $state<Set<string>>(new Set());
-  const packBusyKey = (row_id: string, pack_id: string, provider: Provider) =>
-    `${row_id}::${pack_id}::${provider}`;
+  const packBusyKey = (row_id: string, pack_id: string) =>
+    `${row_id}::${pack_id}`;
 
   // Which packs already have a result accepted onto this record — from accepted
   // responses in the group AND from profiles already written to row.socials
@@ -674,16 +672,29 @@
     return ids;
   }
 
-  // Run ONE pack against ONE record through ONE provider from the by-record
-  // card. This is the per-row iteration loop: re-fire a source on a specific
-  // record through the provider of your choice (SearXNG or Tavily) without
-  // recreating a whole fan-out. Strictly ADDITIVE — it produces a new candidate
-  // response for triage and NEVER writes to row.fields; only a human accept
-  // does that, so accepted data is never overridden.
-  async function runPackOnRecord(group: RowGroup, pack_id: string, provider: Provider) {
+  // Run ONE pack against ONE record from the per-record palette. When
+  // `connector_id` is omitted (default click on a chip) the backend's
+  // existing chain-walk picks the head of the pack's preferred_connectors.
+  // When provided (chosen from the long-press connector menu), the
+  // explicit connector overrides the chain. Strictly ADDITIVE — produces
+  // a new candidate response for triage and NEVER writes to row.fields;
+  // only a human accept does that, so accepted data is never overridden.
+  //
+  // NOTE on the provider_override seam: the underlying pack.search.requested
+  // subject's args still use `provider_override: ProviderId`. We pass the
+  // chosen connector_id through that field — the legacy ProviderId union
+  // ('searxng' | 'tavily' | 'serpapi' | 'gdelt' | 'google-news-rss') now
+  // matches the new connector_ids 1:1 except for SerpApi (registry id
+  // 'serpapi-google' vs legacy 'serpapi'). We map at the boundary.
+  function connectorIdToProviderId(connector_id: string): string {
+    if (connector_id === 'serpapi-google') return 'serpapi';
+    return connector_id;
+  }
+
+  async function runPackOnRecord(group: RowGroup, pack_id: string, connector_id?: string) {
     const entity_name = group.entity_name.trim();
     if (entity_name.length === 0) return; // nothing to search on
-    const key = packBusyKey(group.row_id, pack_id, provider);
+    const key = packBusyKey(group.row_id, pack_id);
     if (packBusy.has(key)) return;
     packBusy = new Set(packBusy).add(key);
     try {
@@ -693,7 +704,7 @@
         record_set_id: group.record_set_id,
         entity_name,
         entity_name_field: group.entity_field ?? undefined,
-        provider_override: provider,
+        provider_override: connector_id ? connectorIdToProviderId(connector_id) : undefined,
       });
       await loadResponses();
       if (viewMode === 'by-record') await loadRowsForByRecord();
@@ -704,6 +715,17 @@
       next.delete(key);
       packBusy = next;
     }
+  }
+
+  // Per-row Set of busy pack_ids — derived from packBusy by stripping the
+  // row_id prefix. The palette consumes this for chip 'firing' state.
+  function busyForRow(row_id: string): Set<string> {
+    const out = new Set<string>();
+    const prefix = `${row_id}::`;
+    for (const key of packBusy) {
+      if (key.startsWith(prefix)) out.add(key.slice(prefix.length));
+    }
+    return out;
   }
 
   // Inline triage in by-record mode — bypass the per-cell editText
@@ -749,6 +771,23 @@
       promptsById = map;
     } catch (e) {
       console.error('prompt.list', e);
+    }
+  }
+
+  // Connector inventory — loaded once on mount, fed into every ConnectorPalette
+  // so the per-record chips can resolve cost tiers, missing env vars, and
+  // available-for-this-intent connector lists without a fetch per row.
+  async function loadInventory() {
+    try {
+      const r = (await workspace.invoke('connectors.inventory', {})) as {
+        connectors: PaletteConnector[];
+      };
+      inventory = r.connectors ?? [];
+    } catch (e) {
+      // Non-fatal — palette degrades to "no connectors" / chips show needs-env
+      // for everything when the registry is unavailable.
+      console.warn('connectors.inventory unavailable', e);
+      inventory = [];
     }
   }
 
@@ -959,8 +998,9 @@
         {byRecord.length} {byRecord.length === 1 ? 'record' : 'records'} ·
         {filtered.length} {filtered.length === 1 ? 'response' : 'responses'}
         in scope · click ✓/✗ inline to triage · each record has a
-        <strong>SearXNG</strong> and a <strong>Tavily</strong> row — click a pack
-        icon to run that source on that record (✓ = already accepted)
+        <strong>connector palette</strong> — click a chip to fire that intent
+        through its preferred connector chain, long-press / right-click for
+        the connector menu (cost tiers + needs-env) · ✓ = already accepted
       </p>
       <div class="record-list">
         {#each byRecord as group (group.row_id)}
@@ -994,47 +1034,28 @@
               <span class="muted record-card-count">{group.responses.length} {group.responses.length === 1 ? 'response' : 'responses'}</span>
             </header>
 
-            <!-- Per-record source runners, one row per provider. Click a pack
-                 icon to fire that source on THIS record through THAT provider
-                 via pack.search. Result lands as a new candidate row below for
-                 triage. Additive — never overrides anything already accepted.
-                 The ✓ badge marks packs already accepted onto this record so
-                 the user can see what's still worth running, on either row. -->
-            <div class="record-pack-runners">
-              {#each PROVIDERS as prov (prov.id)}
-                <div
-                  class="record-pack-runner provider-{prov.id}"
-                  role="group"
-                  aria-label={`Run a source on this record via ${prov.label}`}
-                >
-                  <span class="record-pack-runner-label" title={prov.hint}>{prov.label}</span>
-                  {#each PACKS_META as p (p.pack_id)}
-                    {@const busyKey = `${group.row_id}::${p.pack_id}::${prov.id}`}
-                    {@const isAccepted = accepted.has(p.pack_id)}
-                    <button
-                      class="pack-icon-btn"
-                      class:accepted={isAccepted}
-                      class:busy={packBusy.has(busyKey)}
-                      style={`--pack-accent: ${p.accent}`}
-                      disabled={!canRun || packBusy.has(busyKey)}
-                      onclick={() => void runPackOnRecord(group, p.pack_id, prov.id)}
-                      title={!canRun
-                        ? `No name column resolved for this record — can't search`
-                        : isAccepted
-                          ? `${p.label} via ${prov.label} — ${p.label} already accepted on this record; click to re-run (additive)`
-                          : `Run ${p.label} on “${group.entity_name}” via ${prov.label}`}
-                      aria-label={`Run ${p.label} via ${prov.label} on this record`}
-                    >
-                      {#if packBusy.has(busyKey)}
-                        <span class="spinner" aria-hidden="true"></span>
-                      {:else}
-                        {p.glyph}
-                      {/if}
-                    </button>
-                  {/each}
-                </div>
-              {/each}
-            </div>
+            <!-- Per-record connector palette. One chip per intent; default
+                 click walks the pack's preferred_connectors chain; long-press
+                 (or right-click) opens the connector menu with cost tiers +
+                 needs-env affordances. Strictly additive — fires produce
+                 candidate responses for triage and never overwrite accepted
+                 row data. Spec: context-v/specs/Connector-Inventory-and-
+                 Per-Record-Palette.md §"UI seam — the per-record palette". -->
+            {#if !canRun}
+              <p class="muted record-palette-disabled">
+                No name column resolved for this record — palette disabled.
+              </p>
+            {:else}
+              <ConnectorPalette
+                row_id={group.row_id}
+                packs={PACKS_META}
+                {inventory}
+                accepted_pack_ids={accepted}
+                busy_pack_ids={busyForRow(group.row_id)}
+                on_fire={(pack_id, connector_id) =>
+                  void runPackOnRecord(group, pack_id, connector_id)}
+              />
+            {/if}
 
             <ul class="record-responses">
               {#each group.responses as resp (resp.response_id)}
