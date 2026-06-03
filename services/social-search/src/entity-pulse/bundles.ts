@@ -7,6 +7,8 @@
 // machinery for the new pack shape.
 
 import { OFFICIAL_BLOG_PACK_ID } from './packs/official-blog-pack';
+import { OFFICIAL_PRESSRELEASE_PACK_ID } from './packs/official-pressrelease-pack';
+import { OFFICIAL_SOCIAL_POSTS_PACK_ID } from './packs/official-social-posts-pack';
 
 export type EntityPulseBundleMember = {
   pack_id: string;
@@ -43,6 +45,24 @@ export const ENTITY_BLOG: EntityPulseBundleConfig = {
   ],
 };
 
+// entity-officials: full Phase-1 OfficialUpdates roster. Step-2 milestone.
+// Three packs, still no rollup-agent, still no curation layer. Exercises
+// the bundle-level roster pattern (3 packs vs the 1-pack ENTITY_BLOG) so
+// Pack Runner's roster checkboxes get a real test before Phase 2 lands.
+export const ENTITY_OFFICIALS: EntityPulseBundleConfig = {
+  bundle_id: 'entity-officials',
+  display_name: 'Entity Officials (test bundle)',
+  description: 'Phase-1 OfficialUpdates roster: blog + press releases + own social posts. No rollup, no curation, no LLM scoring yet.',
+  passes: 1,
+  target_columns: ['official_updates_pulse'],
+  members: [
+    { pack_id: OFFICIAL_BLOG_PACK_ID,         default: true, pass: 1, required: false },
+    { pack_id: OFFICIAL_PRESSRELEASE_PACK_ID, default: true, pass: 1, required: false },
+    { pack_id: OFFICIAL_SOCIAL_POSTS_PACK_ID, default: true, pass: 1, required: false },
+  ],
+};
+
 export const ENTITY_PULSE_BUNDLES: Record<string, EntityPulseBundleConfig> = {
   [ENTITY_BLOG.bundle_id]: ENTITY_BLOG,
+  [ENTITY_OFFICIALS.bundle_id]: ENTITY_OFFICIALS,
 };

@@ -26,6 +26,7 @@ import { searxngConnector } from '../connectors/searxng';
 import { tavilyConnector } from '../connectors/tavily';
 import { serpapiConnector } from '../connectors/serpapi';
 import { gdeltConnector } from '../connectors/gdelt';
+import { googleNewsRssConnector } from '../connectors/google-news-rss';
 
 // All of the social-search intents the legacy SearXNG-default packs serve.
 // Listed here once so multiple registrations don't redeclare the same set.
@@ -117,6 +118,22 @@ const GDELT_REG: ConnectorRegistration = {
     }),
 };
 
+const GOOGLE_NEWS_RSS_REG: ConnectorRegistration = {
+  id: 'google-news-rss',
+  display_name: 'Google News RSS',
+  short_label: 'gn',
+  capabilities: ['search.news'],
+  cost_tier: 'free',
+  requires_env: [],
+  status: 'available',
+  fire: async (opts: ConnectorFireOpts) =>
+    googleNewsRssConnector(opts.query, {
+      include_domains: opts.include_domains,
+      max_results: opts.max_results,
+      signal: opts.signal,
+    }),
+};
+
 // Firecrawl is an extract connector (URL → page data), not a search
 // connector. Its current shape doesn't fit ConnectorFn (which expects a
 // query + returns ConnectorResult[]). Registration for crawl-style
@@ -130,4 +147,5 @@ export function registerExistingConnectors(registry: ConnectorRegistry): void {
   registry.register(TAVILY_REG);
   registry.register(SERPAPI_REG);
   registry.register(GDELT_REG);
+  registry.register(GOOGLE_NEWS_RSS_REG);
 }

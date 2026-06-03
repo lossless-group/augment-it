@@ -34,6 +34,16 @@ import {
   OFFICIAL_BLOG_PACK_ID,
   type OfficialBlogPackInput,
 } from './entity-pulse/packs/official-blog-pack';
+import {
+  runOfficialPressreleasePack,
+  OFFICIAL_PRESSRELEASE_PACK_ID,
+  type OfficialPressreleasePackInput,
+} from './entity-pulse/packs/official-pressrelease-pack';
+import {
+  runOfficialSocialPostsPack,
+  OFFICIAL_SOCIAL_POSTS_PACK_ID,
+  type OfficialSocialPostsPackInput,
+} from './entity-pulse/packs/official-social-posts-pack';
 import { getRegistry } from './registry/registry';
 import { registerExistingConnectors } from './registry/register-connectors';
 import type { Capability } from './registry/capabilities';
@@ -204,30 +214,69 @@ async function main(): Promise<void> {
   })();
 
   // pack.entity_pulse.requested — list-shaped Entity Pulse pack run.
-  // Step-1 scope (per Entity-Pulse-Bundle migration step 1): only
-  // official-blog-pack is wired here. The reply carries the full
+  // Step-2 scope (per Entity-Pulse-Bundle migration step 2): three Phase-1
+  // OfficialUpdates packs wired here — blog, press-release, social-posts.
+  // Dispatcher switches on pack_id; each handler has its own input shape
+  // (the blog pack wants row_url, press-release wants entity_name, social-
+  // posts wants socials[]). The reply carries the full
   // EntityPulseListResponse JSON; no response-store write yet — the
   // curation layer + rollup-agent land in later phases.
   (async () => {
     const sub = nc.subscribe('pack.entity_pulse.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as OfficialBlogPackInput & {
+      const args = jc.decode(msg.data) as {
         pack_id: string;
-      };
+      } & Partial<
+        OfficialBlogPackInput &
+        OfficialPressreleasePackInput &
+        OfficialSocialPostsPackInput
+      >;
       try {
-        if (args.pack_id !== OFFICIAL_BLOG_PACK_ID) {
-          throw new Error(
-            `entity_pulse: unknown pack_id "${args.pack_id}"; step-1 supports only "${OFFICIAL_BLOG_PACK_ID}"`,
-          );
+        let response;
+        switch (args.pack_id) {
+          case OFFICIAL_BLOG_PACK_ID:
+            if (!args.row_url) throw new Error('official-blog-pack: row_url required');
+            response = await runOfficialBlogPack({
+              row_id: args.row_id ?? 'nats-fire',
+              row_url: args.row_url,
+              relevance_context: args.relevance_context ?? null,
+              max_index_candidates: args.max_index_candidates,
+              max_posts_per_index: args.max_posts_per_index,
+              max_posts_total: args.max_posts_total,
+            });
+            break;
+          case OFFICIAL_PRESSRELEASE_PACK_ID:
+            if (!args.entity_name) throw new Error('official-pressrelease-pack: entity_name required');
+            response = await runOfficialPressreleasePack({
+              row_id: args.row_id ?? 'nats-fire',
+              entity_name: args.entity_name,
+              row_url: args.row_url,
+              relevance_context: args.relevance_context ?? null,
+              max_per_wire: args.max_per_wire,
+            });
+            break;
+          case OFFICIAL_SOCIAL_POSTS_PACK_ID:
+            if (!args.socials || !Array.isArray(args.socials)) {
+              throw new Error('official-social-posts-pack: socials[] required');
+            }
+            response = await runOfficialSocialPostsPack({
+              row_id: args.row_id ?? 'nats-fire',
+              socials: args.socials,
+              relevance_context: args.relevance_context ?? null,
+              max_posts_per_platform: args.max_posts_per_platform,
+            });
+            break;
+          default:
+            throw new Error(
+              `entity_pulse: unknown pack_id "${args.pack_id}"; supported: ${OFFICIAL_BLOG_PACK_ID}, ${OFFICIAL_PRESSRELEASE_PACK_ID}, ${OFFICIAL_SOCIAL_POSTS_PACK_ID}`,
+            );
         }
-        const response = await runOfficialBlogPack(args);
         console.log(JSON.stringify({
           level: 'info',
           msg: 'pack.entity_pulse',
           pack_id: args.pack_id,
           row_id: args.row_id,
           items_found: response.items.length,
-          source_indexes: response.meta.source_indexes?.length ?? 0,
         }));
         if (msg.reply) {
           msg.respond(jc.encode({ ok: true, outcome: 'found', response }));
