@@ -1,0 +1,10 @@
+/* Records Surface — base styles. Component-scoped styles live in each
+   .svelte file; this file only sets body defaults so standalone mode at
+   :3011 renders. */
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+}

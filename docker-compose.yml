@@ -110,6 +110,18 @@ services:
       # Tavily stays wired in as a peer connector (content-RAG packs). Only
       # packs routed to Tavily need this; sourced from augment-it/.env.
       TAVILY_API_KEY: ${TAVILY_API_KEY}
+      # Firecrawl — used by the Records Surface (firecrawl-nav-scan,
+      # firecrawl-nav-agent) and by the Entity Pulse official-blog-pack.
+      FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY}
+      # SerpApi — used by the Records Surface (serpapi-site-search) and by
+      # the Entity Pulse official-blog-pack's find-index stage.
+      # The repo .env keeps this as SERP_API_KEY (historical name with an
+      # underscore between SERP and API); the container code reads
+      # SERPAPI_API_KEY, so we map either spelling through here.
+      SERPAPI_API_KEY: ${SERPAPI_API_KEY:-${SERP_API_KEY:-}}
+      # Anthropic — used by the firecrawl-nav-agent connector to classify
+      # nav links via Haiku. Falls back to deterministic nav-scan when unset.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       # Cap concurrent search calls — the Tavily free tier is rate-limited, and
       # bursting SearXNG can trip upstream-engine throttling.
       SOCIAL_SEARCH_CONCURRENCY: ${SOCIAL_SEARCH_CONCURRENCY:-4}

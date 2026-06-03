@@ -74,6 +74,11 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // 'intent' arg filters to connectors serving a specific capability. Per
   // context-v/specs/Connector-Inventory-and-Per-Record-Palette.md.
   'connectors.inventory': 'connectors.inventory.requested',
+  // Records Surface per-record fire — runs one connector against one row's
+  // URL and returns a list of candidate URLs (the OfficialUpdate index
+  // pages). Reply rides on NATS; no response-store write. Per
+  // context-v/specs/Flow-for-Bundles-Packs.md §"The connectors".
+  'connector.fire': 'connector.fire.requested',
 };
 
 const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
@@ -97,6 +102,9 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   // wire parallel queries, or per-platform walks). 60s leaves room without
   // gold-plating.
   'pack.entity_pulse': 60_000,
+  // Records Surface per-record fire — one scrape + parse + (optional) Haiku
+  // call. 60s is generous; Firecrawl typically lands in 5-15s.
+  'connector.fire': 60_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {

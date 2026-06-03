@@ -34,7 +34,7 @@ export type RemoteEntry = {
 export const ROTATION: string[] = [
   'recordCollector',
   'augment',             // composite — PTM ⇄ Pack Runner via in-slot toggle (renamed from 'enrichment' per Decision §11)
-  'requestReviewer',
+  'recordsSurface',      // step 3 — per-record connector firing for finding OfficialUpdate URLs (replaces requestReviewer in the rotation; the remote stays registered + reachable via navigate, just not in the numbered Flow)
   'responseReviewer',
   'enhancedRecordsList',
 ];
@@ -74,6 +74,13 @@ export const REMOTES: RemoteEntry[] = [
     description: 'Record-grained checkpoint between enrichment passes',
     // @ts-expect-error — federation remote, type comes from the MF runtime
     importMount: () => import('enhancedRecordsList/mount'),
+  },
+  {
+    id: 'recordsSurface',
+    label: 'Records Surface',
+    description: 'Per-record connector firing for finding OfficialUpdate URLs',
+    // @ts-expect-error — federation remote, type comes from the MF runtime
+    importMount: () => import('recordsSurface/mount'),
   },
 ];
 

@@ -20,6 +20,7 @@ export default defineConfig({
         chat: 'chat@http://localhost:3006/remoteEntry.js',
         enhancedRecordsList: 'enhancedRecordsList@http://localhost:3007/remoteEntry.js',
         packRunner: 'packRunner@http://localhost:3009/remoteEntry.js',
+        recordsSurface: 'recordsSurface@http://localhost:3011/remoteEntry.js',
       },
       // No `shared` block — sharing Svelte 5's reactive runtime and a
       // .svelte.ts singleton across federation has known issues with the

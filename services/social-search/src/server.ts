@@ -48,6 +48,10 @@ import {
   isEntityPulsePack,
   runOneEntityPulsePack,
 } from './entity-pulse/dispatch';
+import {
+  fireConnector as runRecordsSurfaceConnector,
+  type ConnectorId as RecordsSurfaceConnectorId,
+} from './records-surface/connectors';
 import { getRegistry } from './registry/registry';
 import { registerExistingConnectors } from './registry/register-connectors';
 import type { Capability } from './registry/capabilities';
@@ -325,6 +329,60 @@ async function main(): Promise<void> {
           error,
         }));
         if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // connector.fire.requested — Records Surface per-record fire. One
+  // connector, one row's URL, returns a list of candidate URLs. No
+  // response-store write; reply rides on NATS.
+  (async () => {
+    const sub = nc.subscribe('connector.fire.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as {
+        row_id: string;
+        row_url: string;
+        connector_id: RecordsSurfaceConnectorId;
+      };
+      try {
+        const candidates = await runRecordsSurfaceConnector(args.connector_id, args.row_url);
+        if (msg.reply) {
+          msg.respond(jc.encode({
+            ok: true,
+            result: {
+              connector_id: args.connector_id,
+              candidates,
+              fired_at: new Date().toISOString(),
+            },
+          }));
+        }
+        console.log(JSON.stringify({
+          level: 'info',
+          msg: 'connector.fire',
+          connector_id: args.connector_id,
+          row_id: args.row_id,
+          candidates: candidates.length,
+        }));
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        console.error(JSON.stringify({
+          level: 'error',
+          msg: 'connector.fire failed',
+          connector_id: args.connector_id,
+          row_id: args.row_id,
+          error,
+        }));
+        if (msg.reply) {
+          msg.respond(jc.encode({
+            ok: true,
+            result: {
+              connector_id: args.connector_id,
+              candidates: [],
+              fired_at: new Date().toISOString(),
+              error,
+            },
+          }));
+        }
       }
     }
   })();
