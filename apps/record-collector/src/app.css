@@ -351,6 +351,63 @@
   word-break: break-all;
 }
 
+/* url_list — list of clickable links surfaced from a URL[] or an
+   Array<{ url, ... }> column (socials, helpful_links,
+   official_updates_index_urls). The auxiliary metadata is dropped from
+   view; only the URL (+ optional chip / label prefix) renders. Spec:
+   context-v/plans/URL-Auto-Detector-and-Clickable-Rendering-for-List-Fields.md. */
+.rc-app .field-value-urls {
+  background: var(--color-field);
+  padding: 4px 6px;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 10em;
+  overflow: auto;
+}
+.rc-app .field-value-url {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  font-size: 12px;
+}
+.rc-app .field-value-url-chip {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.rc-app .field-value-url-label {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  max-width: 12em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rc-app .field-value-url-link {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-accent, var(--color-text));
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rc-app .field-value-url-link:hover {
+  text-decoration: underline;
+}
+.rc-app .field-value-url-link:visited {
+  color: var(--color-accent-2, var(--color-accent, var(--color-text)));
+}
+
 .rc-app .field-value-empty {
   color: var(--color-text-muted);
   font-style: italic;

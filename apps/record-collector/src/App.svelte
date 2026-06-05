@@ -324,6 +324,21 @@
       console.error('variant_family.dissolve', err);
     }
   }
+
+  // Trim a URL to a compact "hostname/path" display string for the
+  // url_list rendering. Strips the scheme + leading www., keeps the
+  // path, and clips at a max length so long Substack / Wikipedia URLs
+  // don't blow the column width. Full URL stays in title= for hover.
+  const URL_DISPLAY_MAX = 60;
+  function displayUrl(url: string): string {
+    let s = url.trim();
+    s = s.replace(/^https?:\/\//i, '').replace(/^\/\//, '');
+    s = s.replace(/^www\./i, '');
+    if (s.length > URL_DISPLAY_MAX) {
+      s = s.slice(0, URL_DISPLAY_MAX - 1) + '…';
+    }
+    return s;
+  }
 </script>
 
 <div class="rc-app">
@@ -440,19 +455,62 @@
               {#each orderedFields as f (f.name)}
                 {@const value = row.fields[f.name]}
                 {@const formatted = formatFieldValue(value)}
+                {@const shape = formatted.shape}
                 <div class="field-name" title={f.name}>{f.name}</div>
-                {#if formatted.isStructured}
-                  <!-- Structured value (array or object) — JSON-stringified
-                       and read-only in this surface. Inline editing of JSON
-                       in a contenteditable is a data-loss vector; if the
-                       user wants to edit structured data, that's a richer
-                       editor's job (a future feature). -->
+                {#if shape.kind === 'url_list'}
+                  <!-- List of URLs surfaced as clickable links. Drops the
+                       auxiliary metadata (display_name, confidence,
+                       source_metadata, response_id, accepted_at, ...) from
+                       the rendered view — that data is preserved on the row
+                       and round-trips through CSV export, it just doesn't
+                       compete for visual attention here. Read-only by
+                       design; the per-entry remove affordance lives in a
+                       sibling plan, not this one. See
+                       context-v/plans/URL-Auto-Detector-and-Clickable-Rendering-for-List-Fields.md. -->
+                  <div class="field-value field-value-urls">
+                    <!-- Unkeyed each: same URL can appear twice in a
+                         single field (helpful_links across sessions,
+                         socials whose pack_ids resolve to the same
+                         profile URL). Keying by entry.url would throw
+                         "Cannot have duplicate keys" and crash the
+                         parent {#each rowsForSelected}. Read-only
+                         render — no reordering — so positional
+                         iteration is fine. -->
+                    {#each shape.entries as entry}
+                      <div class="field-value-url">
+                        {#if entry.chip}
+                          <span class="field-value-url-chip">{entry.chip}</span>
+                        {/if}
+                        {#if entry.label}
+                          <span class="field-value-url-label">{entry.label}</span>
+                        {/if}
+                        <a
+                          class="field-value-url-link"
+                          href={entry.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={entry.url}
+                        >{displayUrl(entry.url)}</a>
+                      </div>
+                    {/each}
+                  </div>
+                {:else if shape.kind === 'json'}
+                  <!-- Generic structured value — JSON-stringified and
+                       read-only. Same data-loss-vector rationale as before:
+                       inline editing of arbitrary JSON in a contenteditable
+                       is too easy to corrupt. Empty arrays / objects render
+                       a muted placeholder. -->
                   <div
                     class="field-value field-value-json"
                     class:field-value-empty={formatted.isEmpty}
                     title={formatted.isEmpty ? 'structured value — empty' : 'structured value (read-only here)'}
                   >{formatted.isEmpty ? `(empty ${formatted.text})` : formatted.text}</div>
                 {:else}
+                  <!-- Scalar (string/number/boolean) or empty — editable in
+                       place. scalar_url currently routes through this branch
+                       too, preserving edit-on-click behavior; a future
+                       follow-up may add an icon-button affordance to open
+                       the URL alongside editing. -->
                   <div
                     class="field-value"
                     class:field-value-empty={formatted.isEmpty}

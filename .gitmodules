@@ -1,0 +1,3 @@
+[submodule "clients/reach-edu"]
+	path = clients/reach-edu
+	url = https://github.com/lossless-group/augment-reach-edu.git
