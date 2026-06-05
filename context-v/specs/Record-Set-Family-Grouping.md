@@ -224,9 +224,11 @@ Rules:
   actions (rename, dissolve, ungroup-one) live in a `⋯` menu on the
   family header.
 - **Sort within family**: variant siblings sort by `created_at`
-  descending. Lineage descendants of any variant sort by generation
-  ascending (oldest generation on top of that sub-list) — so the user
-  reads "this leaf came from that root."
+  descending — most-recent on top, least-recent on the bottom. The
+  archived-ancestors sub-section under each leaf sorts the same way
+  (closest-to-leaf at top, oldest predecessor at the bottom).
+  Newest-first is uniform across the sidebar; the user never has to
+  remember a different ordering rule for any sub-list.
 - **Sort across families**: family groups sort by the `created_at` of
   their *most recent* member descending. Ungrouped sets interleave by
   their own `created_at`.

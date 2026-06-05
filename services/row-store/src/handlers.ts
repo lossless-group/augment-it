@@ -9,18 +9,25 @@ import { JSONCodec, type NatsConnection } from 'nats';
 import {
   addHelpfulLink,
   addSocial,
+  addToVariantFamily,
   archiveRecordSet,
   archiveRow,
   createRecordSet,
+  createVariantFamily,
   deleteRecordSet,
+  dissolveVariantFamily,
   getRecordSet,
   getRow,
   listRecordSets,
   listRows,
+  listVariantFamilies,
   promoteRecordSet,
+  removeFromVariantFamily,
   removeHelpfulLink,
   removeSocial,
+  suggestVariantFamily,
   updateRow,
+  updateVariantFamily,
   type ColumnSchema,
   type RecordSet,
 } from './store';
@@ -315,6 +322,177 @@ export function registerHandlers(nc: NatsConnection): void {
             fields: row.fields,
           }),
         );
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // --- Variant family handlers ---
+  // See context-v/specs/Record-Set-Family-Grouping.md.
+  // Every mutator broadcasts `variant_family.{created|updated|deleted}`
+  // for family-level changes plus `record_set.updated` for any affected
+  // member sets so the sidebar re-renders without polling.
+
+  // variant_family.list.requested
+  (async () => {
+    const sub = nc.subscribe('variant_family.list.requested');
+    for await (const msg of sub) {
+      if (msg.reply) msg.respond(jc.encode({ variant_families: listVariantFamilies() }));
+    }
+  })();
+
+  // variant_family.create.requested
+  (async () => {
+    const sub = nc.subscribe('variant_family.create.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as {
+        label: string;
+        record_set_ids: string[];
+        stem?: string | null;
+      };
+      try {
+        const result = await createVariantFamily(args);
+        if (msg.reply) msg.respond(jc.encode(result));
+        nc.publish(
+          'variant_family.created',
+          jc.encode({
+            variant_family_id: result.family.variant_family_id,
+            label: result.family.label,
+            record_set_ids: result.record_sets.map((r) => r.record_set_id),
+          }),
+        );
+        for (const rs of result.record_sets) {
+          nc.publish(
+            'record_set.updated',
+            jc.encode({
+              record_set_id: rs.record_set_id,
+              variant_family_id: rs.variant_family_id,
+              variant_family_label: rs.variant_family_label,
+            }),
+          );
+        }
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // variant_family.update.requested
+  (async () => {
+    const sub = nc.subscribe('variant_family.update.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as { variant_family_id: string; label: string };
+      try {
+        const result = await updateVariantFamily(args);
+        if (msg.reply) msg.respond(jc.encode(result));
+        nc.publish(
+          'variant_family.updated',
+          jc.encode({
+            variant_family_id: result.family.variant_family_id,
+            label: result.family.label,
+          }),
+        );
+        for (const rs of result.record_sets) {
+          nc.publish(
+            'record_set.updated',
+            jc.encode({
+              record_set_id: rs.record_set_id,
+              variant_family_id: rs.variant_family_id,
+              variant_family_label: rs.variant_family_label,
+            }),
+          );
+        }
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // variant_family.add.requested
+  (async () => {
+    const sub = nc.subscribe('variant_family.add.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as { variant_family_id: string; record_set_id: string };
+      try {
+        const result = await addToVariantFamily(args);
+        if (msg.reply) msg.respond(jc.encode(result));
+        nc.publish(
+          'record_set.updated',
+          jc.encode({
+            record_set_id: result.record_set.record_set_id,
+            variant_family_id: result.record_set.variant_family_id,
+            variant_family_label: result.record_set.variant_family_label,
+          }),
+        );
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // variant_family.remove.requested
+  (async () => {
+    const sub = nc.subscribe('variant_family.remove.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as { record_set_id: string };
+      try {
+        const result = await removeFromVariantFamily(args);
+        if (msg.reply) msg.respond(jc.encode(result));
+        nc.publish(
+          'record_set.updated',
+          jc.encode({
+            record_set_id: result.record_set.record_set_id,
+            variant_family_id: result.record_set.variant_family_id ?? null,
+            variant_family_label: result.record_set.variant_family_label ?? null,
+          }),
+        );
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // variant_family.dissolve.requested
+  (async () => {
+    const sub = nc.subscribe('variant_family.dissolve.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as { variant_family_id: string };
+      try {
+        const result = await dissolveVariantFamily(args);
+        if (msg.reply) msg.respond(jc.encode(result));
+        if (result.dissolved) {
+          nc.publish(
+            'variant_family.deleted',
+            jc.encode({ variant_family_id: args.variant_family_id }),
+          );
+          for (const id of result.record_set_ids) {
+            nc.publish(
+              'record_set.updated',
+              jc.encode({ record_set_id: id, variant_family_id: null, variant_family_label: null }),
+            );
+          }
+        }
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // record_set.suggest_variant_family.requested — read-only heuristic
+  (async () => {
+    const sub = nc.subscribe('record_set.suggest_variant_family.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as { record_set_id: string };
+      try {
+        const result = suggestVariantFamily(args);
+        if (msg.reply) msg.respond(jc.encode(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
         if (msg.reply) msg.respond(jc.encode({ ok: false, error }));

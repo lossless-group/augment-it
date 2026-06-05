@@ -13,6 +13,45 @@
   let ingestStatus = $state<string>('Pick a CSV or XLSX and upload.');
   let fileInput: HTMLInputElement;
 
+  // Variant-family suggestion state. After ingest, we ask the workspace
+  // for a heuristic match; if one comes back AND the user hasn't
+  // dismissed this stem before (sticky per-stem in localStorage), we
+  // surface a non-blocking prompt offering link / dismiss. See
+  // context-v/specs/Record-Set-Family-Grouping.md §Variant detection.
+  type VfSuggestion = {
+    record_set_id: string;
+    variant_family_id?: string;
+    stem: string;
+    record_set_ids: string[];
+    suggested_label: string;
+  };
+  let suggestion = $state<VfSuggestion | null>(null);
+  const DISMISSED_STEMS_KEY = 'augment-it:record-collector:dismissed-stems';
+
+  function isDismissed(stem: string): boolean {
+    try {
+      const raw = localStorage.getItem(DISMISSED_STEMS_KEY);
+      if (!raw) return false;
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) && arr.includes(stem);
+    } catch {
+      return false;
+    }
+  }
+
+  function dismissStem(stem: string): void {
+    try {
+      const raw = localStorage.getItem(DISMISSED_STEMS_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      const next = Array.isArray(arr) ? arr : [];
+      if (!next.includes(stem)) next.push(stem);
+      localStorage.setItem(DISMISSED_STEMS_KEY, JSON.stringify(next));
+    } catch {
+      // localStorage unavailable — dismissal won't persist; the
+      // suggestion simply re-fires on the next ingest of the same stem.
+    }
+  }
+
   const recordSets = $derived(Object.values(workspace.record_sets) as RecordSet[]);
   const selectedRs = $derived(selectedId ? workspace.record_sets[selectedId] : null);
 
@@ -178,6 +217,7 @@
     const isXlsx = file.name.toLowerCase().endsWith('.xlsx');
     ingestStatus = `uploading ${file.name} (${file.size} bytes)…`;
     try {
+      let result: { record_set: RecordSet; rows: Row[] };
       if (isXlsx) {
         const buf = await file.arrayBuffer();
         const bytes = new Uint8Array(buf);
@@ -188,22 +228,100 @@
           binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
         }
         const xlsx_b64 = btoa(binary);
-        const result = (await workspace.invoke('record_set.ingest.xlsx', {
+        result = (await workspace.invoke('record_set.ingest.xlsx', {
           filename: file.name,
           xlsx_b64,
         })) as { record_set: RecordSet; rows: Row[] };
-        ingestStatus = `ingested ${result.record_set.record_set_id} — ${result.rows.length} rows, ${result.record_set.schema.fields.length} cols`;
       } else {
         const csv = await file.text();
-        const result = (await workspace.invoke('record_set.ingest', {
+        result = (await workspace.invoke('record_set.ingest', {
           filename: file.name,
           csv,
         })) as { record_set: RecordSet; rows: Row[] };
-        ingestStatus = `ingested ${result.record_set.record_set_id} — ${result.rows.length} rows, ${result.record_set.schema.fields.length} cols`;
       }
+      ingestStatus = `ingested ${result.record_set.record_set_id} — ${result.rows.length} rows, ${result.record_set.schema.fields.length} cols`;
       await refreshList();
+      // After the set lands, ask for a variant-family suggestion. The
+      // result is presented as a non-blocking prompt the user can accept
+      // or dismiss; auto-link is rejected per spec Decision 2.
+      void suggestForSet(result.record_set.record_set_id);
     } catch (err: unknown) {
       ingestStatus = `error: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  }
+
+  async function suggestForSet(record_set_id: string): Promise<void> {
+    try {
+      const res = (await workspace.invoke('record_set.suggest_variant_family', {
+        record_set_id,
+      })) as { match?: { variant_family_id?: string; stem: string; record_set_ids: string[]; suggested_label: string } };
+      if (!res.match) return;
+      if (isDismissed(res.match.stem)) return;
+      suggestion = { record_set_id, ...res.match };
+    } catch (err: unknown) {
+      console.error('suggest_variant_family', err);
+    }
+  }
+
+  async function acceptSuggestion(): Promise<void> {
+    if (!suggestion) return;
+    const s = suggestion;
+    try {
+      if (s.variant_family_id) {
+        // Join the existing family — add THIS set; the matching peers
+        // are already members.
+        await workspace.invoke('variant_family.add', {
+          variant_family_id: s.variant_family_id,
+          record_set_id: s.record_set_id,
+        });
+      } else {
+        // Create a new family with all matched peers + this set.
+        await workspace.invoke('variant_family.create', {
+          label: s.suggested_label,
+          record_set_ids: s.record_set_ids,
+          stem: s.stem,
+        });
+      }
+      suggestion = null;
+      await refreshList();
+    } catch (err: unknown) {
+      console.error('accept_suggestion', err);
+      ingestStatus = `link failed: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  }
+
+  function dismissSuggestion(): void {
+    if (!suggestion) return;
+    dismissStem(suggestion.stem);
+    suggestion = null;
+  }
+
+  async function renameFamily(variant_family_id: string, currentLabel: string): Promise<void> {
+    const next = window.prompt('Rename family:', currentLabel);
+    if (next == null) return;
+    const trimmed = next.trim();
+    if (!trimmed || trimmed === currentLabel) return;
+    try {
+      await workspace.invoke('variant_family.update', {
+        variant_family_id,
+        label: trimmed,
+      });
+      await refreshList();
+    } catch (err: unknown) {
+      console.error('variant_family.update', err);
+    }
+  }
+
+  async function dissolveFamily(variant_family_id: string, label: string): Promise<void> {
+    const confirmed = window.confirm(
+      `Dissolve "${label}"?\n\nThe member record sets stay; the grouping goes away.`,
+    );
+    if (!confirmed) return;
+    try {
+      await workspace.invoke('variant_family.dissolve', { variant_family_id });
+      await refreshList();
+    } catch (err: unknown) {
+      console.error('variant_family.dissolve', err);
     }
   }
 </script>
@@ -224,12 +342,34 @@
       onselect={(id) => selectRs(id)}
       ondelete={(rs) => { void deleteRecordSet(rs); }}
       onrefresh={refreshList}
+      onRenameFamily={(id, label) => { void renameFamily(id, label); }}
+      onDissolveFamily={(id, label) => { void dissolveFamily(id, label); }}
     />
 
     <h2>Ingest</h2>
     <input type="file" accept=".csv,.xlsx,text/csv" bind:this={fileInput} />
     <button onclick={uploadFile}>upload</button>
     <pre class="muted">{ingestStatus}</pre>
+    {#if suggestion}
+      <!-- Variant-family suggestion. Non-blocking — the user can ignore
+           it and continue working; accepting links the family, dismissing
+           sticks per-stem so the same suggestion won't re-fire. -->
+      <div class="vf-suggestion" role="status">
+        <p class="vf-suggestion-title">
+          Looks like a variant of
+          <strong>{suggestion.suggested_label}</strong>
+          ({suggestion.record_set_ids.length - 1}
+          existing set{suggestion.record_set_ids.length - 1 === 1 ? '' : 's'}) —
+          link as family?
+        </p>
+        <div class="vf-suggestion-actions">
+          <button class="vf-link" onclick={() => void acceptSuggestion()}>
+            {suggestion.variant_family_id ? 'Join family' : 'Link'}
+          </button>
+          <button class="vf-dismiss" onclick={dismissSuggestion}>Dismiss</button>
+        </div>
+      </div>
+    {/if}
   </aside>
 
   <section>

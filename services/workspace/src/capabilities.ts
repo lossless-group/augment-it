@@ -17,6 +17,15 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // Promotion + archive — see Enhanced-Records-List spec
   'record_set.promote': 'record_set.promote.requested',
   'record_set.archive': 'record_set.archive.requested',
+  // Variant-family operations — see Record-Set-Family-Grouping spec.
+  // Read-only heuristic; safe to call after every ingest.
+  'record_set.suggest_variant_family': 'record_set.suggest_variant_family.requested',
+  'variant_family.list': 'variant_family.list.requested',
+  'variant_family.create': 'variant_family.create.requested',
+  'variant_family.update': 'variant_family.update.requested',
+  'variant_family.add': 'variant_family.add.requested',
+  'variant_family.remove': 'variant_family.remove.requested',
+  'variant_family.dissolve': 'variant_family.dissolve.requested',
   // row operations
   'row.list': 'row.list.requested',
   'row.get': 'row.get.requested',

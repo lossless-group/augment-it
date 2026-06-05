@@ -54,6 +54,27 @@ export type RecordSet = {
     promoted_at: string;
     record_count: number;
   };
+  // Variant-family pointers. A family is an explicit, user-curated
+  // grouping of RecordSets that represent the same external dataset
+  // evolving over time. The id is stable; the label is denormalized
+  // across members so a single-row read renders the family name without
+  // a second lookup. See context-v/specs/Record-Set-Family-Grouping.md.
+  variant_family_id?: string;
+  variant_family_label?: string;
+};
+
+// A variant family — its own row in the store so rename / dissolve work
+// even when no member set is loaded. Members carry the id back as a
+// pointer on RecordSet.variant_family_id.
+export type VariantFamily = {
+  variant_family_id: string;
+  label: string;
+  created_at: string;
+  // The match stem (normalized basename) that the suggestion heuristic
+  // used to propose this family. Preserved so subsequent ingests with the
+  // same stem can offer to join. Null when the family was created
+  // explicitly without a stem (manual link of unrelated names).
+  stem: string | null;
 };
 
 // One cemented triage state on a row, keyed in Row.fields.triage_states
@@ -84,9 +105,10 @@ export type Row = {
 type Store = {
   record_sets: Record<string, RecordSet>;
   rows: Record<string, Row>;
+  variant_families: Record<string, VariantFamily>;
 };
 
-let data: Store = { record_sets: {}, rows: {} };
+let data: Store = { record_sets: {}, rows: {}, variant_families: {} };
 let storePath = '';
 
 export async function load(path: string): Promise<void> {
@@ -97,11 +119,14 @@ export async function load(path: string): Promise<void> {
     data = {
       record_sets: parsed.record_sets ?? {},
       rows: parsed.rows ?? {},
+      // Backwards-compat: stores written before the family work omit
+      // this top-level key entirely. Default to empty.
+      variant_families: parsed.variant_families ?? {},
     };
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
       await mkdir(dirname(path), { recursive: true });
-      data = { record_sets: {}, rows: {} };
+      data = { record_sets: {}, rows: {}, variant_families: {} };
       await persist();
     } else {
       throw err;
@@ -669,4 +694,246 @@ export async function deleteRecordSet(
   delete data.record_sets[record_set_id];
   await persist();
   return { deleted: true, row_count };
+}
+
+// --- Variant family operations ---
+// Implementation of context-v/specs/Record-Set-Family-Grouping.md.
+// A variant family is an explicit, user-curated grouping of RecordSets
+// that share an external source. Orthogonal to lineage (which is
+// computed at read time from RecordSet.promoted_from). Suggestion-only
+// heuristic — auto-linking is rejected per the spec's Decision 2.
+
+/**
+ * Normalize a filename or record-set name into a comparison stem.
+ * The heuristic matches sets that look like sequential exports of the
+ * same external dataset, even when the date prefix and version suffix
+ * change between uploads.
+ *
+ * Strips, in order:
+ *   1. Leading `YYYY-MM-DD_` date prefix.
+ *   2. Trailing `_v\d+`, `-v\d+`, ` (\d+)`, or `.<digits>` version
+ *      markers (case-insensitive on the `v`).
+ *   3. The trailing extension (`.csv` / `.xlsx`).
+ *   4. Replaces any run of non-alphanumeric chars with a single `-`.
+ *   5. Lowercases the result.
+ *
+ * Returns the empty string for names that normalize to nothing — those
+ * never match anything else; callers should treat empty stem as "no
+ * suggestion possible."
+ */
+export function normalizeStem(name: string): string {
+  let s = name;
+  s = s.replace(/^\d{4}-\d{2}-\d{2}[_-]/, '');
+  s = s.replace(/\.(csv|xlsx)$/i, '');
+  s = s.replace(/[ _-][vV]\d+$/, '');
+  s = s.replace(/\s*\(\d+\)$/, '');
+  s = s.replace(/\.\d+$/, '');
+  s = s.replace(/[^a-zA-Z0-9]+/g, '-');
+  s = s.replace(/^-+|-+$/g, '');
+  return s.toLowerCase();
+}
+
+export function listVariantFamilies(): VariantFamily[] {
+  return Object.values(data.variant_families);
+}
+
+export function getVariantFamily(id: string): VariantFamily | undefined {
+  return data.variant_families[id];
+}
+
+/**
+ * Create a variant family with N initial member record sets. The label
+ * is stored on the family AND denormalized onto every member. Returns
+ * the new family plus the updated record sets.
+ *
+ * `stem` is optional — passed when the family was created from a
+ * heuristic suggestion, omitted for manual links. Future ingests with
+ * the same stem can offer to join (still suggestion-only).
+ */
+export async function createVariantFamily(params: {
+  label: string;
+  record_set_ids: string[];
+  stem?: string | null;
+}): Promise<{ family: VariantFamily; record_sets: RecordSet[] }> {
+  const label = params.label.trim();
+  if (!label) throw new Error('label is required');
+  if (!params.record_set_ids.length) {
+    throw new Error('at least one record_set_id is required');
+  }
+  for (const id of params.record_set_ids) {
+    if (!data.record_sets[id]) throw new Error(`record set not found: ${id}`);
+    if (data.record_sets[id].variant_family_id) {
+      throw new Error(`record set already in a variant family: ${id}`);
+    }
+  }
+  const variant_family_id = `vf_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  const family: VariantFamily = {
+    variant_family_id,
+    label,
+    created_at: new Date().toISOString(),
+    stem: params.stem ?? null,
+  };
+  data.variant_families[variant_family_id] = family;
+  const updated: RecordSet[] = [];
+  for (const id of params.record_set_ids) {
+    const next: RecordSet = {
+      ...data.record_sets[id],
+      variant_family_id,
+      variant_family_label: label,
+    };
+    data.record_sets[id] = next;
+    updated.push(next);
+  }
+  await persist();
+  return { family, record_sets: updated };
+}
+
+/**
+ * Rename a variant family. Updates the family AND every member's
+ * denormalized label. Returns the updated family + member sets.
+ */
+export async function updateVariantFamily(params: {
+  variant_family_id: string;
+  label: string;
+}): Promise<{ family: VariantFamily; record_sets: RecordSet[] }> {
+  const family = data.variant_families[params.variant_family_id];
+  if (!family) throw new Error(`variant family not found: ${params.variant_family_id}`);
+  const label = params.label.trim();
+  if (!label) throw new Error('label is required');
+  const next: VariantFamily = { ...family, label };
+  data.variant_families[params.variant_family_id] = next;
+  const updated: RecordSet[] = [];
+  for (const rs of Object.values(data.record_sets)) {
+    if (rs.variant_family_id === params.variant_family_id) {
+      const nextRs: RecordSet = { ...rs, variant_family_label: label };
+      data.record_sets[rs.record_set_id] = nextRs;
+      updated.push(nextRs);
+    }
+  }
+  await persist();
+  return { family: next, record_sets: updated };
+}
+
+/**
+ * Add an existing record set to an existing family. Throws if the set
+ * is already a member of any family — the user must remove it first.
+ */
+export async function addToVariantFamily(params: {
+  variant_family_id: string;
+  record_set_id: string;
+}): Promise<{ family: VariantFamily; record_set: RecordSet }> {
+  const family = data.variant_families[params.variant_family_id];
+  if (!family) throw new Error(`variant family not found: ${params.variant_family_id}`);
+  const rs = data.record_sets[params.record_set_id];
+  if (!rs) throw new Error(`record set not found: ${params.record_set_id}`);
+  if (rs.variant_family_id && rs.variant_family_id !== params.variant_family_id) {
+    throw new Error(`record set already in a different variant family: ${params.record_set_id}`);
+  }
+  const next: RecordSet = {
+    ...rs,
+    variant_family_id: family.variant_family_id,
+    variant_family_label: family.label,
+  };
+  data.record_sets[params.record_set_id] = next;
+  await persist();
+  return { family, record_set: next };
+}
+
+/**
+ * Remove a record set from its variant family. Idempotent — calling on
+ * a set that's not in a family returns the set unchanged. Does NOT
+ * dissolve the family even if this was the last member; an empty family
+ * is fine and the user can either rebuild it or call dissolve.
+ */
+export async function removeFromVariantFamily(params: {
+  record_set_id: string;
+}): Promise<{ record_set: RecordSet }> {
+  const rs = data.record_sets[params.record_set_id];
+  if (!rs) throw new Error(`record set not found: ${params.record_set_id}`);
+  if (!rs.variant_family_id) return { record_set: rs };
+  const next: RecordSet = { ...rs };
+  delete next.variant_family_id;
+  delete next.variant_family_label;
+  data.record_sets[params.record_set_id] = next;
+  await persist();
+  return { record_set: next };
+}
+
+/**
+ * Dissolve a variant family. Clears the pointer + label on every member
+ * and deletes the family row. Returns the list of member ids that were
+ * disassociated so the caller can broadcast per-set events if desired.
+ */
+export async function dissolveVariantFamily(params: {
+  variant_family_id: string;
+}): Promise<{ dissolved: boolean; record_set_ids: string[] }> {
+  const family = data.variant_families[params.variant_family_id];
+  if (!family) return { dissolved: false, record_set_ids: [] };
+  const affected: string[] = [];
+  for (const rs of Object.values(data.record_sets)) {
+    if (rs.variant_family_id === params.variant_family_id) {
+      const next: RecordSet = { ...rs };
+      delete next.variant_family_id;
+      delete next.variant_family_label;
+      data.record_sets[rs.record_set_id] = next;
+      affected.push(rs.record_set_id);
+    }
+  }
+  delete data.variant_families[params.variant_family_id];
+  await persist();
+  return { dissolved: true, record_set_ids: affected };
+}
+
+/**
+ * Suggest a variant family for a record set, based on filename-stem
+ * matching against existing sets. Suggestion-only — the caller decides
+ * whether to accept and create / join. Returns `{ match: undefined }`
+ * when nothing comparable is found.
+ *
+ * Match rules:
+ *   1. Normalize the input set's name to a stem.
+ *   2. If the stem is empty, no suggestion.
+ *   3. If the input is already in a family, no suggestion.
+ *   4. Find other non-archived record sets whose stem matches AND whose
+ *      schema column count differs by ≤ 3 (allow modest schema
+ *      evolution between versions).
+ *   5. Exclude the input set itself.
+ *   6. If any matching set is already in a variant family, suggest
+ *      joining that family. Otherwise suggest creating a new family
+ *      from the matched peers.
+ *   7. `suggested_label` is the matched stem with hyphens → spaces and
+ *      title-cased — a starting point the user can edit on accept.
+ */
+export function suggestVariantFamily(params: {
+  record_set_id: string;
+}): { match?: { variant_family_id?: string; stem: string; record_set_ids: string[]; suggested_label: string } } {
+  const rs = data.record_sets[params.record_set_id];
+  if (!rs) return {};
+  if (rs.variant_family_id) return {};
+  const stem = normalizeStem(rs.name);
+  if (!stem) return {};
+  const inputColCount = rs.schema.fields.length;
+  const peers: RecordSet[] = [];
+  for (const other of Object.values(data.record_sets)) {
+    if (other.record_set_id === rs.record_set_id) continue;
+    if (other.archived) continue;
+    if (normalizeStem(other.name) !== stem) continue;
+    if (Math.abs(other.schema.fields.length - inputColCount) > 3) continue;
+    peers.push(other);
+  }
+  if (!peers.length) return {};
+  const existingFamilyId = peers.find((p) => p.variant_family_id)?.variant_family_id;
+  const suggested_label = stem
+    .split('-')
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+  return {
+    match: {
+      ...(existingFamilyId ? { variant_family_id: existingFamilyId } : {}),
+      stem,
+      record_set_ids: [rs.record_set_id, ...peers.map((p) => p.record_set_id)],
+      suggested_label,
+    },
+  };
 }

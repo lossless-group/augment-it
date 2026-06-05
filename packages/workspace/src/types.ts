@@ -53,6 +53,43 @@ export type RecordSet = {
     promoted_at: string;
     record_count: number;
   };
+  // Variant-family pointers — orthogonal to lineage. A family is an
+  // explicit, user-curated grouping of RecordSets that represent the
+  // same external dataset evolving over time (e.g. five CSV exports
+  // of a tracker uploaded as separate files). The id is stable; the
+  // label is denormalized across members so single-row reads render
+  // the family name without a second lookup. See
+  // context-v/specs/Record-Set-Family-Grouping.md.
+  variant_family_id?: string;
+  variant_family_label?: string;
+};
+
+// A variant family — a user-curated grouping of RecordSets that share an
+// external source. Tracked separately so the family has its own identity
+// for rename / dissolve operations even when no member set is loaded.
+// See context-v/specs/Record-Set-Family-Grouping.md.
+export type VariantFamily = {
+  variant_family_id: string;
+  label: string;
+  created_at: string;
+  // The match stem that produced this family — preserved so future
+  // ingests with the same stem can offer to join automatically (still
+  // suggestion-only, per the spec's Decision 2).
+  stem: string | null;
+};
+
+// Returned by record_set.suggest_variant_family. If the heuristic finds
+// a candidate, `match` is populated; otherwise the field is undefined.
+// The shape is the same whether the suggestion is to join an existing
+// family (variant_family_id present) or create a new one from a set of
+// matching peers (variant_family_id absent).
+export type VariantFamilySuggestion = {
+  match?: {
+    variant_family_id?: string;
+    stem: string;
+    record_set_ids: string[];
+    suggested_label: string;
+  };
 };
 
 // One cemented triage state on a row, keyed by prompt_id in

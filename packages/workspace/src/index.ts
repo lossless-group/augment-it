@@ -38,6 +38,8 @@ export type {
   SessionFrame,
   TokenBinding,
   UserContext,
+  VariantFamily,
+  VariantFamilySuggestion,
 } from './types';
 export type { WorkspaceAdapter } from './adapter';
 export type { TransportConfig } from './transport';
