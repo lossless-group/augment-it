@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { workspace, type RecordSet, type Row } from '@augment-it/workspace';
   import RecordSetsList from './components/RecordSetsList.svelte';
+  import { formatFieldValue } from './logic/format';
 
   const TOKEN_KEY = 'augment-it:session-token';
   const WS_URL = 'ws://localhost:3001/ws';
@@ -112,18 +113,21 @@
   // Set-level enrichment — spec Decision §4. The user's mental model on
   // landing here is "I picked this record set; now augment it." The
   // single-record `enrich ›` button is at the wrong grain for that
-  // intent. This button takes the whole selected set to Enrichment.
+  // intent. The two buttons below let the user pick the divergence at
+  // the record-collector surface instead of post-navigation in-slot:
+  // a prompt run (PTM) or a pack/bundle run (Pack Runner).
   //
-  // Mechanic:
+  // Mechanic per click:
   //   1. Write the canonical 'augment-it:active-record-set' key (Phase 5).
-  //      Pack Runner reads it and a follow-up surface (PTM) will too.
+  //      Both Pack Runner and PTM read it.
   //   2. Broadcast 'augment-it:active-record-set-changed' so any already-
   //      mounted consumer re-targets without remounting.
-  //   3. Dispatch augment-it:navigate to the 'enrichment' composite slot.
-  //      The composite's last-active member (Pack Runner by default) is
-  //      what mounts; the user toggles in-slot if they want PTM instead.
+  //   3. Dispatch augment-it:navigate with the specific composite member
+  //      id; shell.setCompositeMember switches the in-slot active member
+  //      before focusing the slot. No "default and toggle later" needed.
   const ACTIVE_RECORD_SET_KEY = 'augment-it:active-record-set';
-  function augmentThisSet(rs: RecordSet) {
+  type AugmentTarget = 'promptTemplateManager' | 'packRunner';
+  function augmentThisSet(rs: RecordSet, target: AugmentTarget) {
     try {
       localStorage.setItem(ACTIVE_RECORD_SET_KEY, rs.record_set_id);
     } catch {
@@ -137,7 +141,7 @@
     );
     window.dispatchEvent(
       new CustomEvent('augment-it:navigate', {
-        detail: { remoteId: 'augment' },
+        detail: { remoteId: target },
       }),
     );
   }
@@ -235,11 +239,21 @@
     {:else}
       <div class="set-header">
         <h3>{selectedRs.name}</h3>
-        <button
-          class="augment-this-set"
-          title="Take the whole set to Enrichment — Pack Runner or Prompt Templates (toggle in-slot)"
-          onclick={() => augmentThisSet(selectedRs)}
-        >Augment This Set →</button>
+        <div class="augment-this-set-panel" role="group" aria-label="Augment this Set">
+          <div class="augment-this-set-heading">Augment this Set</div>
+          <div class="augment-this-set-actions">
+            <button
+              class="augment-this-set"
+              title="Send the whole set to Prompt Templates — author or run a prompt against every row"
+              onclick={() => augmentThisSet(selectedRs, 'promptTemplateManager')}
+            >Run a Prompt →</button>
+            <button
+              class="augment-this-set"
+              title="Send the whole set to Pack Runner — run a bundle / packs against every row"
+              onclick={() => augmentThisSet(selectedRs, 'packRunner')}
+            >Run a Bundle / Packs →</button>
+          </div>
+        </div>
       </div>
       <div class="rows-list">
         {#each rowsForSelected as row (row.row_id)}
@@ -285,23 +299,27 @@
             <div class="fields">
               {#each orderedFields as f (f.name)}
                 {@const value = row.fields[f.name]}
-                {@const isStructured = value !== null && typeof value === 'object'}
+                {@const formatted = formatFieldValue(value)}
                 <div class="field-name" title={f.name}>{f.name}</div>
-                {#if isStructured}
+                {#if formatted.isStructured}
                   <!-- Structured value (array or object) — JSON-stringified
                        and read-only in this surface. Inline editing of JSON
                        in a contenteditable is a data-loss vector; if the
                        user wants to edit structured data, that's a richer
                        editor's job (a future feature). -->
-                  <div class="field-value field-value-json" title="structured value (read-only here)">
-                    {JSON.stringify(value)}
-                  </div>
+                  <div
+                    class="field-value field-value-json"
+                    class:field-value-empty={formatted.isEmpty}
+                    title={formatted.isEmpty ? 'structured value — empty' : 'structured value (read-only here)'}
+                  >{formatted.isEmpty ? `(empty ${formatted.text})` : formatted.text}</div>
                 {:else}
                   <div
                     class="field-value"
+                    class:field-value-empty={formatted.isEmpty}
                     contenteditable="true"
                     role="textbox"
                     tabindex="0"
+                    data-placeholder="(empty)"
                     onblur={(e) =>
                       commitEdit(row, f.name, (e.currentTarget as HTMLDivElement).textContent ?? '')}
                     onkeydown={(e) => {
@@ -310,7 +328,7 @@
                         (e.currentTarget as HTMLDivElement).blur();
                       }
                     }}
-                  >{value ?? ''}</div>
+                  >{formatted.text}</div>
                 {/if}
               {/each}
             </div>

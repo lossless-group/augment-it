@@ -28,17 +28,41 @@
   color: var(--color-accent-2);
 }
 
-/* Set-level header — name + primary "Augment This Set" CTA side by side
-   (spec Decision §4). The button is the set-grain forward action; the
-   per-row `enrich ›` still works for one-off enrichment. */
+/* Set-level header — name on the left, "Augment this Set" panel on the
+   right with a small heading and two CTAs (Run a Prompt → PTM, Run a
+   Bundle / Packs → Pack Runner). The divergence happens here at the
+   record-collector surface so the user picks intent before navigation
+   instead of landing on a default and toggling in-slot. Per-row
+   `enrich ›` still covers one-off single-record enrichment. */
 .rc-app .set-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.6rem;
   margin-bottom: 0.6rem;
 }
-.rc-app .set-header h3 { margin: 0; }
+.rc-app .set-header h3 {
+  margin: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.rc-app .augment-this-set-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+.rc-app .augment-this-set-heading {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+.rc-app .augment-this-set-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
 .rc-app .augment-this-set {
   background: var(--color-accent);
   color: var(--color-on-accent);
@@ -275,14 +299,25 @@
 
 .rc-app .field-value-json {
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 11px;
-  color: var(--color-text-muted);
+  font-size: 12px;
   background: var(--color-field);
   cursor: default;
   max-height: 8em;
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+.rc-app .field-value-empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.rc-app .field-value[contenteditable='true']:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-text-muted);
+  font-style: italic;
+  pointer-events: none;
 }
 
 /* -----------------------------------------------------------------------------
