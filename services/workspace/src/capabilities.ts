@@ -88,6 +88,12 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // pages). Reply rides on NATS; no response-store write. Per
   // context-v/specs/Flow-for-Bundles-Packs.md §"The connectors".
   'connector.fire': 'connector.fire.requested',
+  // Content ingest — Jina-pull markdown + per-client corpus. Per
+  // context-v/specs/Funder-Content-Corpus-Workflow.md §Step 5 and
+  // context-v/specs/Response-Reviewer-Shell-and-Content-Reader-Mode.md.
+  'content_ingest.preview': 'content_ingest.preview.requested',
+  'corpus.add': 'corpus.add.requested',
+  'corpus.list_for_record': 'corpus.list_for_record.requested',
 };
 
 const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
@@ -114,6 +120,13 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   // Records Surface per-record fire — one scrape + parse + (optional) Haiku
   // call. 60s is generous; Firecrawl typically lands in 5-15s.
   'connector.fire': 60_000,
+  // Content ingest — Jina fires N URLs per preview (one per content-pack
+  // response on the record, deduped, bounded-parallel-per-host with 429
+  // retry). 300s safety margin for a record with many unique URLs on a
+  // slow domain.
+  'content_ingest.preview': 300_000,
+  // corpus.add re-uses warm cache or re-fetches once via Jina.
+  'corpus.add': 30_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {

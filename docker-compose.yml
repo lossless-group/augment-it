@@ -126,6 +126,25 @@ services:
       # bursting SearXNG can trip upstream-engine throttling.
       SOCIAL_SEARCH_CONCURRENCY: ${SOCIAL_SEARCH_CONCURRENCY:-4}
 
+  # Content ingest — Jina-pull markdown + write per-client corpus markdown
+  # files. The /clients mount maps to the host's clients/ directory so
+  # corpus.add lands files directly inside the per-client repo (e.g.
+  # clients/reach-edu/corpus/<funder>/<date>_<slug>.md) and the operator
+  # commits via the per-client repo's own git history. Per
+  # context-v/specs/Funder-Content-Corpus-Workflow.md.
+  content-ingest:
+    build: ./services/content-ingest
+    depends_on:
+      - nats
+    environment:
+      NATS_URL: nats://nats:4222
+      CLIENTS_ROOT: /clients
+      # Optional — Jina free tier needs no auth; a key bumps the rate
+      # limit and grants premium endpoints.
+      JINA_API_KEY: ${JINA_API_KEY:-}
+    volumes:
+      - ./clients:/clients
+
 volumes:
   workspace-data:
   row-store-data:

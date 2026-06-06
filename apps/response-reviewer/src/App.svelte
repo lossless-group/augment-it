@@ -50,7 +50,7 @@
   // feedback in the 2026-05-25 pack smoke: stepping through 402 unflagged
   // pack responses one-by-one was untenable; per-record collapses the same
   // data into ~67 row-cards. Persisted so refresh sticks.
-  type ViewMode = 'single' | 'by-record';
+  type ViewMode = 'single' | 'by-record' | 'content-reader';
   const VIEW_MODE_KEY = 'augment-it:response-reviewer:view-mode';
   function readViewMode(): ViewMode {
     if (typeof localStorage === 'undefined') return 'single';
@@ -431,7 +431,7 @@
     refreshing = true;
     try {
       await Promise.all([loadResponses(), loadPrompts(), loadRecordSets()]);
-      if (viewMode === 'by-record') await loadRowsForByRecord();
+      if (viewMode === 'by-record' || viewMode === 'content-reader') await loadRowsForByRecord();
     } finally {
       refreshing = false;
     }
@@ -539,7 +539,7 @@
   // Lazy-load rows whenever entering by-record mode and the response set
   // grows (manual refresh refreshes too — see manualRefresh).
   $effect(() => {
-    if (viewMode !== 'by-record') return;
+    if (viewMode !== 'by-record' && viewMode !== 'content-reader') return;
     // Touch the response list size so this re-fires when new responses
     // arrive via the broadcast.
     void responses.length;
@@ -897,6 +897,326 @@
     );
     void flag('needs-rerun');
   }
+
+  // ============================================================
+  // Content Reader (view mode 'content-reader')
+  // Per context-v/specs/Funder-Content-Corpus-Workflow.md.
+  // Implements Rules 5-8:
+  //   Rule 5: per-item curation (edit title + tags, "+ add to corpus")
+  //   Rule 6: hide already-in-corpus items from preview list
+  //   Rule 7: show ALL rows of the active record set, including not-fired
+  //           and invalid-URL rows, with clear affordances
+  //   Rule 8: scope responses to latest fire_id per (row_id, pack_id);
+  //           surface "last fired" timestamp per record
+  // ============================================================
+
+  // Content-shaped packs whose responses surface as previewable content.
+  // Must match services/content-ingest/src/handlers.ts CONTENT_PACK_IDS
+  // and services/social-search/src/entity-pulse/packs (which packs are
+  // wired to publish responses).
+  const CONTENT_PACK_IDS = new Set(['official-blog-pack']);
+  const CLIENT_ID = 'reach-edu';
+
+  type PreviewResult = {
+    response_id: string;
+    status: 'ready' | 'failed';
+    exact_url: string;
+    pack_id: string | null;
+    title?: string;
+    excerpt?: string;
+    fetched_at?: string;
+    extra_metadata?: Record<string, unknown>;
+    error?: string;
+  };
+  type CorpusEntry = {
+    corpus_path: string;
+    response_id: string | null;
+    record_id: string | null;
+    exact_url: string;
+    fetched_at: string;
+    title: string;
+    tags: string[];
+  };
+
+  let previewsByRowId = $state<Record<string, PreviewResult[]>>({});
+  let previewBusyRowId = $state<string>('');
+  let previewErrorByRowId = $state<Record<string, string>>({});
+  let corpusEntriesByRowId = $state<Record<string, CorpusEntry[]>>({});
+  let addingResponseId = $state<string>('');
+  let titleDraftsByResponseId = $state<Record<string, string>>({});
+  let tagDraftsByResponseId = $state<Record<string, string>>({});
+
+  // Active record set is what the user picked in the scope chip row.
+  // Defaults to the largest non-orphan bucket (an existing $effect handles
+  // this), but operator can switch.
+  const activeRecordSet = $derived.by(() => {
+    if (recordSetFilter === 'all' || recordSetFilter === '__orphan__') return null;
+    return recordSetsById[recordSetFilter] ?? null;
+  });
+
+  // Rule 8: latest fire_id per (row_id, pack_id). fire_ids are time-prefixed
+  // so lexicographic max == temporal max. Null fire_id is "older than any
+  // stamped fire" — only surfaces when no stamped fire exists for the pair.
+  type FireKey = string; // `${row_id}::${pack_id}`
+  const latestFireIdByRowPack = $derived.by<Map<FireKey, string | null>>(() => {
+    const out = new Map<FireKey, string | null>();
+    for (const r of responses) {
+      if (r.pack_id == null) continue;
+      const key: FireKey = `${r.row_id}::${r.pack_id}`;
+      const fid = (r as unknown as { fire_id?: string | null }).fire_id ?? null;
+      const cur = out.get(key);
+      if (cur === undefined) out.set(key, fid);
+      else if (fid != null && (cur == null || fid > cur)) out.set(key, fid);
+    }
+    return out;
+  });
+
+  function responseFireId(r: ResponseRecord): string | null {
+    return (r as unknown as { fire_id?: string | null }).fire_id ?? null;
+  }
+
+  // Rules 1+2 layered defense + Rule 8 fire scoping.
+  function rowHostnameFor(row_id: string): string | null {
+    const row = rowsByRowId[row_id];
+    const u = (row?.fields as Record<string, unknown> | undefined)?.url;
+    if (typeof u !== 'string') return null;
+    try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return null; }
+  }
+  const NAVIGATION_PATTERNS = [
+    /\/page\/\d+\/?$/i, /\/p\/\d+\/?$/i,
+    /\/category\/[^/]+\/?$/i, /\/categories\/[^/]+\/?$/i,
+    /\/tag\/[^/]+\/?$/i, /\/tags\/[^/]+\/?$/i,
+    /\/topic\/[^/]+\/?$/i, /\/topics\/[^/]+\/?$/i,
+    /\/author\/[^/]+\/?$/i, /\/contributors\/[^/]+\/?$/i,
+    /\/archive\/?$/i, /\/archives\/?$/i,
+    /\/feed\/?$/i, /\/rss\/?$/i, /\/atom\.xml$/i, /\/index\.html?$/i,
+    /\/\d{4}\/?$/i, /\/\d{4}\/\d{1,2}\/?$/i,
+  ];
+  function isNavigationUrl(url: string): boolean {
+    try {
+      const p = new URL(url).pathname;
+      for (const re of NAVIGATION_PATTERNS) if (re.test(p)) return true;
+      return false;
+    } catch { return true; }
+  }
+  function isContentResponse(r: ResponseRecord): boolean {
+    if (r.pack_id == null || !CONTENT_PACK_IDS.has(r.pack_id)) return false;
+    // Rule 8: scope to latest fire for this (row_id, pack_id).
+    const latest = latestFireIdByRowPack.get(`${r.row_id}::${r.pack_id}`);
+    if (latest !== undefined && responseFireId(r) !== latest) return false;
+    const structured = r.structured as { url?: string } | null;
+    const url = structured?.url;
+    if (typeof url !== 'string' || url.trim().length === 0) return false;
+    if (isNavigationUrl(url)) return false;
+    const rowHost = rowHostnameFor(r.row_id);
+    if (!rowHost) return true; // row url broken; fail open on host check
+    let respHost = '';
+    try { respHost = new URL(url).hostname.replace(/^www\./, ''); }
+    catch { return false; }
+    return respHost === rowHost ||
+           respHost.endsWith('.' + rowHost) ||
+           rowHost.endsWith('.' + respHost);
+  }
+
+  // Rule 7: show every row of the active record set, including rows with
+  // zero responses (not yet fired) and rows whose pack returned 'error'
+  // (broken url). Status drives the affordance shown per card.
+  type ContentRecordStatus =
+    | { kind: 'no-responses' }                     // never fired (or fire produced nothing tied to this row_id)
+    | { kind: 'invalid-url'; reason: string }      // fired but row.url was invalid → outcome=error
+    | { kind: 'not-found' }                         // fired, pack couldn't discover an index
+    | { kind: 'has-content'; previewableCount: number; lastFiredAt: string | null };
+
+  type ContentRecord = {
+    row_id: string;
+    record_set_id: string;
+    entity_name: string;
+    entity_field: string | null;
+    status: ContentRecordStatus;
+    contentResponses: ResponseRecord[];   // empty when status !== 'has-content'
+  };
+
+  const contentRecords = $derived.by<ContentRecord[]>(() => {
+    const rs = activeRecordSet;
+    if (!rs) return [];
+    // Index responses by row_id, scoped to content packs only.
+    const byRow = new Map<string, ResponseRecord[]>();
+    for (const r of responses) {
+      if (r.record_set_id !== rs.record_set_id) continue;
+      if (r.pack_id == null || !CONTENT_PACK_IDS.has(r.pack_id)) continue;
+      // Rule 8 scoping for ALL response queries on this row+pack:
+      const latest = latestFireIdByRowPack.get(`${r.row_id}::${r.pack_id}`);
+      if (latest !== undefined && responseFireId(r) !== latest) continue;
+      const arr = byRow.get(r.row_id) ?? [];
+      arr.push(r);
+      byRow.set(r.row_id, arr);
+    }
+    const records: ContentRecord[] = [];
+    for (const row_id of rs.row_ids) {
+      const row = rowsByRowId[row_id];
+      const ef = entityFieldFor(row);
+      const blogs = byRow.get(row_id) ?? [];
+      let status: ContentRecordStatus;
+      if (blogs.length === 0) {
+        status = { kind: 'no-responses' };
+      } else {
+        const error = blogs.find((r) => r.outcome === 'error');
+        if (error) {
+          status = { kind: 'invalid-url', reason: error.response_text };
+        } else {
+          const previewable = blogs.filter((r) => isContentResponse(r));
+          if (previewable.length === 0) {
+            status = { kind: 'not-found' };
+          } else {
+            const lastFiredAt = blogs.reduce<string | null>((acc, r) => {
+              return !acc || r.created_at > acc ? r.created_at : acc;
+            }, null);
+            status = { kind: 'has-content', previewableCount: previewable.length, lastFiredAt };
+          }
+        }
+      }
+      records.push({
+        row_id,
+        record_set_id: rs.record_set_id,
+        entity_name: ef?.value ?? '',
+        entity_field: ef?.field ?? null,
+        status,
+        contentResponses: blogs,
+      });
+    }
+    return records.sort((a, b) => {
+      const an = a.entity_name || a.row_id;
+      const bn = b.entity_name || b.row_id;
+      return an.localeCompare(bn);
+    });
+  });
+
+  // Aggregate counts for the header strip — helps the operator see the
+  // shape of the work at a glance.
+  const contentCounts = $derived.by(() => {
+    const c = { total: 0, has: 0, notFound: 0, invalid: 0, none: 0 };
+    for (const cr of contentRecords) {
+      c.total += 1;
+      if (cr.status.kind === 'has-content') c.has += 1;
+      else if (cr.status.kind === 'not-found') c.notFound += 1;
+      else if (cr.status.kind === 'invalid-url') c.invalid += 1;
+      else c.none += 1;
+    }
+    return c;
+  });
+
+  function funderSlugFor(g: { entity_name: string; row_id: string }): string {
+    const base = g.entity_name.trim() || g.row_id;
+    return base.toLowerCase().normalize('NFKD')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+  }
+
+  function corpusUrlsForRow(row_id: string): Set<string> {
+    return new Set((corpusEntriesByRowId[row_id] ?? []).map((e) => e.exact_url));
+  }
+
+  async function previewContentForRow(row_id: string) {
+    if (previewBusyRowId) return;
+    previewBusyRowId = row_id;
+    previewErrorByRowId = { ...previewErrorByRowId, [row_id]: '' };
+    try {
+      const reply = (await workspace.invoke('content_ingest.preview', {
+        record_id: row_id,
+      })) as { previews?: PreviewResult[]; ok?: false; error?: string };
+      if (reply.ok === false) {
+        previewErrorByRowId = { ...previewErrorByRowId, [row_id]: reply.error ?? 'preview failed' };
+        return;
+      }
+      const previews = reply.previews ?? [];
+      previewsByRowId = { ...previewsByRowId, [row_id]: previews };
+      const nextTitles = { ...titleDraftsByResponseId };
+      for (const p of previews) {
+        if (p.status === 'ready' && p.title && nextTitles[p.response_id] == null) {
+          nextTitles[p.response_id] = p.title;
+        }
+      }
+      titleDraftsByResponseId = nextTitles;
+      await refreshCorpusForRow(row_id);
+    } catch (err) {
+      previewErrorByRowId = {
+        ...previewErrorByRowId,
+        [row_id]: err instanceof Error ? err.message : String(err),
+      };
+    } finally {
+      previewBusyRowId = '';
+    }
+  }
+
+  async function refreshCorpusForRow(row_id: string) {
+    try {
+      const reply = (await workspace.invoke('corpus.list_for_record', {
+        client_id: CLIENT_ID,
+        record_id: row_id,
+      })) as { entries?: CorpusEntry[] };
+      corpusEntriesByRowId = { ...corpusEntriesByRowId, [row_id]: reply.entries ?? [] };
+    } catch (err) {
+      console.error('corpus.list_for_record', err);
+    }
+  }
+
+  function parseTags(raw: string): string[] {
+    return raw.split(/[,;\n]/).map((t) => t.trim()).filter((t) => t.length > 0);
+  }
+
+  async function addToCorpus(cr: ContentRecord, preview: PreviewResult) {
+    if (addingResponseId) return;
+    if (preview.status !== 'ready' || !preview.exact_url || !preview.pack_id) return;
+    addingResponseId = preview.response_id;
+    try {
+      const title =
+        titleDraftsByResponseId[preview.response_id]?.trim() || preview.title || preview.exact_url;
+      const tags = parseTags(tagDraftsByResponseId[preview.response_id] ?? '');
+      const result = (await workspace.invoke('corpus.add', {
+        client_id: CLIENT_ID,
+        record_id: cr.row_id,
+        response_id: preview.response_id,
+        title, tags,
+        exact_url: preview.exact_url,
+        funder_slug: funderSlugFor(cr),
+        pack_id: preview.pack_id,
+      })) as { corpus_path?: string; written_at?: string; ok?: false; error?: string };
+      if (result.ok === false) {
+        previewErrorByRowId = {
+          ...previewErrorByRowId,
+          [cr.row_id]: `add failed for ${preview.exact_url}: ${result.error ?? 'unknown'}`,
+        };
+        return;
+      }
+      await refreshCorpusForRow(cr.row_id);
+      const t = { ...tagDraftsByResponseId };
+      delete t[preview.response_id];
+      tagDraftsByResponseId = t;
+    } catch (err) {
+      previewErrorByRowId = {
+        ...previewErrorByRowId,
+        [cr.row_id]: err instanceof Error ? err.message : String(err),
+      };
+    } finally {
+      addingResponseId = '';
+    }
+  }
+
+  // Preload corpus state for visible records so "in corpus" badges and
+  // counts render on first paint, no preview-click required.
+  $effect(() => {
+    if (viewMode !== 'content-reader') return;
+    void responses.length;
+    for (const cr of contentRecords) {
+      if (corpusEntriesByRowId[cr.row_id] === undefined) {
+        void refreshCorpusForRow(cr.row_id);
+      }
+    }
+  });
+
+  function formatFiredAt(iso: string | null): string {
+    if (!iso) return '';
+    return iso.slice(0, 16).replace('T', ' ');
+  }
 </script>
 
 <div class="resp-app">
@@ -927,6 +1247,16 @@
         title="Group all responses for a row into one card — efficient for pack triage"
       >
         By Record
+      </button>
+      <button
+        class="resp-view"
+        class:active={viewMode === 'content-reader'}
+        role="tab"
+        aria-selected={viewMode === 'content-reader'}
+        onclick={() => (viewMode = 'content-reader')}
+        title="Per-record content preview + add to corpus (funder content corpus workflow)"
+      >
+        Content Reader
       </button>
     </div>
 
@@ -1200,6 +1530,188 @@
           </article>
         {/each}
       </div>
+    {:else if viewMode === 'content-reader'}
+      <!-- Content Reader — implements
+           context-v/specs/Funder-Content-Corpus-Workflow.md Rules 5-8.
+           Shows EVERY row of the active record set; per-card affordance
+           depends on status (no-responses / invalid-url / not-found /
+           has-content). Curated indexes (Rule 3) honored at pack layer;
+           same-host + navigation (Rules 1+2) enforced in three layers. -->
+      {#if !activeRecordSet}
+        <p class="muted">
+          Pick a specific record set in the scope chip row above to use
+          Content Reader. (The "all sets" view mixes generations and
+          isn't useful here.)
+        </p>
+      {:else}
+        <p class="muted cr-summary">
+          <strong>Client:</strong> {CLIENT_ID} ·
+          <strong>{contentCounts.total}</strong> records in
+          <strong>{activeRecordSet.name}</strong>:
+          {contentCounts.has} with content ·
+          {contentCounts.notFound} not_found ·
+          {contentCounts.invalid} url-needs-repair ·
+          {contentCounts.none} not yet fired
+        </p>
+        <div class="record-list cr-record-list">
+          {#each contentRecords as cr (cr.row_id)}
+            {@const corpusUrls = corpusUrlsForRow(cr.row_id)}
+            {@const corpusEntries = corpusEntriesByRowId[cr.row_id] ?? []}
+            {@const previews = previewsByRowId[cr.row_id] ?? []}
+            {@const newPreviews = previews.filter((p) => !corpusUrls.has(p.exact_url))}
+            {@const busy = previewBusyRowId === cr.row_id}
+            {@const err = previewErrorByRowId[cr.row_id] ?? ''}
+            <article class="record-card cr-card" class:cr-card-needs-fix={cr.status.kind === 'invalid-url'}>
+              <header class="cr-header">
+                <div class="cr-header-name">
+                  <strong>{cr.entity_name || cr.row_id}</strong>
+                  <span class="muted cr-meta">
+                    {#if cr.status.kind === 'has-content'}
+                      {cr.status.previewableCount} previewable
+                      {#if corpusEntries.length > 0} · {corpusEntries.length} in corpus{/if}
+                      {#if cr.status.lastFiredAt} · last fired {formatFiredAt(cr.status.lastFiredAt)}{/if}
+                    {:else if cr.status.kind === 'invalid-url'}
+                      <span class="cr-tag cr-tag-fix">url needs repair</span>
+                    {:else if cr.status.kind === 'not-found'}
+                      <span class="cr-tag cr-tag-empty">pack ran · no content found</span>
+                    {:else}
+                      <span class="cr-tag cr-tag-empty">not yet fired</span>
+                    {/if}
+                  </span>
+                </div>
+                {#if cr.status.kind === 'has-content'}
+                  <button
+                    class="cr-preview-btn"
+                    onclick={() => void previewContentForRow(cr.row_id)}
+                    disabled={busy || previewBusyRowId.length > 0}
+                    title="Fetch markdown body for this record's content responses via Jina"
+                  >
+                    {#if busy}fetching…{:else}Preview content →{/if}
+                  </button>
+                {/if}
+              </header>
+
+              {#if cr.status.kind === 'invalid-url'}
+                <p class="cr-fix-msg">
+                  {cr.status.reason}<br />
+                  Open <strong>Records Surface</strong> to set this row's
+                  <code>url</code> field to the funder's actual domain,
+                  then re-fire <code>entity-blog</code> from Pack Runner.
+                </p>
+              {:else if cr.status.kind === 'not-found'}
+                <p class="cr-empty-msg">
+                  The pack ran but didn't find an index it could walk.
+                  Try curating <code>official_updates_index_urls</code> on
+                  this row via Records Surface, then re-fire.
+                </p>
+              {:else if cr.status.kind === 'no-responses'}
+                <p class="cr-empty-msg">
+                  No pack responses for this row yet. Fire
+                  <code>entity-blog</code> from Pack Runner against this
+                  record set to populate.
+                </p>
+              {/if}
+
+              {#if err}
+                <p class="cr-error">{err}</p>
+              {/if}
+
+              {#if corpusEntries.length > 0}
+                <div class="cr-corpus-list" title="Items already in this record's corpus">
+                  <span class="muted cr-corpus-list-label">In corpus:</span>
+                  {#each corpusEntries as e (e.corpus_path)}
+                    <span class="cr-corpus-chip" title={`${e.corpus_path}\n${e.exact_url}`}>
+                      {e.title || e.exact_url}
+                    </span>
+                  {/each}
+                </div>
+              {/if}
+
+              {#if cr.status.kind === 'has-content'}
+                {#if newPreviews.length > 0}
+                  <ul class="cr-preview-list">
+                    {#each newPreviews as p (p.response_id)}
+                      <li class="cr-preview" class:cr-preview-failed={p.status === 'failed'}>
+                        <div class="cr-preview-head">
+                          <span class="cr-pack-chip">{p.pack_id ?? 'unknown'}</span>
+                          {#if p.exact_url}
+                            {@const host = (() => { try { return new URL(p.exact_url).hostname.replace(/^www\./, ''); } catch { return ''; } })()}
+                            {#if host}<span class="cr-domain-chip">{host}</span>{/if}
+                          {/if}
+                          {#if p.fetched_at}
+                            <span class="muted cr-fetched-at">fetched {formatFiredAt(p.fetched_at)}</span>
+                          {/if}
+                        </div>
+                        {#if p.status === 'failed'}
+                          <div class="cr-fail">
+                            Jina fetch failed: {p.error ?? 'unknown error'}
+                            {#if p.exact_url}
+                              <a href={p.exact_url} target="_blank" rel="noopener noreferrer">{p.exact_url}</a>
+                            {/if}
+                          </div>
+                        {:else}
+                          <input
+                            class="cr-title"
+                            type="text"
+                            bind:value={
+                              () => titleDraftsByResponseId[p.response_id] ?? p.title ?? '',
+                              (v) =>
+                                (titleDraftsByResponseId = {
+                                  ...titleDraftsByResponseId,
+                                  [p.response_id]: v,
+                                })
+                            }
+                            placeholder="Title"
+                          />
+                          {#if p.exact_url}
+                            <a class="cr-url" href={p.exact_url} target="_blank" rel="noopener noreferrer">{p.exact_url}</a>
+                          {/if}
+                          {#if p.excerpt}
+                            <p class="cr-excerpt">{p.excerpt}</p>
+                          {/if}
+                          <div class="cr-add-row">
+                            <input
+                              class="cr-tags"
+                              type="text"
+                              placeholder="tags, comma-separated"
+                              bind:value={
+                                () => tagDraftsByResponseId[p.response_id] ?? '',
+                                (v) =>
+                                  (tagDraftsByResponseId = {
+                                    ...tagDraftsByResponseId,
+                                    [p.response_id]: v,
+                                  })
+                              }
+                            />
+                            <button
+                              class="cr-add-btn"
+                              onclick={() => void addToCorpus(cr, p)}
+                              disabled={addingResponseId === p.response_id}
+                              title="Write the Jina markdown as a corpus file"
+                            >
+                              {#if addingResponseId === p.response_id}adding…{:else}+ add to corpus{/if}
+                            </button>
+                          </div>
+                        {/if}
+                      </li>
+                    {/each}
+                  </ul>
+                {:else if !busy && previews.length > 0}
+                  <p class="muted cr-empty-msg">
+                    All {previews.length} previews for this record are already
+                    in the corpus.
+                  </p>
+                {:else if !busy}
+                  <p class="muted cr-empty-msg">
+                    Click <strong>Preview content</strong> to fetch the
+                    body of this record's content responses.
+                  </p>
+                {/if}
+              {/if}
+            </article>
+          {/each}
+        </div>
+      {/if}
     {:else if current}
       <div class="stepper">
         <button onclick={() => step(-1)} disabled={index === 0}>◀</button>
