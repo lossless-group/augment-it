@@ -1138,3 +1138,54 @@
   color: var(--color-error-text, #d33);
   display: flex; flex-direction: column; gap: 0.2rem;
 }
+
+/* Inline canonical-URL editor — appears on every Content Reader card so
+ * the operator can repair Rule 4 violations without leaving the surface. */
+.resp-app .cr-url-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.45rem;
+  background: var(--color-field);
+  border-radius: 3px;
+}
+.resp-app .cr-url-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.resp-app .cr-url-input {
+  flex: 1;
+  background: var(--color-surface, transparent);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 0.25rem 0.5rem;
+  font: 0.78rem var(--font-mono);
+  min-width: 0;
+}
+.resp-app .cr-url-input:focus { outline: 1px solid var(--color-accent); }
+.resp-app .cr-url-save {
+  background: var(--color-field);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  padding: 0.25rem 0.6rem;
+  border-radius: 3px;
+  font: 600 0.74rem var(--font-mono);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.resp-app .cr-url-save:hover:not(:disabled) { border-color: var(--color-accent); }
+.resp-app .cr-url-save:disabled { opacity: 0.5; cursor: not-allowed; }
+.resp-app .cr-url-row label.cr-url-label {
+  display: flex; align-items: center; gap: 0.4rem; flex: 1; min-width: 0; margin: 0;
+}
+.resp-app .cr-url-label-text {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}

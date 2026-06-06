@@ -1217,6 +1217,49 @@
     if (!iso) return '';
     return iso.slice(0, 16).replace('T', ' ');
   }
+
+  // Inline canonical-URL editor — fixes the "I have to leave Content Reader
+  // and find Records Surface to repair a URL" friction. Rule 4 of the goals
+  // spec says the system must surface broken rows for repair; the right
+  // place to surface it is the surface where the operator sees the
+  // not-found / invalid-url symptom.
+  let urlDraftsByRowId = $state<Record<string, string>>({});
+  let urlSavingRowId = $state<string>('');
+  let urlSavedAt = $state<Record<string, number>>({});
+
+  function currentRowUrl(row_id: string): string {
+    const row = rowsByRowId[row_id];
+    const u = (row?.fields as Record<string, unknown> | undefined)?.url;
+    return typeof u === 'string' ? u : '';
+  }
+
+  async function saveRowUrl(row_id: string) {
+    if (urlSavingRowId) return;
+    const draft = (urlDraftsByRowId[row_id] ?? currentRowUrl(row_id)).trim();
+    if (!draft) return;
+    if (draft === currentRowUrl(row_id)) return;
+    urlSavingRowId = row_id;
+    try {
+      await workspace.invoke('row.update', { row_id, fields: { url: draft } });
+      // Local mirror so the input + dependent UI re-renders without
+      // waiting for the row.updated broadcast to round-trip.
+      const row = rowsByRowId[row_id];
+      if (row) {
+        rowsByRowId = {
+          ...rowsByRowId,
+          [row_id]: { ...row, fields: { ...row.fields, url: draft } },
+        };
+      }
+      urlSavedAt = { ...urlSavedAt, [row_id]: Date.now() };
+    } catch (err) {
+      previewErrorByRowId = {
+        ...previewErrorByRowId,
+        [row_id]: `URL save failed: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    } finally {
+      urlSavingRowId = '';
+    }
+  }
 </script>
 
 <div class="resp-app">
@@ -1557,6 +1600,8 @@
           {#each contentRecords as cr (cr.row_id)}
             {@const corpusUrls = corpusUrlsForRow(cr.row_id)}
             {@const corpusEntries = corpusEntriesByRowId[cr.row_id] ?? []}
+            {@const curUrl = currentRowUrl(cr.row_id)}
+            {@const savedRecently = (urlSavedAt[cr.row_id] ?? 0) > Date.now() - 4000}
             {@const previews = previewsByRowId[cr.row_id] ?? []}
             {@const newPreviews = previews.filter((p) => !corpusUrls.has(p.exact_url))}
             {@const busy = previewBusyRowId === cr.row_id}
@@ -1591,12 +1636,51 @@
                 {/if}
               </header>
 
+              <!-- Inline canonical-URL editor — always visible. The
+                   operator should be able to repair a wrong URL from
+                   here, not have to leave Content Reader for Records
+                   Surface. Per Rule 4 of the goals spec. After save the
+                   operator re-fires entity-blog from Pack Runner. -->
+              <div class="cr-url-row">
+                <label class="cr-url-label">
+                  <span class="cr-url-label-text">Canonical URL</span>
+                  <input
+                    class="cr-url-input"
+                    type="text"
+                    placeholder="https://funder-domain.org"
+                    bind:value={
+                      () => urlDraftsByRowId[cr.row_id] ?? curUrl,
+                      (v) => (urlDraftsByRowId = { ...urlDraftsByRowId, [cr.row_id]: v })
+                    }
+                    onkeydown={(e) => {
+                      if (e.key === 'Enter') void saveRowUrl(cr.row_id);
+                    }}
+                  />
+                </label>
+                <button
+                  class="cr-url-save"
+                  onclick={() => void saveRowUrl(cr.row_id)}
+                  disabled={
+                    urlSavingRowId === cr.row_id ||
+                    (urlDraftsByRowId[cr.row_id] ?? curUrl).trim() === curUrl
+                  }
+                >
+                  {#if urlSavingRowId === cr.row_id}
+                    saving…
+                  {:else if savedRecently}
+                    ✓ saved
+                  {:else}
+                    save
+                  {/if}
+                </button>
+              </div>
+
               {#if cr.status.kind === 'invalid-url'}
                 <p class="cr-fix-msg">
                   {cr.status.reason}<br />
-                  Open <strong>Records Surface</strong> to set this row's
-                  <code>url</code> field to the funder's actual domain,
-                  then re-fire <code>entity-blog</code> from Pack Runner.
+                  Fix the <strong>Canonical URL</strong> above to the
+                  funder's actual domain, then re-fire
+                  <code>entity-blog</code> from Pack Runner.
                 </p>
               {:else if cr.status.kind === 'not-found'}
                 <p class="cr-empty-msg">
