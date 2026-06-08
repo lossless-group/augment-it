@@ -1227,6 +1227,67 @@
   let urlSavingRowId = $state<string>('');
   let urlSavedAt = $state<Record<string, number>>({});
 
+  // Manual URL add — operator pastes a URL they found via their own search.
+  // Bypasses Rule 1 (same-host) per the operator's directive: Rule 5
+  // (operator authority per item) trumps Rule 1 (pack-output filter) for
+  // manual flows. See memory: manual-corpus-bypasses-same-host.
+  let manualOpenRowId = $state<Record<string, boolean>>({});
+  let manualUrlDrafts = $state<Record<string, string>>({});
+  let manualPreviewByRowId = $state<Record<string, PreviewResult | null>>({});
+  let manualBusyRowId = $state<string>('');
+  let manualErrorByRowId = $state<Record<string, string>>({});
+
+  function toggleManual(row_id: string) {
+    manualOpenRowId = { ...manualOpenRowId, [row_id]: !manualOpenRowId[row_id] };
+  }
+
+  async function previewManualUrl(row_id: string) {
+    const url = (manualUrlDrafts[row_id] ?? '').trim();
+    if (!url || manualBusyRowId) return;
+    manualBusyRowId = row_id;
+    manualErrorByRowId = { ...manualErrorByRowId, [row_id]: '' };
+    try {
+      const reply = (await workspace.invoke('content_ingest.preview_url', {
+        record_id: row_id,
+        url,
+      })) as { preview?: PreviewResult; ok?: false; error?: string };
+      if (reply.ok === false || !reply.preview) {
+        manualErrorByRowId = {
+          ...manualErrorByRowId,
+          [row_id]: reply.error ?? 'preview failed',
+        };
+        return;
+      }
+      const p = reply.preview;
+      manualPreviewByRowId = { ...manualPreviewByRowId, [row_id]: p };
+      if (p.status === 'ready' && p.title) {
+        titleDraftsByResponseId = {
+          ...titleDraftsByResponseId,
+          [p.response_id]: p.title,
+        };
+      }
+      // Refresh corpus list so duplicate detection works for manual adds too.
+      await refreshCorpusForRow(row_id);
+    } catch (err) {
+      manualErrorByRowId = {
+        ...manualErrorByRowId,
+        [row_id]: err instanceof Error ? err.message : String(err),
+      };
+    } finally {
+      manualBusyRowId = '';
+    }
+  }
+
+  async function addManualToCorpus(cr: ContentRecord) {
+    const preview = manualPreviewByRowId[cr.row_id];
+    if (!preview || preview.status !== 'ready') return;
+    await addToCorpus(cr, preview);
+    // Clear the manual draft + preview on success (corpus refresh inside
+    // addToCorpus will surface the new entry in the "In corpus" chip row).
+    manualUrlDrafts = { ...manualUrlDrafts, [cr.row_id]: '' };
+    manualPreviewByRowId = { ...manualPreviewByRowId, [cr.row_id]: null };
+  }
+
   function currentRowUrl(row_id: string): string {
     const row = rowsByRowId[row_id];
     const u = (row?.fields as Record<string, unknown> | undefined)?.url;
@@ -1606,6 +1667,10 @@
             {@const newPreviews = previews.filter((p) => !corpusUrls.has(p.exact_url))}
             {@const busy = previewBusyRowId === cr.row_id}
             {@const err = previewErrorByRowId[cr.row_id] ?? ''}
+            {@const manualOpen = manualOpenRowId[cr.row_id] ?? false}
+            {@const manualPreview = manualPreviewByRowId[cr.row_id]}
+            {@const manualErr = manualErrorByRowId[cr.row_id] ?? ''}
+            {@const manualBusy = manualBusyRowId === cr.row_id}
             <article class="record-card cr-card" class:cr-card-needs-fix={cr.status.kind === 'invalid-url'}>
               <header class="cr-header">
                 <div class="cr-header-name">
@@ -1710,6 +1775,131 @@
                   {/each}
                 </div>
               {/if}
+
+              <!-- Manual URL add — operator pastes a URL they found via
+                   their own search. Collapsed by default to keep cards
+                   uncluttered; expands on click. Same-host (Rule 1) NOT
+                   enforced for manual adds (Rule 5 / operator authority
+                   trumps). See feedback memory: manual-corpus-bypasses-
+                   same-host. -->
+              <div class="cr-manual">
+                <button
+                  class="cr-manual-toggle"
+                  type="button"
+                  onclick={() => toggleManual(cr.row_id)}
+                  aria-expanded={manualOpen}
+                  title="Paste a URL you found via your own search — bypasses Rule 1 same-host filter"
+                >
+                  {manualOpen ? '▾' : '▸'} + add URL manually
+                </button>
+                {#if manualOpen}
+                  <div class="cr-manual-body">
+                    <div class="cr-manual-input-row">
+                      <input
+                        class="cr-manual-input"
+                        type="url"
+                        placeholder="https://… (paste a URL from your own search)"
+                        bind:value={
+                          () => manualUrlDrafts[cr.row_id] ?? '',
+                          (v) => (manualUrlDrafts = { ...manualUrlDrafts, [cr.row_id]: v })
+                        }
+                        onkeydown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            void previewManualUrl(cr.row_id);
+                          }
+                        }}
+                      />
+                      <button
+                        class="cr-manual-preview-btn"
+                        type="button"
+                        onclick={() => void previewManualUrl(cr.row_id)}
+                        disabled={manualBusy || !(manualUrlDrafts[cr.row_id] ?? '').trim()}
+                      >
+                        {#if manualBusy}fetching…{:else}Preview ↓{/if}
+                      </button>
+                    </div>
+                    {#if manualErr}
+                      <p class="cr-error">{manualErr}</p>
+                    {/if}
+                    {#if manualPreview}
+                      {@const inCorpusAlready = corpusUrls.has(manualPreview.exact_url)}
+                      {@const sameHost = (manualPreview.extra_metadata as { same_host?: boolean } | undefined)?.same_host}
+                      <div
+                        class="cr-preview cr-manual-preview"
+                        class:cr-preview-failed={manualPreview.status === 'failed'}
+                      >
+                        <div class="cr-preview-head">
+                          <span class="cr-pack-chip">manual</span>
+                          {#if manualPreview.exact_url}
+                            {@const host = (() => { try { return new URL(manualPreview.exact_url).hostname.replace(/^www\./, ''); } catch { return ''; } })()}
+                            {#if host}<span class="cr-domain-chip">{host}</span>{/if}
+                          {/if}
+                          {#if sameHost === false}
+                            <span class="cr-domain-chip cr-domain-off" title="URL is not on the funder's own domain — logged as-is per operator authority">off-domain</span>
+                          {/if}
+                          {#if manualPreview.fetched_at}
+                            <span class="muted cr-fetched-at">fetched {formatFiredAt(manualPreview.fetched_at)}</span>
+                          {/if}
+                        </div>
+                        {#if manualPreview.status === 'failed'}
+                          <div class="cr-fail">
+                            Jina fetch failed: {manualPreview.error ?? 'unknown error'}
+                            {#if manualPreview.exact_url}
+                              <a href={manualPreview.exact_url} target="_blank" rel="noopener noreferrer">{manualPreview.exact_url}</a>
+                            {/if}
+                          </div>
+                        {:else if inCorpusAlready}
+                          <p class="muted cr-empty-msg">Already in corpus — pick a different URL.</p>
+                        {:else}
+                          <input
+                            class="cr-title"
+                            type="text"
+                            bind:value={
+                              () => titleDraftsByResponseId[manualPreview.response_id] ?? manualPreview.title ?? '',
+                              (v) =>
+                                (titleDraftsByResponseId = {
+                                  ...titleDraftsByResponseId,
+                                  [manualPreview.response_id]: v,
+                                })
+                            }
+                            placeholder="Title"
+                          />
+                          {#if manualPreview.exact_url}
+                            <a class="cr-url" href={manualPreview.exact_url} target="_blank" rel="noopener noreferrer">{manualPreview.exact_url}</a>
+                          {/if}
+                          {#if manualPreview.excerpt}
+                            <p class="cr-excerpt">{manualPreview.excerpt}</p>
+                          {/if}
+                          <div class="cr-add-row">
+                            <input
+                              class="cr-tags"
+                              type="text"
+                              placeholder="tags, comma-separated"
+                              bind:value={
+                                () => tagDraftsByResponseId[manualPreview.response_id] ?? '',
+                                (v) =>
+                                  (tagDraftsByResponseId = {
+                                    ...tagDraftsByResponseId,
+                                    [manualPreview.response_id]: v,
+                                  })
+                              }
+                            />
+                            <button
+                              class="cr-add-btn"
+                              onclick={() => void addManualToCorpus(cr)}
+                              disabled={addingResponseId === manualPreview.response_id}
+                              title="Write the Jina markdown as a corpus file"
+                            >
+                              {#if addingResponseId === manualPreview.response_id}adding…{:else}+ add to corpus{/if}
+                            </button>
+                          </div>
+                        {/if}
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
+              </div>
 
               {#if cr.status.kind === 'has-content'}
                 {#if newPreviews.length > 0}

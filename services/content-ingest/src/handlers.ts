@@ -1,4 +1,4 @@
-// NATS handlers. Three capabilities:
+// NATS handlers. Four capabilities:
 //
 //   content_ingest.preview       { record_id, fire_id?, force_refetch? }
 //                                returns { previews: PreviewResult[] }
@@ -9,12 +9,26 @@
 //                                Rules 1+2), Jina-fetches each, returns
 //                                title + excerpt.
 //
+//   content_ingest.preview_url   { record_id, url }
+//                                returns PreviewResult
+//                                Operator-pasted URL path. Does NOT enforce
+//                                same-host (Rule 1 binds pack outputs; Rule
+//                                5 — operator decides per item — trumps for
+//                                manual additions). Jina-fetches the URL,
+//                                returns the same shape as content_ingest.
+//                                preview's entries, with extra_metadata
+//                                flagging same_host: true|false so the UI
+//                                can show an off-domain chip.
+//
 //   corpus.add                   { client_id, record_id, response_id,
 //                                  title, tags, exact_url, funder_slug,
 //                                  pack_id }
 //                                returns { corpus_path, written_at }
 //                                Reads cached Jina markdown (or re-fetches),
 //                                composes frontmatter, writes the file.
+//                                For manual additions, response_id is a
+//                                synthetic 'manual-<ts>-<rand>' minted by
+//                                the caller and pack_id is 'manual'.
 //
 //   corpus.list_for_record       { client_id, record_id }
 //                                returns { entries: CorpusEntry[] }
@@ -137,6 +151,84 @@ export function registerHandlers(nc: NatsConnection): void {
         }
         await Promise.all([...byHost.values()].map(processHost));
         if (msg.reply) msg.respond(jc.encode({ previews }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // content_ingest.preview_url — operator-pasted URL → Jina preview
+  (async () => {
+    const sub = nc.subscribe('content_ingest.preview_url.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as {
+        record_id: string;
+        url: string;
+        force_refetch?: boolean;
+      };
+      try {
+        const url = args.url.trim();
+        if (!url) throw new Error('url is required');
+        let parsed: URL;
+        try {
+          parsed = new URL(url);
+        } catch {
+          throw new Error('url is not a valid absolute URL');
+        }
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          throw new Error(`unsupported protocol: ${parsed.protocol}`);
+        }
+        const rowUrl = await fetchRowUrl(nc, args.record_id);
+        const sameHost = rowUrl ? isSameDomain(url, rowUrl) : false;
+
+        let result = args.force_refetch ? null : cache.get(url);
+        if (!result) {
+          result = await fetchViaJina(url);
+          cache.set(url, result);
+        }
+        // Synthetic response_id so corpus.add has a stable handle. Caller
+        // can override by minting their own before posting to corpus.add;
+        // this is just a default surfaced in the preview for convenience.
+        const synthetic_response_id = `manual-${Date.now().toString(36)}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}`;
+        let preview: PreviewResult;
+        if (result.ok) {
+          preview = {
+            response_id: synthetic_response_id,
+            status: 'ready',
+            exact_url: url,
+            pack_id: 'manual',
+            title: result.title,
+            excerpt: excerptFrom(result.markdown),
+            fetched_at: result.fetched_at,
+            extra_metadata: {
+              ...result.extra,
+              same_host: sameHost,
+              row_host: rowUrl
+                ? (() => {
+                    try {
+                      return new URL(rowUrl).hostname.replace(/^www\./, '');
+                    } catch {
+                      return null;
+                    }
+                  })()
+                : null,
+              source: 'manual',
+            },
+          };
+        } else {
+          preview = {
+            response_id: synthetic_response_id,
+            status: 'failed',
+            exact_url: url,
+            pack_id: 'manual',
+            error: result.error,
+            extra_metadata: { same_host: sameHost, source: 'manual' },
+          };
+        }
+        if (msg.reply) msg.respond(jc.encode({ preview }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
         if (msg.reply) msg.respond(jc.encode({ ok: false, error }));

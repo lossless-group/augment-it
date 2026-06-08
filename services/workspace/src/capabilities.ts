@@ -92,6 +92,10 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // context-v/specs/Funder-Content-Corpus-Workflow.md §Step 5 and
   // context-v/specs/Response-Reviewer-Shell-and-Content-Reader-Mode.md.
   'content_ingest.preview': 'content_ingest.preview.requested',
+  // Operator-pasted URL → Jina preview. Same shape as one entry of
+  // content_ingest.preview but for a single user-supplied URL; does not
+  // enforce same-host (manual additions ride Rule 5, not Rule 1).
+  'content_ingest.preview_url': 'content_ingest.preview_url.requested',
   'corpus.add': 'corpus.add.requested',
   'corpus.list_for_record': 'corpus.list_for_record.requested',
 };
@@ -125,6 +129,9 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   // retry). 300s safety margin for a record with many unique URLs on a
   // slow domain.
   'content_ingest.preview': 300_000,
+  // One Jina fetch on a user-pasted URL; same per-fetch shape as the
+  // bulk preview but bounded to a single URL.
+  'content_ingest.preview_url': 60_000,
   // corpus.add re-uses warm cache or re-fetches once via Jina.
   'corpus.add': 30_000,
 };

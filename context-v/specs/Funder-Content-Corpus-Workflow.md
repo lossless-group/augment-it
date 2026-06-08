@@ -2,14 +2,15 @@
 title: "Funder Content Corpus Workflow — what the system has to do, ranked by quality bar, with no implementation prescribed"
 lede: "Tonight's session went sideways because the implementation got ahead of an explicit shared statement of goals. This spec captures the goals — what the operator wants the funder-content augmentation workflow to actually produce, in what shape, with what quality bar — without prescribing how. Any future implementation choices (refactoring the pack, evolving Content Reader, swapping connectors, adding curation surfaces) must measure themselves against these goals. The deeper failure mode tonight was a class of fixes that filtered yesterday's bad data tighter at display time instead of producing today's good data via a fresh fire; the goals here are written so a future agent can resist that pull. Treat the prior specs ([[Response-Reviewer-Shell-and-Content-Reader-Mode]], [[Flow-for-Bundles-Packs]], [[Entity-Pulse-Bundle]]) as compatible siblings — this spec sits at the level of 'what we want,' those describe pieces of the 'how.'"
 date_created: 2026-06-05
-date_modified: 2026-06-05
+date_modified: 2026-06-08
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7 (1M context)
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 revisions:
   - 2026-06-05 — Initial draft. Written at the end of a long session that produced a working but not-fit-for-purpose result; operator's call was to revert tonight's uncommitted code and restart from these goals.
+  - 2026-06-08 — Clarified Rule 1's scope: it binds **pack outputs**, not operator-pasted manual additions. New "Manual additions and Rule 1" section under the hard rules. Driven by shipping the Content Reader manual-add affordance — operator wanted to paste URLs from their own Google searches into the corpus regardless of domain, on the principle that Rule 5 (operator decides per item) trumps Rule 1 (pack-output filter) for manual flows. Pack layer still enforces Rule 1; manual flow logs the URL as-is and a small "off-domain" chip surfaces in the preview UI as information, not as a block.
 tags:
   - Spec
   - Augment-It
@@ -77,6 +78,35 @@ A future implementation MAY choose to enforce at only one layer for
 simplicity, but enforcement at the pack layer is preferred because
 it stops the bad data at the source instead of letting it
 accumulate in the store and then filtering it on display.
+
+### Rule 1 addendum — manual additions ride Rule 5, not Rule 1
+
+Added 2026-06-08 alongside the Content Reader manual-add affordance.
+
+Rule 1 binds **pack outputs** (`content_ingest.preview` and the pack
+layer itself). When the operator pastes a URL from their own search
+into the per-card "+ add URL manually" affordance, the URL is fetched
+via Jina, written to corpus, and the corpus markdown's frontmatter
+records the URL as-is. **Same-host is not enforced for manual adds.**
+
+Why this is consistent rather than a loophole:
+
+- Rule 5 ("the operator decides what enters the corpus, per item")
+  is the authority spine of this workflow. Rule 1 exists because pack
+  discovery is broad and noisy and needs a hard filter to keep the
+  per-funder corpus shape coherent. The operator pasting a URL is a
+  different signal — they've already done the discovery, the filter
+  isn't theirs to fight.
+- The URL is logged correctly in the corpus frontmatter
+  (`exact_url:`, `pack_id: manual`), so downstream cross-funder
+  analysis can re-impose domain-based filters from the data itself if
+  it wants to. Nothing is lost.
+- The UI surfaces an "off-domain" chip on the preview as information,
+  not as a block.
+
+The pack layer (`official-blog-pack`, future content packs) keeps
+enforcing Rule 1 on emitted candidates — that's where the rule lives
+and where it earns its keep.
 
 ### Rule 2 — Navigation pages are not content
 
@@ -220,21 +250,29 @@ into the response store. Per-row outcomes:
 
 The operator opens the review surface (today: Content Reader inside
 Response Reviewer; future: a dedicated corpus-browser may emerge).
-For each record:
+For each record, two add paths share the same preview-then-add UX:
 
-- Click "Preview content" — server fetches the body of each
-  pack-discovered article URL via Jina, returns title + excerpt +
-  fetched-at.
-- Optionally edit the title.
-- Optionally add tags (free-text for v0.0.1; controlled vocabulary
-  later).
-- Click "+ add to corpus" — writes a markdown file with the
-  spec'd frontmatter to
-  `clients/<client>/corpus/<funder-slug>/`.
+**5a — Pack-discovered URLs (the default path).** Click "Preview
+content" — server fetches the body of each pack-discovered article URL
+via Jina, returns title + excerpt + fetched-at. Per item: optionally
+edit the title, optionally add tags (free-text for v0.0.1; controlled
+vocabulary later), click "+ add to corpus" — writes a markdown file
+with the spec'd frontmatter to
+`clients/<client>/corpus/<funder-slug>/`. Already-in-corpus items
+don't appear in the preview list (Rule 6). Records with zero pack
+responses still appear (Rule 7) with a "fire from Pack Runner"
+suggestion.
 
-Already-in-corpus items don't appear in the preview list (Rule 6).
-Records with zero pack responses still appear (Rule 7) with a
-"fire from Pack Runner" suggestion.
+**5b — Manual URL (the operator-found path, added 2026-06-08).** Every
+card has a collapsed "+ add URL manually" affordance. The operator
+expands it, pastes a URL they found via their own Google search, and
+clicks Preview. The server fetches via Jina and returns the same
+preview shape; the operator edits title + tags and clicks "+ add to
+corpus" exactly as for 5a. The corpus markdown carries `pack_id:
+manual` and a synthetic `response_id: manual-<ts>-<rand>`. **Rule 1
+(same-host) is not enforced** — see the Rule 1 addendum above. The UI
+surfaces an "off-domain" chip in the preview as information, not as a
+block.
 
 ### Step 6 — Commit the corpus and use it
 

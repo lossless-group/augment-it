@@ -1189,3 +1189,61 @@
   color: var(--color-text-muted);
   white-space: nowrap;
 }
+
+/* Manual URL add — operator pastes a URL they found via their own search.
+ * Collapsed by default; expands into a paste field + preview + add. */
+.resp-app .cr-manual {
+  display: flex; flex-direction: column; gap: 0.4rem;
+}
+.resp-app .cr-manual-toggle {
+  align-self: flex-start;
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: 3px;
+  padding: 0.2rem 0.55rem;
+  font: 0.74rem var(--font-mono);
+  cursor: pointer;
+}
+.resp-app .cr-manual-toggle:hover { color: var(--color-text); border-color: var(--color-accent); }
+.resp-app .cr-manual-toggle[aria-expanded="true"] {
+  color: var(--color-text);
+  border-style: solid;
+}
+.resp-app .cr-manual-body {
+  display: flex; flex-direction: column; gap: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--color-field);
+  border-radius: 3px;
+}
+.resp-app .cr-manual-input-row { display: flex; gap: 0.4rem; align-items: stretch; }
+.resp-app .cr-manual-input {
+  flex: 1;
+  background: var(--color-surface, transparent);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 0.3rem 0.5rem;
+  font: 0.78rem var(--font-mono);
+  min-width: 0;
+}
+.resp-app .cr-manual-input:focus { outline: 1px solid var(--color-accent); }
+.resp-app .cr-manual-preview-btn {
+  background: var(--color-field);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  padding: 0.3rem 0.7rem;
+  border-radius: 3px;
+  font: 600 0.74rem var(--font-mono);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.resp-app .cr-manual-preview-btn:hover:not(:disabled) { border-color: var(--color-accent); }
+.resp-app .cr-manual-preview-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.resp-app .cr-manual-preview {
+  background: var(--color-surface, rgba(255, 255, 255, 0.02));
+}
+.resp-app .cr-domain-off {
+  background: var(--color-warning-bg, #5a3d00);
+  color: var(--color-warning-text, #ffd28a);
+}
