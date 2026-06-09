@@ -28,6 +28,23 @@ export type AddCorpusArgs = {
   extra_metadata: Record<string, unknown>;
 };
 
+// Per [[Corpus-Inbox-Capture-and-Triage]] §Frontmatter schema. Lands at
+// clients/<client_id>/corpus/inbox/<date>_<slug>.md with the extended
+// captured_* + triaged_* sibling blocks. funder_slug is the literal
+// string "inbox" and record_id / response_id are null until triage.
+export type AddInboxArgs = {
+  client_id: string;
+  url: string;
+  title: string;
+  tags: string[];
+  fetched_at: string;
+  markdown_body: string;
+  extra_metadata: Record<string, unknown>;
+  captured_from: 'content-reader' | 'chat-verb' | 'chat-paste' | 'plugin' | 'inbox-direct';
+  captured_note: string;            // empty string allowed
+  captured_session_id: string;      // empty string allowed
+};
+
 export type CorpusEntry = {
   corpus_path: string;
   response_id: string | null;
@@ -67,6 +84,81 @@ export async function addToCorpus(
   const written_at = new Date().toISOString();
   const corpus_path = target.replace(`${CLIENTS_ROOT}/`, '');
   return { corpus_path, written_at };
+}
+
+export async function addToInbox(
+  args: AddInboxArgs,
+): Promise<{ corpus_path: string; written_at: string }> {
+  const baseDir = join(CLIENTS_ROOT, args.client_id, 'corpus', 'inbox');
+  await mkdir(baseDir, { recursive: true });
+
+  const datePart =
+    args.fetched_at.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ??
+    new Date().toISOString().slice(0, 10);
+  const slug = slugify(args.title || args.url);
+  let filename = `${datePart}_${slug}.md`;
+  let target = join(baseDir, filename);
+
+  let tries = 0;
+  while (await exists(target)) {
+    const suffix = Math.random().toString(36).slice(2, 6);
+    filename = `${datePart}_${slug}_${suffix}.md`;
+    target = join(baseDir, filename);
+    tries += 1;
+    if (tries > 8) throw new Error('exhausted collision-suffix attempts');
+  }
+
+  const frontmatter = buildInboxFrontmatter(args);
+  const body = args.markdown_body.trim();
+  const file = body.length === 0 ? `${frontmatter}\n` : `${frontmatter}\n${body}\n`;
+  await writeFile(target, file, 'utf8');
+
+  const written_at = new Date().toISOString();
+  const corpus_path = target.replace(`${CLIENTS_ROOT}/`, '');
+  return { corpus_path, written_at };
+}
+
+function buildInboxFrontmatter(args: AddInboxArgs): string {
+  const lines: string[] = [];
+  lines.push('---');
+  lines.push(`title: ${yamlString(args.title)}`);
+  lines.push(`exact_url: ${yamlString(args.url)}`);
+  lines.push(`fetched_at: ${args.fetched_at}`);
+  lines.push(`client_id: ${yamlString(args.client_id)}`);
+  lines.push(`funder_slug: "inbox"`);
+  lines.push(`record_id: null`);
+  lines.push(`response_id: null`);
+  lines.push(`pack_id: "inbox"`);
+  if (args.tags.length === 0) {
+    lines.push('tags: []');
+  } else {
+    lines.push('tags:');
+    for (const t of args.tags) lines.push(`  - ${yamlString(t)}`);
+  }
+  // captured_* block — set at capture, immutable.
+  lines.push(`inbox_status: "pending"`);
+  lines.push(`captured_at: ${args.fetched_at}`);
+  lines.push(`captured_from: ${yamlString(args.captured_from)}`);
+  lines.push(`captured_note: ${yamlString(args.captured_note)}`);
+  if (args.captured_session_id) {
+    lines.push(`captured_session_id: ${yamlString(args.captured_session_id)}`);
+  } else {
+    lines.push(`captured_session_id: null`);
+  }
+  // triaged_* block — null until triage runs.
+  lines.push(`triaged_at: null`);
+  lines.push(`triaged_to: null`);
+  lines.push(`triaged_by: null`);
+  lines.push(`triaged_note: null`);
+  const extraYaml = renderExtraMetadata(args.extra_metadata, 2);
+  if (extraYaml.length === 0) {
+    lines.push('extra_metadata: {}');
+  } else {
+    lines.push('extra_metadata:');
+    lines.push(...extraYaml);
+  }
+  lines.push('---');
+  return lines.join('\n');
 }
 
 export async function listForRecord(args: {

@@ -25,6 +25,11 @@
   function isPromptCapability(cap: string): boolean {
     return cap === 'prompt.draft' || cap === 'prompt.improve';
   }
+
+  function inboxResult(result: unknown): { corpus_path?: string; written_at?: string } | null {
+    if (result && typeof result === 'object') return result as { corpus_path?: string; written_at?: string };
+    return null;
+  }
 </script>
 
 {#if turn.kind === 'user'}
@@ -79,6 +84,17 @@
 {:else if turn.kind === 'capability_result'}
   {#if turn.ok && isPromptCapability(turn.capability)}
     <PromptDraftPanel result={turn.result} capability={turn.capability} ts={turn.ts} />
+  {:else if turn.ok && turn.capability === 'corpus.inbox.add'}
+    {@const r = inboxResult(turn.result)}
+    <div class="turn system">
+      <div class="bubble result inbox">
+        ✓ Saved to inbox
+        {#if r?.corpus_path}
+          <div class="inbox-path"><code>{r.corpus_path}</code></div>
+        {/if}
+      </div>
+      <div class="meta">{fmtTs(turn.ts)}</div>
+    </div>
   {:else}
     <div class="turn system">
       <div class="bubble result" class:fail={!turn.ok}>

@@ -133,6 +133,12 @@
   font-family: var(--font-mono, monospace);
 }
 .chat-app .bubble.result.fail { color: var(--color-warn, #c66); border-color: var(--color-warn, #c66); }
+.chat-app .bubble.result.inbox {
+  color: var(--color-text);
+  border-color: var(--color-accent);
+}
+.chat-app .inbox-path { margin-top: 0.3rem; font-size: 11px; opacity: 0.8; }
+.chat-app .inbox-path code { word-break: break-all; }
 .chat-app .bubble.error {
   background: var(--color-field);
   border: 1px solid var(--color-warn, #c66);

@@ -36,7 +36,7 @@
 import { JSONCodec, type NatsConnection } from 'nats';
 import { fetchViaJina } from './jina';
 import * as cache from './cache';
-import { addToCorpus, listForRecord, type CorpusEntry } from './corpus';
+import { addToCorpus, addToInbox, listForRecord, type CorpusEntry } from './corpus';
 import { isNavigationUrl, isSameDomain } from './filters';
 
 const jc = JSONCodec();
@@ -278,6 +278,88 @@ export function registerHandlers(nc: NatsConnection): void {
             record_id: args.record_id,
             response_id: args.response_id,
             corpus_path: written.corpus_path,
+          }),
+        );
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // corpus.inbox.add — operator-pasted URL → corpus/<client>/corpus/inbox/.
+  // Per [[Corpus-Inbox-Capture-and-Triage]] v0.0.0.2 — Vector 2a (/inbox
+  // verb) and Vector 2b (conversational paste) share this same handler.
+  (async () => {
+    const sub = nc.subscribe('corpus.inbox.add.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as {
+        client_id: string;
+        url: string;
+        note?: string;
+        tags?: string[];
+        captured_from?: 'content-reader' | 'chat-verb' | 'chat-paste' | 'plugin' | 'inbox-direct';
+        captured_session_id?: string;
+        fetch?: boolean;
+      };
+      try {
+        const url = args.url?.trim();
+        if (!url) throw new Error('url is required');
+        let parsed: URL;
+        try {
+          parsed = new URL(url);
+        } catch {
+          throw new Error('url is not a valid absolute URL');
+        }
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          throw new Error(`unsupported protocol: ${parsed.protocol}`);
+        }
+        const shouldFetch = args.fetch !== false;
+        let title = url;
+        let markdown_body = '';
+        let fetched_at = new Date().toISOString();
+        let extra_metadata: Record<string, unknown> = {};
+        if (shouldFetch) {
+          let result = cache.get(url);
+          if (!result) {
+            result = await fetchViaJina(url);
+            cache.set(url, result);
+          }
+          if (result.ok) {
+            title = result.title;
+            markdown_body = result.markdown;
+            fetched_at = result.fetched_at;
+            extra_metadata = result.extra;
+          } else {
+            // Fetch failed — still write a stub so the URL isn't lost.
+            extra_metadata = {
+              jina_status: 'fetch_failed',
+              jina_error: result.error,
+            };
+          }
+        } else {
+          extra_metadata = { jina_status: 'not_fetched' };
+        }
+        const written = await addToInbox({
+          client_id: args.client_id,
+          url,
+          title,
+          tags: args.tags ?? [],
+          fetched_at,
+          markdown_body,
+          extra_metadata,
+          captured_from: args.captured_from ?? 'inbox-direct',
+          captured_note: args.note ?? '',
+          captured_session_id: args.captured_session_id ?? '',
+        });
+        if (msg.reply) msg.respond(jc.encode(written));
+        nc.publish(
+          'corpus.inbox.added',
+          jc.encode({
+            client_id: args.client_id,
+            url,
+            corpus_path: written.corpus_path,
+            captured_from: args.captured_from ?? 'inbox-direct',
           }),
         );
       } catch (err: unknown) {

@@ -98,6 +98,9 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'content_ingest.preview_url': 'content_ingest.preview_url.requested',
   'corpus.add': 'corpus.add.requested',
   'corpus.list_for_record': 'corpus.list_for_record.requested',
+  // Corpus Inbox — capture-first destination. v0.0.1 ships the add path;
+  // list + triage handlers come later per [[Corpus-Inbox-Capture-and-Triage]].
+  'corpus.inbox.add': 'corpus.inbox.add.requested',
 };
 
 const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
@@ -134,6 +137,8 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'content_ingest.preview_url': 60_000,
   // corpus.add re-uses warm cache or re-fetches once via Jina.
   'corpus.add': 30_000,
+  // One Jina fetch + filesystem write; same envelope as corpus.add.
+  'corpus.inbox.add': 30_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {

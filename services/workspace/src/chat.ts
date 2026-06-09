@@ -57,6 +57,15 @@ prompt.improve — Refine an existing draft with feedback. Returns a new draft l
 
 prompt.apply — Bind a draft prompt to a record set and run it. Flips status to 'applied' on success.
   args: { prompt_id: string, record_set_id: string, row_limit?: number }
+
+corpus.inbox.add — Save a URL to the operator's Corpus Inbox for later triage. The capture-first destination for URLs the operator finds during research that don't yet have a specific record home. Backend Jina-fetches the URL, writes a markdown file with frontmatter to clients/<client_id>/corpus/inbox/. Use chat_invoke when the user explicitly types "/inbox <url>" or asks to save/inbox/park a URL. The active client_id is in the context slab.
+  args: { client_id: string, url: string, note?: string, tags?: string[], captured_from?: "chat-verb" | "chat-paste" }
+
+VERB RECOGNITION SHORTCUTS:
+- "/inbox <url>" → chat_invoke corpus.inbox.add with captured_from: "chat-verb"
+- "/inbox <url> [note text]" → same, with note populated from the trailing prose
+- "/inbox <url> #tag1 #tag2" → same, with hashtag tokens parsed into tags[]
+- "save this", "park this", "inbox this", "remember this URL" + a URL → chat_invoke corpus.inbox.add with captured_from: "chat-verb"
 `;
 
 // Slab 3 — active skills. Empty in v0.0.1; cache breakpoint reserved.
@@ -100,7 +109,7 @@ export const CHAT_TOOLS = [
             properties: {
               capability: {
                 type: 'string',
-                enum: ['prompt.draft', 'prompt.improve', 'prompt.apply'],
+                enum: ['prompt.draft', 'prompt.improve', 'prompt.apply', 'corpus.inbox.add'],
               },
               hint: { type: 'string', description: 'One-line label for the affordance button.' },
               args: {
@@ -160,11 +169,14 @@ function suggestedVerbsSlab(suggestions?: { capability: string; hint: string }[]
 }
 
 function contextSlab(ctx?: ChatTurnInput['context']): string {
-  if (!ctx) return '';
   const parts: string[] = [];
-  if (ctx.focused_prompt_id) parts.push(`The user is currently looking at prompt: ${ctx.focused_prompt_id}`);
-  if (ctx.record_set_id) parts.push(`The user is currently in record set: ${ctx.record_set_id}`);
-  return parts.length === 0 ? '' : parts.join('\n') + '\n';
+  // Active client — v0.0.1 hardcodes reach-edu (the only client today).
+  // The architecture spec (Chat-Context-Awareness-Architecture) will replace
+  // this with a workspace-resolved active_client_id once a second client lands.
+  parts.push(`The active client is: reach-edu (this is the client_id arg for corpus.inbox.add and any other client-scoped capability).`);
+  if (ctx?.focused_prompt_id) parts.push(`The user is currently looking at prompt: ${ctx.focused_prompt_id}`);
+  if (ctx?.record_set_id) parts.push(`The user is currently in record set: ${ctx.record_set_id}`);
+  return parts.join('\n') + '\n';
 }
 
 /**
