@@ -1,15 +1,16 @@
 ---
 title: "Corpus Inbox — capture first, triage later; a zero-friction save destination for URLs without a home yet, with a future triage layer that sorts inbox content into the right places"
-lede: "While researching funders the operator finds URLs that don't yet have a home — articles about the right funder but at a different angle than the active record, cross-funder pieces mentioning several records at once, sector reports, regulatory documents, downloadable PDFs, destination sites worth remembering. The existing Content Reader manual-add affordance requires an active record context; without one the operator either makes a premature filing decision or loses the URL to a tab graveyard. Corpus Inbox is the missing third path: a zero-friction `clients/<client>/corpus/inbox/` destination that captures the URL + Jina-fetched body + operator's drive-by note, holds it in pending state, and waits for triage. Capture vectors at v1: a dedicated microfrontend (`apps/corpus-inbox/`) and a chat verb (`/inbox <url>`); a future browser-plugin capture vector slots in cleanly per the [[../explorations/In-App-Browser-Or-Plugin-For-Corpus-Add]] sketch. The triage layer — direct UI or agent-chat harness that routes inbox items to `corpus/<funder-slug>/`, `corpus/reference/<topic>/`, or `discard` — is scoped here but specced separately. This spec is the *prerequisite* for healthy manual-add work: without an inbox the operator can't research freely without paying a filing tax on every discovery."
+lede: "While researching funders the operator finds URLs that don't yet have a home — articles about the right funder but at a different angle than the active record, cross-funder pieces mentioning several records at once, sector reports, regulatory documents, downloadable PDFs, destination sites worth remembering. The existing Content Reader manual-add affordance requires an active record context; without one the operator either makes a premature filing decision or loses the URL to a tab graveyard. Corpus Inbox is the missing third path: a zero-friction `clients/<client>/corpus/inbox/` destination that captures the URL + Jina-fetched body + operator's drive-by note, holds it in pending state, and waits for triage. Capture vectors at v1: a dedicated microfrontend (`apps/corpus-inbox/`), a `/inbox <url>` chat verb, AND a verb-less conversational path where pasting a bare URL into the agent-chat triggers an 'inbox this?' confirmation (the friction-minimum path for operators who don't want to remember a command); a future browser-plugin capture vector slots in cleanly per the [[../explorations/In-App-Browser-Or-Plugin-For-Corpus-Add]] sketch. The triage layer — direct UI or agent-chat harness that routes inbox items to `corpus/<funder-slug>/`, `corpus/reference/<topic>/`, or `discard` — is scoped here but specced separately. This spec is the *prerequisite* for healthy manual-add work: without an inbox the operator can't research freely without paying a filing tax on every discovery."
 date_created: 2026-06-08
 date_modified: 2026-06-08
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7 (1M context)
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 revisions:
   - 2026-06-08 — Initial draft. Written immediately after shipping the Content Reader manual-URL add ([[Funder-Content-Corpus-Workflow]] v0.0.0.2, Step 5b). The operator's framing: *"I don't want to proceed to augment with human-searched links for record-focused corpus content without having some way to capture everything I am seeing."* Inbox is gating further per-record manual-add work — capture has to be cheap before triage can be deliberate.
+  - 2026-06-08 — Added Vector 2b: conversational paste-without-verb. Operator pastes a raw URL into the agent-chat (no `/inbox` prefix) and the agent recognizes the inbox-worthy shape, asks "save this to your inbox?" with optional note/tag prompts, then runs `corpus.inbox.add` on yes. The verb-less path is friction-minimum for the "I just want to dump this without remembering the command" rhythm; the verb stays for operators who prefer explicit-command muscle memory. Backend is identical to Vector 2a — same capability, same on-disk shape. Operator framing: *"copy and paste a link directly into the agent-chat and have it ask if this should go to the inbox, if so, the agent runs the commands on the backend."*
 tags:
   - Spec
   - Augment-It
@@ -158,7 +159,7 @@ tags:
 # NEW — inbox capture block:
 inbox_status: "pending"            # pending | triaged | discarded | archived
 captured_at: 2026-06-09T14:32:11.000Z
-captured_from: "content-reader"    # content-reader | chat | plugin | inbox-direct
+captured_from: "content-reader"    # content-reader | chat-verb | chat-paste | plugin | inbox-direct
 captured_note: "looks relevant to Reach apprenticeship work; revisit when triaging Schusterman row"
 captured_session_id: "..."         # optional — for "review my captures from today" queries
 
@@ -235,12 +236,30 @@ CSS namespace and mount conventions follow
 [[Response-Reviewer-Shell-and-Content-Reader-Mode]] §Federation
 shape (mirrored from the existing remotes' patterns).
 
-### Vector 2 — `/inbox` chat verb
+### Vector 2 — Agent-chat capture (two sub-modes, shared backend)
 
-The Augment-It chat surface (`apps/chat/`) gets a new verb. The
-friction-minimum capture path — useful when the operator is reading
-something elsewhere and wants to file it without leaving the surface
-they're on.
+The Augment-It chat surface (`apps/chat/`) is the second capture
+vector and has **two sub-modes** that share the same
+`corpus.inbox.add` capability. Both are valuable, and they serve
+different operator habits:
+
+- **2a (explicit verb)** is for operators who want zero-prompt,
+  zero-confirmation capture and have the `/inbox` command in muscle
+  memory.
+- **2b (conversational paste)** is for operators who want to dump a
+  URL into chat without remembering a command, and don't mind a
+  one-tap confirmation in exchange.
+
+The user-locked framing for 2b, 2026-06-08: *"copy and paste a link
+directly into the agent-chat and have it ask if this should go to
+the inbox, if so, the agent runs the commands on the backend."*
+
+#### Vector 2a — `/inbox <url>` explicit verb
+
+The friction-minimum *command* path — useful when the operator is
+reading something elsewhere and wants to file it without leaving the
+surface they're on. No agent reasoning step, no confirmation prompt,
+just a direct call.
 
 Shape, with progressively richer forms:
 
@@ -251,14 +270,139 @@ Shape, with progressively richer forms:
 /inbox https://example.com/path "note text" #tag-a #tag-b
 ```
 
-Resolves to the same `corpus.inbox.add` capability the microfrontend
-uses. Chat returns a one-line confirmation with the `corpus_path` and
-a `[browse inbox]` link that pops the corpus-inbox remote into the
-shell.
+Resolves to the `corpus.inbox.add` capability. Chat returns a
+one-line confirmation with the `corpus_path` and a `[browse inbox]`
+link that pops the corpus-inbox remote into the shell.
 
 Per [[../explorations/Agent-Chat-Skills-and-Commands-Candidates]] the
 verb gets registered in the verb roster; `/inbox` is a simple
 non-destructive read-write capability so the gating shape is mild.
+
+#### Vector 2b — Conversational paste (no verb)
+
+The friction-minimum *no-command* path — operator pastes a bare URL
+into the chat, the agent recognizes the inbox-worthy shape and asks
+a single-button confirmation. On yes, the agent calls
+`corpus.inbox.add` with sensible defaults; on no, the URL is left
+alone (treated as conversational context for whatever the operator
+is actually doing).
+
+##### Trigger detection — when does the agent offer to inbox?
+
+The agent watches incoming chat messages for URL-shaped tokens.
+"Inbox-worthy shape" is locked as **the message contains a URL and
+either (a) the URL is the whole message after trimming, or (b) the
+URL is accompanied by ≤ ~80 chars of prose that reads as a
+drive-by note rather than a question or instruction.**
+
+Worked examples — would offer inbox:
+
+```
+https://example.com/path
+https://example.com/path                                ← bare URL, whitespace only
+https://example.com/path looks relevant to Schusterman   ← URL + short note
+https://example.com/path #workforce-dev                  ← URL + hashtag-style tag
+"looks great" https://example.com/path                   ← short prefix + URL
+```
+
+Would NOT offer inbox (URL is reference, not save-intent):
+
+```
+what do you think about https://example.com/path?        ← clearly a question
+can you summarize https://example.com/path for me        ← clearly an instruction
+the article at https://example.com/path conflicts with what we found yesterday, can you reconcile?
+                                                         ← long context, URL is reference
+```
+
+The classifier is **a small per-message LLM step** (Haiku-class, the
+same tier used by relevance scoring in [[Entity-Pulse-Bundle]] —
+cheap, fast, no need for the heavy model). Prompt asks "is this
+operator's intent to save this URL for later, or to ask me something
+about it?" Returns `intent: 'save' | 'question' | 'instruction' |
+'unclear'`. Only `save` triggers the offer.
+
+The classifier defaults conservatively — on `unclear`, the agent
+*asks* rather than silently inboxing. Better to nudge and let the
+operator dismiss than to inbox a URL they wanted you to read aloud.
+
+##### The confirmation prompt — single-button + optional fields
+
+When the agent decides to offer, the chat surface renders an inline
+prompt below the operator's pasted URL:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Save to inbox?                                                │
+│                                                              │
+│ https://example.com/path                                     │
+│ (fetching title…)                                            │
+│                                                              │
+│ Note  ┌────────────────────────────────────────┐  (optional) │
+│       │                                        │              │
+│       └────────────────────────────────────────┘              │
+│ Tags  workforce-dev, state-policy           (optional)       │
+│                                                              │
+│ [✓ Save to inbox]   [✗ Not now]   [⤴ Send to a record …]    │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Notes:
+
+- **Title pre-fetch.** As soon as the agent offers, it fires a
+  background `corpus.inbox.preview` (a thin wrapper around the
+  existing `content_ingest.preview_url`) so the title and excerpt
+  appear in the confirmation card before the operator clicks. The
+  fetch is warm-cached by Jina; if the operator confirms, the
+  `corpus.inbox.add` reuses the cache for free.
+- **Note pre-fill.** If the message included prose alongside the
+  URL ("looks relevant to Schusterman"), the prose is suggested as
+  the default note. Operator can edit or clear.
+- **Tag detection.** Hashtag-style tokens (`#workforce-dev`) in the
+  message are pre-extracted into the tags field. Operator can edit
+  or clear.
+- **Third button — "Send to a record."** Escape hatch for "this
+  isn't inbox-shaped, it belongs to a specific record I have in
+  mind." Opens a record-set picker, then routes the URL through the
+  same path the Content Reader manual-add uses (writes to
+  `corpus/<funder-slug>/` instead of `inbox/`). Same backend
+  plumbing, different `funder_slug`.
+
+##### Off-mode behaviour — keep it forgivable
+
+- **"Not now" never blocks the chat conversation.** The URL stays in
+  the operator's message verbatim; the agent goes on to do whatever
+  it was going to do with the message (answer the question, etc.).
+- **Snooze-this-host pattern.** If the operator dismisses an offer
+  for a host three times in a row (e.g. `github.com` URLs they
+  paste while chatting about code, not about funders), the agent
+  learns to skip the offer for that host for the rest of the
+  session. Cheap heuristic, no backend storage; resets on session
+  start. Per-host preference persistence is a v2 question.
+- **Always-allow per-host.** A small "always offer for this host"
+  toggle inside the confirmation card lets the operator pin trusted
+  hosts (e.g. the foundation directory site they live in for an
+  afternoon). Stored per-session in v1; persisted per-client in v2.
+
+##### Why this is its own vector (not just the agent inferring `/inbox`)
+
+Sub-mode 2b could in principle be implemented as "agent silently
+runs `/inbox` when it sees a URL," but the confirmation step is
+load-bearing for two reasons:
+
+1. **Audit clarity.** The operator should *see* the agent decide to
+   save before it saves. Silent saves create a "where did this come
+   from" debugging surface later, especially in a session with many
+   URLs in conversation.
+2. **Intent ambiguity is real.** Operators paste URLs into chat for
+   many reasons (asking a question, sharing a reference, dropping
+   context for a multi-turn task). The classifier will be wrong some
+   of the time; the confirmation is the cheap correction loop. As
+   the classifier improves (operator-specific tuning over time) the
+   confirmation friction can be downgraded to a "saved — undo?"
+   toast.
+
+So 2a and 2b stay as **siblings, not a hierarchy**. Same backend,
+different operator habits.
 
 ### Vector 3 — Browser plugin / bookmarklet (future)
 
@@ -305,6 +449,41 @@ Internally:
 Shares Jina cache + frontmatter writer + collision-suffix logic with
 the existing `corpus.add`; should land as a thin variant rather than
 a parallel implementation.
+
+### `corpus.inbox.preview` (v1, for Vector 2b)
+
+```
+{ url } → PreviewResult
+```
+
+Thin alias for the existing `content_ingest.preview_url` capability,
+exposed under the `corpus.inbox.*` namespace for chat-side
+discoverability. Used by the conversational-paste confirmation card
+to pre-fetch title + excerpt while the operator decides. Reuses the
+same Jina cache, so a confirmed inbox-add is free.
+
+Could be skipped (chat just calls `content_ingest.preview_url`
+directly), but having the namespaced alias keeps the chat-side
+capability surface coherent ("everything an `/inbox` flow needs
+lives under `corpus.inbox.*`").
+
+### `corpus.inbox.classify_intent` (v1, for Vector 2b)
+
+```
+{ message_text } → { intent: 'save' | 'question' | 'instruction' | 'unclear', extracted_url?, extracted_note?, extracted_tags? }
+```
+
+The per-message LLM classifier for the conversational-paste vector.
+Wraps a Haiku-class prompt that decides whether the operator is
+trying to save the URL or trying to do something else with it.
+Extracts the URL, candidate note (prose accompanying the URL), and
+candidate tags (hashtag-style tokens) for the confirmation card to
+pre-fill.
+
+The chat surface calls this on every incoming message that contains
+a URL; cheap and cacheable. Cost discipline applies — batch where
+possible, skip when the message has no URL token at all (regex
+short-circuit).
 
 ### `corpus.inbox.list` (v1)
 
@@ -456,6 +635,31 @@ connector palette and Content Reader.
   independently. `captured_session_id` is optional metadata for
   "review my captures from today" queries. Lean: don't gate any
   behaviour on session — captures are durable per-client artefacts.
+- **Vector 2b classifier conservatism.** On `intent: 'unclear'`,
+  should the agent offer (and let the operator dismiss) or stay
+  silent (and let the operator type `/inbox` if they wanted to)?
+  Lean: **offer.** Dismissing is one click; missing a capture costs
+  the URL. Reconsider if dismiss-rate is high enough to be
+  annoying.
+- **Vector 2b classifier learning.** As the operator dismisses /
+  confirms over time, should the classifier adapt? Per-operator
+  fine-tuning is overkill at our scale; per-operator *prompt
+  shaping* (e.g. "this operator often pastes GitHub URLs for code
+  questions; deprioritize save-intent for github.com") is feasible.
+  Lean: ship the static classifier in v1, revisit after watching
+  real dismissals.
+- **Vector 2b "Send to a record" path.** The third button on the
+  confirmation card opens a record-set picker. How does it pick
+  *which* record set when the chat session has none active? Lean:
+  default to the operator's most-recently-touched record set
+  (workspace can already answer this); fall back to a picker if
+  none.
+- **Vector 2b and the per-host preference store.** Snooze + always-
+  allow are in-session in v1. Per-client persistence (per
+  [[../explorations/Per-Client-Privacy-and-the-Path-Off-Local]]
+  Path D) is a v2 candidate — store as a small `inbox-prefs.yaml`
+  inside the per-client repo so the preference moves with the
+  client.
 
 ## Migration / first concrete implementation step
 
@@ -467,17 +671,24 @@ connector palette and Content Reader.
    shell's port allocation should pick the next available — likely
    `:3010` given current allocations through `:3009`).
 3. **`/inbox` chat verb** wired to `corpus.inbox.add`. Capture
-   vector 2 is live.
-4. **Browse mode** in the microfrontend, read-only. Lists items,
+   Vector 2a is live.
+4. **Vector 2b — conversational paste**. Chat surface gains a
+   pre-send message hook that calls `corpus.inbox.classify_intent`
+   on any message containing a URL; on `intent: 'save'` (or
+   `'unclear'`), renders the inline confirmation card with
+   `corpus.inbox.preview` pre-fetching title/excerpt. Confirm →
+   `corpus.inbox.add`. Includes the per-host snooze + always-allow
+   in-session heuristics.
+5. **Browse mode** in the microfrontend, read-only. Lists items,
    filters by tag/status. Per
    [[../explorations/Agent-Chat-Skills-and-Commands-Candidates]],
    a `/inbox-list [--tag X] [--from Y]` chat verb can sibling this
    if useful.
-5. **Status-bar badge** in the shell — "N inbox items pending
+6. **Status-bar badge** in the shell — "N inbox items pending
    triage" — nudges the operator.
-6. **(Parallel) plugin / bookmarklet path** per the existing
+7. **(Parallel) plugin / bookmarklet path** per the existing
    exploration; defaults its destination to `corpus.inbox.add`.
-7. **Triage spec** when there's real inbox volume to triage
+8. **Triage spec** when there's real inbox volume to triage
    against. Path A direct UI ships first.
 
 Per the [[branch-cadence]] feedback memory: the microfrontend
