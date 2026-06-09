@@ -11,6 +11,7 @@
 
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { extensionFromContentType } from './binary-asset';
 
 const CLIENTS_ROOT = process.env.CLIENTS_ROOT ?? '/clients';
 
@@ -43,6 +44,39 @@ export type AddInboxArgs = {
   captured_from: 'content-reader' | 'chat-verb' | 'chat-paste' | 'plugin' | 'inbox-direct';
   captured_note: string;            // empty string allowed
   captured_session_id: string;      // empty string allowed
+  // Optional binary companion — when the source URL is a downloadable
+  // binary (v1: PDF). When buffer is non-null the writer writes a
+  // sibling file at `<slug>.<extension>`; when null (size_capped /
+  // http_error / fetch_failed) the frontmatter still carries the
+  // binary_asset block with download_status set so the operator can see
+  // we tried.
+  binary_asset?: {
+    buffer: Buffer | null;
+    content_type: string;
+    size_bytes: number;
+    sha256: string;
+    downloaded_at: string;
+    download_status: 'ok' | 'size_capped' | 'http_error' | 'unsupported_type' | 'fetch_failed';
+  };
+};
+
+export type BinaryDownloadStatus =
+  | 'ok'
+  | 'size_capped'
+  | 'http_error'
+  | 'unsupported_type'
+  | 'fetch_failed';
+
+export type InboxWriteResult = {
+  corpus_path: string;
+  written_at: string;
+  binary_asset?: {
+    filename: string | null;
+    size_bytes: number;
+    sha256: string;
+    sha256_short: string;
+    download_status: BinaryDownloadStatus;
+  } | null;
 };
 
 export type CorpusEntry = {
@@ -86,9 +120,7 @@ export async function addToCorpus(
   return { corpus_path, written_at };
 }
 
-export async function addToInbox(
-  args: AddInboxArgs,
-): Promise<{ corpus_path: string; written_at: string }> {
+export async function addToInbox(args: AddInboxArgs): Promise<InboxWriteResult> {
   const baseDir = join(CLIENTS_ROOT, args.client_id, 'corpus', 'inbox');
   await mkdir(baseDir, { recursive: true });
 
@@ -96,29 +128,58 @@ export async function addToInbox(
     args.fetched_at.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ??
     new Date().toISOString().slice(0, 10);
   const slug = slugify(args.title || args.url);
-  let filename = `${datePart}_${slug}.md`;
-  let target = join(baseDir, filename);
+  let stem = `${datePart}_${slug}`;
+  let mdFilename = `${stem}.md`;
+  let mdTarget = join(baseDir, mdFilename);
 
+  // The collision-suffix loop runs against the .md path; the binary
+  // sibling reuses the resolved stem so the pair stays atomic.
   let tries = 0;
-  while (await exists(target)) {
+  while (await exists(mdTarget)) {
     const suffix = Math.random().toString(36).slice(2, 6);
-    filename = `${datePart}_${slug}_${suffix}.md`;
-    target = join(baseDir, filename);
+    stem = `${datePart}_${slug}_${suffix}`;
+    mdFilename = `${stem}.md`;
+    mdTarget = join(baseDir, mdFilename);
     tries += 1;
     if (tries > 8) throw new Error('exhausted collision-suffix attempts');
   }
 
-  const frontmatter = buildInboxFrontmatter(args);
+  // Resolve the binary companion (if any) so the frontmatter can name
+  // its sibling filename.
+  const binary = args.binary_asset ?? null;
+  const ext = binary && binary.download_status === 'ok'
+    ? extensionFromContentType(binary.content_type)
+    : null;
+  const binaryFilename = binary && binary.buffer && ext ? `${stem}${ext}` : null;
+
+  const frontmatter = buildInboxFrontmatter(args, binaryFilename);
   const body = args.markdown_body.trim();
   const file = body.length === 0 ? `${frontmatter}\n` : `${frontmatter}\n${body}\n`;
-  await writeFile(target, file, 'utf8');
+  await writeFile(mdTarget, file, 'utf8');
+
+  if (binary && binary.buffer && binaryFilename) {
+    await writeFile(join(baseDir, binaryFilename), binary.buffer);
+  }
 
   const written_at = new Date().toISOString();
-  const corpus_path = target.replace(`${CLIENTS_ROOT}/`, '');
-  return { corpus_path, written_at };
+  const corpus_path = mdTarget.replace(`${CLIENTS_ROOT}/`, '');
+  const result: InboxWriteResult = { corpus_path, written_at };
+  if (binary) {
+    result.binary_asset = {
+      filename: binaryFilename,
+      size_bytes: binary.size_bytes,
+      sha256: binary.sha256,
+      sha256_short: binary.sha256.slice(0, 8),
+      download_status: binary.download_status,
+    };
+  }
+  return result;
 }
 
-function buildInboxFrontmatter(args: AddInboxArgs): string {
+function buildInboxFrontmatter(
+  args: AddInboxArgs,
+  binaryFilename: string | null,
+): string {
   const lines: string[] = [];
   lines.push('---');
   lines.push(`title: ${yamlString(args.title)}`);
@@ -150,6 +211,21 @@ function buildInboxFrontmatter(args: AddInboxArgs): string {
   lines.push(`triaged_to: null`);
   lines.push(`triaged_by: null`);
   lines.push(`triaged_note: null`);
+  // binary_asset block — present when the source URL is a downloadable
+  // binary (v1: PDF). Even on failure (size_capped / http_error /
+  // unsupported_type / fetch_failed) the block is emitted so the
+  // operator can see "we tried and this is why we don't have it";
+  // filename is null in the failure cases.
+  if (args.binary_asset) {
+    const ba = args.binary_asset;
+    lines.push('binary_asset:');
+    lines.push(`  filename: ${binaryFilename ? yamlString(binaryFilename) : 'null'}`);
+    lines.push(`  content_type: ${yamlString(ba.content_type)}`);
+    lines.push(`  size_bytes: ${ba.size_bytes}`);
+    lines.push(`  sha256: ${yamlString(ba.sha256)}`);
+    lines.push(`  downloaded_at: ${ba.downloaded_at}`);
+    lines.push(`  download_status: ${yamlString(ba.download_status)}`);
+  }
   const extraYaml = renderExtraMetadata(args.extra_metadata, 2);
   if (extraYaml.length === 0) {
     lines.push('extra_metadata: {}');

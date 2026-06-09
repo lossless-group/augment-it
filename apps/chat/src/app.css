@@ -139,6 +139,9 @@
 }
 .chat-app .inbox-path { margin-top: 0.3rem; font-size: 11px; opacity: 0.8; }
 .chat-app .inbox-path code { word-break: break-all; }
+.chat-app .inbox-binary { margin-top: 0.3rem; font-size: 11px; opacity: 0.85; }
+.chat-app .inbox-binary code { font-family: var(--font-mono, monospace); }
+.chat-app .inbox-binary.failed { color: var(--color-warn, #c66); opacity: 0.9; }
 .chat-app .bubble.error {
   background: var(--color-field);
   border: 1px solid var(--color-warn, #c66);
@@ -334,3 +337,98 @@
   cursor: pointer;
 }
 .chat-app .composer .send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* --- Commands popover (lives below the composer, opens upward) --- */
+.chat-app .commands-bar {
+  position: relative;
+  padding: 0.35rem 0.8rem 0.55rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+.chat-app .commands-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.chat-app .commands-trigger:hover,
+.chat-app .commands-trigger.open {
+  background: var(--color-field);
+  color: var(--color-text);
+  border-color: var(--color-accent);
+}
+.chat-app .commands-trigger .caret { font-size: 10px; line-height: 1; }
+.chat-app .commands-trigger .muted { color: var(--color-text-muted); }
+
+.chat-app .commands-popover {
+  position: absolute;
+  /* Open upward: bottom of the popover anchored to the top of the bar. */
+  bottom: calc(100% + 0.35rem);
+  left: 0.8rem;
+  right: 0.8rem;
+  max-width: 28rem;
+  max-height: 22rem;
+  overflow-y: auto;
+  background: var(--color-field, var(--color-bg));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25);
+  padding: 0.4rem 0;
+  z-index: 50;
+}
+.chat-app .commands-popover-head {
+  padding: 0.25rem 0.8rem 0.45rem;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+.chat-app .commands-popover ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.chat-app .commands-popover .command-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.8rem;
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  cursor: pointer;
+  border-top: 1px solid var(--color-border);
+}
+.chat-app .commands-popover li:first-child .command-row { border-top: none; }
+.chat-app .commands-popover .command-row:hover,
+.chat-app .commands-popover .command-row:focus-visible {
+  background: var(--color-bg);
+  outline: none;
+}
+.chat-app .commands-popover .command-verb {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--color-accent);
+  font-weight: 500;
+}
+.chat-app .commands-popover .command-summary {
+  font-size: 12px;
+  color: var(--color-text);
+  margin-top: 0.15rem;
+}
+.chat-app .commands-popover .command-example {
+  margin-top: 0.2rem;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.chat-app .commands-popover .command-example code {
+  font-family: var(--font-mono, monospace);
+  word-break: break-all;
+}

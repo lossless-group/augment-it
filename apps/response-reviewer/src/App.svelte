@@ -1236,6 +1236,13 @@
   let manualPreviewByRowId = $state<Record<string, PreviewResult | null>>({});
   let manualBusyRowId = $state<string>('');
   let manualErrorByRowId = $state<Record<string, string>>({});
+  // Interim "save to inbox instead" toggle on the manual-add preview
+  // card. Default-off (keep the existing per-funder corpus.add flow).
+  // When the operator toggles on, the add button routes to
+  // corpus.inbox.add — useful for PDFs and any URL that doesn't yet
+  // have a per-funder home. See plan: Download-PDFs-into-Corpus-Inbox
+  // §Phase 3.
+  let manualSaveToInboxByRowId = $state<Record<string, boolean>>({});
 
   function toggleManual(row_id: string) {
     manualOpenRowId = { ...manualOpenRowId, [row_id]: !manualOpenRowId[row_id] };
@@ -1281,11 +1288,60 @@
   async function addManualToCorpus(cr: ContentRecord) {
     const preview = manualPreviewByRowId[cr.row_id];
     if (!preview || preview.status !== 'ready') return;
+    if (manualSaveToInboxByRowId[cr.row_id]) {
+      await addManualToInbox(cr, preview);
+      return;
+    }
     await addToCorpus(cr, preview);
     // Clear the manual draft + preview on success (corpus refresh inside
     // addToCorpus will surface the new entry in the "In corpus" chip row).
     manualUrlDrafts = { ...manualUrlDrafts, [cr.row_id]: '' };
     manualPreviewByRowId = { ...manualPreviewByRowId, [cr.row_id]: null };
+  }
+
+  // "Save to inbox instead" path. The interim inbox-UI surface from
+  // Content Reader; the dedicated apps/corpus-inbox/ microfrontend will
+  // be the longer-term home but this lets PDFs (and any not-yet-homed
+  // URL) be inboxed from where the operator already is.
+  async function addManualToInbox(cr: ContentRecord, preview: PreviewResult) {
+    if (addingResponseId) return;
+    if (preview.status !== 'ready' || !preview.exact_url) return;
+    addingResponseId = preview.response_id;
+    try {
+      const tags = parseTags(tagDraftsByResponseId[preview.response_id] ?? '');
+      const result = (await workspace.invoke('corpus.inbox.add', {
+        client_id: CLIENT_ID,
+        url: preview.exact_url,
+        tags,
+        captured_from: 'content-reader',
+      })) as {
+        corpus_path?: string;
+        written_at?: string;
+        binary_asset?: { filename: string | null; download_status: string } | null;
+        ok?: false;
+        error?: string;
+      };
+      if (result.ok === false) {
+        manualErrorByRowId = {
+          ...manualErrorByRowId,
+          [cr.row_id]: `inbox add failed for ${preview.exact_url}: ${result.error ?? 'unknown'}`,
+        };
+        return;
+      }
+      manualUrlDrafts = { ...manualUrlDrafts, [cr.row_id]: '' };
+      manualPreviewByRowId = { ...manualPreviewByRowId, [cr.row_id]: null };
+      manualSaveToInboxByRowId = { ...manualSaveToInboxByRowId, [cr.row_id]: false };
+      const t = { ...tagDraftsByResponseId };
+      delete t[preview.response_id];
+      tagDraftsByResponseId = t;
+    } catch (err) {
+      manualErrorByRowId = {
+        ...manualErrorByRowId,
+        [cr.row_id]: err instanceof Error ? err.message : String(err),
+      };
+    } finally {
+      addingResponseId = '';
+    }
   }
 
   function currentRowUrl(row_id: string): string {
@@ -1825,6 +1881,8 @@
                     {#if manualPreview}
                       {@const inCorpusAlready = corpusUrls.has(manualPreview.exact_url)}
                       {@const sameHost = (manualPreview.extra_metadata as { same_host?: boolean } | undefined)?.same_host}
+                      {@const isPdf = (manualPreview.extra_metadata as { is_pdf?: boolean } | undefined)?.is_pdf === true}
+                      {@const inboxBound = manualSaveToInboxByRowId[cr.row_id] === true}
                       <div
                         class="cr-preview cr-manual-preview"
                         class:cr-preview-failed={manualPreview.status === 'failed'}
@@ -1837,6 +1895,9 @@
                           {/if}
                           {#if sameHost === false}
                             <span class="cr-domain-chip cr-domain-off" title="URL is not on the funder's own domain — logged as-is per operator authority">off-domain</span>
+                          {/if}
+                          {#if isPdf}
+                            <span class="cr-pdf-chip" title="The URL resolves to a PDF. If you toggle 'save to inbox' the binary will be downloaded alongside the markdown.">📄 PDF</span>
                           {/if}
                           {#if manualPreview.fetched_at}
                             <span class="muted cr-fetched-at">fetched {formatFiredAt(manualPreview.fetched_at)}</span>
@@ -1889,11 +1950,33 @@
                               class="cr-add-btn"
                               onclick={() => void addManualToCorpus(cr)}
                               disabled={addingResponseId === manualPreview.response_id}
-                              title="Write the Jina markdown as a corpus file"
+                              title={inboxBound
+                                ? 'Write to clients/<client>/corpus/inbox/ for later triage' + (isPdf ? ' (PDF binary will be downloaded alongside)' : '')
+                                : 'Write the Jina markdown as a corpus file'}
                             >
-                              {#if addingResponseId === manualPreview.response_id}adding…{:else}+ add to corpus{/if}
+                              {#if addingResponseId === manualPreview.response_id}
+                                adding…
+                              {:else if inboxBound}
+                                + send to inbox{#if isPdf} (with PDF){/if}
+                              {:else}
+                                + add to corpus
+                              {/if}
                             </button>
                           </div>
+                          <label class="cr-inbox-toggle" title="Send to corpus/inbox/ for later triage instead of the per-funder corpus directory. Required for PDFs — only the inbox path downloads the binary today.">
+                            <input
+                              type="checkbox"
+                              checked={inboxBound}
+                              onchange={(e) => {
+                                const v = (e.currentTarget as HTMLInputElement).checked;
+                                manualSaveToInboxByRowId = {
+                                  ...manualSaveToInboxByRowId,
+                                  [cr.row_id]: v,
+                                };
+                              }}
+                            />
+                            <span>save to inbox instead{#if isPdf} <em>(recommended for PDF — downloads the binary)</em>{/if}</span>
+                          </label>
                         {/if}
                       </div>
                     {/if}

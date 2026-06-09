@@ -38,6 +38,7 @@ import { fetchViaJina } from './jina';
 import * as cache from './cache';
 import { addToCorpus, addToInbox, listForRecord, type CorpusEntry } from './corpus';
 import { isNavigationUrl, isSameDomain } from './filters';
+import { downloadBinaryAsset, type BinaryAssetResult } from './binary-asset';
 
 const jc = JSONCodec();
 
@@ -187,6 +188,12 @@ export function registerHandlers(nc: NatsConnection): void {
           result = await fetchViaJina(url);
           cache.set(url, result);
         }
+        // PDF detection. Cheap: prefer URL-suffix check (no extra
+        // round-trip for the common .pdf case), fall back to HEAD when
+        // the suffix is ambiguous. Surfaces as extra_metadata.is_pdf
+        // so the Content Reader preview can show a "PDF" chip and the
+        // "save to inbox instead" toggle.
+        const is_pdf = await detectIsPdf(url, parsed);
         // Synthetic response_id so corpus.add has a stable handle. Caller
         // can override by minting their own before posting to corpus.add;
         // this is just a default surfaced in the preview for convenience.
@@ -216,6 +223,7 @@ export function registerHandlers(nc: NatsConnection): void {
                   })()
                 : null,
               source: 'manual',
+              is_pdf,
             },
           };
         } else {
@@ -225,7 +233,7 @@ export function registerHandlers(nc: NatsConnection): void {
             exact_url: url,
             pack_id: 'manual',
             error: result.error,
-            extra_metadata: { same_host: sameHost, source: 'manual' },
+            extra_metadata: { same_host: sameHost, source: 'manual', is_pdf },
           };
         }
         if (msg.reply) msg.respond(jc.encode({ preview }));
@@ -301,6 +309,7 @@ export function registerHandlers(nc: NatsConnection): void {
         captured_from?: 'content-reader' | 'chat-verb' | 'chat-paste' | 'plugin' | 'inbox-direct';
         captured_session_id?: string;
         fetch?: boolean;
+        fetch_binary?: boolean;       // default true; false skips binary download
       };
       try {
         const url = args.url?.trim();
@@ -315,6 +324,7 @@ export function registerHandlers(nc: NatsConnection): void {
           throw new Error(`unsupported protocol: ${parsed.protocol}`);
         }
         const shouldFetch = args.fetch !== false;
+        const shouldFetchBinary = args.fetch_binary !== false;
         let title = url;
         let markdown_body = '';
         let fetched_at = new Date().toISOString();
@@ -340,6 +350,39 @@ export function registerHandlers(nc: NatsConnection): void {
         } else {
           extra_metadata = { jina_status: 'not_fetched' };
         }
+
+        // Binary companion. Default-on; the primitive itself short-
+        // circuits on unsupported_type (HTML pages don't pay the GET).
+        // On any non-ok status we still emit a binary_asset block with
+        // download_status so the operator can see we tried — EXCEPT
+        // unsupported_type, which is the common HTML case and would
+        // pollute every inbox entry with an "we tried" block.
+        let binary_asset: Parameters<typeof addToInbox>[0]['binary_asset'] = undefined;
+        if (shouldFetchBinary) {
+          const ba: BinaryAssetResult = await downloadBinaryAsset(url);
+          const downloaded_at = new Date().toISOString();
+          if (ba.ok) {
+            binary_asset = {
+              buffer: ba.buffer,
+              content_type: ba.content_type,
+              size_bytes: ba.size_bytes,
+              sha256: ba.sha256,
+              downloaded_at,
+              download_status: ba.status,
+            };
+          } else if (ba.status !== 'unsupported_type') {
+            // Tried but failed — record the attempt without a buffer.
+            binary_asset = {
+              buffer: null,
+              content_type: 'application/pdf',
+              size_bytes: 0,
+              sha256: '',
+              downloaded_at,
+              download_status: ba.status,
+            };
+          }
+        }
+
         const written = await addToInbox({
           client_id: args.client_id,
           url,
@@ -351,6 +394,7 @@ export function registerHandlers(nc: NatsConnection): void {
           captured_from: args.captured_from ?? 'inbox-direct',
           captured_note: args.note ?? '',
           captured_session_id: args.captured_session_id ?? '',
+          binary_asset,
         });
         if (msg.reply) msg.respond(jc.encode(written));
         nc.publish(
@@ -360,6 +404,7 @@ export function registerHandlers(nc: NatsConnection): void {
             url,
             corpus_path: written.corpus_path,
             captured_from: args.captured_from ?? 'inbox-direct',
+            binary_asset: written.binary_asset ?? null,
           }),
         );
       } catch (err: unknown) {
@@ -428,6 +473,23 @@ function latestFireIdPerPack(responses: ResponseLite[]): Map<string, string | nu
     }
   }
   return out;
+}
+
+// PDF detection for the preview. Suffix-first to avoid an extra HEAD
+// round-trip on the common case; HEAD fallback for URLs without a .pdf
+// suffix (e.g. content-disposition delivery). Returns false on any
+// error — the chip is decorative, the inbox download path probes
+// independently when the operator commits to inboxing.
+async function detectIsPdf(url: string, parsed: URL): Promise<boolean> {
+  if (parsed.pathname.toLowerCase().endsWith('.pdf')) return true;
+  try {
+    const head = await fetch(url, { method: 'HEAD', redirect: 'follow' });
+    if (!head.ok) return false;
+    const ct = head.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+    return ct === 'application/pdf';
+  } catch {
+    return false;
+  }
 }
 
 const EXCERPT_MAX = 500;

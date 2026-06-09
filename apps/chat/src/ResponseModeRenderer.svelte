@@ -26,9 +26,29 @@
     return cap === 'prompt.draft' || cap === 'prompt.improve';
   }
 
-  function inboxResult(result: unknown): { corpus_path?: string; written_at?: string } | null {
-    if (result && typeof result === 'object') return result as { corpus_path?: string; written_at?: string };
+  type InboxBinaryAsset = {
+    filename: string | null;
+    size_bytes: number;
+    sha256: string;
+    sha256_short: string;
+    download_status: 'ok' | 'size_capped' | 'http_error' | 'unsupported_type' | 'fetch_failed';
+  };
+
+  type InboxResult = {
+    corpus_path?: string;
+    written_at?: string;
+    binary_asset?: InboxBinaryAsset | null;
+  };
+
+  function inboxResult(result: unknown): InboxResult | null {
+    if (result && typeof result === 'object') return result as InboxResult;
     return null;
+  }
+
+  function fmtBytes(n: number): string {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
   }
 </script>
 
@@ -91,6 +111,17 @@
         ✓ Saved to inbox
         {#if r?.corpus_path}
           <div class="inbox-path"><code>{r.corpus_path}</code></div>
+        {/if}
+        {#if r?.binary_asset}
+          {#if r.binary_asset.download_status === 'ok' && r.binary_asset.filename}
+            <div class="inbox-binary">
+              📄 PDF saved ({fmtBytes(r.binary_asset.size_bytes)} · <code>{r.binary_asset.sha256_short}</code>)
+            </div>
+          {:else}
+            <div class="inbox-binary failed">
+              📄 PDF not saved — {r.binary_asset.download_status}
+            </div>
+          {/if}
         {/if}
       </div>
       <div class="meta">{fmtTs(turn.ts)}</div>

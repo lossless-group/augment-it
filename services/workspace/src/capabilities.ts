@@ -137,8 +137,11 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'content_ingest.preview_url': 60_000,
   // corpus.add re-uses warm cache or re-fetches once via Jina.
   'corpus.add': 30_000,
-  // One Jina fetch + filesystem write; same envelope as corpus.add.
-  'corpus.inbox.add': 30_000,
+  // One Jina fetch + optional binary download (PDF up to 50MB) +
+  // filesystem write. Bumped from 30s on 2026-06-09 when the PDF
+  // download path landed — a 50MB PDF on a slow link can take real
+  // seconds. See plan: Download-PDFs-into-Corpus-Inbox §Phase 2.
+  'corpus.inbox.add': 90_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {
