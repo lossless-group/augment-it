@@ -268,9 +268,16 @@ export function registerHandlers(nc: NatsConnection): void {
           cache.set(args.exact_url, result);
         }
         if (!result.ok) throw new Error(`Jina fetch failed: ${result.error}`);
+        // Resolve record_uuid via row-store so the file's frontmatter
+        // carries the lineage-stable id. Soft-fail if row-store is
+        // briefly unreachable — the file lands without record_uuid and
+        // listForRecord's fallback path covers it.
+        const recordUuidByRowId = await getRecordUuidByRowId(nc);
+        const recordUuid = recordUuidByRowId.get(args.record_id);
         const written = await addToCorpus({
           client_id: args.client_id,
           record_id: args.record_id,
+          record_uuid: recordUuid,
           response_id: args.response_id,
           funder_slug: args.funder_slug,
           pack_id: args.pack_id,
@@ -423,7 +430,15 @@ export function registerHandlers(nc: NatsConnection): void {
     for await (const msg of sub) {
       const args = jc.decode(msg.data) as { client_id: string; record_id: string };
       try {
-        const entries: CorpusEntry[] = await listForRecord(args);
+        // Fetch the row_id → record_uuid map (cached for ~60s).
+        // listForRecord uses it to surface corpus files written under
+        // any row_id whose record_uuid matches the requested row's
+        // record_uuid — the v8 → v9 lineage fix.
+        const recordUuidByRowId = await getRecordUuidByRowId(nc);
+        const entries: CorpusEntry[] = await listForRecord({
+          ...args,
+          record_uuid_by_row_id: recordUuidByRowId,
+        });
         if (msg.reply) msg.respond(jc.encode({ entries }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
@@ -606,13 +621,49 @@ async function fetchRecordUuidByRowId(nc: NatsConnection): Promise<Map<string, s
       }
     }
   } catch {
-    // Promotion proceeds with an empty map — every corpus file's row_id
-    // misses the resolver and the join drops to zero. The CSV still
-    // emits with system columns populated as blanks; the operator can
-    // see the result and retry. Failing soft beats failing the whole
-    // verb when row-store is briefly unreachable.
+    // Caller is expected to soft-fail when the map is empty. For
+    // promotion this means the join drops to zero; for corpus.list_for_
+    // record this means the reader degrades to strict record_id match
+    // (the v0 behavior). Both are acceptable degradations vs hard fail.
   }
   return map;
+}
+
+// Cached row_id → record_uuid map. The lens fires
+// corpus.list_for_record once per visible row at view load time —
+// without caching, that's N parallel row.list NATS round-trips even
+// though every caller wants the same map. TTL is short enough that
+// row-store mutations (new ingest, promotion) surface within seconds.
+const RECORD_UUID_CACHE_TTL_MS = 60_000;
+let recordUuidCache: { map: Map<string, string>; fetched_at_ms: number } | null = null;
+let recordUuidInflight: Promise<Map<string, string>> | null = null;
+
+async function getRecordUuidByRowId(nc: NatsConnection): Promise<Map<string, string>> {
+  const now = Date.now();
+  if (recordUuidCache && now - recordUuidCache.fetched_at_ms < RECORD_UUID_CACHE_TTL_MS) {
+    return recordUuidCache.map;
+  }
+  // De-dup concurrent callers — when 96 lens rows fan out their
+  // corpus.list_for_record requests in parallel, only the first one
+  // actually fetches; the rest await the same in-flight promise.
+  if (recordUuidInflight) return recordUuidInflight;
+  recordUuidInflight = (async () => {
+    try {
+      const map = await fetchRecordUuidByRowId(nc);
+      recordUuidCache = { map, fetched_at_ms: Date.now() };
+      return map;
+    } finally {
+      recordUuidInflight = null;
+    }
+  })();
+  return recordUuidInflight;
+}
+
+// Public hook for callers that mutate row-store and want the cache
+// invalidated immediately (currently unused; reserved for explicit
+// invalidation on record_set.created / row.updated broadcasts).
+export function invalidateRecordUuidCache(): void {
+  recordUuidCache = null;
 }
 
 async function fetchRowUrl(nc: NatsConnection, row_id: string): Promise<string | null> {

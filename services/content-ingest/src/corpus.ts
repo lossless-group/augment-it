@@ -18,6 +18,13 @@ const CLIENTS_ROOT = process.env.CLIENTS_ROOT ?? '/clients';
 export type AddCorpusArgs = {
   client_id: string;
   record_id: string;
+  // The stable identity that survives record-set promotions. Optional
+  // because legacy call sites may not supply it (and the writer
+  // proceeds without — the reader degrades gracefully via row-store
+  // lookup), but new call sites should pass it so the frontmatter
+  // carries both keys and the reader doesn't need a row-store
+  // round-trip per file.
+  record_uuid?: string;
   response_id: string;
   funder_slug: string;
   pack_id: string;
@@ -240,9 +247,21 @@ function buildInboxFrontmatter(
 export async function listForRecord(args: {
   client_id: string;
   record_id: string;
+  // Optional row_id → record_uuid map (from row-store). When present
+  // the reader joins by record_uuid lineage so files written under
+  // an earlier record-set's row_id (the v8 → v9 case) still surface
+  // for the same conceptual record. Without the map the reader
+  // degrades to strict record_id match — the v0 behavior.
+  record_uuid_by_row_id?: Map<string, string>;
 }): Promise<CorpusEntry[]> {
   const root = join(CLIENTS_ROOT, args.client_id, 'corpus');
   const entries: CorpusEntry[] = [];
+  const map = args.record_uuid_by_row_id;
+  // Resolve the requested row_id to its record_uuid (if the map is
+  // available + the row is known). When this is set, we match files
+  // by record_uuid lineage; when it's not set, we fall back to
+  // strict record_id match.
+  const requestedUuid = map?.get(args.record_id) ?? null;
   let funderDirs: string[];
   try {
     funderDirs = (await readdir(root, { withFileTypes: true }))
@@ -262,11 +281,31 @@ export async function listForRecord(args: {
       const raw = await readFile(path, 'utf8');
       const fm = parseFrontmatter(raw);
       if (!fm) continue;
-      if (fm.record_id !== args.record_id) continue;
+      const fileRecordId = typeof fm.record_id === 'string' ? fm.record_id : null;
+      const fileRecordUuid = typeof fm.record_uuid === 'string' ? fm.record_uuid : null;
+      // Match strategy, in order of cost:
+      //   1. strict record_id match (cheapest; the v0 path).
+      //   2. record_uuid stamped in the file matches the requested uuid
+      //      (writes from this commit forward carry record_uuid).
+      //   3. legacy file (no record_uuid stamp): resolve its record_id
+      //      to a uuid via the map and compare to the requested uuid.
+      //      This is what makes v8-era corpus files surface for v9 rows.
+      let matches = false;
+      if (fileRecordId === args.record_id) {
+        matches = true;
+      } else if (requestedUuid != null && fileRecordUuid === requestedUuid) {
+        matches = true;
+      } else if (requestedUuid != null && fileRecordId != null && map) {
+        const fileResolvedUuid = map.get(fileRecordId);
+        if (fileResolvedUuid != null && fileResolvedUuid === requestedUuid) {
+          matches = true;
+        }
+      }
+      if (!matches) continue;
       entries.push({
         corpus_path: path.replace(`${CLIENTS_ROOT}/`, ''),
         response_id: typeof fm.response_id === 'string' ? fm.response_id : null,
-        record_id: typeof fm.record_id === 'string' ? fm.record_id : null,
+        record_id: fileRecordId,
         exact_url: typeof fm.exact_url === 'string' ? fm.exact_url : '',
         fetched_at: typeof fm.fetched_at === 'string' ? fm.fetched_at : '',
         title: typeof fm.title === 'string' ? fm.title : '',
@@ -284,6 +323,13 @@ function buildFrontmatter(args: AddCorpusArgs): string {
   lines.push(`exact_url: ${yamlString(args.exact_url)}`);
   lines.push(`fetched_at: ${args.fetched_at}`);
   lines.push(`record_id: ${yamlString(args.record_id)}`);
+  // record_uuid is the lineage-stable identity that survives
+  // /promote-snapshot. New writers pass it; legacy files without it
+  // are still findable because listForRecord resolves their
+  // record_id → record_uuid via row-store at read time.
+  if (args.record_uuid) {
+    lines.push(`record_uuid: ${yamlString(args.record_uuid)}`);
+  }
   lines.push(`response_id: ${yamlString(args.response_id)}`);
   lines.push(`client_id: ${yamlString(args.client_id)}`);
   lines.push(`funder_slug: ${yamlString(args.funder_slug)}`);
