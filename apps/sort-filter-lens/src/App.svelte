@@ -40,9 +40,20 @@
   // expanded; one at a time keeps the list scannable.
   let openAddRowId = $state<string | null>(null);
   let urlDraftByRowId = $state<Record<string, string>>({});
-  let addBusyRowId = $state<string>('');
-  let addErrorByRowId = $state<Record<string, string>>({});
-  let addJustDoneByRowId = $state<Record<string, string>>({});  // row_id → ISO timestamp of last successful add
+  // Validation errors (synchronous — invalid URL syntax). Backend
+  // errors live on the per-add entry in pendingByRowId instead.
+  let addValidationErrByRowId = $state<Record<string, string>>({});
+  // Fire-and-forget queue: per-row list of in-flight + recently-
+  // completed adds. The operator can keep pasting; entries surface
+  // their own status without blocking the input.
+  type PendingAdd = {
+    id: string;
+    url: string;
+    started_at: number;
+    status: 'pending' | 'ok' | 'failed';
+    error?: string;
+  };
+  let pendingByRowId = $state<Record<string, PendingAdd[]>>({});
 
   const selectedRecordSet = $derived(
     selectedRecordSetId
@@ -213,40 +224,71 @@
   function toggleAddRow(row_id: string): void {
     openAddRowId = openAddRowId === row_id ? null : row_id;
     if (openAddRowId === row_id) {
-      addErrorByRowId = { ...addErrorByRowId, [row_id]: '' };
+      addValidationErrByRowId = { ...addValidationErrByRowId, [row_id]: '' };
     }
   }
 
-  async function addUrlToCorpus(row: Row): Promise<void> {
+  function newAddId(): string {
+    return `add-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  }
+
+  function updatePending(row_id: string, id: string, patch: Partial<PendingAdd>): void {
+    const list = pendingByRowId[row_id] ?? [];
+    const next = list.map((p) => (p.id === id ? { ...p, ...patch } : p));
+    pendingByRowId = { ...pendingByRowId, [row_id]: next };
+  }
+
+  function removePending(row_id: string, id: string): void {
+    const list = pendingByRowId[row_id] ?? [];
+    pendingByRowId = { ...pendingByRowId, [row_id]: list.filter((p) => p.id !== id) };
+  }
+
+  function dismissPending(row_id: string, id: string): void {
+    removePending(row_id, id);
+  }
+
+  // Synchronous submit — validate, queue a pending entry, fire the
+  // backend work in the background, clear the input. The operator
+  // can keep pasting immediately. Successful adds tick the chip and
+  // auto-clear after a short delay; failed adds stick around with
+  // the URL + reason so the operator can copy/retry/inbox.
+  function submitAdd(row: Row): void {
     const url = (urlDraftByRowId[row.row_id] ?? '').trim();
     if (!url) return;
-    if (addBusyRowId) return;
     let parsed: URL;
     try {
       parsed = new URL(url);
     } catch {
-      addErrorByRowId = { ...addErrorByRowId, [row.row_id]: 'not a valid URL' };
+      addValidationErrByRowId = { ...addValidationErrByRowId, [row.row_id]: 'not a valid URL' };
       return;
     }
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      addErrorByRowId = { ...addErrorByRowId, [row.row_id]: `unsupported protocol: ${parsed.protocol}` };
+      addValidationErrByRowId = {
+        ...addValidationErrByRowId,
+        [row.row_id]: `unsupported protocol: ${parsed.protocol}`,
+      };
       return;
     }
-    addBusyRowId = row.row_id;
-    addErrorByRowId = { ...addErrorByRowId, [row.row_id]: '' };
+    // Clear validation error + input immediately; fire the work.
+    addValidationErrByRowId = { ...addValidationErrByRowId, [row.row_id]: '' };
+    urlDraftByRowId = { ...urlDraftByRowId, [row.row_id]: '' };
+    const id = newAddId();
+    const pending: PendingAdd = { id, url, started_at: Date.now(), status: 'pending' };
+    pendingByRowId = {
+      ...pendingByRowId,
+      [row.row_id]: [...(pendingByRowId[row.row_id] ?? []), pending],
+    };
+    void runAdd(row, pending);
+  }
+
+  async function runAdd(row: Row, pending: PendingAdd): Promise<void> {
     try {
-      // Step 1 — preview the URL via Jina to get a real title + a
-      // synthetic response_id corpus.add can hang the response onto.
+      // Step 1 — preview the URL via Jina (title + synthetic response_id).
       const previewReply = (await workspace.invoke('content_ingest.preview_url', {
         record_id: row.row_id,
-        url,
+        url: pending.url,
       })) as {
-        preview?: {
-          response_id: string;
-          status: string;
-          title?: string;
-          exact_url: string;
-        };
+        preview?: { response_id: string; status: string; title?: string; exact_url: string };
         ok?: false;
         error?: string;
       };
@@ -255,40 +297,54 @@
       }
       const p = previewReply.preview;
       if (p.status !== 'ready') {
-        throw new Error('Jina could not fetch the URL — paste a different one or save to inbox via /inbox in chat');
+        throw new Error('Jina could not fetch — try /inbox in chat as a fallback');
       }
-      // Step 2 — write to corpus/<funder-slug>/. funder_slug derives
-      // from the prospect name; pack_id is 'manual' so these are
-      // distinguishable from pack-fired captures in the by_pack roll-up.
+      // Step 2 — write to clients/<client>/corpus/<funder-slug>/.
       const slug = funderSlugFor(nameOf(row), row.row_id);
       const addReply = (await workspace.invoke('corpus.add', {
         client_id: CLIENT_ID,
         record_id: row.row_id,
         response_id: p.response_id,
-        title: p.title ?? url,
+        title: p.title ?? pending.url,
         tags: [],
-        exact_url: url,
+        exact_url: pending.url,
         funder_slug: slug,
         pack_id: 'manual',
       })) as { corpus_path?: string; written_at?: string; ok?: false; error?: string };
       if (addReply.ok === false) {
         throw new Error(addReply.error ?? 'corpus.add failed');
       }
-      // Step 3 — tick up the corpus chip and clear the input. Keep the
-      // row expanded so the operator can paste the next URL in their
-      // search results immediately (paste-paste-paste rhythm).
+      updatePending(row.row_id, pending.id, { status: 'ok' });
       void refreshCorpusForRow(row.row_id);
-      urlDraftByRowId = { ...urlDraftByRowId, [row.row_id]: '' };
-      addJustDoneByRowId = { ...addJustDoneByRowId, [row.row_id]: new Date().toISOString() };
+      // Auto-clear successful entries after a short delay so the row
+      // doesn't accumulate green chips.
+      setTimeout(() => removePending(row.row_id, pending.id), 4000);
     } catch (err) {
-      addErrorByRowId = {
-        ...addErrorByRowId,
-        [row.row_id]: err instanceof Error ? err.message : String(err),
-      };
-    } finally {
-      addBusyRowId = '';
+      updatePending(row.row_id, pending.id, {
+        status: 'failed',
+        error: err instanceof Error ? err.message : String(err),
+      });
+      // Failed entries stick around — operator dismisses manually.
     }
   }
+
+  function fmtElapsed(ms: number): string {
+    const s = Math.floor(ms / 1000);
+    if (s < 60) return `${s}s`;
+    return `${Math.floor(s / 60)}m${s % 60}s`;
+  }
+
+  // Drive a tick state so pending elapsed-time strings refresh while
+  // the row is open. Cheap: a 1s interval that touches a number.
+  // `nowMs` is derived from the tick so reading it inside the template
+  // tracks reactivity correctly.
+  let tickN = $state(0);
+  const nowMs = $derived(tickN >= 0 ? Date.now() : Date.now());
+  $effect(() => {
+    if (openAddRowId === null) return;
+    const i = setInterval(() => (tickN += 1), 1000);
+    return () => clearInterval(i);
+  });
 
   onMount(() => {
     workspace.connect({
@@ -419,9 +475,10 @@
         {@const u = urlText(row)}
         {@const s = socialsSummary(row)}
         {@const expanded = openAddRowId === row.row_id}
-        {@const busy = addBusyRowId === row.row_id}
-        {@const err = addErrorByRowId[row.row_id] ?? ''}
-        {@const justDone = addJustDoneByRowId[row.row_id]}
+        {@const validationErr = addValidationErrByRowId[row.row_id] ?? ''}
+        {@const pendingList = pendingByRowId[row.row_id] ?? []}
+        {@const pendingCount = pendingList.filter((p) => p.status === 'pending').length}
+        {@const failedCount = pendingList.filter((p) => p.status === 'failed').length}
         <li class="row" class:row-expanded={expanded}>
           <div class="row-head">
             <div class="row-main">
@@ -430,6 +487,12 @@
             </div>
             <div class="row-meta">
               {#if s}<span class="row-socials">{s}</span>{/if}
+              {#if pendingCount > 0}
+                <span class="pending-chip" title={`${pendingCount} add(s) in flight`}>⟳ {pendingCount}</span>
+              {/if}
+              {#if failedCount > 0}
+                <span class="failed-chip" title={`${failedCount} failed — expand row to dismiss or retry`}>✗ {failedCount}</span>
+              {/if}
               {#if corpusByRowId[row.row_id] === undefined}
                 <span class="corpus-chip loading" title="loading corpus count">corpus …</span>
               {:else if n === 0}
@@ -450,7 +513,7 @@
           {#if expanded}
             <div class="row-add">
               <label class="row-add-label" for={`url-${row.row_id}`}>
-                Paste a URL — Jina-fetches and writes to
+                Paste a URL — Jina-fetches in the background, writes to
                 <code>clients/&lt;client&gt;/corpus/{funderSlugFor(nameOf(row), row.row_id)}/</code>
               </label>
               <div class="row-add-input-row">
@@ -458,7 +521,7 @@
                   id={`url-${row.row_id}`}
                   class="row-add-input"
                   type="url"
-                  placeholder="https://…"
+                  placeholder="https://…  (Enter = submit + clear; Esc closes)"
                   bind:value={
                     () => urlDraftByRowId[row.row_id] ?? '',
                     (v) => (urlDraftByRowId = { ...urlDraftByRowId, [row.row_id]: v })
@@ -466,25 +529,49 @@
                   onkeydown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
-                      void addUrlToCorpus(row);
+                      submitAdd(row);
                     } else if (e.key === 'Escape') {
                       toggleAddRow(row.row_id);
                     }
                   }}
-                  disabled={busy}
                 />
                 <button
                   type="button"
                   class="row-add-btn"
-                  onclick={() => void addUrlToCorpus(row)}
-                  disabled={busy || !(urlDraftByRowId[row.row_id] ?? '').trim()}
-                  title="Jina-fetch + write to per-funder corpus"
-                >{busy ? 'adding…' : 'Add'}</button>
+                  onclick={() => submitAdd(row)}
+                  disabled={!(urlDraftByRowId[row.row_id] ?? '').trim()}
+                  title="Queue this URL — backend Jina-fetch + corpus.add run in background"
+                >Add</button>
               </div>
-              {#if err}
-                <p class="row-add-err">{err}</p>
-              {:else if justDone}
-                <p class="row-add-ok">✓ added — paste another or press Esc to close</p>
+              {#if validationErr}
+                <p class="row-add-err">{validationErr}</p>
+              {/if}
+              {#if pendingList.length > 0}
+                <ul class="pending-list" aria-label="Recent adds for this record">
+                  {#each pendingList as p (p.id)}
+                    {@const elapsed = nowMs - p.started_at}
+                    <li class="pending-item" class:p-pending={p.status === 'pending'} class:p-ok={p.status === 'ok'} class:p-failed={p.status === 'failed'}>
+                      <span class="pending-icon" aria-hidden="true">
+                        {#if p.status === 'pending'}⟳{:else if p.status === 'ok'}✓{:else}✗{/if}
+                      </span>
+                      <span class="pending-url" title={p.url}>{p.url}</span>
+                      {#if p.status === 'pending'}
+                        <span class="pending-meta">{fmtElapsed(elapsed)}</span>
+                      {:else if p.status === 'failed'}
+                        <span class="pending-meta">{p.error}</span>
+                      {:else}
+                        <span class="pending-meta">added</span>
+                      {/if}
+                      <button
+                        type="button"
+                        class="pending-dismiss"
+                        onclick={() => dismissPending(row.row_id, p.id)}
+                        title={p.status === 'pending' ? 'dismiss (request keeps running in background)' : 'dismiss'}
+                        aria-label="dismiss"
+                      >×</button>
+                    </li>
+                  {/each}
+                </ul>
               {/if}
             </div>
           {/if}

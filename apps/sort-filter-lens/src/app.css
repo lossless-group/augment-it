@@ -343,3 +343,91 @@
   font-size: 11px;
   color: var(--color-ok-text, #6c6);
 }
+
+/* --- in-flight + failed adds (fire-and-forget queue) --- */
+.pending-chip, .failed-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  border: 1px solid;
+}
+.pending-chip {
+  color: var(--color-accent-2, var(--color-accent, #9ab8ff));
+  border-color: var(--color-accent-2, var(--color-accent, #9ab8ff));
+  background: transparent;
+}
+.failed-chip {
+  color: var(--color-warn, #c66);
+  border-color: var(--color-warn, #c66);
+  background: transparent;
+}
+
+.pending-list {
+  list-style: none;
+  margin: 0.3rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.pending-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 6px);
+  background: var(--color-bg);
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+}
+.pending-item.p-pending { border-color: var(--color-accent-2, var(--color-accent, #9ab8ff)); }
+.pending-item.p-ok {
+  border-color: var(--color-ok-text, #6c6);
+  color: var(--color-ok-text, #6c6);
+  opacity: 0.75;
+}
+.pending-item.p-failed { border-color: var(--color-warn, #c66); color: var(--color-warn, #c66); }
+.pending-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px; height: 16px;
+  flex-shrink: 0;
+}
+.pending-item.p-pending .pending-icon { animation: pending-spin 1s linear infinite; }
+@keyframes pending-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.pending-url {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+.pending-item.p-ok .pending-url, .pending-item.p-failed .pending-url { color: inherit; }
+.pending-meta {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  flex-shrink: 0;
+  max-width: 30%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pending-item.p-failed .pending-meta { color: var(--color-warn, #c66); max-width: 50%; }
+.pending-dismiss {
+  flex-shrink: 0;
+  width: 18px; height: 18px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 999px;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+}
+.pending-dismiss:hover { color: var(--color-text); background: rgba(255, 255, 255, 0.08); }
