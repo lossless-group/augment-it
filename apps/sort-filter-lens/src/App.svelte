@@ -165,8 +165,20 @@
     try {
       const r = (await workspace.invoke('record_set.list', {})) as { record_sets: RecordSet[] };
       recordSets = r.record_sets.filter((rs) => !rs.archived);
-      if (!selectedRecordSetId && recordSets.length > 0) {
-        selectedRecordSetId = recordSets[0].record_set_id;
+      // Auto-fall-back to the newest non-archived set when:
+      //   (a) no localStorage value, OR
+      //   (b) localStorage points at a now-archived set (the common
+      //       case after /promote-snapshot — v9 archives when v10 lands
+      //       and yesterday's localStorage hangs onto the archived id).
+      const inList =
+        selectedRecordSetId !== null &&
+        recordSets.some((rs) => rs.record_set_id === selectedRecordSetId);
+      if (!inList && recordSets.length > 0) {
+        // Newest by created_at so the latest snapshot wins automatically.
+        const newest = [...recordSets].sort(
+          (a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''),
+        )[0];
+        selectedRecordSetId = newest.record_set_id;
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem(ACTIVE_RECORD_SET_KEY, selectedRecordSetId);
         }
