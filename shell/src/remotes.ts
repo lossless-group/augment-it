@@ -114,11 +114,24 @@ export const PACK_RUNNER_REMOTE: RemoteEntry = {
   importMount: () => import('packRunner/mount'),
 };
 
+// SORT_FILTER_LENS_REMOTE — the first member of the new "Lens" primitive
+// (context-v/specs/Records-Surface-Sort-Step-and-UI.md). Not in REMOTES
+// because it's not a rotation step on its own; it's reached as a third
+// member of the AUGMENT composite (alongside PTM and Pack Runner). Same
+// federation-registration pattern as PACK_RUNNER_REMOTE.
+export const SORT_FILTER_LENS_REMOTE: RemoteEntry = {
+  id: 'sortFilterLens',
+  label: 'Sort & Filter',
+  description: 'Re-order and (soon) narrow the active record set to build a focused worklist',
+  // @ts-expect-error — federation remote, type comes from the MF runtime
+  importMount: () => import('sortFilterLens/mount'),
+};
+
 // "Extra" remotes — federation-registered + reachable via PAIRING /
 // augment-it:navigate, but excluded from the peek-flow rotation in REMOTES.
 // Same shape as CHAT_REMOTE; aggregated here so remoteById() can fall back
 // to look them up without each caller having to know about each extra.
-const EXTRA_REMOTES: RemoteEntry[] = [CHAT_REMOTE, PACK_RUNNER_REMOTE];
+const EXTRA_REMOTES: RemoteEntry[] = [CHAT_REMOTE, PACK_RUNNER_REMOTE, SORT_FILTER_LENS_REMOTE];
 
 // Co-existence pairings — which two remotes share the viewport in Mode B,
 // and the default left-panel width %. Different pairs want different
