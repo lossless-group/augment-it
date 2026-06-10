@@ -63,8 +63,21 @@ export function registerHandlers(nc: NatsConnection): void {
         schema: ColumnSchema;
         rows: { fields: Record<string, unknown> }[];
         derived_from?: RecordSet['derived_from'];
+        predecessor_record_set_id?: string;
       };
       const result = await createRecordSet(payload);
+      // If the new set carries promoted_from (i.e. the caller named a
+      // predecessor and the link took), broadcast the predecessor's
+      // archive too so UIs that filter on `archived` refresh.
+      if (result.record_set.promoted_from?.record_set_ids?.[0]) {
+        nc.publish(
+          'record_set.updated',
+          jc.encode({
+            record_set_id: result.record_set.promoted_from.record_set_ids[0],
+            archived: true,
+          }),
+        );
+      }
       if (msg.reply) msg.respond(jc.encode(result));
       nc.publish(
         'record_set.created',

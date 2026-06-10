@@ -1202,13 +1202,25 @@
   }
 
   // Preload corpus state for visible records so "in corpus" badges and
-  // counts render on first paint, no preview-click required.
+  // counts render on first paint, no preview-click required. Fans out
+  // for content-reader (the per-record content cards) and by-record
+  // (Records Surface — operator needs to see corpus coverage in the
+  // view that lists the spine, per the Augmentation-State-Preservation-
+  // and-Snapshot-Promotion plan §Phase A).
   $effect(() => {
-    if (viewMode !== 'content-reader') return;
-    void responses.length;
-    for (const cr of contentRecords) {
-      if (corpusEntriesByRowId[cr.row_id] === undefined) {
-        void refreshCorpusForRow(cr.row_id);
+    if (viewMode === 'content-reader') {
+      void responses.length;
+      for (const cr of contentRecords) {
+        if (corpusEntriesByRowId[cr.row_id] === undefined) {
+          void refreshCorpusForRow(cr.row_id);
+        }
+      }
+    } else if (viewMode === 'by-record') {
+      void responses.length;
+      for (const group of byRecord) {
+        if (corpusEntriesByRowId[group.row_id] === undefined) {
+          void refreshCorpusForRow(group.row_id);
+        }
       }
     }
   });
@@ -1522,6 +1534,24 @@
                 <h3>{group.entity_name || group.row_id}</h3>
               {/if}
               <span class="muted record-card-count">{group.responses.length} {group.responses.length === 1 ? 'response' : 'responses'}</span>
+              <!-- Corpus-count chip — surfaces filesystem truth (the
+                   count of clients/<client>/corpus/*/*.md files whose
+                   record_id frontmatter == this row's row_id) in the
+                   spine view itself, so cold prospects are visually
+                   obvious without leaving Records Surface. Plan:
+                   [[Augmentation-State-Preservation-and-Snapshot-
+                   Promotion]] §Phase A. -->
+              {#if corpusEntriesByRowId[group.row_id] === undefined}
+                <span class="record-card-corpus-chip loading" title="Loading corpus count…">corpus …</span>
+              {:else if (corpusEntriesByRowId[group.row_id] ?? []).length === 0}
+                <span class="record-card-corpus-chip cold" title="No corpus content for this record yet">corpus 0</span>
+              {:else}
+                {@const corpusN = (corpusEntriesByRowId[group.row_id] ?? []).length}
+                <span
+                  class="record-card-corpus-chip warm"
+                  title={`${corpusN} corpus ${corpusN === 1 ? 'file' : 'files'} on disk for this record`}
+                >corpus {corpusN}</span>
+              {/if}
             </header>
 
             <!-- Per-record connector palette. One chip per intent; default

@@ -655,6 +655,31 @@
   font-size: 0.75rem;
 }
 
+.resp-app .record-card-corpus-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-family: var(--font-mono, monospace);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.resp-app .record-card-corpus-chip.loading { opacity: 0.5; }
+.resp-app .record-card-corpus-chip.cold {
+  color: var(--color-text-muted);
+  border-style: dashed;
+}
+.resp-app .record-card-corpus-chip.warm {
+  color: var(--color-accent, #9ab8ff);
+  border-color: var(--color-accent, #9ab8ff);
+  background: var(--color-accent-bg, rgba(120, 160, 255, 0.12));
+}
+
 /* Per-record source runners — two rows (one per provider), one icon button
    per pack/API. Firing is additive (a new candidate response lands below for
    triage); the ✓ badge marks packs already accepted onto this record. */

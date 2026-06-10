@@ -28,6 +28,12 @@
       summary: 'Save a URL to the Corpus Inbox for later triage',
       example: '/inbox https://example.com/report.pdf #policy',
     },
+    {
+      verb: '/promote-snapshot',
+      insert: '/promote-snapshot',
+      summary: 'Emit a snapshot CSV — v(N+1) with corpus_* columns appended',
+      example: 'Run between augmentation cycles to capture the prior cycle in the spine',
+    },
   ];
 
   let commandsOpen = $state<boolean>(false);

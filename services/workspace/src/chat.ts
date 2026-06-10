@@ -61,11 +61,16 @@ prompt.apply — Bind a draft prompt to a record set and run it. Flips status to
 corpus.inbox.add — Save a URL to the operator's Corpus Inbox for later triage. The capture-first destination for URLs the operator finds during research that don't yet have a specific record home. Backend Jina-fetches the URL, writes a markdown file with frontmatter to clients/<client_id>/corpus/inbox/. Use chat_invoke when the user explicitly types "/inbox <url>" or asks to save/inbox/park a URL. The active client_id is in the context slab.
   args: { client_id: string, url: string, note?: string, tags?: string[], captured_from?: "chat-verb" | "chat-paste" }
 
+pipeline.promote_snapshot — Emit the next-version CSV in clients/<client_id>/inputs/ with corpus_* columns derived from filesystem truth at promotion time. The operator runs this between augmentation cycles to capture corpus-cycle work before switching to bundle/pack work. Reads the latest inputs/*_vN.csv, walks corpus/*/*.md indexing by record_id frontmatter, joins, emits vN+1.csv. No args beyond client_id. The active client_id is in the context slab.
+  args: { client_id: string }
+
 VERB RECOGNITION SHORTCUTS:
 - "/inbox <url>" → chat_invoke corpus.inbox.add with captured_from: "chat-verb"
 - "/inbox <url> [note text]" → same, with note populated from the trailing prose
 - "/inbox <url> #tag1 #tag2" → same, with hashtag tokens parsed into tags[]
 - "save this", "park this", "inbox this", "remember this URL" + a URL → chat_invoke corpus.inbox.add with captured_from: "chat-verb"
+- "/promote-snapshot" → chat_invoke pipeline.promote_snapshot
+- "snapshot this", "advance the tracker", "emit v9" (or "emit the next version"), "promote the pipeline" → chat_invoke pipeline.promote_snapshot
 `;
 
 // Slab 3 — active skills. Empty in v0.0.1; cache breakpoint reserved.
@@ -109,7 +114,7 @@ export const CHAT_TOOLS = [
             properties: {
               capability: {
                 type: 'string',
-                enum: ['prompt.draft', 'prompt.improve', 'prompt.apply', 'corpus.inbox.add'],
+                enum: ['prompt.draft', 'prompt.improve', 'prompt.apply', 'corpus.inbox.add', 'pipeline.promote_snapshot'],
               },
               hint: { type: 'string', description: 'One-line label for the affordance button.' },
               args: {
@@ -130,7 +135,7 @@ export const CHAT_TOOLS = [
       required: ['text', 'capability', 'args'],
       properties: {
         text: { type: 'string', description: 'A short narration of what the capability is doing.' },
-        capability: { type: 'string', enum: ['prompt.draft', 'prompt.improve', 'prompt.apply'] },
+        capability: { type: 'string', enum: ['prompt.draft', 'prompt.improve', 'prompt.apply', 'corpus.inbox.add', 'pipeline.promote_snapshot'] },
         args: { type: 'object' },
       },
     },

@@ -39,6 +39,9 @@ import * as cache from './cache';
 import { addToCorpus, addToInbox, listForRecord, type CorpusEntry } from './corpus';
 import { isNavigationUrl, isSameDomain } from './filters';
 import { downloadBinaryAsset, type BinaryAssetResult } from './binary-asset';
+import { promoteSnapshot } from './promote';
+import { readFile } from 'node:fs/promises';
+import { basename } from 'node:path';
 
 const jc = JSONCodec();
 
@@ -428,6 +431,188 @@ export function registerHandlers(nc: NatsConnection): void {
       }
     }
   })();
+
+  // pipeline.promote_snapshot — reads the latest inputs/*_vN.csv,
+  // walks corpus/*/*.md indexing by record_id frontmatter, emits
+  // <date>_<basename>_v(N+1).csv with system columns appended.
+  // Plan: [[../../../context-v/plans/Augmentation-State-Preservation-
+  // and-Snapshot-Promotion]] §Phase B.
+  (async () => {
+    const sub = nc.subscribe('pipeline.promote_snapshot.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as { client_id: string };
+      try {
+        if (!args?.client_id) throw new Error('client_id is required');
+        // Build row_id → record_uuid map from row-store. The CSV's
+        // identity column is record_uuid; the corpus markdown's
+        // record_id field is the internal row_id. Without this map
+        // the join silently misses every corpus file.
+        const recordUuidByRowId = await fetchRecordUuidByRowId(nc);
+        const result = await promoteSnapshot({
+          client_id: args.client_id,
+          record_uuid_by_row_id: recordUuidByRowId,
+        });
+        // Auto-ingest the freshly-promoted CSV as a new record set so
+        // it shows up as a loadable record set in the UI immediately,
+        // without forcing the operator to upload-the-file-they-just-
+        // emitted. record_uuid carries through ingest so the lineage
+        // back to the prior version is preserved (row-store's
+        // createRecordSet preserves an incoming record_uuid; only
+        // mints a fresh one when missing).
+        let ingested: {
+          record_set_id?: string;
+          record_set_name?: string;
+          variant_family_id?: string;
+          predecessor_archived?: boolean;
+        } = {};
+        try {
+          const csvAbsPath = `${process.env.CLIENTS_ROOT ?? '/clients'}/${result.snapshot_path}`;
+          const csvText = await readFile(csvAbsPath, 'utf8');
+          const filename = basename(result.snapshot_path);
+          // Resolve the source vN's record_set_id + variant_family_id
+          // BEFORE ingest so we can stitch the lineage at create time:
+          //   - predecessor_record_set_id → row-store sets promoted_from
+          //     on the new set AND archives the predecessor in the same
+          //     persist cycle.
+          //   - variant_family_id → we explicitly inherit the family on
+          //     the new set (the heuristic suggestVariantFamily uses a
+          //     ≤3 column-count tolerance which our +6 system-column
+          //     append blows past; the heuristic gets the wrong answer
+          //     for this exact case).
+          const sourceInfo = await fetchSourceRecordSetInfo(nc, result.source_filename);
+          const ingestReply = await nc.request(
+            'record_set.ingest.requested',
+            jc.encode({
+              filename,
+              csv: csvText,
+              name: filename.replace(/\.csv$/i, ''),
+              ...(sourceInfo?.record_set_id
+                ? { predecessor_record_set_id: sourceInfo.record_set_id }
+                : {}),
+            }),
+            { timeout: 30_000 },
+          );
+          const ingestOut = jc.decode(ingestReply.data) as {
+            ok?: false;
+            error?: string;
+            record_set?: { record_set_id?: string; name?: string };
+          };
+          if (ingestOut.ok !== false && ingestOut.record_set?.record_set_id) {
+            const newRecordSetId = ingestOut.record_set.record_set_id;
+            ingested.record_set_id = newRecordSetId;
+            ingested.record_set_name = ingestOut.record_set.name;
+            ingested.predecessor_archived = Boolean(sourceInfo?.record_set_id);
+            if (sourceInfo?.variant_family_id) {
+              try {
+                await nc.request(
+                  'variant_family.add.requested',
+                  jc.encode({
+                    variant_family_id: sourceInfo.variant_family_id,
+                    record_set_id: newRecordSetId,
+                  }),
+                  { timeout: 10_000 },
+                );
+                ingested.variant_family_id = sourceInfo.variant_family_id;
+              } catch {
+                // Soft-fail: family link is a quality-of-life rider.
+              }
+            }
+          }
+        } catch {
+          // Soft-fail: the CSV is on disk and can be uploaded manually
+          // if auto-ingest stumbles. The verb's primary contract is the
+          // file on disk; auto-load is a quality-of-life rider.
+        }
+        const finalResult = { ...result, ...ingested };
+        if (msg.reply) msg.respond(jc.encode(finalResult));
+        nc.publish(
+          'pipeline.promote_snapshot.completed',
+          jc.encode({
+            client_id: args.client_id,
+            snapshot_path: result.snapshot_path,
+            source_version: result.source_version,
+            new_version: result.new_version,
+            record_set_id: ingested.record_set_id ?? null,
+          }),
+        );
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+}
+
+type SourceRecordSetInfo = {
+  record_set_id: string;
+  variant_family_id: string | null;
+};
+
+async function fetchSourceRecordSetInfo(
+  nc: NatsConnection,
+  sourceFilename: string,
+): Promise<SourceRecordSetInfo | null> {
+  if (!sourceFilename) return null;
+  try {
+    const reply = await nc.request(
+      'record_set.list.requested',
+      jc.encode({}),
+      { timeout: 10_000 },
+    );
+    const out = jc.decode(reply.data) as {
+      record_sets?: {
+        record_set_id?: string;
+        name?: string;
+        variant_family_id?: string;
+        archived?: boolean;
+      }[];
+    };
+    // Match by the source CSV's bare filename. Record sets that came
+    // in via record_set.ingest carry the filename verbatim; ones that
+    // came in via the older promotion flow may have the .csv stripped.
+    // Try both.
+    const stripped = sourceFilename.replace(/\.csv$/i, '');
+    for (const rs of out.record_sets ?? []) {
+      if (rs?.archived) continue;
+      const n = rs?.name ?? '';
+      if ((n === sourceFilename || n === stripped) && rs?.record_set_id) {
+        return {
+          record_set_id: rs.record_set_id,
+          variant_family_id: rs.variant_family_id ?? null,
+        };
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchRecordUuidByRowId(nc: NatsConnection): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  try {
+    const reply = await nc.request(
+      'row.list.requested',
+      jc.encode({}),
+      { timeout: 30_000 },
+    );
+    const out = jc.decode(reply.data) as {
+      rows?: { row_id: string; fields?: { record_uuid?: unknown } }[];
+    };
+    for (const r of out.rows ?? []) {
+      const ru = r?.fields?.record_uuid;
+      if (typeof ru === 'string' && ru) {
+        map.set(r.row_id, ru);
+      }
+    }
+  } catch {
+    // Promotion proceeds with an empty map — every corpus file's row_id
+    // misses the resolver and the join drops to zero. The CSV still
+    // emits with system columns populated as blanks; the operator can
+    // see the result and retry. Failing soft beats failing the whole
+    // verb when row-store is briefly unreachable.
+  }
+  return map;
 }
 
 async function fetchRowUrl(nc: NatsConnection, row_id: string): Promise<string | null> {

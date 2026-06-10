@@ -101,6 +101,11 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // Corpus Inbox — capture-first destination. v0.0.1 ships the add path;
   // list + triage handlers come later per [[Corpus-Inbox-Capture-and-Triage]].
   'corpus.inbox.add': 'corpus.inbox.add.requested',
+  // Snapshot promotion — emit inputs/<date>_<basename>_v(N+1).csv with
+  // corpus_* system columns derived from filesystem truth at promote
+  // time. Plan: [[Augmentation-State-Preservation-and-Snapshot-
+  // Promotion]] §Phase B.
+  'pipeline.promote_snapshot': 'pipeline.promote_snapshot.requested',
 };
 
 const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
@@ -142,6 +147,11 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   // download path landed — a 50MB PDF on a slow link can take real
   // seconds. See plan: Download-PDFs-into-Corpus-Inbox §Phase 2.
   'corpus.inbox.add': 90_000,
+  // Walks the corpus filesystem (typically <1K markdown files at v1
+  // scale), parses CSV in/out. 120s leaves room for a 10K-file corpus
+  // without forcing a chunking strategy. Plan:
+  // Augmentation-State-Preservation-and-Snapshot-Promotion §Phase B.
+  'pipeline.promote_snapshot': 120_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {

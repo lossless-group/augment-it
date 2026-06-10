@@ -27,10 +27,11 @@ async function main(): Promise<void> {
 
   for await (const msg of sub) {
     try {
-      const { filename, csv, name } = jc.decode(msg.data) as {
+      const { filename, csv, name, predecessor_record_set_id } = jc.decode(msg.data) as {
         filename: string;
         csv: string;
         name?: string;
+        predecessor_record_set_id?: string;
       };
       const parsed = parseCsv(csv, filename);
       const createReply = await nc.request(
@@ -39,6 +40,7 @@ async function main(): Promise<void> {
           name: name ?? filename,
           schema: parsed.schema,
           rows: parsed.rows,
+          ...(predecessor_record_set_id ? { predecessor_record_set_id } : {}),
         }),
         { timeout: 10_000 },
       );
