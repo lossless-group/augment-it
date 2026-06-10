@@ -231,6 +231,84 @@
   max-width: 36rem;
 }
 .row-url:hover { color: var(--color-accent); }
+
+/* --- inline URL edit per row --- */
+.row-url-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.row-url-edit-btn {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 0.25rem;
+  border-radius: 3px;
+  opacity: 0.4;
+  transition: opacity 0.12s, color 0.12s;
+}
+.row-url-edit-btn:hover { opacity: 1; color: var(--color-accent); background: rgba(255, 255, 255, 0.04); }
+.row-url-add {
+  align-self: flex-start;
+  padding: 0.1rem 0.5rem;
+  border: 1px dashed var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  cursor: pointer;
+}
+.row-url-add:hover { color: var(--color-accent); border-color: var(--color-accent); border-style: solid; }
+.row-url-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+}
+.row-url-input {
+  flex: 1;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--color-accent, #9ab8ff);
+  border-radius: var(--radius-md, 6px);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  min-width: 0;
+}
+.row-url-input:focus { outline: none; border-color: var(--color-accent, #9ab8ff); box-shadow: 0 0 0 2px var(--color-accent-bg, rgba(120, 160, 255, 0.18)); }
+.row-url-input:disabled { opacity: 0.5; }
+.row-url-save {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--color-accent, #9ab8ff);
+  background: var(--color-accent, #9ab8ff);
+  color: var(--color-on-accent, var(--color-bg));
+  border-radius: var(--radius-md, 6px);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.row-url-save:disabled { opacity: 0.45; cursor: not-allowed; }
+.row-url-cancel {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+}
+.row-url-cancel:hover { color: var(--color-text); border-color: var(--color-text-muted); }
+.row-url-err {
+  margin: 0.2rem 0 0;
+  font-size: 11px;
+  color: var(--color-warn, #c66);
+}
 .row-meta { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
 .row-socials { font-size: 11px; color: var(--color-text-muted); }
 .corpus-chip {

@@ -55,6 +55,17 @@
   };
   let pendingByRowId = $state<Record<string, PendingAdd[]>>({});
 
+  // Inline URL editing per row. Mirrors the pack-runner / response-
+  // reviewer saveRowUrl pattern — the operator clicks the URL to
+  // edit it, Enter saves via row.update.requested, refreshes the row
+  // state. Without this the operator's only edit path is Content
+  // Reader, which means swapping lenses + losing focus on the
+  // worklist.
+  let urlEditByRowId = $state<Record<string, string>>({});
+  let urlEditingRowId = $state<string | null>(null);
+  let urlSavingRowId = $state<string>('');
+  let urlEditErrByRowId = $state<Record<string, string>>({});
+
   const selectedRecordSet = $derived(
     selectedRecordSetId
       ? recordSets.find((rs) => rs.record_set_id === selectedRecordSetId) ?? null
@@ -245,6 +256,63 @@
 
   function dismissPending(row_id: string, id: string): void {
     removePending(row_id, id);
+  }
+
+  // --- Inline URL edit ---
+
+  function startUrlEdit(row: Row): void {
+    urlEditingRowId = row.row_id;
+    const current = urlText(row);
+    // Treat 'unknown' / blank as empty so the input is editable from
+    // scratch instead of showing the placeholder string.
+    urlEditByRowId = {
+      ...urlEditByRowId,
+      [row.row_id]: current === 'unknown' ? '' : current,
+    };
+    urlEditErrByRowId = { ...urlEditErrByRowId, [row.row_id]: '' };
+  }
+
+  function cancelUrlEdit(): void {
+    urlEditingRowId = null;
+  }
+
+  async function saveRowUrl(row: Row): Promise<void> {
+    if (urlSavingRowId) return;
+    const draft = (urlEditByRowId[row.row_id] ?? '').trim();
+    // Empty string is allowed — clearing the URL is a legitimate edit.
+    // Non-empty must parse.
+    if (draft !== '') {
+      try {
+        new URL(draft);
+      } catch {
+        urlEditErrByRowId = { ...urlEditErrByRowId, [row.row_id]: 'not a valid URL' };
+        return;
+      }
+    }
+    urlSavingRowId = row.row_id;
+    urlEditErrByRowId = { ...urlEditErrByRowId, [row.row_id]: '' };
+    try {
+      await workspace.invoke('row.update', {
+        row_id: row.row_id,
+        fields: { url: draft },
+      });
+      // Update the row in-place so the lens reflects without waiting
+      // for the row.updated broadcast to round-trip.
+      const idx = rows.findIndex((r) => r.row_id === row.row_id);
+      if (idx >= 0) {
+        const next = [...rows];
+        next[idx] = { ...next[idx], fields: { ...next[idx].fields, url: draft } };
+        rows = next;
+      }
+      urlEditingRowId = null;
+    } catch (err) {
+      urlEditErrByRowId = {
+        ...urlEditErrByRowId,
+        [row.row_id]: err instanceof Error ? err.message : String(err),
+      };
+    } finally {
+      urlSavingRowId = '';
+    }
   }
 
   // Synchronous submit — validate, queue a pending entry, fire the
@@ -483,7 +551,65 @@
           <div class="row-head">
             <div class="row-main">
               <span class="row-name">{nameOf(row)}</span>
-              {#if u}<a class="row-url" href={u} target="_blank" rel="noopener noreferrer">{u}</a>{/if}
+              {#if urlEditingRowId === row.row_id}
+                <div class="row-url-edit">
+                  <input
+                    class="row-url-input"
+                    type="url"
+                    placeholder="https://…  (blank = clear; Enter = save; Esc = cancel)"
+                    bind:value={
+                      () => urlEditByRowId[row.row_id] ?? '',
+                      (v) => (urlEditByRowId = { ...urlEditByRowId, [row.row_id]: v })
+                    }
+                    onkeydown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        void saveRowUrl(row);
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        cancelUrlEdit();
+                      }
+                    }}
+                    disabled={urlSavingRowId === row.row_id}
+                    autofocus
+                  />
+                  <button
+                    type="button"
+                    class="row-url-save"
+                    onclick={() => void saveRowUrl(row)}
+                    disabled={urlSavingRowId === row.row_id}
+                    title="Save via row.update — survives the next /promote-snapshot if v(N+1) is emitted afterwards"
+                  >{urlSavingRowId === row.row_id ? 'saving…' : 'Save'}</button>
+                  <button
+                    type="button"
+                    class="row-url-cancel"
+                    onclick={cancelUrlEdit}
+                    disabled={urlSavingRowId === row.row_id}
+                    title="cancel (Esc)"
+                  >×</button>
+                </div>
+                {#if urlEditErrByRowId[row.row_id]}
+                  <p class="row-url-err">{urlEditErrByRowId[row.row_id]}</p>
+                {/if}
+              {:else if u && u !== 'unknown'}
+                <div class="row-url-row">
+                  <a class="row-url" href={u} target="_blank" rel="noopener noreferrer">{u}</a>
+                  <button
+                    type="button"
+                    class="row-url-edit-btn"
+                    onclick={() => startUrlEdit(row)}
+                    title="Edit URL — saves to row-store immediately"
+                    aria-label="edit URL"
+                  >✎</button>
+                </div>
+              {:else}
+                <button
+                  type="button"
+                  class="row-url-add"
+                  onclick={() => startUrlEdit(row)}
+                  title="Add a primary URL for this record (saves to row-store)"
+                >+ add URL</button>
+              {/if}
             </div>
             <div class="row-meta">
               {#if s}<span class="row-socials">{s}</span>{/if}
