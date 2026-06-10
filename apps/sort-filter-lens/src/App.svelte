@@ -36,6 +36,14 @@
   let error = $state('');
   let pickerOpen = $state(false);
 
+  // Per-row corpus-add state. Open row = the one with its add-area
+  // expanded; one at a time keeps the list scannable.
+  let openAddRowId = $state<string | null>(null);
+  let urlDraftByRowId = $state<Record<string, string>>({});
+  let addBusyRowId = $state<string>('');
+  let addErrorByRowId = $state<Record<string, string>>({});
+  let addJustDoneByRowId = $state<Record<string, string>>({});  // row_id → ISO timestamp of last successful add
+
   const selectedRecordSet = $derived(
     selectedRecordSetId
       ? recordSets.find((rs) => rs.record_set_id === selectedRecordSetId) ?? null
@@ -187,6 +195,101 @@
     void loadRows(id);
   }
 
+  // --- Per-row corpus add (the hand-search rhythm) ---
+
+  // Match the content-reader / backend slugify rule so a row that
+  // already has a corpus directory keeps writing into the same folder.
+  function funderSlugFor(name: string, fallback: string): string {
+    const base = (name || fallback).trim();
+    return base
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60)
+      .replace(/-+$/g, '');
+  }
+
+  function toggleAddRow(row_id: string): void {
+    openAddRowId = openAddRowId === row_id ? null : row_id;
+    if (openAddRowId === row_id) {
+      addErrorByRowId = { ...addErrorByRowId, [row_id]: '' };
+    }
+  }
+
+  async function addUrlToCorpus(row: Row): Promise<void> {
+    const url = (urlDraftByRowId[row.row_id] ?? '').trim();
+    if (!url) return;
+    if (addBusyRowId) return;
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      addErrorByRowId = { ...addErrorByRowId, [row.row_id]: 'not a valid URL' };
+      return;
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      addErrorByRowId = { ...addErrorByRowId, [row.row_id]: `unsupported protocol: ${parsed.protocol}` };
+      return;
+    }
+    addBusyRowId = row.row_id;
+    addErrorByRowId = { ...addErrorByRowId, [row.row_id]: '' };
+    try {
+      // Step 1 — preview the URL via Jina to get a real title + a
+      // synthetic response_id corpus.add can hang the response onto.
+      const previewReply = (await workspace.invoke('content_ingest.preview_url', {
+        record_id: row.row_id,
+        url,
+      })) as {
+        preview?: {
+          response_id: string;
+          status: string;
+          title?: string;
+          exact_url: string;
+        };
+        ok?: false;
+        error?: string;
+      };
+      if (previewReply.ok === false || !previewReply.preview) {
+        throw new Error(previewReply.error ?? 'preview failed');
+      }
+      const p = previewReply.preview;
+      if (p.status !== 'ready') {
+        throw new Error('Jina could not fetch the URL — paste a different one or save to inbox via /inbox in chat');
+      }
+      // Step 2 — write to corpus/<funder-slug>/. funder_slug derives
+      // from the prospect name; pack_id is 'manual' so these are
+      // distinguishable from pack-fired captures in the by_pack roll-up.
+      const slug = funderSlugFor(nameOf(row), row.row_id);
+      const addReply = (await workspace.invoke('corpus.add', {
+        client_id: CLIENT_ID,
+        record_id: row.row_id,
+        response_id: p.response_id,
+        title: p.title ?? url,
+        tags: [],
+        exact_url: url,
+        funder_slug: slug,
+        pack_id: 'manual',
+      })) as { corpus_path?: string; written_at?: string; ok?: false; error?: string };
+      if (addReply.ok === false) {
+        throw new Error(addReply.error ?? 'corpus.add failed');
+      }
+      // Step 3 — tick up the corpus chip and clear the input. Keep the
+      // row expanded so the operator can paste the next URL in their
+      // search results immediately (paste-paste-paste rhythm).
+      void refreshCorpusForRow(row.row_id);
+      urlDraftByRowId = { ...urlDraftByRowId, [row.row_id]: '' };
+      addJustDoneByRowId = { ...addJustDoneByRowId, [row.row_id]: new Date().toISOString() };
+    } catch (err) {
+      addErrorByRowId = {
+        ...addErrorByRowId,
+        [row.row_id]: err instanceof Error ? err.message : String(err),
+      };
+    } finally {
+      addBusyRowId = '';
+    }
+  }
+
   onMount(() => {
     workspace.connect({
       url: WS_URL,
@@ -315,21 +418,76 @@
         {@const n = corpusCountFor(row.row_id)}
         {@const u = urlText(row)}
         {@const s = socialsSummary(row)}
-        <li class="row">
-          <div class="row-main">
-            <span class="row-name">{nameOf(row)}</span>
-            {#if u}<a class="row-url" href={u} target="_blank" rel="noopener noreferrer">{u}</a>{/if}
+        {@const expanded = openAddRowId === row.row_id}
+        {@const busy = addBusyRowId === row.row_id}
+        {@const err = addErrorByRowId[row.row_id] ?? ''}
+        {@const justDone = addJustDoneByRowId[row.row_id]}
+        <li class="row" class:row-expanded={expanded}>
+          <div class="row-head">
+            <div class="row-main">
+              <span class="row-name">{nameOf(row)}</span>
+              {#if u}<a class="row-url" href={u} target="_blank" rel="noopener noreferrer">{u}</a>{/if}
+            </div>
+            <div class="row-meta">
+              {#if s}<span class="row-socials">{s}</span>{/if}
+              {#if corpusByRowId[row.row_id] === undefined}
+                <span class="corpus-chip loading" title="loading corpus count">corpus …</span>
+              {:else if n === 0}
+                <span class="corpus-chip cold" title="no corpus content for this record yet">corpus 0</span>
+              {:else}
+                <span class="corpus-chip warm" title={`${n} corpus ${n === 1 ? 'file' : 'files'} on disk`}>corpus {n}</span>
+              {/if}
+              <button
+                type="button"
+                class="add-trigger"
+                class:open={expanded}
+                onclick={() => toggleAddRow(row.row_id)}
+                title="Add a URL to this record's corpus"
+                aria-expanded={expanded}
+              >+ URL</button>
+            </div>
           </div>
-          <div class="row-meta">
-            {#if s}<span class="row-socials">{s}</span>{/if}
-            {#if corpusByRowId[row.row_id] === undefined}
-              <span class="corpus-chip loading" title="loading corpus count">corpus …</span>
-            {:else if n === 0}
-              <span class="corpus-chip cold" title="no corpus content for this record yet">corpus 0</span>
-            {:else}
-              <span class="corpus-chip warm" title={`${n} corpus ${n === 1 ? 'file' : 'files'} on disk`}>corpus {n}</span>
-            {/if}
-          </div>
+          {#if expanded}
+            <div class="row-add">
+              <label class="row-add-label" for={`url-${row.row_id}`}>
+                Paste a URL — Jina-fetches and writes to
+                <code>clients/&lt;client&gt;/corpus/{funderSlugFor(nameOf(row), row.row_id)}/</code>
+              </label>
+              <div class="row-add-input-row">
+                <input
+                  id={`url-${row.row_id}`}
+                  class="row-add-input"
+                  type="url"
+                  placeholder="https://…"
+                  bind:value={
+                    () => urlDraftByRowId[row.row_id] ?? '',
+                    (v) => (urlDraftByRowId = { ...urlDraftByRowId, [row.row_id]: v })
+                  }
+                  onkeydown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      void addUrlToCorpus(row);
+                    } else if (e.key === 'Escape') {
+                      toggleAddRow(row.row_id);
+                    }
+                  }}
+                  disabled={busy}
+                />
+                <button
+                  type="button"
+                  class="row-add-btn"
+                  onclick={() => void addUrlToCorpus(row)}
+                  disabled={busy || !(urlDraftByRowId[row.row_id] ?? '').trim()}
+                  title="Jina-fetch + write to per-funder corpus"
+                >{busy ? 'adding…' : 'Add'}</button>
+              </div>
+              {#if err}
+                <p class="row-add-err">{err}</p>
+              {:else if justDone}
+                <p class="row-add-ok">✓ added — paste another or press Esc to close</p>
+              {/if}
+            </div>
+          {/if}
         </li>
       {/each}
     </ul>
