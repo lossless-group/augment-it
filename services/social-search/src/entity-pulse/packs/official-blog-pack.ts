@@ -45,6 +45,14 @@ export type OfficialBlogPackInput = {
   // hostname (for site: restriction) and the URL itself (as the homepage
   // path-guess fallback candidate).
   row_url: string;
+  // Operator-curated index URLs from the records-surface per-record
+  // connector flow (saved into row.fields.official_updates_index_urls).
+  // When non-empty these are AUTHORITATIVE — the pack walks straight
+  // into them and harvests post links; the discovery stages (SerpApi +
+  // homepage scrape + path-guess) are SKIPPED to avoid re-introducing
+  // noise the operator already filtered out. Rule 3 of
+  // context-v/specs/Funder-Content-Corpus-Workflow.md.
+  curated_index_urls?: string[];
   // Free-text brief carried through meta. Not used for scoring in step 1.
   relevance_context?: string | null;
   // Tuning knobs — exposed for the CLI driver and Request Reviewer.
@@ -81,15 +89,45 @@ function hostnameOf(rowUrl: string): string {
   return new URL(rowUrl).host.replace(/^www\./, '');
 }
 
+// Rule 2 of Funder-Content-Corpus-Workflow.md — navigation pages are not
+// content. These patterns reject pagination, taxonomy, archives, feeds,
+// directory indexes. Must stay in sync with content-ingest/src/filters.ts
+// NAVIGATION_PATTERNS.
+const NAVIGATION_PATH_PATTERNS = [
+  /\/page\/\d+\/?$/i,           // /latest-updates/page/2/
+  /\/p\/\d+\/?$/i,
+  /\/category\/[^/]+\/?$/i,
+  /\/categories\/[^/]+\/?$/i,
+  /\/tag\/[^/]+\/?$/i,
+  /\/tags\/[^/]+\/?$/i,
+  /\/topic\/[^/]+\/?$/i,
+  /\/topics\/[^/]+\/?$/i,
+  /\/author\/[^/]+\/?$/i,
+  /\/contributors\/[^/]+\/?$/i,
+  /\/archive\/?$/i,
+  /\/archives\/?$/i,
+  /\/feed\/?$/i,
+  /\/rss\/?$/i,
+  /\/atom\.xml$/i,
+  /\/index\.html?$/i,
+  /\/\d{4}\/?$/i,               // /2024/
+  /\/\d{4}\/\d{1,2}\/?$/i,      // /2024/03/
+];
+function looksLikeNavigation(pathname: string): boolean {
+  for (const re of NAVIGATION_PATH_PATTERNS) if (re.test(pathname)) return true;
+  return false;
+}
+
 // Heuristic: a link is "post-shaped" if it lives on the same host as the
-// index page and the path is deeper than the index path. Loose on purpose —
-// the curation layer is the gate, not this filter.
+// index page, the path is deeper than the index path, AND the path
+// doesn't match a navigation pattern (pagination / taxonomy / archive).
 function looksLikePost(href: string, indexUrl: string): boolean {
   try {
     const link = new URL(href, indexUrl);
     const index = new URL(indexUrl);
     if (link.host !== index.host) return false;
     if (link.pathname === index.pathname) return false;
+    if (looksLikeNavigation(link.pathname)) return false;
     if (!link.pathname.startsWith(index.pathname.replace(/\/$/, ''))) {
       // Allow links that don't share the index path but match common post
       // shapes — e.g. /YYYY/MM/, /post/, /article/.
@@ -308,10 +346,24 @@ export async function runOfficialBlogPack(
   const maxPostsPerIndex = args.max_posts_per_index ?? DEFAULT_POSTS_PER_INDEX;
   const maxPostsTotal = args.max_posts_total ?? DEFAULT_POSTS_TOTAL;
 
-  const { urls: indexCandidates, via: findVia } = await findIndexCandidates(
-    args.row_url,
-    args.signal,
-  );
+  // Rule 3: operator curation is authoritative. When
+  // official_updates_index_urls is non-empty on the row, those URLs are
+  // the indexes — skip discovery entirely. Discovery (SerpApi + homepage
+  // scrape + path-guess) is the FALLBACK for rows the operator hasn't
+  // curated yet.
+  const curated = (args.curated_index_urls ?? [])
+    .map((u) => (typeof u === 'string' ? u.trim() : ''))
+    .filter((u) => u.length > 0);
+  let indexCandidates: string[];
+  let findVia: Record<string, number>;
+  if (curated.length > 0) {
+    indexCandidates = curated;
+    findVia = { serpapi: 0, homepage: 0, path_guess: 0, curated: curated.length };
+  } else {
+    const discovered = await findIndexCandidates(args.row_url, args.signal);
+    indexCandidates = discovered.urls;
+    findVia = { ...discovered.via, curated: 0 };
+  }
 
   // Stage 2 — scrape index candidates for outbound links. Cap to avoid
   // burning Firecrawl credits on a pathological domain. We also ask for
@@ -319,8 +371,9 @@ export async function runOfficialBlogPack(
   // the source is a feed; that map seeds the per-post date fallback stack.
   const indexScrapes: Array<{ url: string; scrape: FirecrawlScrapeResult }> = [];
   const byProvider: Record<string, number> = {
-    serpapi: findVia.serpapi,
-    path_guess: findVia.path_guess,
+    serpapi: findVia.serpapi ?? 0,
+    path_guess: findVia.path_guess ?? 0,
+    curated: findVia.curated ?? 0,
     firecrawl: 0,
   };
   const sourceIndexes: string[] = [];
@@ -370,6 +423,26 @@ export async function runOfficialBlogPack(
     if (postLinks.length >= maxPostsTotal) break;
   }
 
+  // Rule 1: only the funder's own domain is valid. Same-host check
+  // against args.row_url. Even though pickPostLinks already requires
+  // same-host as the INDEX (which is normally on the row's domain),
+  // belt-and-suspenders here catches edge cases: curated indexes that
+  // accidentally point off-domain (operator error), or post links that
+  // SerpApi backfilled into the index scrape's link set.
+  const rowHostname = (() => {
+    try { return new URL(args.row_url).hostname.replace(/^www\./, ''); }
+    catch { return ''; }
+  })();
+  const filteredPostLinks = postLinks.filter((link) => {
+    if (!rowHostname) return true; // row url unparseable; fail open
+    try {
+      const h = new URL(link.url).hostname.replace(/^www\./, '');
+      return h === rowHostname || h.endsWith('.' + rowHostname) || rowHostname.endsWith('.' + h);
+    } catch {
+      return false;
+    }
+  });
+
   // Stage 2b — scrape each post for title + published_date + snippet.
   // Date fallback stack (first non-null wins; all routed through toIso):
   //   1. metadata.publishedTime              — present when the page emits
@@ -380,7 +453,7 @@ export async function runOfficialBlogPack(
   //   4. First date-shaped match in markdown — last-resort, scans byline area
   // Each strategy is independently nullable; we keep walking until one returns ISO.
   const items: OfficialUpdateItem[] = [];
-  for (const link of postLinks.slice(0, maxPostsTotal)) {
+  for (const link of filteredPostLinks.slice(0, maxPostsTotal)) {
     try {
       const scrape = await firecrawlScrape(link.url, {
         formats: ['markdown', 'rawHtml'],

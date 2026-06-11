@@ -50,7 +50,7 @@
   // feedback in the 2026-05-25 pack smoke: stepping through 402 unflagged
   // pack responses one-by-one was untenable; per-record collapses the same
   // data into ~67 row-cards. Persisted so refresh sticks.
-  type ViewMode = 'single' | 'by-record';
+  type ViewMode = 'single' | 'by-record' | 'content-reader';
   const VIEW_MODE_KEY = 'augment-it:response-reviewer:view-mode';
   function readViewMode(): ViewMode {
     if (typeof localStorage === 'undefined') return 'single';
@@ -431,7 +431,7 @@
     refreshing = true;
     try {
       await Promise.all([loadResponses(), loadPrompts(), loadRecordSets()]);
-      if (viewMode === 'by-record') await loadRowsForByRecord();
+      if (viewMode === 'by-record' || viewMode === 'content-reader') await loadRowsForByRecord();
     } finally {
       refreshing = false;
     }
@@ -539,7 +539,7 @@
   // Lazy-load rows whenever entering by-record mode and the response set
   // grows (manual refresh refreshes too — see manualRefresh).
   $effect(() => {
-    if (viewMode !== 'by-record') return;
+    if (viewMode !== 'by-record' && viewMode !== 'content-reader') return;
     // Touch the response list size so this re-fires when new responses
     // arrive via the broadcast.
     void responses.length;
@@ -897,6 +897,498 @@
     );
     void flag('needs-rerun');
   }
+
+  // ============================================================
+  // Content Reader (view mode 'content-reader')
+  // Per context-v/specs/Funder-Content-Corpus-Workflow.md.
+  // Implements Rules 5-8:
+  //   Rule 5: per-item curation (edit title + tags, "+ add to corpus")
+  //   Rule 6: hide already-in-corpus items from preview list
+  //   Rule 7: show ALL rows of the active record set, including not-fired
+  //           and invalid-URL rows, with clear affordances
+  //   Rule 8: scope responses to latest fire_id per (row_id, pack_id);
+  //           surface "last fired" timestamp per record
+  // ============================================================
+
+  // Content-shaped packs whose responses surface as previewable content.
+  // Must match services/content-ingest/src/handlers.ts CONTENT_PACK_IDS
+  // and services/social-search/src/entity-pulse/packs (which packs are
+  // wired to publish responses).
+  const CONTENT_PACK_IDS = new Set(['official-blog-pack']);
+  const CLIENT_ID = 'reach-edu';
+
+  type PreviewResult = {
+    response_id: string;
+    status: 'ready' | 'failed';
+    exact_url: string;
+    pack_id: string | null;
+    title?: string;
+    excerpt?: string;
+    fetched_at?: string;
+    extra_metadata?: Record<string, unknown>;
+    error?: string;
+  };
+  type CorpusEntry = {
+    corpus_path: string;
+    response_id: string | null;
+    record_id: string | null;
+    exact_url: string;
+    fetched_at: string;
+    title: string;
+    tags: string[];
+  };
+
+  let previewsByRowId = $state<Record<string, PreviewResult[]>>({});
+  let previewBusyRowId = $state<string>('');
+  let previewErrorByRowId = $state<Record<string, string>>({});
+  let corpusEntriesByRowId = $state<Record<string, CorpusEntry[]>>({});
+  let addingResponseId = $state<string>('');
+  let titleDraftsByResponseId = $state<Record<string, string>>({});
+  let tagDraftsByResponseId = $state<Record<string, string>>({});
+
+  // Active record set is what the user picked in the scope chip row.
+  // Defaults to the largest non-orphan bucket (an existing $effect handles
+  // this), but operator can switch.
+  const activeRecordSet = $derived.by(() => {
+    if (recordSetFilter === 'all' || recordSetFilter === '__orphan__') return null;
+    return recordSetsById[recordSetFilter] ?? null;
+  });
+
+  // Rule 8: latest fire_id per (row_id, pack_id). fire_ids are time-prefixed
+  // so lexicographic max == temporal max. Null fire_id is "older than any
+  // stamped fire" — only surfaces when no stamped fire exists for the pair.
+  type FireKey = string; // `${row_id}::${pack_id}`
+  const latestFireIdByRowPack = $derived.by<Map<FireKey, string | null>>(() => {
+    const out = new Map<FireKey, string | null>();
+    for (const r of responses) {
+      if (r.pack_id == null) continue;
+      const key: FireKey = `${r.row_id}::${r.pack_id}`;
+      const fid = (r as unknown as { fire_id?: string | null }).fire_id ?? null;
+      const cur = out.get(key);
+      if (cur === undefined) out.set(key, fid);
+      else if (fid != null && (cur == null || fid > cur)) out.set(key, fid);
+    }
+    return out;
+  });
+
+  function responseFireId(r: ResponseRecord): string | null {
+    return (r as unknown as { fire_id?: string | null }).fire_id ?? null;
+  }
+
+  // Rules 1+2 layered defense + Rule 8 fire scoping.
+  function rowHostnameFor(row_id: string): string | null {
+    const row = rowsByRowId[row_id];
+    const u = (row?.fields as Record<string, unknown> | undefined)?.url;
+    if (typeof u !== 'string') return null;
+    try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return null; }
+  }
+  const NAVIGATION_PATTERNS = [
+    /\/page\/\d+\/?$/i, /\/p\/\d+\/?$/i,
+    /\/category\/[^/]+\/?$/i, /\/categories\/[^/]+\/?$/i,
+    /\/tag\/[^/]+\/?$/i, /\/tags\/[^/]+\/?$/i,
+    /\/topic\/[^/]+\/?$/i, /\/topics\/[^/]+\/?$/i,
+    /\/author\/[^/]+\/?$/i, /\/contributors\/[^/]+\/?$/i,
+    /\/archive\/?$/i, /\/archives\/?$/i,
+    /\/feed\/?$/i, /\/rss\/?$/i, /\/atom\.xml$/i, /\/index\.html?$/i,
+    /\/\d{4}\/?$/i, /\/\d{4}\/\d{1,2}\/?$/i,
+  ];
+  function isNavigationUrl(url: string): boolean {
+    try {
+      const p = new URL(url).pathname;
+      for (const re of NAVIGATION_PATTERNS) if (re.test(p)) return true;
+      return false;
+    } catch { return true; }
+  }
+  function isContentResponse(r: ResponseRecord): boolean {
+    if (r.pack_id == null || !CONTENT_PACK_IDS.has(r.pack_id)) return false;
+    // Rule 8: scope to latest fire for this (row_id, pack_id).
+    const latest = latestFireIdByRowPack.get(`${r.row_id}::${r.pack_id}`);
+    if (latest !== undefined && responseFireId(r) !== latest) return false;
+    const structured = r.structured as { url?: string } | null;
+    const url = structured?.url;
+    if (typeof url !== 'string' || url.trim().length === 0) return false;
+    if (isNavigationUrl(url)) return false;
+    const rowHost = rowHostnameFor(r.row_id);
+    if (!rowHost) return true; // row url broken; fail open on host check
+    let respHost = '';
+    try { respHost = new URL(url).hostname.replace(/^www\./, ''); }
+    catch { return false; }
+    return respHost === rowHost ||
+           respHost.endsWith('.' + rowHost) ||
+           rowHost.endsWith('.' + respHost);
+  }
+
+  // Rule 7: show every row of the active record set, including rows with
+  // zero responses (not yet fired) and rows whose pack returned 'error'
+  // (broken url). Status drives the affordance shown per card.
+  type ContentRecordStatus =
+    | { kind: 'no-responses' }                     // never fired (or fire produced nothing tied to this row_id)
+    | { kind: 'invalid-url'; reason: string }      // fired but row.url was invalid → outcome=error
+    | { kind: 'not-found' }                         // fired, pack couldn't discover an index
+    | { kind: 'has-content'; previewableCount: number; lastFiredAt: string | null };
+
+  type ContentRecord = {
+    row_id: string;
+    record_set_id: string;
+    entity_name: string;
+    entity_field: string | null;
+    status: ContentRecordStatus;
+    contentResponses: ResponseRecord[];   // empty when status !== 'has-content'
+  };
+
+  const contentRecords = $derived.by<ContentRecord[]>(() => {
+    const rs = activeRecordSet;
+    if (!rs) return [];
+    // Index responses by row_id, scoped to content packs only.
+    const byRow = new Map<string, ResponseRecord[]>();
+    for (const r of responses) {
+      if (r.record_set_id !== rs.record_set_id) continue;
+      if (r.pack_id == null || !CONTENT_PACK_IDS.has(r.pack_id)) continue;
+      // Rule 8 scoping for ALL response queries on this row+pack:
+      const latest = latestFireIdByRowPack.get(`${r.row_id}::${r.pack_id}`);
+      if (latest !== undefined && responseFireId(r) !== latest) continue;
+      const arr = byRow.get(r.row_id) ?? [];
+      arr.push(r);
+      byRow.set(r.row_id, arr);
+    }
+    const records: ContentRecord[] = [];
+    for (const row_id of rs.row_ids) {
+      const row = rowsByRowId[row_id];
+      const ef = entityFieldFor(row);
+      const blogs = byRow.get(row_id) ?? [];
+      let status: ContentRecordStatus;
+      if (blogs.length === 0) {
+        status = { kind: 'no-responses' };
+      } else {
+        const error = blogs.find((r) => r.outcome === 'error');
+        if (error) {
+          status = { kind: 'invalid-url', reason: error.response_text };
+        } else {
+          const previewable = blogs.filter((r) => isContentResponse(r));
+          if (previewable.length === 0) {
+            status = { kind: 'not-found' };
+          } else {
+            const lastFiredAt = blogs.reduce<string | null>((acc, r) => {
+              return !acc || r.created_at > acc ? r.created_at : acc;
+            }, null);
+            status = { kind: 'has-content', previewableCount: previewable.length, lastFiredAt };
+          }
+        }
+      }
+      records.push({
+        row_id,
+        record_set_id: rs.record_set_id,
+        entity_name: ef?.value ?? '',
+        entity_field: ef?.field ?? null,
+        status,
+        contentResponses: blogs,
+      });
+    }
+    return records.sort((a, b) => {
+      const an = a.entity_name || a.row_id;
+      const bn = b.entity_name || b.row_id;
+      return an.localeCompare(bn);
+    });
+  });
+
+  // Aggregate counts for the header strip — helps the operator see the
+  // shape of the work at a glance.
+  const contentCounts = $derived.by(() => {
+    const c = { total: 0, has: 0, notFound: 0, invalid: 0, none: 0 };
+    for (const cr of contentRecords) {
+      c.total += 1;
+      if (cr.status.kind === 'has-content') c.has += 1;
+      else if (cr.status.kind === 'not-found') c.notFound += 1;
+      else if (cr.status.kind === 'invalid-url') c.invalid += 1;
+      else c.none += 1;
+    }
+    return c;
+  });
+
+  function funderSlugFor(g: { entity_name: string; row_id: string }): string {
+    const base = g.entity_name.trim() || g.row_id;
+    return base.toLowerCase().normalize('NFKD')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+  }
+
+  function corpusUrlsForRow(row_id: string): Set<string> {
+    return new Set((corpusEntriesByRowId[row_id] ?? []).map((e) => e.exact_url));
+  }
+
+  async function previewContentForRow(row_id: string) {
+    if (previewBusyRowId) return;
+    previewBusyRowId = row_id;
+    previewErrorByRowId = { ...previewErrorByRowId, [row_id]: '' };
+    try {
+      const reply = (await workspace.invoke('content_ingest.preview', {
+        record_id: row_id,
+      })) as { previews?: PreviewResult[]; ok?: false; error?: string };
+      if (reply.ok === false) {
+        previewErrorByRowId = { ...previewErrorByRowId, [row_id]: reply.error ?? 'preview failed' };
+        return;
+      }
+      const previews = reply.previews ?? [];
+      previewsByRowId = { ...previewsByRowId, [row_id]: previews };
+      const nextTitles = { ...titleDraftsByResponseId };
+      for (const p of previews) {
+        if (p.status === 'ready' && p.title && nextTitles[p.response_id] == null) {
+          nextTitles[p.response_id] = p.title;
+        }
+      }
+      titleDraftsByResponseId = nextTitles;
+      await refreshCorpusForRow(row_id);
+    } catch (err) {
+      previewErrorByRowId = {
+        ...previewErrorByRowId,
+        [row_id]: err instanceof Error ? err.message : String(err),
+      };
+    } finally {
+      previewBusyRowId = '';
+    }
+  }
+
+  async function refreshCorpusForRow(row_id: string) {
+    try {
+      const reply = (await workspace.invoke('corpus.list_for_record', {
+        client_id: CLIENT_ID,
+        record_id: row_id,
+      })) as { entries?: CorpusEntry[] };
+      corpusEntriesByRowId = { ...corpusEntriesByRowId, [row_id]: reply.entries ?? [] };
+    } catch (err) {
+      console.error('corpus.list_for_record', err);
+    }
+  }
+
+  function parseTags(raw: string): string[] {
+    return raw.split(/[,;\n]/).map((t) => t.trim()).filter((t) => t.length > 0);
+  }
+
+  async function addToCorpus(cr: ContentRecord, preview: PreviewResult) {
+    if (addingResponseId) return;
+    if (preview.status !== 'ready' || !preview.exact_url || !preview.pack_id) return;
+    addingResponseId = preview.response_id;
+    try {
+      const title =
+        titleDraftsByResponseId[preview.response_id]?.trim() || preview.title || preview.exact_url;
+      const tags = parseTags(tagDraftsByResponseId[preview.response_id] ?? '');
+      const result = (await workspace.invoke('corpus.add', {
+        client_id: CLIENT_ID,
+        record_id: cr.row_id,
+        response_id: preview.response_id,
+        title, tags,
+        exact_url: preview.exact_url,
+        funder_slug: funderSlugFor(cr),
+        pack_id: preview.pack_id,
+      })) as { corpus_path?: string; written_at?: string; ok?: false; error?: string };
+      if (result.ok === false) {
+        previewErrorByRowId = {
+          ...previewErrorByRowId,
+          [cr.row_id]: `add failed for ${preview.exact_url}: ${result.error ?? 'unknown'}`,
+        };
+        return;
+      }
+      await refreshCorpusForRow(cr.row_id);
+      const t = { ...tagDraftsByResponseId };
+      delete t[preview.response_id];
+      tagDraftsByResponseId = t;
+    } catch (err) {
+      previewErrorByRowId = {
+        ...previewErrorByRowId,
+        [cr.row_id]: err instanceof Error ? err.message : String(err),
+      };
+    } finally {
+      addingResponseId = '';
+    }
+  }
+
+  // Preload corpus state for visible records so "in corpus" badges and
+  // counts render on first paint, no preview-click required. Fans out
+  // for content-reader (the per-record content cards) and by-record
+  // (Records Surface — operator needs to see corpus coverage in the
+  // view that lists the spine, per the Augmentation-State-Preservation-
+  // and-Snapshot-Promotion plan §Phase A).
+  $effect(() => {
+    if (viewMode === 'content-reader') {
+      void responses.length;
+      for (const cr of contentRecords) {
+        if (corpusEntriesByRowId[cr.row_id] === undefined) {
+          void refreshCorpusForRow(cr.row_id);
+        }
+      }
+    } else if (viewMode === 'by-record') {
+      void responses.length;
+      for (const group of byRecord) {
+        if (corpusEntriesByRowId[group.row_id] === undefined) {
+          void refreshCorpusForRow(group.row_id);
+        }
+      }
+    }
+  });
+
+  function formatFiredAt(iso: string | null): string {
+    if (!iso) return '';
+    return iso.slice(0, 16).replace('T', ' ');
+  }
+
+  // Inline canonical-URL editor — fixes the "I have to leave Content Reader
+  // and find Records Surface to repair a URL" friction. Rule 4 of the goals
+  // spec says the system must surface broken rows for repair; the right
+  // place to surface it is the surface where the operator sees the
+  // not-found / invalid-url symptom.
+  let urlDraftsByRowId = $state<Record<string, string>>({});
+  let urlSavingRowId = $state<string>('');
+  let urlSavedAt = $state<Record<string, number>>({});
+
+  // Manual URL add — operator pastes a URL they found via their own search.
+  // Bypasses Rule 1 (same-host) per the operator's directive: Rule 5
+  // (operator authority per item) trumps Rule 1 (pack-output filter) for
+  // manual flows. See memory: manual-corpus-bypasses-same-host.
+  let manualOpenRowId = $state<Record<string, boolean>>({});
+  let manualUrlDrafts = $state<Record<string, string>>({});
+  let manualPreviewByRowId = $state<Record<string, PreviewResult | null>>({});
+  let manualBusyRowId = $state<string>('');
+  let manualErrorByRowId = $state<Record<string, string>>({});
+  // Interim "save to inbox instead" toggle on the manual-add preview
+  // card. Default-off (keep the existing per-funder corpus.add flow).
+  // When the operator toggles on, the add button routes to
+  // corpus.inbox.add — useful for PDFs and any URL that doesn't yet
+  // have a per-funder home. See plan: Download-PDFs-into-Corpus-Inbox
+  // §Phase 3.
+  let manualSaveToInboxByRowId = $state<Record<string, boolean>>({});
+
+  function toggleManual(row_id: string) {
+    manualOpenRowId = { ...manualOpenRowId, [row_id]: !manualOpenRowId[row_id] };
+  }
+
+  async function previewManualUrl(row_id: string) {
+    const url = (manualUrlDrafts[row_id] ?? '').trim();
+    if (!url || manualBusyRowId) return;
+    manualBusyRowId = row_id;
+    manualErrorByRowId = { ...manualErrorByRowId, [row_id]: '' };
+    try {
+      const reply = (await workspace.invoke('content_ingest.preview_url', {
+        record_id: row_id,
+        url,
+      })) as { preview?: PreviewResult; ok?: false; error?: string };
+      if (reply.ok === false || !reply.preview) {
+        manualErrorByRowId = {
+          ...manualErrorByRowId,
+          [row_id]: reply.error ?? 'preview failed',
+        };
+        return;
+      }
+      const p = reply.preview;
+      manualPreviewByRowId = { ...manualPreviewByRowId, [row_id]: p };
+      if (p.status === 'ready' && p.title) {
+        titleDraftsByResponseId = {
+          ...titleDraftsByResponseId,
+          [p.response_id]: p.title,
+        };
+      }
+      // Refresh corpus list so duplicate detection works for manual adds too.
+      await refreshCorpusForRow(row_id);
+    } catch (err) {
+      manualErrorByRowId = {
+        ...manualErrorByRowId,
+        [row_id]: err instanceof Error ? err.message : String(err),
+      };
+    } finally {
+      manualBusyRowId = '';
+    }
+  }
+
+  async function addManualToCorpus(cr: ContentRecord) {
+    const preview = manualPreviewByRowId[cr.row_id];
+    if (!preview || preview.status !== 'ready') return;
+    if (manualSaveToInboxByRowId[cr.row_id]) {
+      await addManualToInbox(cr, preview);
+      return;
+    }
+    await addToCorpus(cr, preview);
+    // Clear the manual draft + preview on success (corpus refresh inside
+    // addToCorpus will surface the new entry in the "In corpus" chip row).
+    manualUrlDrafts = { ...manualUrlDrafts, [cr.row_id]: '' };
+    manualPreviewByRowId = { ...manualPreviewByRowId, [cr.row_id]: null };
+  }
+
+  // "Save to inbox instead" path. The interim inbox-UI surface from
+  // Content Reader; the dedicated apps/corpus-inbox/ microfrontend will
+  // be the longer-term home but this lets PDFs (and any not-yet-homed
+  // URL) be inboxed from where the operator already is.
+  async function addManualToInbox(cr: ContentRecord, preview: PreviewResult) {
+    if (addingResponseId) return;
+    if (preview.status !== 'ready' || !preview.exact_url) return;
+    addingResponseId = preview.response_id;
+    try {
+      const tags = parseTags(tagDraftsByResponseId[preview.response_id] ?? '');
+      const result = (await workspace.invoke('corpus.inbox.add', {
+        client_id: CLIENT_ID,
+        url: preview.exact_url,
+        tags,
+        captured_from: 'content-reader',
+      })) as {
+        corpus_path?: string;
+        written_at?: string;
+        binary_asset?: { filename: string | null; download_status: string } | null;
+        ok?: false;
+        error?: string;
+      };
+      if (result.ok === false) {
+        manualErrorByRowId = {
+          ...manualErrorByRowId,
+          [cr.row_id]: `inbox add failed for ${preview.exact_url}: ${result.error ?? 'unknown'}`,
+        };
+        return;
+      }
+      manualUrlDrafts = { ...manualUrlDrafts, [cr.row_id]: '' };
+      manualPreviewByRowId = { ...manualPreviewByRowId, [cr.row_id]: null };
+      manualSaveToInboxByRowId = { ...manualSaveToInboxByRowId, [cr.row_id]: false };
+      const t = { ...tagDraftsByResponseId };
+      delete t[preview.response_id];
+      tagDraftsByResponseId = t;
+    } catch (err) {
+      manualErrorByRowId = {
+        ...manualErrorByRowId,
+        [cr.row_id]: err instanceof Error ? err.message : String(err),
+      };
+    } finally {
+      addingResponseId = '';
+    }
+  }
+
+  function currentRowUrl(row_id: string): string {
+    const row = rowsByRowId[row_id];
+    const u = (row?.fields as Record<string, unknown> | undefined)?.url;
+    return typeof u === 'string' ? u : '';
+  }
+
+  async function saveRowUrl(row_id: string) {
+    if (urlSavingRowId) return;
+    const draft = (urlDraftsByRowId[row_id] ?? currentRowUrl(row_id)).trim();
+    if (!draft) return;
+    if (draft === currentRowUrl(row_id)) return;
+    urlSavingRowId = row_id;
+    try {
+      await workspace.invoke('row.update', { row_id, fields: { url: draft } });
+      // Local mirror so the input + dependent UI re-renders without
+      // waiting for the row.updated broadcast to round-trip.
+      const row = rowsByRowId[row_id];
+      if (row) {
+        rowsByRowId = {
+          ...rowsByRowId,
+          [row_id]: { ...row, fields: { ...row.fields, url: draft } },
+        };
+      }
+      urlSavedAt = { ...urlSavedAt, [row_id]: Date.now() };
+    } catch (err) {
+      previewErrorByRowId = {
+        ...previewErrorByRowId,
+        [row_id]: `URL save failed: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    } finally {
+      urlSavingRowId = '';
+    }
+  }
 </script>
 
 <div class="resp-app">
@@ -927,6 +1419,16 @@
         title="Group all responses for a row into one card — efficient for pack triage"
       >
         By Record
+      </button>
+      <button
+        class="resp-view"
+        class:active={viewMode === 'content-reader'}
+        role="tab"
+        aria-selected={viewMode === 'content-reader'}
+        onclick={() => (viewMode = 'content-reader')}
+        title="Per-record content preview + add to corpus (funder content corpus workflow)"
+      >
+        Content Reader
       </button>
     </div>
 
@@ -1032,6 +1534,24 @@
                 <h3>{group.entity_name || group.row_id}</h3>
               {/if}
               <span class="muted record-card-count">{group.responses.length} {group.responses.length === 1 ? 'response' : 'responses'}</span>
+              <!-- Corpus-count chip — surfaces filesystem truth (the
+                   count of clients/<client>/corpus/*/*.md files whose
+                   record_id frontmatter == this row's row_id) in the
+                   spine view itself, so cold prospects are visually
+                   obvious without leaving Records Surface. Plan:
+                   [[Augmentation-State-Preservation-and-Snapshot-
+                   Promotion]] §Phase A. -->
+              {#if corpusEntriesByRowId[group.row_id] === undefined}
+                <span class="record-card-corpus-chip loading" title="Loading corpus count…">corpus …</span>
+              {:else if (corpusEntriesByRowId[group.row_id] ?? []).length === 0}
+                <span class="record-card-corpus-chip cold" title="No corpus content for this record yet">corpus 0</span>
+              {:else}
+                {@const corpusN = (corpusEntriesByRowId[group.row_id] ?? []).length}
+                <span
+                  class="record-card-corpus-chip warm"
+                  title={`${corpusN} corpus ${corpusN === 1 ? 'file' : 'files'} on disk for this record`}
+                >corpus {corpusN}</span>
+              {/if}
             </header>
 
             <!-- Per-record connector palette. One chip per intent; default
@@ -1200,6 +1720,385 @@
           </article>
         {/each}
       </div>
+    {:else if viewMode === 'content-reader'}
+      <!-- Content Reader — implements
+           context-v/specs/Funder-Content-Corpus-Workflow.md Rules 5-8.
+           Shows EVERY row of the active record set; per-card affordance
+           depends on status (no-responses / invalid-url / not-found /
+           has-content). Curated indexes (Rule 3) honored at pack layer;
+           same-host + navigation (Rules 1+2) enforced in three layers. -->
+      {#if !activeRecordSet}
+        <p class="muted">
+          Pick a specific record set in the scope chip row above to use
+          Content Reader. (The "all sets" view mixes generations and
+          isn't useful here.)
+        </p>
+      {:else}
+        <p class="muted cr-summary">
+          <strong>Client:</strong> {CLIENT_ID} ·
+          <strong>{contentCounts.total}</strong> records in
+          <strong>{activeRecordSet.name}</strong>:
+          {contentCounts.has} with content ·
+          {contentCounts.notFound} not_found ·
+          {contentCounts.invalid} url-needs-repair ·
+          {contentCounts.none} not yet fired
+        </p>
+        <div class="record-list cr-record-list">
+          {#each contentRecords as cr (cr.row_id)}
+            {@const corpusUrls = corpusUrlsForRow(cr.row_id)}
+            {@const corpusEntries = corpusEntriesByRowId[cr.row_id] ?? []}
+            {@const curUrl = currentRowUrl(cr.row_id)}
+            {@const savedRecently = (urlSavedAt[cr.row_id] ?? 0) > Date.now() - 4000}
+            {@const previews = previewsByRowId[cr.row_id] ?? []}
+            {@const newPreviews = previews.filter((p) => !corpusUrls.has(p.exact_url))}
+            {@const busy = previewBusyRowId === cr.row_id}
+            {@const err = previewErrorByRowId[cr.row_id] ?? ''}
+            {@const manualOpen = manualOpenRowId[cr.row_id] ?? false}
+            {@const manualPreview = manualPreviewByRowId[cr.row_id]}
+            {@const manualErr = manualErrorByRowId[cr.row_id] ?? ''}
+            {@const manualBusy = manualBusyRowId === cr.row_id}
+            <article class="record-card cr-card" class:cr-card-needs-fix={cr.status.kind === 'invalid-url'}>
+              <header class="cr-header">
+                <div class="cr-header-name">
+                  <strong>{cr.entity_name || cr.row_id}</strong>
+                  <span class="muted cr-meta">
+                    {#if cr.status.kind === 'has-content'}
+                      {cr.status.previewableCount} previewable
+                      {#if corpusEntries.length > 0} · {corpusEntries.length} in corpus{/if}
+                      {#if cr.status.lastFiredAt} · last fired {formatFiredAt(cr.status.lastFiredAt)}{/if}
+                    {:else if cr.status.kind === 'invalid-url'}
+                      <span class="cr-tag cr-tag-fix">url needs repair</span>
+                    {:else if cr.status.kind === 'not-found'}
+                      <span class="cr-tag cr-tag-empty">pack ran · no content found</span>
+                    {:else}
+                      <span class="cr-tag cr-tag-empty">not yet fired</span>
+                    {/if}
+                  </span>
+                </div>
+                {#if cr.status.kind === 'has-content'}
+                  <button
+                    class="cr-preview-btn"
+                    onclick={() => void previewContentForRow(cr.row_id)}
+                    disabled={busy || previewBusyRowId.length > 0}
+                    title="Fetch markdown body for this record's content responses via Jina"
+                  >
+                    {#if busy}fetching…{:else}Preview content →{/if}
+                  </button>
+                {/if}
+              </header>
+
+              <!-- Inline canonical-URL editor — always visible. The
+                   operator should be able to repair a wrong URL from
+                   here, not have to leave Content Reader for Records
+                   Surface. Per Rule 4 of the goals spec. After save the
+                   operator re-fires entity-blog from Pack Runner. -->
+              <div class="cr-url-row">
+                <label class="cr-url-label">
+                  <span class="cr-url-label-text">Canonical URL</span>
+                  <input
+                    class="cr-url-input"
+                    type="text"
+                    placeholder="https://funder-domain.org"
+                    bind:value={
+                      () => urlDraftsByRowId[cr.row_id] ?? curUrl,
+                      (v) => (urlDraftsByRowId = { ...urlDraftsByRowId, [cr.row_id]: v })
+                    }
+                    onkeydown={(e) => {
+                      if (e.key === 'Enter') void saveRowUrl(cr.row_id);
+                    }}
+                  />
+                </label>
+                <button
+                  class="cr-url-save"
+                  onclick={() => void saveRowUrl(cr.row_id)}
+                  disabled={
+                    urlSavingRowId === cr.row_id ||
+                    (urlDraftsByRowId[cr.row_id] ?? curUrl).trim() === curUrl
+                  }
+                >
+                  {#if urlSavingRowId === cr.row_id}
+                    saving…
+                  {:else if savedRecently}
+                    ✓ saved
+                  {:else}
+                    save
+                  {/if}
+                </button>
+              </div>
+
+              {#if cr.status.kind === 'invalid-url'}
+                <p class="cr-fix-msg">
+                  {cr.status.reason}<br />
+                  Fix the <strong>Canonical URL</strong> above to the
+                  funder's actual domain, then re-fire
+                  <code>entity-blog</code> from Pack Runner.
+                </p>
+              {:else if cr.status.kind === 'not-found'}
+                <p class="cr-empty-msg">
+                  The pack ran but didn't find an index it could walk.
+                  Try curating <code>official_updates_index_urls</code> on
+                  this row via Records Surface, then re-fire.
+                </p>
+              {:else if cr.status.kind === 'no-responses'}
+                <p class="cr-empty-msg">
+                  No pack responses for this row yet. Fire
+                  <code>entity-blog</code> from Pack Runner against this
+                  record set to populate.
+                </p>
+              {/if}
+
+              {#if err}
+                <p class="cr-error">{err}</p>
+              {/if}
+
+              {#if corpusEntries.length > 0}
+                <div class="cr-corpus-list" title="Items already in this record's corpus">
+                  <span class="muted cr-corpus-list-label">In corpus:</span>
+                  {#each corpusEntries as e (e.corpus_path)}
+                    <span class="cr-corpus-chip" title={`${e.corpus_path}\n${e.exact_url}`}>
+                      {e.title || e.exact_url}
+                    </span>
+                  {/each}
+                </div>
+              {/if}
+
+              <!-- Manual URL add — operator pastes a URL they found via
+                   their own search. Collapsed by default to keep cards
+                   uncluttered; expands on click. Same-host (Rule 1) NOT
+                   enforced for manual adds (Rule 5 / operator authority
+                   trumps). See feedback memory: manual-corpus-bypasses-
+                   same-host. -->
+              <div class="cr-manual">
+                <button
+                  class="cr-manual-toggle"
+                  type="button"
+                  onclick={() => toggleManual(cr.row_id)}
+                  aria-expanded={manualOpen}
+                  title="Paste a URL you found via your own search — bypasses Rule 1 same-host filter"
+                >
+                  {manualOpen ? '▾' : '▸'} + add URL manually
+                </button>
+                {#if manualOpen}
+                  <div class="cr-manual-body">
+                    <div class="cr-manual-input-row">
+                      <input
+                        class="cr-manual-input"
+                        type="url"
+                        placeholder="https://… (paste a URL from your own search)"
+                        bind:value={
+                          () => manualUrlDrafts[cr.row_id] ?? '',
+                          (v) => (manualUrlDrafts = { ...manualUrlDrafts, [cr.row_id]: v })
+                        }
+                        onkeydown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            void previewManualUrl(cr.row_id);
+                          }
+                        }}
+                      />
+                      <button
+                        class="cr-manual-preview-btn"
+                        type="button"
+                        onclick={() => void previewManualUrl(cr.row_id)}
+                        disabled={manualBusy || !(manualUrlDrafts[cr.row_id] ?? '').trim()}
+                      >
+                        {#if manualBusy}fetching…{:else}Preview ↓{/if}
+                      </button>
+                    </div>
+                    {#if manualErr}
+                      <p class="cr-error">{manualErr}</p>
+                    {/if}
+                    {#if manualPreview}
+                      {@const inCorpusAlready = corpusUrls.has(manualPreview.exact_url)}
+                      {@const sameHost = (manualPreview.extra_metadata as { same_host?: boolean } | undefined)?.same_host}
+                      {@const isPdf = (manualPreview.extra_metadata as { is_pdf?: boolean } | undefined)?.is_pdf === true}
+                      {@const inboxBound = manualSaveToInboxByRowId[cr.row_id] === true}
+                      <div
+                        class="cr-preview cr-manual-preview"
+                        class:cr-preview-failed={manualPreview.status === 'failed'}
+                      >
+                        <div class="cr-preview-head">
+                          <span class="cr-pack-chip">manual</span>
+                          {#if manualPreview.exact_url}
+                            {@const host = (() => { try { return new URL(manualPreview.exact_url).hostname.replace(/^www\./, ''); } catch { return ''; } })()}
+                            {#if host}<span class="cr-domain-chip">{host}</span>{/if}
+                          {/if}
+                          {#if sameHost === false}
+                            <span class="cr-domain-chip cr-domain-off" title="URL is not on the funder's own domain — logged as-is per operator authority">off-domain</span>
+                          {/if}
+                          {#if isPdf}
+                            <span class="cr-pdf-chip" title="The URL resolves to a PDF. If you toggle 'save to inbox' the binary will be downloaded alongside the markdown.">📄 PDF</span>
+                          {/if}
+                          {#if manualPreview.fetched_at}
+                            <span class="muted cr-fetched-at">fetched {formatFiredAt(manualPreview.fetched_at)}</span>
+                          {/if}
+                        </div>
+                        {#if manualPreview.status === 'failed'}
+                          <div class="cr-fail">
+                            Jina fetch failed: {manualPreview.error ?? 'unknown error'}
+                            {#if manualPreview.exact_url}
+                              <a href={manualPreview.exact_url} target="_blank" rel="noopener noreferrer">{manualPreview.exact_url}</a>
+                            {/if}
+                          </div>
+                        {:else if inCorpusAlready}
+                          <p class="muted cr-empty-msg">Already in corpus — pick a different URL.</p>
+                        {:else}
+                          <input
+                            class="cr-title"
+                            type="text"
+                            bind:value={
+                              () => titleDraftsByResponseId[manualPreview.response_id] ?? manualPreview.title ?? '',
+                              (v) =>
+                                (titleDraftsByResponseId = {
+                                  ...titleDraftsByResponseId,
+                                  [manualPreview.response_id]: v,
+                                })
+                            }
+                            placeholder="Title"
+                          />
+                          {#if manualPreview.exact_url}
+                            <a class="cr-url" href={manualPreview.exact_url} target="_blank" rel="noopener noreferrer">{manualPreview.exact_url}</a>
+                          {/if}
+                          {#if manualPreview.excerpt}
+                            <p class="cr-excerpt">{manualPreview.excerpt}</p>
+                          {/if}
+                          <div class="cr-add-row">
+                            <input
+                              class="cr-tags"
+                              type="text"
+                              placeholder="tags, comma-separated"
+                              bind:value={
+                                () => tagDraftsByResponseId[manualPreview.response_id] ?? '',
+                                (v) =>
+                                  (tagDraftsByResponseId = {
+                                    ...tagDraftsByResponseId,
+                                    [manualPreview.response_id]: v,
+                                  })
+                              }
+                            />
+                            <button
+                              class="cr-add-btn"
+                              onclick={() => void addManualToCorpus(cr)}
+                              disabled={addingResponseId === manualPreview.response_id}
+                              title={inboxBound
+                                ? 'Write to clients/<client>/corpus/inbox/ for later triage' + (isPdf ? ' (PDF binary will be downloaded alongside)' : '')
+                                : 'Write the Jina markdown as a corpus file'}
+                            >
+                              {#if addingResponseId === manualPreview.response_id}
+                                adding…
+                              {:else if inboxBound}
+                                + send to inbox{#if isPdf} (with PDF){/if}
+                              {:else}
+                                + add to corpus
+                              {/if}
+                            </button>
+                          </div>
+                          <label class="cr-inbox-toggle" title="Send to corpus/inbox/ for later triage instead of the per-funder corpus directory. Required for PDFs — only the inbox path downloads the binary today.">
+                            <input
+                              type="checkbox"
+                              checked={inboxBound}
+                              onchange={(e) => {
+                                const v = (e.currentTarget as HTMLInputElement).checked;
+                                manualSaveToInboxByRowId = {
+                                  ...manualSaveToInboxByRowId,
+                                  [cr.row_id]: v,
+                                };
+                              }}
+                            />
+                            <span>save to inbox instead{#if isPdf} <em>(recommended for PDF — downloads the binary)</em>{/if}</span>
+                          </label>
+                        {/if}
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
+              </div>
+
+              {#if cr.status.kind === 'has-content'}
+                {#if newPreviews.length > 0}
+                  <ul class="cr-preview-list">
+                    {#each newPreviews as p (p.response_id)}
+                      <li class="cr-preview" class:cr-preview-failed={p.status === 'failed'}>
+                        <div class="cr-preview-head">
+                          <span class="cr-pack-chip">{p.pack_id ?? 'unknown'}</span>
+                          {#if p.exact_url}
+                            {@const host = (() => { try { return new URL(p.exact_url).hostname.replace(/^www\./, ''); } catch { return ''; } })()}
+                            {#if host}<span class="cr-domain-chip">{host}</span>{/if}
+                          {/if}
+                          {#if p.fetched_at}
+                            <span class="muted cr-fetched-at">fetched {formatFiredAt(p.fetched_at)}</span>
+                          {/if}
+                        </div>
+                        {#if p.status === 'failed'}
+                          <div class="cr-fail">
+                            Jina fetch failed: {p.error ?? 'unknown error'}
+                            {#if p.exact_url}
+                              <a href={p.exact_url} target="_blank" rel="noopener noreferrer">{p.exact_url}</a>
+                            {/if}
+                          </div>
+                        {:else}
+                          <input
+                            class="cr-title"
+                            type="text"
+                            bind:value={
+                              () => titleDraftsByResponseId[p.response_id] ?? p.title ?? '',
+                              (v) =>
+                                (titleDraftsByResponseId = {
+                                  ...titleDraftsByResponseId,
+                                  [p.response_id]: v,
+                                })
+                            }
+                            placeholder="Title"
+                          />
+                          {#if p.exact_url}
+                            <a class="cr-url" href={p.exact_url} target="_blank" rel="noopener noreferrer">{p.exact_url}</a>
+                          {/if}
+                          {#if p.excerpt}
+                            <p class="cr-excerpt">{p.excerpt}</p>
+                          {/if}
+                          <div class="cr-add-row">
+                            <input
+                              class="cr-tags"
+                              type="text"
+                              placeholder="tags, comma-separated"
+                              bind:value={
+                                () => tagDraftsByResponseId[p.response_id] ?? '',
+                                (v) =>
+                                  (tagDraftsByResponseId = {
+                                    ...tagDraftsByResponseId,
+                                    [p.response_id]: v,
+                                  })
+                              }
+                            />
+                            <button
+                              class="cr-add-btn"
+                              onclick={() => void addToCorpus(cr, p)}
+                              disabled={addingResponseId === p.response_id}
+                              title="Write the Jina markdown as a corpus file"
+                            >
+                              {#if addingResponseId === p.response_id}adding…{:else}+ add to corpus{/if}
+                            </button>
+                          </div>
+                        {/if}
+                      </li>
+                    {/each}
+                  </ul>
+                {:else if !busy && previews.length > 0}
+                  <p class="muted cr-empty-msg">
+                    All {previews.length} previews for this record are already
+                    in the corpus.
+                  </p>
+                {:else if !busy}
+                  <p class="muted cr-empty-msg">
+                    Click <strong>Preview content</strong> to fetch the
+                    body of this record's content responses.
+                  </p>
+                {/if}
+              {/if}
+            </article>
+          {/each}
+        </div>
+      {/if}
     {:else if current}
       <div class="stepper">
         <button onclick={() => step(-1)} disabled={index === 0}>◀</button>

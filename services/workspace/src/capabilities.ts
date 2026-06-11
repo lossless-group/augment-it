@@ -88,6 +88,24 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // pages). Reply rides on NATS; no response-store write. Per
   // context-v/specs/Flow-for-Bundles-Packs.md §"The connectors".
   'connector.fire': 'connector.fire.requested',
+  // Content ingest — Jina-pull markdown + per-client corpus. Per
+  // context-v/specs/Funder-Content-Corpus-Workflow.md §Step 5 and
+  // context-v/specs/Response-Reviewer-Shell-and-Content-Reader-Mode.md.
+  'content_ingest.preview': 'content_ingest.preview.requested',
+  // Operator-pasted URL → Jina preview. Same shape as one entry of
+  // content_ingest.preview but for a single user-supplied URL; does not
+  // enforce same-host (manual additions ride Rule 5, not Rule 1).
+  'content_ingest.preview_url': 'content_ingest.preview_url.requested',
+  'corpus.add': 'corpus.add.requested',
+  'corpus.list_for_record': 'corpus.list_for_record.requested',
+  // Corpus Inbox — capture-first destination. v0.0.1 ships the add path;
+  // list + triage handlers come later per [[Corpus-Inbox-Capture-and-Triage]].
+  'corpus.inbox.add': 'corpus.inbox.add.requested',
+  // Snapshot promotion — emit inputs/<date>_<basename>_v(N+1).csv with
+  // corpus_* system columns derived from filesystem truth at promote
+  // time. Plan: [[Augmentation-State-Preservation-and-Snapshot-
+  // Promotion]] §Phase B.
+  'pipeline.promote_snapshot': 'pipeline.promote_snapshot.requested',
 };
 
 const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
@@ -114,6 +132,32 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   // Records Surface per-record fire — one scrape + parse + (optional) Haiku
   // call. 60s is generous; Firecrawl typically lands in 5-15s.
   'connector.fire': 60_000,
+  // Content ingest — Jina fires N URLs per preview (one per content-pack
+  // response on the record, deduped, bounded-parallel-per-host with 429
+  // retry). 300s safety margin for a record with many unique URLs on a
+  // slow domain.
+  'content_ingest.preview': 300_000,
+  // One Jina fetch on a user-pasted URL; same per-fetch shape as the
+  // bulk preview but bounded to a single URL.
+  'content_ingest.preview_url': 60_000,
+  // corpus.add re-uses warm cache or re-fetches once via Jina.
+  'corpus.add': 30_000,
+  // The lens fans out N parallel calls (one per visible row) on view
+  // load. Post slug-join each call is a single small-directory walk,
+  // but the 5s default was too tight when this fell back to full-walk
+  // and is too tight under cold-start filesystem latency. 15s leaves
+  // headroom without masking a real backend hang.
+  'corpus.list_for_record': 15_000,
+  // One Jina fetch + optional binary download (PDF up to 50MB) +
+  // filesystem write. Bumped from 30s on 2026-06-09 when the PDF
+  // download path landed — a 50MB PDF on a slow link can take real
+  // seconds. See plan: Download-PDFs-into-Corpus-Inbox §Phase 2.
+  'corpus.inbox.add': 90_000,
+  // Walks the corpus filesystem (typically <1K markdown files at v1
+  // scale), parses CSV in/out. 120s leaves room for a 10K-file corpus
+  // without forcing a chunking strategy. Plan:
+  // Augmentation-State-Preservation-and-Snapshot-Promotion §Phase B.
+  'pipeline.promote_snapshot': 120_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {

@@ -161,6 +161,12 @@ export async function createRecordSet(params: {
   schema: ColumnSchema;
   rows: { fields: Record<string, unknown> }[];
   derived_from?: RecordSet['derived_from'];
+  // Optional predecessor for snapshot-promotion: when set, the new
+  // record set carries promoted_from: { record_set_ids: [predecessor],
+  // promoted_at: now } AND the predecessor is archived. Mirrors the
+  // semantics promoteRecordSet bakes in, but for the ingest-from-CSV
+  // path where the union/derivation logic doesn't apply.
+  predecessor_record_set_id?: string;
 }): Promise<{ record_set: RecordSet; rows: Row[] }> {
   const record_set_id = `rs_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   const created_at = new Date().toISOString();
@@ -187,6 +193,23 @@ export async function createRecordSet(params: {
     };
   });
 
+  // If the caller named a predecessor (snapshot-promotion case), stitch
+  // the lineage: stamp promoted_from on the new set and archive the
+  // predecessor. The predecessor must exist; the link is rejected
+  // silently if not (better to land the new set unlinked than to fail
+  // the whole create).
+  let promoted_from: RecordSet['promoted_from'] | undefined;
+  const pred = params.predecessor_record_set_id
+    ? data.record_sets[params.predecessor_record_set_id]
+    : undefined;
+  if (pred) {
+    promoted_from = {
+      record_set_ids: [pred.record_set_id],
+      promoted_at: created_at,
+      record_count: newRows.length,
+    };
+  }
+
   const rs: RecordSet = {
     record_set_id,
     name: params.name,
@@ -194,10 +217,19 @@ export async function createRecordSet(params: {
     row_ids: newRows.map((r) => r.row_id),
     created_at,
     ...(params.derived_from ? { derived_from: params.derived_from } : {}),
+    ...(promoted_from ? { promoted_from } : {}),
   };
 
   data.record_sets[record_set_id] = rs;
   for (const r of newRows) data.rows[r.row_id] = r;
+  // Archive the predecessor as part of the same persist cycle so the
+  // sidebar's "leaf vs archived" view stays consistent (the family-
+  // grouping logic computes leaves at read-time from promoted_from
+  // references; archiving collapses the prior generation into the
+  // "Earlier generations" list immediately).
+  if (pred && !pred.archived) {
+    data.record_sets[pred.record_set_id] = { ...pred, archived: true };
+  }
   await persist();
 
   return { record_set: rs, rows: newRows };

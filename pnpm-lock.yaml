@@ -281,6 +281,37 @@ importers:
         specifier: ^5.8.3
         version: 5.9.3
 
+  apps/sort-filter-lens:
+    dependencies:
+      '@augment-it/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
+      '@augment-it/workspace':
+        specifier: workspace:*
+        version: link:../../packages/workspace
+      svelte:
+        specifier: ^5.0.0
+        version: 5.55.9
+    devDependencies:
+      '@module-federation/enhanced':
+        specifier: ^0.18.0
+        version: 0.18.4(@rspack/core@1.7.11(@swc/helpers@0.5.21))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(webpack@5.107.1)
+      '@module-federation/rsbuild-plugin':
+        specifier: ^0.18.0
+        version: 0.18.4(@rsbuild/core@1.7.5)(@rspack/core@1.7.11(@swc/helpers@0.5.21))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(webpack@5.107.1)
+      '@rsbuild/core':
+        specifier: ^1.4.3
+        version: 1.7.5
+      '@rsbuild/plugin-svelte':
+        specifier: ^1.0.7
+        version: 1.1.1(@rsbuild/core@1.7.5)(svelte@5.55.9)(typescript@5.9.3)
+      svelte-check:
+        specifier: ^4.0.0
+        version: 4.4.8(svelte@5.55.9)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
   packages/shared-ui:
     devDependencies:
       svelte:
@@ -301,6 +332,28 @@ importers:
       svelte:
         specifier: ^5.0.0
         version: 5.55.9
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  services/content-ingest:
+    dependencies:
+      csv-parse:
+        specifier: ^5.5.6
+        version: 5.6.0
+      csv-stringify:
+        specifier: ^6.5.0
+        version: 6.7.0
+      nats:
+        specifier: ^2.28.0
+        version: 2.29.3
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      tsx:
+        specifier: ^4.19.0
+        version: 4.22.3
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
@@ -1401,6 +1454,9 @@ packages:
 
   csv-parse@5.6.0:
     resolution: {integrity: sha512-l3nz3euub2QMg5ouu5U09Ew9Wf6/wQ8I++ch1loQ0ljmzhmfZYrH9fflS22i/PQEvsPvxCwxgz5q7UB8K1JO4Q==}
+
+  csv-stringify@6.7.0:
+    resolution: {integrity: sha512-UdtziYp5HuTz7e5j8Nvq+a/3HQo+2/aJZ9xntNTpmRRIg/3YYqDVgiS9fvAhtNbnyfbv2ZBe0bqCHqzhE7FqWQ==}
 
   date-format@4.0.14:
     resolution: {integrity: sha512-39BOQLs9ZjKh0/patS9nrT8wc3ioX3/eA/zgbKNopnF2wCqJEoxywwwElATYvRsXdnOxA/OQeQoFZ3rFjVajhg==}
@@ -3405,6 +3461,8 @@ snapshots:
       luxon: 3.7.2
 
   csv-parse@5.6.0: {}
+
+  csv-stringify@6.7.0: {}
 
   date-format@4.0.14: {}
 

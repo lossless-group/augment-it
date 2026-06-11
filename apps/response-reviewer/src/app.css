@@ -655,6 +655,31 @@
   font-size: 0.75rem;
 }
 
+.resp-app .record-card-corpus-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-family: var(--font-mono, monospace);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.resp-app .record-card-corpus-chip.loading { opacity: 0.5; }
+.resp-app .record-card-corpus-chip.cold {
+  color: var(--color-text-muted);
+  border-style: dashed;
+}
+.resp-app .record-card-corpus-chip.warm {
+  color: var(--color-accent, #9ab8ff);
+  border-color: var(--color-accent, #9ab8ff);
+  background: var(--color-accent-bg, rgba(120, 160, 255, 0.12));
+}
+
 /* Per-record source runners — two rows (one per provider), one icon button
    per pack/API. Firing is additive (a new candidate response lands below for
    triage); the ✓ badge marks packs already accepted onto this record. */
@@ -953,3 +978,322 @@
   border-color: var(--color-accent);
 }
 .resp-app .inline-btn.accept:hover:not(:disabled) { box-shadow: var(--fx-accent-glow); }
+
+/* ============================================================
+ * Content Reader — view mode 'content-reader'
+ * Per context-v/specs/Funder-Content-Corpus-Workflow.md
+ * ============================================================ */
+.resp-app .cr-summary { font-size: 0.82rem; margin: 0.2rem 0 0.4rem; }
+
+.resp-app .cr-record-list { gap: 0.7rem; }
+
+.resp-app .cr-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.resp-app .cr-card-needs-fix {
+  border-color: var(--color-error-text, #d33);
+}
+
+.resp-app .cr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.resp-app .cr-header-name { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.resp-app .cr-header-name strong { font-size: 0.95rem; color: var(--color-accent); overflow-wrap: anywhere; }
+.resp-app .cr-meta { font-size: 0.72rem; display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+
+.resp-app .cr-tag {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 1px 6px; border-radius: 999px;
+  background: var(--color-border);
+  color: var(--color-text-muted);
+}
+.resp-app .cr-tag-fix {
+  background: var(--color-error-bg, rgba(200, 50, 50, 0.15));
+  color: var(--color-error-text, #d33);
+}
+.resp-app .cr-tag-empty {
+  background: var(--color-field);
+  color: var(--color-text-muted);
+}
+
+.resp-app .cr-preview-btn {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border: 1px solid var(--color-accent);
+  padding: 0.4rem 0.85rem;
+  border-radius: 4px;
+  font: 600 0.8rem var(--font-mono);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.resp-app .cr-preview-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.resp-app .cr-preview-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.resp-app .cr-fix-msg,
+.resp-app .cr-empty-msg {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+.resp-app .cr-fix-msg { color: var(--color-error-text, #d33); }
+
+.resp-app .cr-error {
+  background: var(--color-error-bg, rgba(200, 50, 50, 0.1));
+  color: var(--color-error-text, #d33);
+  border: 1px solid var(--color-error-text, #d33);
+  border-radius: 3px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.78rem;
+  margin: 0;
+}
+
+.resp-app .cr-corpus-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.4rem 0.55rem;
+  background: var(--color-surface, rgba(255, 255, 255, 0.04));
+  border-radius: 3px;
+  font-size: 0.78rem;
+}
+.resp-app .cr-corpus-list-label { font-size: 0.72rem; }
+.resp-app .cr-corpus-chip {
+  display: inline-block;
+  padding: 0.18rem 0.5rem;
+  border-radius: 3px;
+  background: var(--color-field);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  font-size: 0.74rem;
+  max-width: 18em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resp-app .cr-preview-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 0.55rem;
+}
+.resp-app .cr-preview {
+  display: flex; flex-direction: column; gap: 0.35rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface, rgba(255, 255, 255, 0.02));
+}
+.resp-app .cr-preview-failed { border-color: var(--color-error-text, #d33); }
+.resp-app .cr-preview-head { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+.resp-app .cr-pack-chip,
+.resp-app .cr-domain-chip {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 1px 6px; border-radius: 999px;
+  background: var(--color-border);
+  color: var(--color-text-muted);
+}
+.resp-app .cr-domain-chip {
+  background: var(--color-field);
+  color: var(--color-text);
+}
+.resp-app .cr-fetched-at { font-size: 0.7rem; }
+
+.resp-app .cr-title {
+  width: 100%;
+  background: var(--color-field);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 0.3rem 0.5rem;
+  font: 600 0.85rem var(--font-mono);
+}
+.resp-app .cr-title:focus { outline: 1px solid var(--color-accent); }
+
+.resp-app .cr-url {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.resp-app .cr-url:hover { text-decoration: underline; }
+
+.resp-app .cr-excerpt {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-text);
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.resp-app .cr-add-row { display: flex; gap: 0.4rem; align-items: stretch; }
+.resp-app .cr-tags {
+  flex: 1;
+  background: var(--color-field);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 0.3rem 0.5rem;
+  font: 0.78rem var(--font-mono);
+}
+.resp-app .cr-tags:focus { outline: 1px solid var(--color-accent); }
+
+.resp-app .cr-add-btn {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border: 1px solid var(--color-accent);
+  padding: 0.3rem 0.7rem;
+  border-radius: 3px;
+  font: 600 0.78rem var(--font-mono);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.resp-app .cr-add-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.resp-app .cr-add-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.resp-app .cr-fail {
+  font-size: 0.78rem;
+  color: var(--color-error-text, #d33);
+  display: flex; flex-direction: column; gap: 0.2rem;
+}
+
+/* Inline canonical-URL editor — appears on every Content Reader card so
+ * the operator can repair Rule 4 violations without leaving the surface. */
+.resp-app .cr-url-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.45rem;
+  background: var(--color-field);
+  border-radius: 3px;
+}
+.resp-app .cr-url-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.resp-app .cr-url-input {
+  flex: 1;
+  background: var(--color-surface, transparent);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 0.25rem 0.5rem;
+  font: 0.78rem var(--font-mono);
+  min-width: 0;
+}
+.resp-app .cr-url-input:focus { outline: 1px solid var(--color-accent); }
+.resp-app .cr-url-save {
+  background: var(--color-field);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  padding: 0.25rem 0.6rem;
+  border-radius: 3px;
+  font: 600 0.74rem var(--font-mono);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.resp-app .cr-url-save:hover:not(:disabled) { border-color: var(--color-accent); }
+.resp-app .cr-url-save:disabled { opacity: 0.5; cursor: not-allowed; }
+.resp-app .cr-url-row label.cr-url-label {
+  display: flex; align-items: center; gap: 0.4rem; flex: 1; min-width: 0; margin: 0;
+}
+.resp-app .cr-url-label-text {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* Manual URL add — operator pastes a URL they found via their own search.
+ * Collapsed by default; expands into a paste field + preview + add. */
+.resp-app .cr-manual {
+  display: flex; flex-direction: column; gap: 0.4rem;
+}
+.resp-app .cr-manual-toggle {
+  align-self: flex-start;
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: 3px;
+  padding: 0.2rem 0.55rem;
+  font: 0.74rem var(--font-mono);
+  cursor: pointer;
+}
+.resp-app .cr-manual-toggle:hover { color: var(--color-text); border-color: var(--color-accent); }
+.resp-app .cr-manual-toggle[aria-expanded="true"] {
+  color: var(--color-text);
+  border-style: solid;
+}
+.resp-app .cr-manual-body {
+  display: flex; flex-direction: column; gap: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--color-field);
+  border-radius: 3px;
+}
+.resp-app .cr-manual-input-row { display: flex; gap: 0.4rem; align-items: stretch; }
+.resp-app .cr-manual-input {
+  flex: 1;
+  background: var(--color-surface, transparent);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 0.3rem 0.5rem;
+  font: 0.78rem var(--font-mono);
+  min-width: 0;
+}
+.resp-app .cr-manual-input:focus { outline: 1px solid var(--color-accent); }
+.resp-app .cr-manual-preview-btn {
+  background: var(--color-field);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  padding: 0.3rem 0.7rem;
+  border-radius: 3px;
+  font: 600 0.74rem var(--font-mono);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.resp-app .cr-manual-preview-btn:hover:not(:disabled) { border-color: var(--color-accent); }
+.resp-app .cr-manual-preview-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.resp-app .cr-manual-preview {
+  background: var(--color-surface, rgba(255, 255, 255, 0.02));
+}
+.resp-app .cr-domain-off {
+  background: var(--color-warning-bg, #5a3d00);
+  color: var(--color-warning-text, #ffd28a);
+}
+.resp-app .cr-pdf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 11px;
+  background: var(--color-accent-bg, rgba(120, 160, 255, 0.18));
+  color: var(--color-accent, #9ab8ff);
+  border: 1px solid var(--color-accent, #9ab8ff);
+}
+.resp-app .cr-inbox-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  user-select: none;
+}
+.resp-app .cr-inbox-toggle input[type="checkbox"] { margin: 0; }
+.resp-app .cr-inbox-toggle em {
+  font-style: italic;
+  color: var(--color-accent, #9ab8ff);
+}

@@ -53,6 +53,14 @@ export type ResponseRecord = {
   pack_id: string | null;
   bundle_id: string | null;
   pass: 1 | 2 | null;
+  // fire_id — stamped on every response produced by a single pack-fan-out
+  // invocation. Lets the operator and review surfaces distinguish "old
+  // fire's responses" from "new fire's responses" so re-firing with
+  // corrected URLs or new filters is legible. Older responses pre-dating
+  // this field have null fire_id and are treated as "older than any
+  // stamped fire." Per Rule 8 of
+  // context-v/specs/Funder-Content-Corpus-Workflow.md.
+  fire_id: string | null;
 };
 
 type Store = {
@@ -85,6 +93,7 @@ export async function load(path: string): Promise<void> {
       if (!('pack_id' in r)) rec.pack_id = null;
       if (!('bundle_id' in r)) rec.bundle_id = null;
       if (!('pass' in r)) rec.pass = null;
+      if (!('fire_id' in r)) rec.fire_id = null;
     }
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -105,6 +114,14 @@ export type ResponseFilter = {
   run_id?: string;
   record_set_id?: string;
   prompt_id?: string;
+  // Per-record filter — content-ingest's preview path scopes to one row.
+  row_id?: string;
+  // Per-fire filter — review surfaces use this to scope to the latest
+  // fire_id per (row_id, pack_id) so the operator never sees stale data
+  // dominating new results. Per Rule 8.
+  fire_id?: string;
+  // Per-pack filter — useful for "show me only official-blog responses."
+  pack_id?: string;
   flag?: ResponseFlag;
 };
 
@@ -113,6 +130,9 @@ export function listResponses(filter: ResponseFilter = {}): ResponseRecord[] {
   if (filter.run_id) rows = rows.filter((r) => r.run_id === filter.run_id);
   if (filter.record_set_id) rows = rows.filter((r) => r.record_set_id === filter.record_set_id);
   if (filter.prompt_id) rows = rows.filter((r) => r.prompt_id === filter.prompt_id);
+  if (filter.row_id) rows = rows.filter((r) => r.row_id === filter.row_id);
+  if (filter.fire_id) rows = rows.filter((r) => r.fire_id === filter.fire_id);
+  if (filter.pack_id) rows = rows.filter((r) => r.pack_id === filter.pack_id);
   if (filter.flag) rows = rows.filter((r) => r.flag === filter.flag);
   return rows;
 }
@@ -138,6 +158,7 @@ export async function createResponse(params: {
   pack_id?: string | null;
   bundle_id?: string | null;
   pass?: 1 | 2 | null;
+  fire_id?: string | null;
 }): Promise<ResponseRecord> {
   const response_id = `rsp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   const record: ResponseRecord = {
@@ -164,6 +185,7 @@ export async function createResponse(params: {
     pack_id: params.pack_id ?? null,
     bundle_id: params.bundle_id ?? null,
     pass: params.pass ?? null,
+    fire_id: params.fire_id ?? null,
   };
   data.responses[response_id] = record;
   await persist();

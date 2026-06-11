@@ -125,12 +125,14 @@ async function main(): Promise<void> {
       const args = jc.decode(msg.data) as SearchInput;
       try {
         if (isEntityPulsePack(args.pack_id)) {
+          const fire_id = `fire_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
           const result = await runOneEntityPulsePack(nc, {
             pack_id: args.pack_id,
             row_id: args.row_id,
             record_set_id: args.record_set_id,
             entity_name_field: args.entity_name_field,
             bundle_id: args.bundle_id,
+            fire_id,
           });
           if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
           console.log(JSON.stringify({
@@ -177,6 +179,12 @@ async function main(): Promise<void> {
         // results by bundle.
         bundle_id?: string;
       };
+      // One fire_id per pack.fan_out invocation. Every response produced
+      // by this run (across all packs × rows) gets this stamp so review
+      // surfaces can default to "latest fire only" and the operator can
+      // tell new data from yesterday's old data. Per Rule 8 of
+      // context-v/specs/Funder-Content-Corpus-Workflow.md.
+      const fire_id = `fire_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
       console.log(JSON.stringify({
         level: 'info',
         msg: 'fan_out started',
@@ -185,6 +193,7 @@ async function main(): Promise<void> {
         record_set_id: args.record_set_id,
         provider_override: args.provider_override ?? null,
         bundle_id: args.bundle_id ?? null,
+        fire_id,
       }));
 
       const tasks: Array<() => Promise<unknown>> = [];
@@ -198,6 +207,7 @@ async function main(): Promise<void> {
                   record_set_id: args.record_set_id,
                   entity_name_field: args.entity_name_field,
                   bundle_id: args.bundle_id,
+                  fire_id,
                 })
               : runOnePackSearch(nc, {
                   pack_id,

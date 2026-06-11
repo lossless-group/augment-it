@@ -52,6 +52,11 @@ export const AUGMENT_COMPOSITE: CompositeEntry = {
       icon: '⊞',
       label: 'Pre-built pack — fire a source-bound pack against the record set',
     },
+    {
+      remoteId: 'sortFilterLens',
+      icon: '⇅',
+      label: 'Sort & Filter — re-order the record set to focus your attention',
+    },
   ],
   defaultMemberId: 'packRunner',
 };
