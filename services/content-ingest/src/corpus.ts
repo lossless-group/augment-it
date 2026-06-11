@@ -253,29 +253,53 @@ export async function listForRecord(args: {
   // for the same conceptual record. Without the map the reader
   // degrades to strict record_id match — the v0 behavior.
   record_uuid_by_row_id?: Map<string, string>;
+  // The requested row's corpus_funder_slug column (from the records
+  // sheet). When present, this is the primary join: scan only
+  // `corpus/<slug>/` and treat every .md file in that dir as belonging
+  // to this row. Per-funder dirs are 1:1 with rows by convention and
+  // the operator controls the slug cell directly — so this column IS
+  // the override surface. The full-walk + lineage path below stays as
+  // the fallback for rows without a slug. This also dissolves a
+  // 5s-timeout race: full-walk reads ~300 files, slug-walk reads a
+  // dozen, so the 96-row lens fan-out no longer blows the workspace
+  // capability's default timeout.
+  corpus_funder_slug?: string;
 }): Promise<CorpusEntry[]> {
   const root = join(CLIENTS_ROOT, args.client_id, 'corpus');
   const entries: CorpusEntry[] = [];
   const map = args.record_uuid_by_row_id;
-  // Resolve the requested row_id to its record_uuid (if the map is
-  // available + the row is known). When this is set, we match files
-  // by record_uuid lineage; when it's not set, we fall back to
-  // strict record_id match.
+  const slug = typeof args.corpus_funder_slug === 'string' && args.corpus_funder_slug.trim() !== ''
+    ? args.corpus_funder_slug.trim()
+    : null;
+  // Resolve the requested row_id to its record_uuid (used by the
+  // lineage-fallback path; ignored when slug pins us to a single dir).
   const requestedUuid = map?.get(args.record_id) ?? null;
   let funderDirs: string[];
-  try {
-    funderDirs = (await readdir(root, { withFileTypes: true }))
-      .filter((d) => d.isDirectory())
-      .map((d) => d.name);
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
-    throw err;
+  if (slug) {
+    // Slug-primary: scan only this one directory.
+    funderDirs = [slug];
+  } else {
+    try {
+      funderDirs = (await readdir(root, { withFileTypes: true }))
+        .filter((d) => d.isDirectory())
+        .map((d) => d.name);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
+      throw err;
+    }
   }
   for (const funder of funderDirs) {
     const dir = join(root, funder);
-    const files = (await readdir(dir, { withFileTypes: true }))
-      .filter((d) => d.isFile() && d.name.endsWith('.md'))
-      .map((d) => d.name);
+    let files: string[];
+    try {
+      files = (await readdir(dir, { withFileTypes: true }))
+        .filter((d) => d.isFile() && d.name.endsWith('.md'))
+        .map((d) => d.name);
+    } catch (err) {
+      // Slug points at a dir with no files on disk yet — empty result.
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') continue;
+      throw err;
+    }
     for (const f of files) {
       const path = join(dir, f);
       const raw = await readFile(path, 'utf8');
@@ -283,15 +307,19 @@ export async function listForRecord(args: {
       if (!fm) continue;
       const fileRecordId = typeof fm.record_id === 'string' ? fm.record_id : null;
       const fileRecordUuid = typeof fm.record_uuid === 'string' ? fm.record_uuid : null;
-      // Match strategy, in order of cost:
-      //   1. strict record_id match (cheapest; the v0 path).
-      //   2. record_uuid stamped in the file matches the requested uuid
-      //      (writes from this commit forward carry record_uuid).
+      // Match strategy:
+      //   0. slug match (operator's explicit assertion via the records
+      //      sheet — every file in this dir belongs to this row).
+      //      Bypasses the record_id/record_uuid checks because the
+      //      slug cell IS the override surface.
+      //   1. strict record_id match (legacy path).
+      //   2. record_uuid stamped in the file matches the requested uuid.
       //   3. legacy file (no record_uuid stamp): resolve its record_id
-      //      to a uuid via the map and compare to the requested uuid.
-      //      This is what makes v8-era corpus files surface for v9 rows.
+      //      via the map and compare to the requested uuid.
       let matches = false;
-      if (fileRecordId === args.record_id) {
+      if (slug) {
+        matches = true;
+      } else if (fileRecordId === args.record_id) {
         matches = true;
       } else if (requestedUuid != null && fileRecordUuid === requestedUuid) {
         matches = true;

@@ -142,6 +142,12 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'content_ingest.preview_url': 60_000,
   // corpus.add re-uses warm cache or re-fetches once via Jina.
   'corpus.add': 30_000,
+  // The lens fans out N parallel calls (one per visible row) on view
+  // load. Post slug-join each call is a single small-directory walk,
+  // but the 5s default was too tight when this fell back to full-walk
+  // and is too tight under cold-start filesystem latency. 15s leaves
+  // headroom without masking a real backend hang.
+  'corpus.list_for_record': 15_000,
   // One Jina fetch + optional binary download (PDF up to 50MB) +
   // filesystem write. Bumped from 30s on 2026-06-09 when the PDF
   // download path landed — a 50MB PDF on a slow link can take real

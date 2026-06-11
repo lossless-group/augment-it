@@ -1,15 +1,16 @@
 ---
-title: "Some records show empty corpus in the Sort & Filter Lens despite per-funder directories existing on disk — backend diagnostic says the lineage join IS finding them, suggesting stale browser-side state OR a real gap that hard-refresh will reveal; either way the right durable fix is a per-client corpus-overrides.yaml that lets the operator manually connect a corpus directory to a record_uuid as defense-in-depth against any future join failure"
-lede: "End of 2026-06-09 session. The operator built corpus content for ~21 new records (warm count went 17 → 38 between v9 and v10 — the /promote-snapshot ship captured this). On v10 the operator noticed several rows still showing `corpus 0` despite per-funder directories existing on disk — specifically sobrato-philanthropies (3 files), stand-together-trust (13), steve-and-alexandra-cohen-fnd (8), todd-fisher (8). Backend diagnostic against the actual NATS subject (`corpus.list_for_record.requested`) confirmed the lineage join IS returning the correct counts for these v10 row_ids end-to-end, so the visible-chip-says-zero state is most likely a stale-browser-tab artifact (lens connected to the prior version of corpus.list_for_record before the lineage rebuild + the v10 promotion). A hard-refresh should repopulate every chip with truth. BUT — the operator's framing surfaced a real design gap that the lineage fix doesn't solve: when corpus files have a record_id NOT in row-store (operator hand-copies, deleted record sets, inbox-triaged files, paste-paste-paste on the wrong row), the auto-join has no way to recover. The proposed durable fix is a per-client `corpus-overrides.yaml` mapping `record_uuid → [funder_slug, …]` that listForRecord unions with the lineage match, plus a lens UI affordance for the operator to wire up an override against a row. About 90 minutes of careful work."
+title: "Some records show empty corpus in the Sort & Filter Lens despite per-funder directories existing on disk — the lineage join is healthy but the workspace-service capability has no timeout override (defaults to 5000ms), the content-ingest handler processes requests serially, and each call walks every funder directory under clients/<id>/corpus/, so late requests in the 96-row fan-out time out and the lens swallows the error silently; the durable fix is to make corpus_funder_slug (a column the records sheet already populates) the primary join key, which limits each call to one small directory and dissolves the timeout race — this supersedes the originally-proposed corpus-overrides.yaml because the override surface is now the records-sheet cell"
+lede: "End of 2026-06-09 session: corpus content built for ~21 new records (warm 17 → 38 between v9 and v10). Operator saw four rows showing `corpus 0` despite per-funder directories on disk — sobrato-philanthropies, stand-together-trust, steve-and-alexandra-cohen-fnd, todd-fisher. UPDATED 2026-06-10 follow-on session: a hard-refresh cleanly resolved those four but exposed three more — hewlett-foundation (2 files on disk), howard-schultz-foundation (6), kellogg-foundation (6). A second backend probe confirmed `corpus.list_for_record` is returning the correct counts for those three too. The actual bug is in the wire: `corpus.list_for_record` has no `CAPABILITY_TIMEOUTS_MS` entry so it falls through to the default 5000ms, the content-ingest handler is a serial `for await` loop, and each call walks every funder directory. With 96 visible rows firing 96 parallel requests, late ones in the burst time out and the lens `catch` block swallows the error → chip never updates. The simpler, durable fix the operator proposed — join via `corpus_funder_slug`, a column the records sheet already populates per row — dissolves all three causes at once: each request now walks one ≤13-file directory instead of 301 files, the override surface is a sheet cell instead of a new YAML format, and lineage stays as a fallback for rows without a slug. The originally-proposed `corpus-overrides.yaml` mechanism is SUPERSEDED. Backfill of `record_uuid` into 201 unstamped files stands as independent hygiene (script built this session, dry-run found zero stale conflicts)."
 date_created: 2026-06-10
 date_modified: 2026-06-10
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7 (1M context)
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 revisions:
   - 2026-06-10 — Initial draft, written end-of-session at operator's explicit request before context-overflow forced a new session. Captures the diagnostic that confirmed the backend is healthy, the four specific records that surfaced the symptom, and the proposed corpus-overrides.yaml mechanism that defends against future join gaps regardless of cause.
+  - "2026-06-10 (follow-on session) — Hard-refresh resolved the original four but exposed three more (hewlett / howard-schultz / kellogg). Second NATS probe confirmed backend is healthy for those too. Root cause identified: workspace capability timeout defaults to 5000ms + serial handler + per-request walk of every funder directory → late requests in the 96-row fan-out time out. Audit of corpus dir: 301 files total, 36 already stamped with record_uuid, 201 unstamped but resolvable (script `scripts/backfill-corpus-record-uuid.mjs` built this session), 0 stale-uuid conflicts, 64 null-record_id files (all in inbox/). Operator proposed using the existing `corpus_funder_slug` column as the primary join key — that change dissolves the timeout race AND makes the originally-proposed corpus-overrides.yaml unnecessary because the override surface is already a records-sheet column the operator edits."
 tags:
   - Issue
   - Augment-It
@@ -17,12 +18,73 @@ tags:
   - Lens
   - Sort-Filter-Lens
   - Lineage-Join
+  - Slug-Join
+  - Workspace-Timeout
   - Defense-In-Depth
-  - Tomorrow-Work
-status: Open · Backend Diagnostic Confirms Healthy · User-Visible Stale State Suspected · Override Escape-Hatch Proposed
+status: Open · Real Root Cause Identified (Workspace Timeout + Serial Handler + Walks-All-Dirs) · corpus_funder_slug Join Strategy Supersedes corpus-overrides.yaml · Fix In Progress
 ---
 
 # Some records show empty corpus despite directories on disk
+
+> **2026-06-10 follow-on session update — read this first.** The original draft below
+> (everything from §"The symptom" through §"Adjacent work that would compose well") was
+> written after a partial diagnostic. A second session found the real root cause and a
+> simpler durable fix. The §"corpus-overrides.yaml" proposal is **superseded** by
+> §"2026-06-10 follow-on: real root cause & the slug-join fix" immediately below.
+
+## 2026-06-10 follow-on session — real root cause and the slug-join fix
+
+### What hard-refresh actually showed
+
+- Sobrato (3 files), Stand Together (13), Cohen (8), Todd Fisher (8) — **all now showing correctly** ✓
+- Hewlett (2 on disk), Howard Schultz Foundation (6), Kellogg Foundation (6) — **still showing `corpus 0`**
+
+A second NATS probe against `corpus.list_for_record.requested` for the three remaining problem rows confirmed the backend returns the expected counts. Strategy 2 of the lineage join (file's stamped `record_uuid` matches the v10 row's `record_uuid`) IS succeeding for these three — they're among the 36 files that already had `record_uuid` stamped. Yet the chip stays empty.
+
+### The real bug is in the wire, not the join
+
+Three converging causes:
+
+1. **`corpus.list_for_record` has no entry in `CAPABILITY_TIMEOUTS_MS`** (`services/workspace/src/capabilities.ts`) so `dispatch` falls through to the default **5000ms** at line 160.
+2. **The content-ingest handler is a serial `for await` loop** (`services/content-ingest/src/handlers.ts:429`). 96 visible rows fire 96 parallel `corpus.list_for_record` requests against this one consumer; they process one at a time.
+3. **Each request walks every funder directory** under `clients/<id>/corpus/` (~40 dirs × ~300 .md files = lots of FS reads + frontmatter parses per request).
+
+Late requests in the burst time out at 5s. The lens `catch` block (`apps/sort-filter-lens/src/App.svelte:219`) swallows silently → `corpusByRowId[row_id]` stays `undefined` → chip never updates. The race explains why sobrato et al. recovered post-refresh (early in the iteration order, won their 5s budget) and hewlett/schultz/kellogg didn't (later in the order, lost it). Re-refreshing reshuffles which rows win and which time out — non-deterministic by design.
+
+### The operator's slug-column proposal dissolves all three causes
+
+The records sheet already has `corpus_funder_slug` populated per row (verified in `row.list.requested` dump: hewlett → `"hewlett-foundation"`, schultz → `"howard-schultz-foundation"`, kellogg → `"kellogg-foundation"`). Using it as a primary join key:
+
+- **Per-request walk drops from "all dirs × all files" to "one dir × ≤13 files"** — the timeout race vanishes without rewriting the handler to be parallel.
+- **The override surface already exists as a sheet column** — the operator edits the `corpus_funder_slug` cell to repoint a row; no new YAML format needed. The §"corpus-overrides.yaml" proposal further down is superseded.
+- **Lineage stays as a fallback** for any row without a slug set — currently all rows have one.
+
+### Scope of the fix
+
+| File | Change |
+|---|---|
+| `services/content-ingest/src/corpus.ts` | `listForRecord` accepts `corpus_funder_slug?`. When present, walks only `corpus/<slug>/` and treats "file is in that dir" as the primary match (strategy 0). Existing lineage match logic still runs for files in that dir whose `record_id` is stale. When absent, current full-walk + lineage behavior is unchanged. |
+| `services/content-ingest/src/handlers.ts` | The `corpus.list_for_record.requested` handler extends the cached row-store map from `row_id → record_uuid` to `row_id → { record_uuid, corpus_funder_slug }`, and passes the requested row's slug into `listForRecord`. |
+| `services/workspace/src/capabilities.ts` | Add `'corpus.list_for_record': 15_000` (belt-and-suspenders — post-slug-join shouldn't need it, but the 5s default is too tight for any cold fan-out). |
+| `scripts/backfill-corpus-record-uuid.mjs` | (built this session) — `--apply` later as one-time hygiene; **not on the critical path** of this fix. |
+
+### Audit numbers from the backfill dry-run (2026-06-10)
+
+| Category | Count |
+|---|---|
+| Total `.md` files in `clients/reach-edu/corpus/` | 301 |
+| Already stamped with `record_uuid` | 36 (12%) |
+| Would stamp on `--apply` (record_id resolves in row-store) | 201 |
+| Stale-uuid conflicts (file disagrees with row-store) | 0 |
+| Truly orphan: `record_id: null` (all in `inbox/`) | 64 |
+
+The 64 inbox orphans intentionally stay outside the slug-join's scope — `inbox/` is a triage zone, not a per-record corpus.
+
+### Verification target
+
+After the patch, the chip for hewlett / howard-schultz / kellogg in the Sort & Filter Lens on `reach-edu` v10 should read `corpus 2` / `corpus 6` / `corpus 6` respectively, on first load, every time (no hard-refresh required).
+
+---
 
 ## The symptom
 
@@ -68,7 +130,20 @@ The lineage join works ONLY when the corpus file's `record_id` is in row-store a
 
 The lineage fix handles the v8→v9→v10 promotion case cleanly because row-store keeps every archived row with its record_uuid intact. It does NOT handle the cases above. The operator's escape-hatch ask is a real architectural need.
 
-## Proposed fix — `corpus-overrides.yaml`
+## Proposed fix — `corpus-overrides.yaml`  *(SUPERSEDED — see §"2026-06-10 follow-on" above)*
+
+> Superseded because the operator pointed out (correctly) that the records sheet
+> already has a `corpus_funder_slug` column per row. That column IS the override
+> surface — operator edits the cell to repoint a row. The YAML file would be a
+> second source of truth for the same fact. Kept here for history and because the
+> trade-offs analysis under §"the real design gap" remains accurate for the
+> orphan classes the slug-join can't cover (the 64 inbox files, files mislabeled
+> with the wrong record_id, files predating addToCorpus). Those classes are now
+> handled differently: inbox stays a triage zone; mislabeled files are corrected
+> at the file level (operator moves them between funder dirs); pre-addToCorpus
+> files are backfilled with `record_uuid` via `scripts/backfill-corpus-record-uuid.mjs`.
+
+
 
 A per-client overrides file at `clients/<client_id>/corpus-overrides.yaml`. Operator-written, system-readable, human-legible. Shape:
 
@@ -117,25 +192,13 @@ Per-row, when `corpus_count === 0` AND the auto-join returned empty:
 
 **True macOS native file picker is not available** from the browser context — the closest browser-native is `window.showDirectoryPicker()` (Chromium only, gives content access but not path). For augment-it the path-relative dropdown of existing subdirectories is more useful anyway since the operator is choosing from a known set under `clients/<client>/corpus/`.
 
-### Cost
+## Sequencing  *(REVISED 2026-06-10 follow-on session)*
 
-About 90 minutes:
-
-- 15 min — `corpus-overrides.yaml` schema + load/cache module in `corpus.ts`
-- 15 min — `listForRecord` integration: read overrides, union folders into the match set
-- 15 min — new capability `corpus.overrides.add` (workspace + content-ingest handler)
-- 15 min — new capability `corpus.list_funder_dirs` (cheap directory walk)
-- 20 min — Lens UI: the modal + dropdown + POST
-- 10 min — type-check + rebuild + verify against Sobrato
-
-## Sequencing
-
-1. **Hard-refresh the browser tab first thing tomorrow.** If Sobrato / Stand Together / Cohen / Todd Fisher all show their correct counts (3 / 13 / 8 / 8), the urgent issue is resolved; the overrides feature becomes a clean follow-on.
-2. **If any are still wrong after the hard-refresh**, that's a real auto-join bug — capture which specifically + their row_ids, then dig into `corpus.list_for_record` against those exact row_ids to identify what the lineage logic is missing.
-3. **Either way, ship the overrides escape-hatch** because:
-   - The operator's proposal is sound and the cases listed in §"the real design gap" above are real.
-   - Defense-in-depth keeps the chip-says-zero-but-files-exist UX problem from recurring as the corpus grows past where auto-join can handle.
-   - The YAML is a human-legible artifact that travels with the per-client repo's git history — useful documentation of operator-curated knowledge.
+1. ✓ **Hard-refresh the browser tab.** Resolved sobrato / stand-together / cohen / todd-fisher; exposed hewlett / schultz / kellogg as a separate symptom.
+2. ✓ **Backend probe of the three remaining rows** via `corpus.list_for_record.requested` — returns 2 / 6 / 6. Backend healthy. The bug is on the workspace ↔ lens wire (5s default timeout + serial handler + per-request walk of all funder dirs).
+3. ✓ **Backfill script built** (`scripts/backfill-corpus-record-uuid.mjs`) — dry-run found 201 stampable files, 0 stale conflicts, 64 inbox orphans.
+4. → **Land the slug-join fix on a feature branch** per §"Scope of the fix" above. Verify against hewlett / schultz / kellogg in the lens (chips read 2 / 6 / 6 on first load, no refresh).
+5. → **Apply the backfill** (`node scripts/backfill-corpus-record-uuid.mjs --apply`) as independent hygiene — stamps `record_uuid` into 201 files so future row-store churn never breaks strategy 2 again.
 
 ## Adjacent work that would compose well
 

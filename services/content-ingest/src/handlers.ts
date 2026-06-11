@@ -430,14 +430,14 @@ export function registerHandlers(nc: NatsConnection): void {
     for await (const msg of sub) {
       const args = jc.decode(msg.data) as { client_id: string; record_id: string };
       try {
-        // Fetch the row_id → record_uuid map (cached for ~60s).
-        // listForRecord uses it to surface corpus files written under
-        // any row_id whose record_uuid matches the requested row's
-        // record_uuid — the v8 → v9 lineage fix.
-        const recordUuidByRowId = await getRecordUuidByRowId(nc);
+        // Fetch the row_id → {uuid, slug} maps (cached for ~60s).
+        // listForRecord uses the slug for the primary "scan-one-dir"
+        // join and falls back to the uuid lineage when slug is unset.
+        const meta = await getRowMetaByRowId(nc);
         const entries: CorpusEntry[] = await listForRecord({
           ...args,
-          record_uuid_by_row_id: recordUuidByRowId,
+          record_uuid_by_row_id: meta.uuids,
+          corpus_funder_slug: meta.slugs.get(args.record_id),
         });
         if (msg.reply) msg.respond(jc.encode({ entries }));
       } catch (err: unknown) {
@@ -603,8 +603,26 @@ async function fetchSourceRecordSetInfo(
   }
 }
 
-async function fetchRecordUuidByRowId(nc: NatsConnection): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
+type RowMeta = {
+  // Two parallel maps built from a single row.list pass.
+  //
+  //   uuids — row_id → record_uuid (lineage-stable identity across
+  //           promotions; used by the fallback lineage join in
+  //           corpus.listForRecord AND by promote_snapshot).
+  //   slugs — row_id → corpus_funder_slug (the operator-edited cell
+  //           on the records sheet; the PRIMARY join in
+  //           corpus.listForRecord — scan only `corpus/<slug>/`).
+  //
+  // Rows missing either field are simply absent from the corresponding
+  // map; downstream code soft-fails (uuid-missing → full-walk lineage;
+  // slug-missing → fall through to lineage logic too).
+  uuids: Map<string, string>;
+  slugs: Map<string, string>;
+};
+
+async function fetchRowMetaByRowId(nc: NatsConnection): Promise<RowMeta> {
+  const uuids = new Map<string, string>();
+  const slugs = new Map<string, string>();
   try {
     const reply = await nc.request(
       'row.list.requested',
@@ -612,58 +630,78 @@ async function fetchRecordUuidByRowId(nc: NatsConnection): Promise<Map<string, s
       { timeout: 30_000 },
     );
     const out = jc.decode(reply.data) as {
-      rows?: { row_id: string; fields?: { record_uuid?: unknown } }[];
+      rows?: {
+        row_id: string;
+        fields?: { record_uuid?: unknown; corpus_funder_slug?: unknown };
+      }[];
     };
     for (const r of out.rows ?? []) {
       const ru = r?.fields?.record_uuid;
-      if (typeof ru === 'string' && ru) {
-        map.set(r.row_id, ru);
+      if (typeof ru === 'string' && ru) uuids.set(r.row_id, ru);
+      const slug = r?.fields?.corpus_funder_slug;
+      if (typeof slug === 'string' && slug.trim() !== '') {
+        slugs.set(r.row_id, slug.trim());
       }
     }
   } catch {
-    // Caller is expected to soft-fail when the map is empty. For
+    // Caller is expected to soft-fail when the maps are empty. For
     // promotion this means the join drops to zero; for corpus.list_for_
     // record this means the reader degrades to strict record_id match
     // (the v0 behavior). Both are acceptable degradations vs hard fail.
   }
-  return map;
+  return { uuids, slugs };
 }
 
-// Cached row_id → record_uuid map. The lens fires
+// Backwards-compatible shim — promote_snapshot still asks for just the
+// uuid map and shouldn't grow a second return value.
+async function fetchRecordUuidByRowId(nc: NatsConnection): Promise<Map<string, string>> {
+  const meta = await fetchRowMetaByRowId(nc);
+  return meta.uuids;
+}
+
+// Cached row_id → {uuids, slugs} pair. The lens fires
 // corpus.list_for_record once per visible row at view load time —
 // without caching, that's N parallel row.list NATS round-trips even
-// though every caller wants the same map. TTL is short enough that
-// row-store mutations (new ingest, promotion) surface within seconds.
+// though every caller wants the same maps. TTL is short enough that
+// row-store mutations (new ingest, promotion, slug-cell edit) surface
+// within seconds.
 const RECORD_UUID_CACHE_TTL_MS = 60_000;
-let recordUuidCache: { map: Map<string, string>; fetched_at_ms: number } | null = null;
-let recordUuidInflight: Promise<Map<string, string>> | null = null;
+let rowMetaCache: { meta: RowMeta; fetched_at_ms: number } | null = null;
+let rowMetaInflight: Promise<RowMeta> | null = null;
 
-async function getRecordUuidByRowId(nc: NatsConnection): Promise<Map<string, string>> {
+async function getRowMetaByRowId(nc: NatsConnection): Promise<RowMeta> {
   const now = Date.now();
-  if (recordUuidCache && now - recordUuidCache.fetched_at_ms < RECORD_UUID_CACHE_TTL_MS) {
-    return recordUuidCache.map;
+  if (rowMetaCache && now - rowMetaCache.fetched_at_ms < RECORD_UUID_CACHE_TTL_MS) {
+    return rowMetaCache.meta;
   }
   // De-dup concurrent callers — when 96 lens rows fan out their
   // corpus.list_for_record requests in parallel, only the first one
   // actually fetches; the rest await the same in-flight promise.
-  if (recordUuidInflight) return recordUuidInflight;
-  recordUuidInflight = (async () => {
+  if (rowMetaInflight) return rowMetaInflight;
+  rowMetaInflight = (async () => {
     try {
-      const map = await fetchRecordUuidByRowId(nc);
-      recordUuidCache = { map, fetched_at_ms: Date.now() };
-      return map;
+      const meta = await fetchRowMetaByRowId(nc);
+      rowMetaCache = { meta, fetched_at_ms: Date.now() };
+      return meta;
     } finally {
-      recordUuidInflight = null;
+      rowMetaInflight = null;
     }
   })();
-  return recordUuidInflight;
+  return rowMetaInflight;
+}
+
+// Shim for callers that only need the uuid map (corpus.add stamps
+// record_uuid into freshly-written files; doesn't care about the slug).
+async function getRecordUuidByRowId(nc: NatsConnection): Promise<Map<string, string>> {
+  const meta = await getRowMetaByRowId(nc);
+  return meta.uuids;
 }
 
 // Public hook for callers that mutate row-store and want the cache
 // invalidated immediately (currently unused; reserved for explicit
 // invalidation on record_set.created / row.updated broadcasts).
 export function invalidateRecordUuidCache(): void {
-  recordUuidCache = null;
+  rowMetaCache = null;
 }
 
 async function fetchRowUrl(nc: NatsConnection, row_id: string): Promise<string | null> {
