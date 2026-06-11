@@ -34,6 +34,11 @@ const BROADCAST_SUBJECTS = [
   'response.flagged',
   'response.deleted',
   'response.edited',
+  // Workspace switch — emitted by workspace-service when the operator
+  // toggles workspaces. Browsers receive the event and clear their cached
+  // record_sets / rows so remotes refetch against the new tenant. See
+  // [[Workspaces-as-Tenant-Primitive]] § "Tenant-aware envelope".
+  'workspace.active.changed',
 ];
 
 type Session = {

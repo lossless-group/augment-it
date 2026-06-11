@@ -3,7 +3,7 @@ import websocket from '@fastify/websocket';
 import { connectNats } from './nats';
 import { loadSessions } from './auth';
 import { registerWebsocket } from './ws';
-import { initWorkspaces } from './workspaces';
+import { initWorkspaces, registerActiveQueryResponder } from './workspaces';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 const SESSION_STORE_PATH = process.env.SESSION_STORE_PATH ?? './data/sessions.json';
@@ -30,6 +30,9 @@ async function main(): Promise<void> {
 
   await connectNats(NATS_URL);
   app.log.info({ url: NATS_URL }, 'nats connected');
+
+  registerActiveQueryResponder();
+  app.log.info('workspace.active.requested responder registered');
 
   await registerWebsocket(app);
 

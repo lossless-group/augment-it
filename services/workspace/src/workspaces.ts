@@ -23,6 +23,19 @@
 
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { JSONCodec } from 'nats';
+import { getNats } from './nats';
+
+const jc = JSONCodec();
+
+// Subject for cross-service workspace-switch broadcast. Domain services
+// (row-store, prompt-store, response-store, content-ingest) subscribe and
+// re-scope their state when the operator toggles workspaces. Also added to
+// the browser-broadcast list in ws.ts so other tabs / remotes stay in sync.
+export const WORKSPACE_ACTIVE_CHANGED_SUBJECT = 'workspace.active.changed';
+// One-shot request a domain service can fire on boot to discover the
+// currently-active workspace before subscribing to changes.
+export const WORKSPACE_ACTIVE_REQUESTED_SUBJECT = 'workspace.active.requested';
 
 export type WorkspaceSummary = {
   client_id: string;
@@ -111,6 +124,25 @@ export async function initWorkspaces(opts: {
   }
 }
 
+/**
+ * Domain services (row-store, etc.) ask "who's active right now" via NATS
+ * request/reply on workspace.active.requested. Subscribed once at boot
+ * after NATS is connected.
+ */
+export function registerActiveQueryResponder(): void {
+  const nc = getNats();
+  (async () => {
+    const sub = nc.subscribe(WORKSPACE_ACTIVE_REQUESTED_SUBJECT);
+    for await (const msg of sub) {
+      if (msg.reply) {
+        msg.respond(jc.encode({ active_client_id: activeClientId }));
+      }
+    }
+  })().catch((err) => {
+    console.error('[workspaces] active-query subscriber crashed', err);
+  });
+}
+
 async function discover(): Promise<string[]> {
   let entries: string[] = [];
   try {
@@ -150,7 +182,21 @@ export function setActiveClientId(client_id: string): WorkspaceSummary {
   if (!configs.has(client_id)) {
     throw new Error(`unknown workspace: ${client_id}`);
   }
+  const prev = activeClientId;
   activeClientId = client_id;
+  // Broadcast the switch so domain services (row-store today; prompt-store
+  // / response-store / content-ingest next) can re-scope their state to
+  // the new tenant. Fire-and-forget — publish is local to NATS.
+  if (prev !== client_id) {
+    try {
+      getNats().publish(
+        WORKSPACE_ACTIVE_CHANGED_SUBJECT,
+        jc.encode({ client_id, previous: prev }),
+      );
+    } catch (err) {
+      console.warn('[workspaces] could not publish workspace.active.changed', err);
+    }
+  }
   return {
     client_id,
     display_name: titleCase(client_id),

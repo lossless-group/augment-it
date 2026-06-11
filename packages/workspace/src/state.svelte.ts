@@ -154,10 +154,23 @@ class AugmentItWorkspace {
   }
 
   private setActiveClientId(client_id: string | null): void {
+    const prev = this.active_client_id;
     this.active_client_id = client_id;
     if (typeof localStorage !== 'undefined') {
       if (client_id) localStorage.setItem(ACTIVE_CLIENT_KEY, client_id);
       else localStorage.removeItem(ACTIVE_CLIENT_KEY);
+    }
+    // Clear tenant-scoped caches on a real switch (not initial set). Each
+    // remote re-fetches via its own record_set.list / row.list / etc. The
+    // server already has the new tenant's data file loaded by the time
+    // these refetches fire (row-store subscribes to workspace.active.changed
+    // and swaps synchronously).
+    if (prev && client_id && prev !== client_id) {
+      this.record_sets = {};
+      this.rows = {};
+      this.prompts = {};
+      this.events = [];
+      this.activeView = { kind: 'idle' };
     }
     if (typeof window !== 'undefined') {
       window.dispatchEvent(

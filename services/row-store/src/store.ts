@@ -134,6 +134,23 @@ export async function load(path: string): Promise<void> {
   }
 }
 
+/**
+ * Swap the active store file. Persists the current in-memory state to its
+ * existing path first (in case mutations were pending), then re-loads from
+ * the new path. Used when the operator toggles workspaces in the shell —
+ * see [[Workspaces-as-Tenant-Primitive]]. Idempotent: a swap to the
+ * current path is a no-op.
+ */
+export async function swap(newPath: string): Promise<void> {
+  if (newPath === storePath) return;
+  if (storePath) await persist();
+  await load(newPath);
+}
+
+export function getStorePath(): string {
+  return storePath;
+}
+
 async function persist(): Promise<void> {
   await writeFile(storePath, JSON.stringify(data, null, 2));
 }

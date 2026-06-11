@@ -37,9 +37,16 @@ services:
       - nats
     environment:
       NATS_URL: nats://nats:4222
-      ROW_STORE_PATH: /data/rows.json
+      # Workspace-scoped: rows.json now lives at /clients/<slug>/rows.json
+      # per [[Workspaces-as-Tenant-Primitive]]. CLIENTS_ROOT mirrors the
+      # workspace-service convention. LEGACY_ROW_STORE_PATH triggers a
+      # one-shot copy of the pre-workspace single-tenant file into the
+      # active workspace on first boot; safe to keep set after migration.
+      CLIENTS_ROOT: /clients
+      LEGACY_ROW_STORE_PATH: /data/rows.json
     volumes:
       - row-store-data:/data
+      - ./clients:/clients
 
   ingest:
     build: ./services/ingest
