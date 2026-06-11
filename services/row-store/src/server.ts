@@ -60,23 +60,49 @@ async function migrateLegacyIfNeeded(active_client_id: string): Promise<void> {
   await copyFile(LEGACY_STORE_PATH, target);
 }
 
+/**
+ * Ask workspace-service which slug is currently active. Retries the
+ * request/reply because both services depend_on nats only — when the
+ * stack starts, row-store can race workspace-service's
+ * initWorkspaces + registerActiveQueryResponder by several seconds. A
+ * single-shot 5s request that previously fell back to a "default" slug
+ * was capturing reach-edu's migrated rows under the wrong tenant.
+ *
+ * Up to MAX_ATTEMPTS attempts of ~3s each → ~60s total budget. If the
+ * responder still hasn't come up, return null and let the caller crash
+ * the process so docker restarts us when workspace-service is finally
+ * ready. Never falls back to a synthetic "default" slug.
+ */
 async function queryActiveClientId(nc: NatsConnection): Promise<string | null> {
-  try {
-    const reply = await nc.request('workspace.active.requested', jc.encode({}), {
-      timeout: 5_000,
-    });
-    const decoded = jc.decode(reply.data) as { active_client_id: string | null };
-    return decoded.active_client_id;
-  } catch (err) {
-    console.warn(
-      JSON.stringify({
-        level: 'warn',
-        msg: 'workspace.active.requested failed; falling back to first client dir',
-        err: err instanceof Error ? err.message : String(err),
-      }),
-    );
-    return null;
+  const MAX_ATTEMPTS = 20;
+  const PER_ATTEMPT_TIMEOUT_MS = 3_000;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const reply = await nc.request('workspace.active.requested', jc.encode({}), {
+        timeout: PER_ATTEMPT_TIMEOUT_MS,
+      });
+      const decoded = jc.decode(reply.data) as { active_client_id: string | null };
+      if (decoded.active_client_id) return decoded.active_client_id;
+      // Responder is up but reports no active workspace yet — keep trying.
+      console.log(
+        JSON.stringify({
+          level: 'info',
+          msg: 'workspace-service responded with no active client_id; retrying',
+          attempt,
+        }),
+      );
+    } catch (err) {
+      console.log(
+        JSON.stringify({
+          level: 'info',
+          msg: 'workspace.active.requested not yet answered; retrying',
+          attempt,
+          err: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
   }
+  return null;
 }
 
 function subscribeToWorkspaceChanges(nc: NatsConnection): void {
@@ -101,11 +127,18 @@ async function main(): Promise<void> {
   const nc = await connect({ servers: NATS_URL, name: 'row-store-service' });
   console.log(JSON.stringify({ level: 'info', msg: 'nats connected', url: NATS_URL }));
 
-  const queried = await queryActiveClientId(nc);
-  // If the query failed and we have no signal at all, default the path
-  // to a sentinel under CLIENTS_ROOT. The first workspace switch will
-  // swap to the real tenant; until then capabilities serve empty.
-  const active_client_id = queried ?? 'default';
+  const active_client_id = await queryActiveClientId(nc);
+  // Without a real active workspace we have nothing useful to do — the
+  // earlier code defaulted to a synthetic "default" slug and silently
+  // trapped the legacy-migration into clients/default/rows.json. Crash
+  // instead; docker restart-policy will bring us back when workspace-
+  // service responds. Set `restart: unless-stopped` in compose if you
+  // want automatic recovery.
+  if (!active_client_id) {
+    throw new Error(
+      'row-store: workspace.active.requested unanswered after 20 attempts (~60s). workspace-service unreachable or has no workspaces. Refusing to boot under a synthetic default slug — that captures legacy data under the wrong tenant.',
+    );
+  }
   const initialPath = pathForClient(active_client_id);
   await migrateLegacyIfNeeded(active_client_id);
   await load(initialPath);

@@ -33,8 +33,17 @@ services:
 
   row-store:
     build: ./services/row-store
+    # depends_on workspace-service so the migration on first boot lands
+    # under the right tenant slug. row-store queries workspace-service's
+    # workspace.active.requested over NATS at boot; without ordering, the
+    # request can fire before workspace-service has subscribed and the
+    # retry budget burns unnecessarily. Plain depends_on guarantees start
+    # order, not health — the retry loop in server.ts still handles the
+    # boot race within workspace-service's own startup.
     depends_on:
       - nats
+      - workspace-service
+    restart: on-failure
     environment:
       NATS_URL: nats://nats:4222
       # Workspace-scoped: rows.json now lives at /clients/<slug>/rows.json
