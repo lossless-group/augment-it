@@ -40,6 +40,7 @@ export type {
   UserContext,
   VariantFamily,
   VariantFamilySuggestion,
+  WorkspaceSummary,
 } from './types';
 export type { WorkspaceAdapter } from './adapter';
 export type { TransportConfig } from './transport';

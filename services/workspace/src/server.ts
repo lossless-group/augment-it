@@ -3,9 +3,14 @@ import websocket from '@fastify/websocket';
 import { connectNats } from './nats';
 import { loadSessions } from './auth';
 import { registerWebsocket } from './ws';
+import { initWorkspaces, registerActiveQueryResponder } from './workspaces';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 const SESSION_STORE_PATH = process.env.SESSION_STORE_PATH ?? './data/sessions.json';
+// Where to look for workspace directories. /clients in docker, repo-relative
+// for local dev. Each child dir == one workspace; see workspaces.ts.
+const CLIENTS_ROOT = process.env.CLIENTS_ROOT ?? '../../clients';
+const INITIAL_ACTIVE_CLIENT_ID = process.env.ACTIVE_CLIENT_ID;
 const PORT = Number(process.env.PORT ?? 3001);
 
 async function main(): Promise<void> {
@@ -17,8 +22,17 @@ async function main(): Promise<void> {
   await loadSessions(SESSION_STORE_PATH);
   app.log.info({ path: SESSION_STORE_PATH }, 'sessions loaded');
 
+  await initWorkspaces({
+    clients_root: CLIENTS_ROOT,
+    initial_active_id: INITIAL_ACTIVE_CLIENT_ID,
+  });
+  app.log.info({ clients_root: CLIENTS_ROOT }, 'workspaces initialized');
+
   await connectNats(NATS_URL);
   app.log.info({ url: NATS_URL }, 'nats connected');
+
+  registerActiveQueryResponder();
+  app.log.info('workspace.active.requested responder registered');
 
   await registerWebsocket(app);
 

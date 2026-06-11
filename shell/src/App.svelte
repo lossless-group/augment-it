@@ -3,7 +3,9 @@
   import ModeToggle from './ModeToggle.svelte';
   import MountHost from './MountHost.svelte';
   import FlowWidget from './FlowWidget.svelte';
+  import WorkspaceSwitcher from './WorkspaceSwitcher.svelte';
   import ToggleHeader from '@augment-it/shared-ui/ToggleHeader__PromptOrPackage--Icons.svelte';
+  import { workspace } from '@augment-it/workspace';
   import {
     ROTATION,
     PAIRINGS,
@@ -236,6 +238,45 @@
     return () => window.removeEventListener('augment-it:enrich-record', onEnrich);
   });
 
+  // ---- workspace bootstrap -----------------------------------------------
+  // The shell now makes its own capability calls (workspace.list / .activate
+  // from the header switcher), so its singleton needs its OWN transport.
+  // Each federation remote also connects, but those instances are separate
+  // — no `shared` block in rsbuild config — and pre-today the shell didn't
+  // dispatch anything itself.
+  //
+  // Connect first, then load workspaces. `workspace.connect()` is idempotent
+  // on the singleton, so if a remote raced us and connected first the
+  // second call is a no-op.
+  onMount(() => {
+    const TOKEN_KEY = 'augment_it_session_token';
+    workspace.connect({
+      url: 'ws://localhost:3001/ws',
+      getToken: () => localStorage.getItem(TOKEN_KEY),
+      saveToken: (t) => localStorage.setItem(TOKEN_KEY, t),
+      onStatus: () => {
+        /* shell doesn't render its own connection indicator — the chat rail does */
+      },
+    });
+    let cancelled = false;
+    const tryLoad = async (attempt = 0): Promise<void> => {
+      if (cancelled) return;
+      try {
+        await workspace.loadWorkspaces();
+      } catch (err) {
+        if (attempt < 8) {
+          setTimeout(() => tryLoad(attempt + 1), 200 * (attempt + 1));
+        } else {
+          console.warn('[shell] workspace.list failed; switcher will be empty', err);
+        }
+      }
+    };
+    void tryLoad();
+    return () => {
+      cancelled = true;
+    };
+  });
+
   // ---- cross-remote navigation (dispatched by any remote) -----------------
   // Remotes that want to send the user to a different surface dispatch a
   // window event:  window.dispatchEvent(new CustomEvent('augment-it:navigate',
@@ -397,6 +438,7 @@
     </button>
     <span class="muted">tiling host · :3100</span>
     <ModeToggle />
+    <WorkspaceSwitcher />
   </div>
 </header>
 

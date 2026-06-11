@@ -39,8 +39,9 @@ augment-it/
 │   ├── prompt-template-manager/ :3003 # Custom-prompt authoring (paired with pack-runner)
 │   ├── request-reviewer/        :3004 # Pre-flight review of fan-out plans
 │   ├── response-reviewer/       :3005 # By-record triage cockpit (post-flight)
-│   ├── chat/                    :3006 # In-app chat verb surface (v0.0.1)
+│   ├── chat/                    :3006 # In-app chat verb surface (/inbox lands URLs as corpus)
 │   ├── pack-runner/             :3009 # Source-bound pack invocation (paired with PTM)
+│   ├── sort-filter-lens/        :3013 # First Lens — sort/filter/inline-edit over the active record set
 │   ├── highlight-collector/           # planned — collect highlights from AI responses (scaffold)
 │   └── insight-manager/               # planned — manage insights across responses (scaffold)
 │
@@ -50,10 +51,11 @@ augment-it/
 │   ├── ingest/                        # CSV → record_set.create (dynamic schema from headers)
 │   ├── xlsx-ingest/                   # XLSX workbook → record_set.create (same shape as CSV)
 │   ├── workspace/                     # Browser-facing capabilities router
-│   ├── row-store/                     # Rows, record sets, promote-fold, row.fields write-back (+ socials)
+│   ├── row-store/                     # Rows, record sets, promote-fold, row.fields write-back (+ socials, predecessor lineage)
 │   ├── prompt-store/                  # Persists custom prompt templates
 │   ├── prompt-runner/                 # Anthropic, custom prompts, per-row fan-out
 │   ├── response-store/                # Sibling payload (prose + structured Candidate)
+│   ├── content-ingest/                # Funder-content corpus: Jina-extracted .md + binary PDFs, record_uuid + published_at stamping, /promote-snapshot
 │   └── social-search/                 # Pack search/fan-out, pluggable connectors (SearXNG default, Tavily peer)
 │
 ├── packages/                          # Shared code
@@ -72,8 +74,9 @@ augment-it/
 │   ├── reminders/                     # Session pickup notes
 │   └── issues/                        # Filed-but-not-yet-executed decisions
 │
+├── clients/                           # Per-tenant corpus trees (git submodules); funder dirs hold .md + binary PDFs
 ├── changelog/                         # Ship log — every coherent build session writes one
-├── scripts/                           # dev.sh, backup-stores.sh
+├── scripts/                           # dev.sh, backup-stores.sh, backfill-corpus-{record-uuid,published-at}.mjs
 ├── docker-compose.yml                 # NATS + services
 ├── turbo.json
 ├── pnpm-workspace.yaml
@@ -87,6 +90,9 @@ augment-it/
 - **Sibling-payload responses.** Every response record carries both prose AND an optional structured `Candidate` (url, display_name, confidence 0–100, snippet, source_metadata), plus an `outcome` enum (`found | not_found | error | skipped | pending`). The renderer in Response Reviewer branches on outcome.
 - **Inline correction + human-supply on one surface.** The by-record view in Response Reviewer lets the user edit URLs, edit display_names, edit entity-names (the row's identity column), or supply a URL the pack didn't find — all riding the same `response.set_structured` subject.
 - **Federation-host shell.** The shell handles peek-deck tile rotation, co-existence (50/50 splits), paired-only remotes (`pack-runner`, `chat` — not in the rotation, reached via the `augment-it:navigate` event), and runtime cross-remote communication via `window` events + localStorage.
+- **Lenses.** A *lens* is a federated remote that re-presents the active record set under a different affordance shape — sort/filter, inline-edit, per-row corpus add — without leaving the record. `sort-filter-lens` is the first; registered as a third member of `AUGMENT_COMPOSITE` alongside PTM + Pack Runner. Lenses auto-fall-back to the newest non-archived record set when localStorage points at an archived one, so they survive `/promote-snapshot` cleanly.
+- **Funder-content corpus.** Per-client, per-funder directory of source materials backing each row. Two entry vectors land into the same shape: the chat `/inbox <url>` verb (with active-client context) and the per-row inline "+ URL" affordance in the lens. Both run fire-and-forget through `services/content-ingest/`, Jina-extract markdown, preserve original PDFs as LFS binaries, and stamp `record_uuid` + `published_at` into frontmatter. Manual-paste URLs land regardless of domain (operator curation trumps the same-host rule, which only binds pack outputs).
+- **Corpus chips tell the truth.** `corpus.list_for_record` joins by `corpus_funder_slug` as primary (one dir scan) with `record_uuid` lineage as fallback — chips stay accurate across `/promote-snapshot` cuts. `/promote-snapshot` itself derives `corpus_*` columns from filesystem state when cutting a new record set, and stitches `predecessor_record_set_id` for lineage walks.
 
 ## Setup
 

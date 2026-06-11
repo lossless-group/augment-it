@@ -34,6 +34,11 @@ const BROADCAST_SUBJECTS = [
   'response.flagged',
   'response.deleted',
   'response.edited',
+  // Workspace switch — emitted by workspace-service when the operator
+  // toggles workspaces. Browsers receive the event and clear their cached
+  // record_sets / rows so remotes refetch against the new tenant. See
+  // [[Workspaces-as-Tenant-Primitive]] § "Tenant-aware envelope".
+  'workspace.active.changed',
 ];
 
 type Session = {
@@ -101,7 +106,7 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
         args?: unknown;
         message?: string;
         thread_id?: string;
-        context?: { focused_prompt_id?: string; record_set_id?: string };
+        context?: { focused_prompt_id?: string; record_set_id?: string; client_id?: string };
         thread?: { role: 'user' | 'assistant'; content: string }[];
         suggestions?: { capability: string; hint: string }[];
       };

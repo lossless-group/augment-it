@@ -15,6 +15,7 @@
 
 import { JSONCodec } from 'nats';
 import { getNats } from './nats';
+import { getActiveClientId } from './workspaces';
 
 const jc = JSONCodec();
 
@@ -147,7 +148,7 @@ export const CHAT_TOOLS = [
 export type ChatTurnInput = {
   message: string;
   thread?: { role: 'user' | 'assistant'; content: string }[];
-  context?: { focused_prompt_id?: string; record_set_id?: string };
+  context?: { focused_prompt_id?: string; record_set_id?: string; client_id?: string };
   suggestions?: { capability: string; hint: string }[];
 };
 
@@ -175,10 +176,17 @@ function suggestedVerbsSlab(suggestions?: { capability: string; hint: string }[]
 
 function contextSlab(ctx?: ChatTurnInput['context']): string {
   const parts: string[] = [];
-  // Active client — v0.0.1 hardcodes reach-edu (the only client today).
-  // The architecture spec (Chat-Context-Awareness-Architecture) will replace
-  // this with a workspace-resolved active_client_id once a second client lands.
-  parts.push(`The active client is: reach-edu (this is the client_id arg for corpus.inbox.add and any other client-scoped capability).`);
+  // Active workspace — resolved from the browser's persisted choice
+  // (sent on every chat_turn) with the server's process-wide active
+  // slug as a fallback. Per [[Workspaces-as-Tenant-Primitive]] § "Per-
+  // workspace .env pickup". Null means no workspaces exist on disk —
+  // the model should refuse client-scoped capabilities in that case.
+  const active = ctx?.client_id ?? getActiveClientId();
+  if (active) {
+    parts.push(`The active client is: ${active} (this is the client_id arg for corpus.inbox.add and any other client-scoped capability).`);
+  } else {
+    parts.push(`No workspace is active. Refuse client-scoped capabilities and ask the user to pick a workspace from the header switcher.`);
+  }
   if (ctx?.focused_prompt_id) parts.push(`The user is currently looking at prompt: ${ctx.focused_prompt_id}`);
   if (ctx?.record_set_id) parts.push(`The user is currently in record set: ${ctx.record_set_id}`);
   return parts.join('\n') + '\n';

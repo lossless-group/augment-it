@@ -247,8 +247,22 @@ export type ChatTurnFrame = {
    * the active prompt draft id being discussed, etc. The server inlines
    * this into the user-message slab of the prompt so the model can act
    * on it without a separate fetch.
+   *
+   * `client_id` is the tenant boundary — the workspace the operator has
+   * toggled to in the shell header. Per [[Workspaces-as-Tenant-Primitive]]
+   * the wire field is `client_id` (lived-with naming with the prior
+   * substrate plan; the UI/spec word is "workspace").
    */
-  context?: { focused_prompt_id?: string; record_set_id?: string };
+  context?: { focused_prompt_id?: string; record_set_id?: string; client_id?: string };
+};
+
+// One workspace as discovered by the workspace-service. The directory
+// IS the workspace; display_name is title-cased from the slug.
+// See workspace.list / workspace.activate / workspace.active.
+export type WorkspaceSummary = {
+  client_id: string;
+  display_name: string;
+  has_env: boolean;
 };
 
 export type ChatResponseMode = 'answer' | 'propose' | 'invoke';

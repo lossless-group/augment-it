@@ -4,8 +4,33 @@
 
 import { JSONCodec } from 'nats';
 import { getNats } from './nats';
+import {
+  getActiveClientId,
+  listWorkspaces,
+  setActiveClientId,
+  type WorkspaceSummary,
+} from './workspaces';
 
 const jc = JSONCodec();
+
+// workspace.* capabilities are served locally by the workspace-service —
+// no NATS round-trip, no domain microservice owns them. The shape mirrors
+// the NATS-dispatched path so the browser sees one uniform invoke surface.
+// See [[Workspaces-as-Tenant-Primitive]] § "Toggle UI" + "Tenant-aware
+// envelope".
+const LOCAL_CAPABILITIES: Record<string, (args: unknown) => Promise<unknown>> = {
+  'workspace.list': async () => {
+    const workspaces = await listWorkspaces();
+    return { workspaces, active_client_id: getActiveClientId() };
+  },
+  'workspace.activate': async (args: unknown) => {
+    const a = (args ?? {}) as { client_id?: string };
+    if (!a.client_id) throw new Error('workspace.activate requires { client_id }');
+    const summary: WorkspaceSummary = setActiveClientId(a.client_id);
+    return { active: summary };
+  },
+  'workspace.active': async () => ({ active_client_id: getActiveClientId() }),
+};
 
 const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // record set operations
@@ -161,6 +186,8 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {
+  const local = LOCAL_CAPABILITIES[capability];
+  if (local) return local(args);
   const subject = CAPABILITY_TO_SUBJECT[capability];
   if (!subject) throw new Error(`unknown capability: ${capability}`);
   const timeout = CAPABILITY_TIMEOUTS_MS[capability] ?? 5_000;

@@ -442,8 +442,17 @@
       }
     };
     window.addEventListener('augment-it:active-record-set-changed', onActiveRecordSetChange);
+    // Re-fetch when the operator toggles workspaces in the shell header.
+    // The lens drops its selection and re-loads the record-set list from
+    // the new tenant's row-store. See [[Workspaces-as-Tenant-Primitive]].
+    const onWorkspaceChange = (): void => {
+      selectedRecordSetId = null;
+      void loadRecordSets();
+    };
+    window.addEventListener('augment-it:workspace-changed', onWorkspaceChange);
     return () => {
       window.removeEventListener('augment-it:active-record-set-changed', onActiveRecordSetChange);
+      window.removeEventListener('augment-it:workspace-changed', onWorkspaceChange);
     };
   });
 

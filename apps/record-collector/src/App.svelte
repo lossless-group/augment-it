@@ -63,6 +63,18 @@
       onStatus: (s) => (status = s),
     });
     void refreshList();
+    // Re-fetch when the operator toggles workspaces in the shell header.
+    // The workspace singleton clears its cached record_sets/rows before
+    // this fires; row-store's NATS subscriber has already swapped to the
+    // new tenant's file by the time the browser reaches this point.
+    const onWorkspaceChange = () => {
+      selectedId = null;
+      void refreshList();
+    };
+    window.addEventListener('augment-it:workspace-changed', onWorkspaceChange);
+    return () => {
+      window.removeEventListener('augment-it:workspace-changed', onWorkspaceChange);
+    };
   });
 
   async function refreshList() {
