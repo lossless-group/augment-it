@@ -20,8 +20,30 @@
   const active = $derived(
     workspace.workspaces.find((w) => w.client_id === workspace.active_client_id),
   );
-  const label = $derived(active?.display_name ?? workspace.active_client_id ?? 'no workspace');
   const empty = $derived(workspace.workspaces.length === 0);
+  // Visible state — never just "empty + disabled". The pill tells the user
+  // why: are we still waiting on the socket, did the call fail, is the
+  // server truly returning zero workspaces?
+  const label = $derived.by(() => {
+    if (workspace.connection_status === 'connecting' || workspace.connection_status === 'idle') return 'connecting…';
+    if (workspace.workspaces_status === 'loading') return 'loading…';
+    if (workspace.workspaces_status === 'error') return 'error · hover';
+    if (active) return active.display_name;
+    if (workspace.active_client_id) return workspace.active_client_id;
+    return 'no workspaces';
+  });
+  const tooltip = $derived.by(() => {
+    if (workspace.connection_status === 'closed' || workspace.connection_status === 'error') {
+      return `WebSocket ${workspace.connection_status} — workspace-service at ws://localhost:3001/ws unreachable`;
+    }
+    if (workspace.workspaces_status === 'error' && workspace.workspaces_error) {
+      return `workspace.list failed: ${workspace.workspaces_error}`;
+    }
+    if (empty && workspace.workspaces_status === 'ready') {
+      return 'no directories under clients/ — workspace-service returned an empty list';
+    }
+    return `switch workspace (active: ${label})`;
+  });
 
   function toggle(): void {
     if (empty) return;
@@ -70,7 +92,7 @@
     aria-haspopup="listbox"
     aria-expanded={open}
     disabled={empty || switching}
-    title={empty ? 'no workspaces — add a directory under clients/' : `switch workspace (active: ${label})`}
+    title={tooltip}
     onclick={toggle}
   >
     <span class="dot" aria-hidden="true"></span>

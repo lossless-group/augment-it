@@ -46,6 +46,21 @@ class AugmentItWorkspace {
    */
   workspaces: WorkspaceSummary[];
   active_client_id: string | null;
+  /**
+   * Surface for the switcher / debug panel. Lets the UI distinguish
+   * "we haven't tried yet" from "we tried and failed" from "no workspaces
+   * exist on disk", which were all visually identical when the only signal
+   * was workspaces.length === 0.
+   */
+  workspaces_status: 'idle' | 'loading' | 'ready' | 'error';
+  workspaces_error: string | null;
+  /**
+   * WebSocket connection status, mirrored from the transport's onStatus
+   * callback. Exposed so any surface (switcher, future status bar) can
+   * render visible feedback when the socket is down. Connect handlers in
+   * each remote forward into this.
+   */
+  connection_status: 'idle' | 'connecting' | 'open' | 'closed' | 'error';
 
   private transport: Transport | null = null;
   private lastSeenSeq = -1;
@@ -62,6 +77,9 @@ class AugmentItWorkspace {
     this.user = $state<UserContext | null>(null);
     this.last_capability = $state<string | null>(null);
     this.workspaces = $state<WorkspaceSummary[]>([]);
+    this.workspaces_status = $state<'idle' | 'loading' | 'ready' | 'error'>('idle');
+    this.workspaces_error = $state<string | null>(null);
+    this.connection_status = $state<'idle' | 'connecting' | 'open' | 'closed' | 'error'>('idle');
     // Read the persisted pick eagerly so the chat surface has a value to
     // forward on the very first turn. The server-side discovery
     // (workspace.list) reconciles it after mount.
@@ -93,23 +111,36 @@ class AugmentItWorkspace {
    * fallback). Returns the resolved active id.
    */
   async loadWorkspaces(): Promise<string | null> {
-    const result = (await this.invoke('workspace.list', {})) as {
-      workspaces: WorkspaceSummary[];
-      active_client_id: string | null;
-    };
-    this.workspaces = result.workspaces;
-    const persisted = this.active_client_id;
-    const persistedExists = persisted && result.workspaces.some((w) => w.client_id === persisted);
-    const resolved = persistedExists
-      ? persisted
-      : result.active_client_id ?? result.workspaces[0]?.client_id ?? null;
-    if (resolved !== persisted) {
-      // Tell the server about our pick so its process-wide fallback
-      // matches what the browser will send on chat turns.
-      if (resolved) await this.invoke('workspace.activate', { client_id: resolved });
-      this.setActiveClientId(resolved);
+    this.workspaces_status = 'loading';
+    this.workspaces_error = null;
+    try {
+      console.info('[workspace] loadWorkspaces → workspace.list');
+      const result = (await this.invoke('workspace.list', {})) as {
+        workspaces: WorkspaceSummary[];
+        active_client_id: string | null;
+      };
+      console.info('[workspace] workspace.list returned', result);
+      this.workspaces = result.workspaces;
+      const persisted = this.active_client_id;
+      const persistedExists = persisted && result.workspaces.some((w) => w.client_id === persisted);
+      const resolved = persistedExists
+        ? persisted
+        : result.active_client_id ?? result.workspaces[0]?.client_id ?? null;
+      if (resolved !== persisted) {
+        // Tell the server about our pick so its process-wide fallback
+        // matches what the browser will send on chat turns.
+        if (resolved) await this.invoke('workspace.activate', { client_id: resolved });
+        this.setActiveClientId(resolved);
+      }
+      this.workspaces_status = 'ready';
+      return resolved;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[workspace] loadWorkspaces failed', err);
+      this.workspaces_status = 'error';
+      this.workspaces_error = msg;
+      throw err;
     }
-    return resolved;
   }
 
   /**
@@ -143,8 +174,15 @@ class AugmentItWorkspace {
    */
   connect(config: Omit<TransportConfig, 'onFrame'>): void {
     if (this.transport) return;
+    console.info('[workspace] connect →', config.url);
+    const userOnStatus = config.onStatus;
     this.transport = createTransport({
       ...config,
+      onStatus: (s) => {
+        console.info('[workspace] transport status', s);
+        this.connection_status = s as typeof this.connection_status;
+        userOnStatus?.(s);
+      },
       onFrame: (frame) => this.handleFrame(frame),
     });
   }

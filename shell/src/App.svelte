@@ -239,19 +239,32 @@
   });
 
   // ---- workspace bootstrap -----------------------------------------------
-  // Discover workspaces from the workspace-service on mount, reconcile the
-  // browser's persisted active pick against what's on disk. The transport
-  // is already connected by the time the shell renders (see remotes init);
-  // a tiny retry covers the rare race where workspace.list fires before
-  // the WS session frame.
+  // The shell now makes its own capability calls (workspace.list / .activate
+  // from the header switcher), so its singleton needs its OWN transport.
+  // Each federation remote also connects, but those instances are separate
+  // — no `shared` block in rsbuild config — and pre-today the shell didn't
+  // dispatch anything itself.
+  //
+  // Connect first, then load workspaces. `workspace.connect()` is idempotent
+  // on the singleton, so if a remote raced us and connected first the
+  // second call is a no-op.
   onMount(() => {
+    const TOKEN_KEY = 'augment_it_session_token';
+    workspace.connect({
+      url: 'ws://localhost:3001/ws',
+      getToken: () => localStorage.getItem(TOKEN_KEY),
+      saveToken: (t) => localStorage.setItem(TOKEN_KEY, t),
+      onStatus: () => {
+        /* shell doesn't render its own connection indicator — the chat rail does */
+      },
+    });
     let cancelled = false;
     const tryLoad = async (attempt = 0): Promise<void> => {
       if (cancelled) return;
       try {
         await workspace.loadWorkspaces();
       } catch (err) {
-        if (attempt < 5) {
+        if (attempt < 8) {
           setTimeout(() => tryLoad(attempt + 1), 200 * (attempt + 1));
         } else {
           console.warn('[shell] workspace.list failed; switcher will be empty', err);
