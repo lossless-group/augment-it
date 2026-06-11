@@ -188,10 +188,12 @@ function buildInboxFrontmatter(
   binaryFilename: string | null,
 ): string {
   const lines: string[] = [];
+  const { extra, publishedAt } = liftPublishedAt(args.extra_metadata);
   lines.push('---');
   lines.push(`title: ${yamlString(args.title)}`);
   lines.push(`exact_url: ${yamlString(args.url)}`);
   lines.push(`fetched_at: ${args.fetched_at}`);
+  if (publishedAt) lines.push(`published_at: ${yamlString(publishedAt)}`);
   lines.push(`client_id: ${yamlString(args.client_id)}`);
   lines.push(`funder_slug: "inbox"`);
   lines.push(`record_id: null`);
@@ -233,7 +235,7 @@ function buildInboxFrontmatter(
     lines.push(`  downloaded_at: ${ba.downloaded_at}`);
     lines.push(`  download_status: ${yamlString(ba.download_status)}`);
   }
-  const extraYaml = renderExtraMetadata(args.extra_metadata, 2);
+  const extraYaml = renderExtraMetadata(extra, 2);
   if (extraYaml.length === 0) {
     lines.push('extra_metadata: {}');
   } else {
@@ -346,10 +348,17 @@ export async function listForRecord(args: {
 
 function buildFrontmatter(args: AddCorpusArgs): string {
   const lines: string[] = [];
+  // published_at is lifted from extra_metadata when present (see jina.ts
+  // preamble parse). It's the source content's authored date — distinct
+  // from fetched_at (when WE pulled it). Lifted to top-level because
+  // sort/filter UIs read it as a first-class field, not metadata
+  // miscellany. Removed from the extra block to avoid duplication.
+  const { extra, publishedAt } = liftPublishedAt(args.extra_metadata);
   lines.push('---');
   lines.push(`title: ${yamlString(args.title)}`);
   lines.push(`exact_url: ${yamlString(args.exact_url)}`);
   lines.push(`fetched_at: ${args.fetched_at}`);
+  if (publishedAt) lines.push(`published_at: ${yamlString(publishedAt)}`);
   lines.push(`record_id: ${yamlString(args.record_id)}`);
   // record_uuid is the lineage-stable identity that survives
   // /promote-snapshot. New writers pass it; legacy files without it
@@ -368,7 +377,7 @@ function buildFrontmatter(args: AddCorpusArgs): string {
     lines.push('tags:');
     for (const t of args.tags) lines.push(`  - ${yamlString(t)}`);
   }
-  const extraYaml = renderExtraMetadata(args.extra_metadata, 2);
+  const extraYaml = renderExtraMetadata(extra, 2);
   if (extraYaml.length === 0) {
     lines.push('extra_metadata: {}');
   } else {
@@ -377,6 +386,18 @@ function buildFrontmatter(args: AddCorpusArgs): string {
   }
   lines.push('---');
   return lines.join('\n');
+}
+
+function liftPublishedAt(extra: Record<string, unknown>): {
+  extra: Record<string, unknown>;
+  publishedAt: string | null;
+} {
+  const raw = extra?.published_at;
+  if (typeof raw !== 'string' || raw.trim() === '') {
+    return { extra, publishedAt: null };
+  }
+  const { published_at: _drop, ...rest } = extra;
+  return { extra: rest, publishedAt: raw.trim() };
 }
 
 function renderExtraMetadata(obj: Record<string, unknown>, indent: number): string[] {
