@@ -22,8 +22,14 @@ services:
       NATS_URL: nats://nats:4222
       SESSION_STORE_PATH: /data/sessions.json
       PORT: "3001"
+      # Workspace registry — each child of /clients is a workspace, per
+      # [[Workspaces-as-Tenant-Primitive]]. ACTIVE_CLIENT_ID is optional;
+      # absent → first slug alphabetically (humain-vc today).
+      CLIENTS_ROOT: /clients
+      ACTIVE_CLIENT_ID: ${ACTIVE_CLIENT_ID:-}
     volumes:
       - workspace-data:/data
+      - ./clients:/clients:ro
 
   row-store:
     build: ./services/row-store

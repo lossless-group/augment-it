@@ -3,7 +3,9 @@
   import ModeToggle from './ModeToggle.svelte';
   import MountHost from './MountHost.svelte';
   import FlowWidget from './FlowWidget.svelte';
+  import WorkspaceSwitcher from './WorkspaceSwitcher.svelte';
   import ToggleHeader from '@augment-it/shared-ui/ToggleHeader__PromptOrPackage--Icons.svelte';
+  import { workspace } from '@augment-it/workspace';
   import {
     ROTATION,
     PAIRINGS,
@@ -236,6 +238,32 @@
     return () => window.removeEventListener('augment-it:enrich-record', onEnrich);
   });
 
+  // ---- workspace bootstrap -----------------------------------------------
+  // Discover workspaces from the workspace-service on mount, reconcile the
+  // browser's persisted active pick against what's on disk. The transport
+  // is already connected by the time the shell renders (see remotes init);
+  // a tiny retry covers the rare race where workspace.list fires before
+  // the WS session frame.
+  onMount(() => {
+    let cancelled = false;
+    const tryLoad = async (attempt = 0): Promise<void> => {
+      if (cancelled) return;
+      try {
+        await workspace.loadWorkspaces();
+      } catch (err) {
+        if (attempt < 5) {
+          setTimeout(() => tryLoad(attempt + 1), 200 * (attempt + 1));
+        } else {
+          console.warn('[shell] workspace.list failed; switcher will be empty', err);
+        }
+      }
+    };
+    void tryLoad();
+    return () => {
+      cancelled = true;
+    };
+  });
+
   // ---- cross-remote navigation (dispatched by any remote) -----------------
   // Remotes that want to send the user to a different surface dispatch a
   // window event:  window.dispatchEvent(new CustomEvent('augment-it:navigate',
@@ -397,6 +425,7 @@
     </button>
     <span class="muted">tiling host · :3100</span>
     <ModeToggle />
+    <WorkspaceSwitcher />
   </div>
 </header>
 

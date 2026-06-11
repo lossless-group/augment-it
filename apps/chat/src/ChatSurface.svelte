@@ -100,11 +100,22 @@
 
   // Send context — what the user is looking at right now. The server
   // inlines this in the prompt so the model can pick a record_set_id
-  // for prompt.draft without asking.
-  const sendContext = $derived(
-    workspace.activeView.kind === 'record_set'
-      ? { record_set_id: workspace.activeView.record_set_id }
-      : undefined,
+  // for prompt.draft without asking. `client_id` is the active workspace,
+  // forwarded on every turn so the chat slab knows which tenant we're in
+  // without holding the value process-wide.
+  const sendContext = $derived<{
+    focused_prompt_id?: string;
+    record_set_id?: string;
+    client_id?: string;
+  } | undefined>(
+    (() => {
+      const ctx: { record_set_id?: string; client_id?: string } = {};
+      if (workspace.activeView.kind === 'record_set') {
+        ctx.record_set_id = workspace.activeView.record_set_id;
+      }
+      if (workspace.active_client_id) ctx.client_id = workspace.active_client_id;
+      return Object.keys(ctx).length ? ctx : undefined;
+    })(),
   );
 
   async function send(): Promise<void> {
