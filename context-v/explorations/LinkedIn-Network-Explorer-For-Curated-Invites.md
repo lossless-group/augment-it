@@ -2,7 +2,9 @@
 title: "LinkedIn Network Explorer — slicing your own connection graph by geography for curated invites, when LinkedIn won't let you query it directly"
 lede: "A client is hosting a dinner in Manhattan and the operator wants to invite their LinkedIn contacts who actually live in NYC. LinkedIn's public API removed the connections endpoint years ago, their Terms of Service explicitly forbid scraping, and they ban accounts that get caught. So the question isn't 'how do I scrape LinkedIn' — it's 'given that LinkedIn is hostile to programmatic querying of your own network, which legitimate paths let you produce a geo-filtered slice of your connections in time for next week's dinner, and which of those compose with augment-it's existing pack-runner / record-set / response-reviewer stack so the same pattern works for the next client dinner and the one after that.' This exploration walks the four paths (data export + enrichment cascade, Sales Navigator subscription, third-party scraping services, direct careful scraping), names the legal/ban posture of each, and lands a recommendation that dogfoods augment-it — because the operator has literally built the tool for 'augment a list of contacts with metadata you don't have yet,' and this use case is the canonical instance of that pattern."
 date_created: 2026-06-11
-date_modified: 2026-06-11
+date_modified: 2026-06-14
+revisions:
+  - 2026-06-14 — Added Path A.5 (DevTools snippets) after a sharper read on TOS posture; the original draft treated the TOS as black-and-white and over-recommended the pack-based path for use cases where a one-shot manual extraction is the right tool. The two snippets land at `tools/browser-snippets/linkedin/` and are referenced from the "Dinner-specific minimum lift" section.
 authors:
   - Michael Staton
 augmented_with:
@@ -99,6 +101,97 @@ The operator is correctly cautious. "Sensitively, as I know LinkedIn
 will deny scrapers" is the right starting posture.
 
 ## Four paths, ranked by composability with augment-it
+
+### Path A.5 — DevTools snippets run by hand on your own search-results / profile pages
+
+Sitting between manual copy-paste and a pack-based pipeline: a tiny piece of
+JavaScript pasted into your browser's DevTools Console that walks the
+already-rendered DOM of a page YOU are looking at and produces a structured
+CSV / JSON blob.
+
+**Mechanic:**
+
+1. Build your filtered search URL in LinkedIn's normal UI (e.g.,
+   `network=["F"]` + `geoUrn=[<NYC metro>, <Manhattan>]`). Confirm the
+   results look right.
+2. Open DevTools (Cmd+Option+I), Console tab.
+3. Paste `tools/browser-snippets/linkedin/linkedin-search-results-to-csv.js`,
+   hit Enter. Console.table()'s the captured rows.
+4. Click LinkedIn's Next button. Up-arrow + Enter to re-run on the new page.
+   Accumulator de-dupes by URL.
+5. Repeat until you've covered the page range you care about.
+6. Run `window.__liDownloadCsv()` — downloads `linkedin-network-<ts>.csv`.
+7. For high-value contacts, navigate to their profile page individually,
+   paste `tools/browser-snippets/linkedin/linkedin-profile-to-row.js`, get
+   richer fields (full headline, current role, location, About paragraph,
+   top 3 Experience entries).
+
+**Why this isn't path D in disguise:**
+
+- No request to linkedin.com beyond what your normal clicks already make —
+  the snippet only reads HTML the browser already rendered.
+- No scheduling, no polling, no headless browser, no rotating proxy.
+- Single-shot, manual trigger, human-paced.
+- LinkedIn's anti-scrape detection targets behavioral patterns (rate,
+  fingerprint, cadence) that single-shot manual extraction by definition
+  doesn't produce.
+
+**TOS posture (honest):**
+
+LinkedIn's Section 8.2 is broad enough to cover "any automated means," and
+a DOM-walking script is technically automation. The TOS is broad for three
+reasons that don't really apply at this scale: (1) protecting Sales
+Navigator revenue from competitive-scale exporters, (2) defending the
+aggregate graph against mass scraping, (3) maintaining LinkedIn's position
+as consent-mediator between you and your network. None of those concerns
+fire on a single user manually clicking through their own connections.
+
+The pragmatic spectrum:
+
+| Approach | TOS violation? | Practical risk |
+|---|---|---|
+| Manual copy-paste of names | No | None |
+| Bookmarklet / Console snippet you trigger by hand | Technically yes | Vanishingly low |
+| Browser extension auto-scrolling and extracting | Yes | Low–medium |
+| Headless puppeteer with your cookie | Yes | High |
+| Third-party SaaS (Path C) | Yes | Low but real |
+
+Path A.5 is the second row. Operators who care about both their LinkedIn
+presence AND getting the dinner invite list done by Thursday sit there.
+
+**Account risk:** Vanishingly low for one-shot use. The DOM-extraction
+pattern is not what LinkedIn's detection looks for.
+
+**Cost:** $0. Two .js files in the repo, no SaaS, no subscription.
+
+**Time to first invite list:**
+- Open search URL with your geo filter. ~2 minutes.
+- Paste snippet, scroll + re-run per page. ~10-15 minutes for hundreds of
+  rows depending on how many pages you walk.
+- CSV downloaded. Import into augment-it as record set OR just open in
+  Numbers/Sheets and filter manually for the dinner.
+
+**Composability:** High in a different way than Path A. The CSV lands in
+augment-it as a record set the same as any export, AND the snippets
+themselves are reusable next time you need to slice the network by a
+different geo. Plus — for the "click into high-value profiles" workflow
+the operator is already willing to do, the profile snippet captures the
+deep data Path A's snippet-search inference can't.
+
+**Where it underperforms:**
+- Selector maintenance — LinkedIn rotates class names every few months
+  to break scrapers. The snippets degrade gracefully (try multiple
+  candidate selectors, log when none match) but eventually need a quick
+  selector update. The head comments document the procedure.
+- Manual pagination — at 5K+ contacts this becomes tedious. Path A or
+  Path B scales better past that.
+
+**This is the right tool for the dinner.** Path A's value comes when you
+want enrichment beyond what LinkedIn's UI already shows — *infer* a
+location from public web snippets when LinkedIn won't tell you. Path A.5's
+value comes when LinkedIn IS already telling you (you've built the right
+search URL), you just need to get that data off the screen and into a CSV.
+For a one-shot dinner invite list, Path A.5 wins.
 
 ### Path A — Data export + augment-it enrichment cascade (recommended)
 
@@ -269,24 +362,29 @@ Listed for completeness; deprioritized for any real engagement.
 
 ## Recommendation
 
-**Path A** for the dinner. Plus the side benefit that we ship a
-`linkedin-location-pack` to augment-it, which means the second time this
-need arises (and it will — every fundraise, every conference, every
-"who do I know in $CITY") the answer is "ingest the export, run the
-pack, filter the lens."
+**Path A.5 for the dinner.** Build the geo-filtered search URL in
+LinkedIn's UI, paste the search-results snippet on each page as you
+click through, click into high-value profiles individually and paste the
+profile snippet. Output is a CSV you can use directly or ingest into
+augment-it as a record set. Zero cost, vanishingly low account risk,
+done in an hour.
 
-**Fall back to Path C** if Path A's confidence on the invite list is
-below acceptable (operator's judgment call on the actual triage) AND
-the dinner timeline justifies the account risk. Decision point lives
-at the end of the first augment-it run: if 60% of your connections
-have clean locations, you have enough Manhattan hits to fill the dinner
-table — proceed. If 30% have clean locations, the invite list is too
-sparse; spend $99 on Sales Nav for a one-shot, or eat the account risk
-on PhantomBuster.
+**Path A** stays in the longer-arc plan — the `linkedin-location-pack`
+remains the right shape for cases where LinkedIn's UI isn't already
+telling you the answer (e.g., "find people in my network who recently
+moved to NYC but haven't updated their profile yet" needs the
+public-snippet inference; LinkedIn's geoUrn filter alone won't catch
+them). The dinner doesn't require it; the next harder slice might.
+
+**Fall back to Path C** only if Path A.5 + Path A together don't produce
+a viable list AND the timeline justifies the account risk. Realistic
+for high-volume recurring extraction across a 30K+ network, not for
+the dinner.
 
 **Path B** is the right answer if you already have Sales Navigator for
 other reasons (recruiting, BD pipeline). The marginal cost is zero, the
-data is authoritative.
+data is authoritative, and Sales Nav's geo filter is more precise than
+LinkedIn's free search.
 
 ## What "shipping the linkedin-location-pack" looks like as augment-it code
 
@@ -326,26 +424,37 @@ from new infrastructure.
 
 ## The dinner-specific minimum lift
 
-For the immediate dinner, the operator's path:
+For the immediate dinner, the operator's path collapses to Path A.5:
 
-1. **Today:** Request LinkedIn connections export.
-2. **Today (parallel):** Decide if the pack ships in time, or if a
-   manual approach via the lens covers the dinner. For a small invite
-   list (~20-30 people), even Path A's first pass through 5K rows is
-   over-engineering — but the pack ships an asset that pays back next
-   time, so the engineering work is justified.
-3. **Tomorrow (export arrives):** Ingest into augment-it.
-4. **Tomorrow:** Run the pack (or, if not yet built, run a one-off
-   prompt via prompt-template-manager: *"Find the current city or
-   region of <{first_name} {last_name}>, who works at <{company}>.
-   Respond with only a location string or 'unknown'."*). The
-   prompt-runner can fire this against the existing search-tools-
-   enabled prompt path; same result, less reusable.
-5. **Tomorrow:** Lens-filter to Manhattan / NYC. Triage edge cases.
-   Hand the list to the client.
+1. **Now:** Build the search URL in LinkedIn's UI — your network
+   filter (`network=["F"]`) plus the geoUrn array for NYC metro +
+   Manhattan. The URL the operator already arrived at is the right
+   shape:
+   ```
+   https://www.linkedin.com/search/results/people/?origin=FACETED_SEARCH&network=%5B%22F%22%5D&geoUrn=%5B%22102571732%22%2C%2290000070%22%5D
+   ```
+2. **Now:** Open DevTools (Cmd+Option+I), Console tab.
+3. **Now:** Paste `tools/browser-snippets/linkedin/linkedin-search-results-to-csv.js`,
+   Enter. Inspect the console.table() output; if name / location columns
+   look right, proceed.
+4. **Now:** Click LinkedIn's Next button. Up-arrow + Enter in the console.
+   Repeat until you've covered the page range. The accumulator de-dupes by
+   profile URL so re-running is safe.
+5. **Now:** Run `window.__liDownloadCsv()` — downloads the CSV.
+6. **Now (optional):** For people you want richer data on, click into their
+   profile individually, paste `linkedin-profile-to-row.js` to capture full
+   headline / location / About / top 3 Experience entries.
+7. **Now:** Either filter the CSV directly in Numbers/Sheets for the dinner
+   invite list, OR ingest into augment-it as a record set if you want the
+   lens + chat workflow.
 
-The prompt-template path is the actual minimum-lift; the pack is the
-asset that compounds.
+Total elapsed time: ~30 minutes for hundreds of contacts.
+
+If selectors come back stale on the first run (snippet says "no results
+container found"), inspect one card in DevTools → Elements, copy the
+enclosing list/card selectors, update SELECTORS at the top of the file,
+re-run. The snippet logs which selector path it used so the maintenance
+loop is tight.
 
 ## The pattern this instances
 
