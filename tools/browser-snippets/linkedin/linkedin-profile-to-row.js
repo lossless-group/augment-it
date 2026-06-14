@@ -20,18 +20,23 @@
 //     profile_url:  "https://www.linkedin.com/in/charlene-kuo-a877781",
 //     headline:     "General Partner @ Insight…",                 // precise
 //     location:     "New York, New York, United States",
-//     current: {
-//       title:       "General Partner",
-//       company:     "Acme Capital",
-//       dates:       "Jan 2023 - Present · 2 yrs",
-//       location:    "New York, NY · On-site",                    // optional
-//       description: "Paragraph the person wrote about the role"  // optional
-//     },
+//     experience: [
+//       {
+//         title:       "General Partner",
+//         company:     "Acme Capital",
+//         dates:       "Jan 2023 - Present · 2 yrs",
+//         location:    "New York, NY · On-site",                    // optional
+//         description: "Paragraph the person wrote about the role"  // optional
+//       },
+//       { title: "Principal", company: "Acme Capital", dates: "…", … },
+//       … (full Experience section, reverse-chronological)
+//     ],
 //     captured_at:  "2026-06-14T18:42:00.000Z"
 //   }
 //
-// If the person has multiple concurrent current roles (e.g. "Advisor at X"
-// AND "GP at Y" both showing Present), only the topmost listed is captured.
+// experience[0] is the topmost (most recent / current) entry. People with
+// multiple concurrent current roles will have several "Present"-dated
+// entries at the top of the array.
 //
 // How to use
 // ----------
@@ -158,18 +163,16 @@
     location = locCandidates[0] || '';
   }
 
-  // ---- CURRENT EXPERIENCE ENTRY ------------------------------------------
+  // ---- EXPERIENCE SECTION ------------------------------------------------
   // Find the Experience section. LinkedIn deep-links to /details/experience/
   // and keeps stable anchor IDs like <div id="experience"> for that.
-  let current = null;
+  const experience = [];
   const experienceAnchor =
     document.getElementById('experience') ||
     document.querySelector('[id^="experience"]') ||
     document.querySelector('[data-section="experience"]');
   let experienceSection = null;
   if (experienceAnchor) {
-    // The actual section is usually the anchor's closest <section>, OR
-    // a sibling list further down the same parent.
     experienceSection =
       experienceAnchor.closest('section') ||
       experienceAnchor.parentElement;
@@ -185,34 +188,50 @@
     }
   }
 
+  // Classify a single item's visible-span text into a structured entry.
+  // Content-sniffing rather than position-based so missing optional fields
+  // (location / description) don't shift the others.
+  const parseExperienceItem = (item) => {
+    const texts = visibleSpansText(item).filter((t) => !looksLikeSkills(t));
+    if (texts.length === 0) return null;
+    const title = texts[0] || '';
+    const datesIdx = texts.findIndex(looksLikeDates);
+    const company = texts[1] && texts[1] !== title ? texts[1] : '';
+    const dates = datesIdx >= 0 ? texts[datesIdx] : '';
+    const locIdx = texts.findIndex(
+      (t, i) => datesIdx >= 0 && i > datesIdx && looksLikeLocation(t) && t.length < 80,
+    );
+    const locStr = locIdx >= 0 ? texts[locIdx] : '';
+    const descStart = Math.max(datesIdx, locIdx) + 1;
+    const descParts = texts.slice(descStart);
+    const description = descParts.join('\n');
+    return { title, company, dates, location: locStr, description };
+  };
+
   if (experienceSection) {
-    // The first list-item is the topmost / most recent role. LinkedIn
-    // sometimes wraps in <li>, sometimes in role="listitem" divs.
-    const firstItem =
-      experienceSection.querySelector('li') ||
-      experienceSection.querySelector('div[role="listitem"]') ||
-      experienceSection.querySelector('div[data-view-name^="profile-component-entity"]');
-    if (firstItem) {
-      const texts = visibleSpansText(firstItem);
-      // Filter out the company-name link's text that often duplicates,
-      // and any "Skills: ..." trailer.
-      const filtered = texts.filter((t) => !looksLikeSkills(t));
-      const title = filtered[0] || '';
-      // Find the dates string and use it to anchor classification.
-      const datesIdx = filtered.findIndex(looksLikeDates);
-      const company = filtered[1] && filtered[1] !== title ? filtered[1] : '';
-      const dates = datesIdx >= 0 ? filtered[datesIdx] : '';
-      // Location: a location-shaped string AFTER the dates entry, if any.
-      const locIdx = filtered.findIndex(
-        (t, i) => i > datesIdx && datesIdx >= 0 && looksLikeLocation(t) && t.length < 80,
-      );
-      const locStr = locIdx >= 0 ? filtered[locIdx] : '';
-      // Description: everything after dates (and location, if any) that
-      // isn't a skills trailer. Joined into one string.
-      const descStart = Math.max(datesIdx, locIdx) + 1;
-      const descParts = filtered.slice(descStart).filter((t) => !looksLikeSkills(t));
-      const description = descParts.join('\n');
-      current = { title, company, dates, location: locStr, description };
+    // Find all top-level entries. LinkedIn uses <li>, sometimes
+    // role="listitem" divs, sometimes data-view-name entity nodes.
+    // We try in order of specificity and take the first non-empty set.
+    let items = [];
+    const candidates = [
+      'div[data-view-name^="profile-component-entity"]',
+      'div[role="listitem"]',
+      ':scope > div > ul > li',
+      'ul > li',
+      'li',
+    ];
+    for (const sel of candidates) {
+      const found = experienceSection.querySelectorAll(sel);
+      if (found.length > 0) { items = Array.from(found); break; }
+    }
+    // De-dup ancestor/descendant matches (when a candidate selector
+    // captures both an outer wrapper and an inner item).
+    items = items.filter((el, i, arr) =>
+      !arr.some((other, j) => j !== i && other !== el && other.contains(el))
+    );
+    for (const item of items) {
+      const entry = parseExperienceItem(item);
+      if (entry && entry.title) experience.push(entry);
     }
   }
 
@@ -222,7 +241,7 @@
     profile_url: normalizeProfileUrl(),
     headline,
     location,
-    current,
+    experience,
     captured_at: new Date().toISOString(),
   };
   window.__liProfiles.push(row);
@@ -230,7 +249,7 @@
   log(`captured ${name || '(no name — selectors stale?)'} — ${window.__liProfiles.length} profile(s) accumulated.`);
   log('row:', row);
   // Diagnostic so a partially-stale run is easy to debug:
-  log(`name: ${name ? '✓' : '✗'} | headline: ${headline ? '✓' : '✗'} | location: ${location ? '✓' : '✗'} | current: ${current ? '✓' : '✗'}`);
+  log(`name: ${name ? '✓' : '✗'} | headline: ${headline ? '✓' : '✗'} | location: ${location ? '✓' : '✗'} | experience entries: ${experience.length}`);
 
   // ---- CLIPBOARD ---------------------------------------------------------
   const json = JSON.stringify(row, null, 2);
