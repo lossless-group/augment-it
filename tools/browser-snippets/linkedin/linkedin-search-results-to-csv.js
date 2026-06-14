@@ -32,13 +32,17 @@
 // 6. Repeat until you've covered the page range you care about.
 // 7. Run window.__liDownloadCsv() — downloads `linkedin-network-<ts>.csv`.
 //
-// Selector maintenance
-// --------------------
-// LinkedIn rotates class names regularly to break scrapers. If you re-run
-// this and get 0 results, the SELECTORS block at the top has gone stale.
-// Open DevTools → Elements panel → click one result card → look at the
-// enclosing <li> or <div> and its containing list. Replace the values in
-// SELECTORS with what you see. Save the file back here so future runs work.
+// DOM strategy (LinkedIn rotates class names; this snippet doesn't depend on them)
+// --------------------------------------------------------------------------------
+// LinkedIn's late-2025 / 2026 rewrite moved entirely to hashed CSS class names
+// (`_502ff069`, `cb81723c`, etc.) that rotate frequently. So this snippet
+// avoids class names almost entirely. It relies on:
+//   - ARIA roles ([role="list"], [role="listitem"]) — stable, accessibility-driven
+//   - Structural attributes ([href*="/in/"], [tabindex="0"]) — stable
+//   - aria-labelledby relationships between figure ↔ name container — stable
+//   - Single-span-inside-paragraph pattern for the visible text fields
+// If the snippet stops finding cards, check the aria roles haven't been
+// dropped; LinkedIn is unlikely to drop those without breaking screen readers.
 //
 // What this snippet IS NOT
 // ------------------------
@@ -55,32 +59,10 @@
 // ============================================================================
 
 (() => {
-  // ---- SELECTORS — UPDATE THESE WHEN LINKEDIN ROTATES CLASS NAMES --------
-  //
-  // Strategy: prefer structural / role-based selectors over class names. Where
-  // we must rely on classes, list multiple candidates so a partial rotation
-  // doesn't break us. Each is tried in order until one matches.
-  const SELECTORS = {
-    // The <ul> (or container) holding all result cards on the current page.
-    resultsContainer: [
-      'ul.reusable-search__entity-result-list',
-      'div.search-results-container',
-      'main[role="main"] ul',
-    ],
-    // Each result card — usually an <li> inside the container.
-    resultCard: [
-      'li.reusable-search__result-container',
-      'li.search-result',
-      'li',
-    ],
-    // The anchor pointing at the person's profile. We then derive name from
-    // its text content (or aria-label) and the URL from href.
-    profileLink: [
-      'a[href*="/in/"][aria-hidden="false"]',
-      'a.app-aware-link[href*="/in/"]',
-      'a[href*="/in/"]',
-    ],
-  };
+  // Use console.error for all status lines so they surface regardless of
+  // the DevTools filter level. (Some Chrome installs have Info hidden by
+  // default and the original snippet's console.info lines were invisible.)
+  const log = (...args) => console.error('[li-scrape]', ...args);
 
   // ---- ACCUMULATOR — SURVIVES ACROSS RE-RUNS ON LATER PAGES --------------
   if (!window.__liScrape) {
@@ -93,24 +75,15 @@
   const acc = window.__liScrape;
 
   // ---- HELPERS -----------------------------------------------------------
-  const firstMatch = (root, list) => {
-    for (const sel of list) {
-      const els = root.querySelectorAll(sel);
-      if (els.length > 0) return { els, sel };
-    }
-    return { els: [], sel: null };
-  };
-
   const cleanText = (s) =>
-    (s || '')
-      .replace(/\s+/g, ' ')
-      .replace(/^\s+|\s+$/g, '');
+    (s || '').replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '');
 
   const normalizeProfileUrl = (href) => {
     if (!href) return null;
     try {
       const u = new URL(href, location.origin);
-      // Strip tracking params; keep only the /in/<slug>/ path.
+      // Only accept profile URLs (/in/<slug>); strip query + trailing slash.
+      if (!/^\/in\/[^/]+\/?$/.test(u.pathname)) return null;
       return `${u.origin}${u.pathname.replace(/\/$/, '')}`;
     } catch {
       return null;
@@ -118,77 +91,93 @@
   };
 
   // ---- FIND CARDS --------------------------------------------------------
-  const containerMatch = firstMatch(document, SELECTORS.resultsContainer);
-  if (containerMatch.els.length === 0) {
-    console.error(
-      '[li-scrape] no results container found — selectors are stale. Open Elements panel, locate the <ul> holding result cards, and update SELECTORS.resultsContainer at the top of this file.',
-    );
-    return;
-  }
-  const container = containerMatch.els[0];
-  console.info(
-    `[li-scrape] using container selector: ${containerMatch.sel}`,
-  );
-
-  const cardMatch = firstMatch(container, SELECTORS.resultCard);
-  const cards = cardMatch.els;
+  // Each result is a div[role="listitem"]; each contains a card-wrapping
+  // <a tabindex="0"> whose href is the profile URL. We start from the
+  // listitems for structure, then dive in.
+  const cards = document.querySelectorAll('main div[role="listitem"]');
   if (cards.length === 0) {
-    console.error(
-      '[li-scrape] container found but no cards in it. Update SELECTORS.resultCard.',
+    log(
+      'no result cards found. Are you on the People Search Results page with results rendered? Current URL:',
+      window.location.href,
     );
     return;
   }
-  console.info(
-    `[li-scrape] using card selector: ${cardMatch.sel} (found ${cards.length} cards on this page)`,
-  );
+  log(`found ${cards.length} listitem nodes — extracting…`);
 
   // ---- EXTRACT EACH CARD -------------------------------------------------
   const newThisRun = [];
   for (const card of cards) {
-    const linkMatch = firstMatch(card, SELECTORS.profileLink);
-    const link = linkMatch.els[0];
-    if (!link) continue;
+    // The card-wrapping anchor: tabindex="0" + href to /in/. The inner
+    // duplicate anchor (the name link inside the <p>) doesn't have
+    // tabindex="0", so this disambiguates.
+    const cardLink = card.querySelector('a[tabindex="0"][href*="/in/"]');
+    if (!cardLink) continue;
 
-    const profile_url = normalizeProfileUrl(link.getAttribute('href'));
+    const profile_url = normalizeProfileUrl(cardLink.getAttribute('href'));
     if (!profile_url) continue;
     if (acc.seenUrls.has(profile_url)) continue;
 
-    // Name — usually inside a <span aria-hidden="true"> nested in the
-    // anchor, or the anchor's aria-label, or its text content.
+    // -- name --
+    // The figure has aria-labelledby pointing at a sibling div whose first
+    // text node is the name. That div's full text contains "<Name> Premium"
+    // or "<Name> Verified" because of badge SVGs, so we take just the
+    // first text node.
     let name = '';
-    const ariaSpan = link.querySelector('span[aria-hidden="true"]');
-    if (ariaSpan) name = cleanText(ariaSpan.textContent);
-    if (!name) name = cleanText(link.getAttribute('aria-label'));
-    if (!name) name = cleanText(link.textContent);
-    // LinkedIn sometimes prefixes with "View <Name>'s profile" — strip.
-    name = name.replace(/^View\s+/, '').replace(/'s\s+profile$/, '');
-
-    // Headline + location: text blocks below the name link in the card.
-    // We grab all non-empty text spans/divs that aren't part of the
-    // link itself and aren't the action button row, then pick by
-    // heuristic position (first = headline, last short text = location).
-    const textBlocks = [];
-    for (const el of card.querySelectorAll('div, span, p')) {
-      if (link.contains(el)) continue;
-      if (el.querySelector('button, a')) continue;
-      const t = cleanText(el.textContent);
-      if (!t) continue;
-      if (t === name) continue;
-      // De-dup nested-textContent duplicates: skip if a longer ancestor's
-      // text we'll later add already starts with this text.
-      if (textBlocks.some((existing) => existing.includes(t) && existing !== t)) continue;
-      textBlocks.push(t);
+    const figure = card.querySelector('figure[aria-labelledby]');
+    if (figure) {
+      const nameContainer = card.querySelector(`#${CSS.escape(figure.getAttribute('aria-labelledby'))}`);
+      if (nameContainer) {
+        // Prefer the first text node directly (skips badges + whitespace spans).
+        for (const node of nameContainer.childNodes) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const t = cleanText(node.textContent);
+            if (t) { name = t; break; }
+          }
+        }
+        if (!name) name = cleanText(nameContainer.textContent.replace(/\b(Premium|Verified)\b/g, ''));
+      }
     }
-    // Heuristic: first long-ish block is the headline; a short block that
-    // looks city-like is the location. Tune by inspecting console output
-    // and adjusting if needed.
-    const headline = textBlocks[0] || '';
-    const location =
-      textBlocks
-        .slice(1)
-        .find((t) => t.length < 80 && /[A-Z]/.test(t) && !t.includes(' at '))
-      || textBlocks[1]
-      || '';
+    // Fallback: figure on this card has no aria-labelledby (some cards
+    // don't, e.g. when no profile photo). Try the duplicate inner anchor.
+    if (!name) {
+      const innerAnchor = cardLink.querySelector('a[href*="/in/"]');
+      if (innerAnchor) {
+        name = cleanText(
+          Array.from(innerAnchor.childNodes)
+            .filter((n) => n.nodeType === Node.TEXT_NODE)
+            .map((n) => n.textContent)
+            .join(' ')
+            .replace(/\b(Premium|Verified)\b/g, ''),
+        );
+      }
+    }
+
+    // -- headline + location --
+    // Both live inside <p> elements whose ONLY child is a <span> with
+    // plain text. The same shape is used for mutual-connections summary
+    // text, so we filter out anything that contains "mutual connection"
+    // or "followers" or the "• 1st" indicator. After filtering, the
+    // first remaining text is the headline; the second is the location.
+    const candidateTexts = [];
+    for (const p of cardLink.querySelectorAll('p')) {
+      // We want <p> whose only meaningful child is a <span> containing plain text.
+      const spans = p.querySelectorAll(':scope > span');
+      if (spans.length !== 1) continue;
+      // The span itself sometimes contains nested spans for the • 1st marker;
+      // skip those. The headline/location spans contain only a single
+      // text node child wrapped in a single inner <span>.
+      const txt = cleanText(p.textContent);
+      if (!txt) continue;
+      if (txt === name) continue;
+      if (/^\s*•/.test(txt)) continue;
+      if (/ • 1st\b/.test(txt)) continue;
+      if (/mutual connection/i.test(txt)) continue;
+      if (/\bfollowers?\b/i.test(txt)) continue;
+      if (/is a mutual connection/i.test(txt)) continue;
+      candidateTexts.push(txt);
+    }
+    const headline = candidateTexts[0] || '';
+    const location = candidateTexts[1] || '';
 
     const row = { name, profile_url, headline, location };
     newThisRun.push(row);
@@ -198,12 +187,12 @@
   acc.pagesSeen += 1;
 
   // ---- REPORT ------------------------------------------------------------
-  console.info(
-    `[li-scrape] page ${acc.pagesSeen}: added ${newThisRun.length} new rows; total ${acc.rows.length} unique profiles captured so far.`,
+  log(
+    `page ${acc.pagesSeen}: added ${newThisRun.length} new rows; total ${acc.rows.length} unique profiles captured so far.`,
   );
   if (newThisRun.length > 0) console.table(newThisRun);
-  console.info(
-    '[li-scrape] call window.__liDownloadCsv() to download, window.__liClear() to start over.',
+  log(
+    'call window.__liDownloadCsv() to download, window.__liClear() to start over.',
   );
 
   // ---- DOWNLOAD + CLEAR HELPERS (defined once, idempotent) ---------------
@@ -232,13 +221,13 @@
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      console.info(`[li-scrape] downloaded ${a.rows.length} rows as ${link.download}`);
+      console.error(`[li-scrape] downloaded ${a.rows.length} rows as ${link.download}`);
     };
   }
   if (!window.__liClear) {
     window.__liClear = () => {
       window.__liScrape = { rows: [], seenUrls: new Set(), pagesSeen: 0 };
-      console.info('[li-scrape] accumulator cleared.');
+      console.error('[li-scrape] accumulator cleared.');
     };
   }
 })();
