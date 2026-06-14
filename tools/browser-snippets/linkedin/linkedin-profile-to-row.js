@@ -46,8 +46,24 @@
 //    Chrome's self-XSS paste guard.
 // 4. Paste this entire file, Enter. The structured object prints.
 // 5. JSON is auto-copied to your clipboard when Chrome permits.
-// 6. Move to the next profile, re-run.
-// 7. window.__liProfilesDownloadJson() — downloads all accumulated.
+// 6. Move to the next profile — including Cmd+Click-into-new-tab — and
+//    paste + Enter again. The accumulator is in localStorage on the
+//    linkedin.com origin, so every tab sees the same growing list.
+// 7. window.__liProfilesDownloadJson() — downloads all accumulated as JSON.
+//    window.__liProfilesDownloadCsv()  — same data, CSV with experience as
+//                                        a JSON-string column.
+//    window.__liProfilesCount()        — just print the running count.
+//    window.__liProfilesClear()        — start over.
+//
+// Storage detail
+// --------------
+// Profiles persist in localStorage under the key "lossless:li-profiles" on
+// the linkedin.com origin. Shared across every linkedin.com tab, survives
+// tab close and browser restart. Cleared by __liProfilesClear() or by
+// clearing site data for linkedin.com in browser settings. Quota is ~5MB
+// per origin — enough for several hundred profiles with full experience
+// arrays. A failed write (quota exceeded, private-browsing mode) logs a
+// warning and the row falls back to in-tab only.
 //
 // DOM strategy (no class-name dependencies)
 // -----------------------------------------
@@ -67,7 +83,34 @@
   const log = (...args) => console.error('[li-profile]', ...args);
 
   // ---- ACCUMULATOR -------------------------------------------------------
-  if (!window.__liProfiles) window.__liProfiles = [];
+  // localStorage so accumulation works across multiple tabs — operator's
+  // typical workflow is Cmd+Click profiles from the search results page
+  // into new tabs. window.__liProfiles is per-tab; localStorage is shared
+  // across all linkedin.com tabs in the same browser profile and survives
+  // tab close.
+  const STORAGE_KEY = 'lossless:li-profiles';
+  const loadProfiles = () => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+  const saveProfiles = (rows) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+      return true;
+    } catch (err) {
+      log('warning: localStorage write failed (quota? private mode?):', err && err.message ? err.message : err);
+      return false;
+    }
+  };
+  // Keep window.__liProfiles as an in-tab convenience for legacy code paths,
+  // but localStorage is the source of truth.
+  window.__liProfiles = loadProfiles();
 
   // ---- HELPERS -----------------------------------------------------------
   const cleanText = (s) => (s || '').replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '');
@@ -244,9 +287,25 @@
     experience,
     captured_at: new Date().toISOString(),
   };
-  window.__liProfiles.push(row);
+  // Reload from storage at write time so concurrent tabs don't clobber
+  // each other's writes (two profiles captured in two tabs simultaneously
+  // would race if we relied only on the in-memory window.__liProfiles
+  // snapshot from this snippet's onload).
+  const persisted = loadProfiles();
+  const existingIdx = persisted.findIndex((r) => r.profile_url === row.profile_url);
+  let action = 'added';
+  if (existingIdx >= 0) {
+    persisted[existingIdx] = row;
+    action = 'updated';
+  } else {
+    persisted.push(row);
+  }
+  const saved = saveProfiles(persisted);
+  window.__liProfiles = persisted;
 
-  log(`captured ${name || '(no name — selectors stale?)'} — ${window.__liProfiles.length} profile(s) accumulated.`);
+  log(
+    `${action} ${name || '(no name — selectors stale?)'} — ${persisted.length} unique profile(s) in storage${saved ? '' : ' (in-memory only; localStorage write failed)'}.`,
+  );
   log('row:', row);
   // Diagnostic so a partially-stale run is easy to debug:
   log(`name: ${name ? '✓' : '✗'} | headline: ${headline ? '✓' : '✗'} | location: ${location ? '✓' : '✗'} | experience entries: ${experience.length}`);
@@ -260,32 +319,73 @@
     );
   }
 
-  // ---- DOWNLOAD + CLEAR HELPERS (idempotent) -----------------------------
-  if (!window.__liProfilesDownloadJson) {
-    window.__liProfilesDownloadJson = () => {
-      if (!window.__liProfiles || window.__liProfiles.length === 0) {
-        console.warn('[li-profile] nothing to download yet.');
-        return;
-      }
-      const blob = new Blob(
-        [JSON.stringify(window.__liProfiles, null, 2)],
-        { type: 'application/json' },
-      );
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `linkedin-profiles-${Date.now()}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      log(`downloaded ${window.__liProfiles.length} profile(s) as ${link.download}`);
+  // ---- DOWNLOAD + CLEAR HELPERS (idempotent, read from localStorage) -----
+  // Always defined fresh so the helpers see the current STORAGE_KEY value
+  // even if the snippet has been edited and re-pasted.
+  window.__liProfilesDownloadJson = () => {
+    const rows = loadProfiles();
+    if (rows.length === 0) {
+      console.warn('[li-profile] nothing to download yet.');
+      return;
+    }
+    const blob = new Blob(
+      [JSON.stringify(rows, null, 2)],
+      { type: 'application/json' },
+    );
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `linkedin-profiles-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    log(`downloaded ${rows.length} profile(s) as ${link.download}`);
+  };
+  // CSV variant — for parity with the search-results snippet and easy
+  // import into augment-it / spreadsheets. The experience array is
+  // serialized as a JSON string in a single cell.
+  window.__liProfilesDownloadCsv = () => {
+    const rows = loadProfiles();
+    if (rows.length === 0) {
+      console.warn('[li-profile] nothing to download yet.');
+      return;
+    }
+    const headers = ['name', 'profile_url', 'headline', 'location', 'experience_json', 'captured_at'];
+    const csvEscape = (s) => {
+      const v = String(s ?? '');
+      return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
     };
-  }
-  if (!window.__liProfilesClear) {
-    window.__liProfilesClear = () => {
-      window.__liProfiles = [];
-      log('accumulator cleared.');
-    };
-  }
+    const lines = [headers.join(',')];
+    for (const r of rows) {
+      lines.push([
+        csvEscape(r.name),
+        csvEscape(r.profile_url),
+        csvEscape(r.headline),
+        csvEscape(r.location),
+        csvEscape(JSON.stringify(r.experience ?? [])),
+        csvEscape(r.captured_at),
+      ].join(','));
+    }
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `linkedin-profiles-${Date.now()}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    log(`downloaded ${rows.length} profile(s) as ${link.download}`);
+  };
+  window.__liProfilesClear = () => {
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    window.__liProfiles = [];
+    log('accumulator cleared (localStorage + in-memory).');
+  };
+  window.__liProfilesCount = () => {
+    const rows = loadProfiles();
+    log(`${rows.length} profile(s) in storage.`);
+    return rows.length;
+  };
 })();
