@@ -189,6 +189,10 @@ const rowToCsv = (row) => HEADERS.map((h) => csvEscape(row[h])).join(',');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---- API CALLS --------------------------------------------------------
+// Crawlbase's submit endpoint intermittently returns "Please visit the
+// agreement link" even after the operator has accepted it (their backend
+// caching seems to randomly route a small percentage of requests to the
+// agreement-check path). Retry with backoff handles this transparently.
 async function submitAsync(token, profileUrl) {
   const params = new URLSearchParams({
     token,
@@ -197,18 +201,34 @@ async function submitAsync(token, profileUrl) {
     async: 'true',
     callback: 'false',
   });
-  const res = await fetch(`https://api.crawlbase.com/?${params.toString()}`);
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(`submit http ${res.status}: ${text.slice(0, 200)}`);
+  const url = `https://api.crawlbase.com/?${params.toString()}`;
+
+  const MAX_ATTEMPTS = 3;
+  let lastError = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    let text = '';
+    try {
+      const res = await fetch(url);
+      text = await res.text();
+      if (!res.ok) {
+        lastError = new Error(`http ${res.status}: ${text.slice(0, 200)}`);
+      } else if (/agreement|please visit|enable.*crawling/i.test(text)) {
+        lastError = new Error(`agreement-check (transient, attempt ${attempt}/${MAX_ATTEMPTS})`);
+      } else {
+        let parsed;
+        try { parsed = JSON.parse(text); }
+        catch { lastError = new Error(`non-JSON: ${text.slice(0, 200)}`); }
+        if (parsed) {
+          if (parsed.rid) return parsed.rid;
+          lastError = new Error(`no rid in response: ${text.slice(0, 200)}`);
+        }
+      }
+    } catch (err) {
+      lastError = err;
+    }
+    if (attempt < MAX_ATTEMPTS) await sleep(3_000 * attempt);
   }
-  let parsed;
-  try { parsed = JSON.parse(text); }
-  catch { throw new Error(`submit returned non-JSON: ${text.slice(0, 200)}`); }
-  if (!parsed.rid) {
-    throw new Error(`submit returned no rid: ${text.slice(0, 200)}`);
-  }
-  return parsed.rid;
+  throw lastError;
 }
 
 async function pollStorage(token, rid) {
