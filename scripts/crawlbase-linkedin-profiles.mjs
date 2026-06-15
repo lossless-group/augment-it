@@ -71,11 +71,13 @@ const HEADERS = [
   'headline',
   'location',
   'current_company',
-  'current_title',
+  'current_company_url',
   'about',
+  'connections_count',
+  'followers_count',
   'experience_json',
   'education_json',
-  'skills_json',
+  'sublines_json',
   'fetched_at',
   'crawlbase_status',
   'crawlbase_error',
@@ -129,37 +131,64 @@ function pickFirst(...vals) {
   return '';
 }
 
-// Field mapping confirmed against Crawlbase's linkedin-profile docs:
-// https://crawlbase.com/docs/crawling-api/scrapers/linkedin-profile
-// Top-level fields: full_name, headline, location, about, avatar_url,
-// connections_count, experience[], education[], skills[],
-// certifications[], languages[].
-// Experience entries: { title, company, start_date, end_date }
-// Education entries: { school, field, dates }
+// Field mapping confirmed by inspecting actual Crawlbase response (their
+// docs were wrong / stale; the real shape differs significantly):
+//
+//   title           — the person's name (not their job title)
+//   headline        — often empty for public-view profiles
+//   sublines[]      — ["Location", "X followers", "Y connections"]
+//   location        — duplicate of sublines[0]
+//   positionInfo    — { company, link, image } — current employer
+//   educationInfo   — { school, link, image } — most recent school
+//   summary[]       — array of about-paragraph fragments
+//   experience      — { experienceTotal, experienceGroup, experienceList }
+//                     experienceList often EMPTY for public-view profiles
+//                     even when experienceTotal > 0 (LinkedIn hides
+//                     details from non-authenticated viewers)
+//   education[]     — array of { school, link, image, degreeInfo,
+//                     startDate, endDate }
+//   peopleAlsoViewed — array of related profiles (skipped for now)
+//
+// For public-view profiles (which is what Crawlbase serves), the
+// reliable fields are: name (via title), location, current_company
+// (via positionInfo.company), about (via summary), education.
+// Experience is hit-or-miss; we save the structure as-is in
+// experience_json so the operator can mine it if useful.
 function rowFromScrape(profile_url, json) {
-  const name = pickFirst(json?.full_name, json?.fullName, json?.name);
-  const headline = pickFirst(json?.headline, json?.title, json?.tagline);
-  const location = pickFirst(json?.location, json?.geoLocation);
-  const about = pickFirst(json?.about, json?.summary, json?.bio);
-  const experience = Array.isArray(json?.experience) ? json.experience : [];
+  const name = pickFirst(json?.title, json?.full_name, json?.name);
+  const headline = pickFirst(json?.headline, json?.tagline);
+  const location = pickFirst(json?.location, (json?.sublines || [])[0]);
+  const summaryArr = Array.isArray(json?.summary) ? json.summary : [];
+  const about = summaryArr.filter(Boolean).join(' ').trim();
+  const current_company = pickFirst(json?.positionInfo?.company);
+  const current_company_url = pickFirst(json?.positionInfo?.link);
+  // Sublines often hold "X followers" and "Y connections" strings.
+  const sublines = Array.isArray(json?.sublines) ? json.sublines : [];
+  const findCount = (suffix) => {
+    const s = sublines.find((l) => typeof l === 'string' && new RegExp(suffix, 'i').test(l));
+    if (!s) return '';
+    const m = s.match(/^([\d,KMm.+]+)/);
+    return m ? m[1] : '';
+  };
+  const connections_count = findCount('connection');
+  const followers_count = findCount('follower');
+  // Experience: keep the structured object as-is so operator can mine it
+  // later. experienceList is what holds entries when populated.
+  const experience = json?.experience ?? {};
   const education = Array.isArray(json?.education) ? json.education : [];
-  const skills = Array.isArray(json?.skills) ? json.skills : [];
-  // Current role: experience[0] is the most recent entry; use it if it
-  // has end_date "Present" (current) or just take it as best signal.
-  const top = experience[0] || {};
-  const current_company = pickFirst(top.company, top.companyName);
-  const current_title = pickFirst(top.title, top.position);
   return {
     profile_url,
     name,
     headline,
     location,
     current_company,
-    current_title,
+    current_company_url,
     about,
+    connections_count,
+    followers_count,
     experience_json: JSON.stringify(experience),
     education_json: JSON.stringify(education),
-    skills_json: JSON.stringify(skills),
+    sublines_json: JSON.stringify(sublines),
     fetched_at: new Date().toISOString(),
     crawlbase_status: 'ok',
     crawlbase_error: '',
@@ -170,8 +199,9 @@ function rowFromError(profile_url, status, error) {
   return {
     profile_url,
     name: '', headline: '', location: '',
-    current_company: '', current_title: '', about: '',
-    experience_json: '[]', education_json: '[]', skills_json: '[]',
+    current_company: '', current_company_url: '', about: '',
+    connections_count: '', followers_count: '',
+    experience_json: '{}', education_json: '[]', sublines_json: '[]',
     fetched_at: new Date().toISOString(),
     crawlbase_status: status,
     crawlbase_error: String(error || '').slice(0, 500),
