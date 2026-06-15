@@ -129,32 +129,26 @@ function pickFirst(...vals) {
   return '';
 }
 
+// Field mapping confirmed against Crawlbase's linkedin-profile docs:
+// https://crawlbase.com/docs/crawling-api/scrapers/linkedin-profile
+// Top-level fields: full_name, headline, location, about, avatar_url,
+// connections_count, experience[], education[], skills[],
+// certifications[], languages[].
+// Experience entries: { title, company, start_date, end_date }
+// Education entries: { school, field, dates }
 function rowFromScrape(profile_url, json) {
-  const name = pickFirst(json?.name, json?.fullName, json?.full_name);
+  const name = pickFirst(json?.full_name, json?.fullName, json?.name);
   const headline = pickFirst(json?.headline, json?.title, json?.tagline);
-  const location = pickFirst(json?.location, json?.geoLocation, json?.locationName);
+  const location = pickFirst(json?.location, json?.geoLocation);
   const about = pickFirst(json?.about, json?.summary, json?.bio);
-  const experience = Array.isArray(json?.experience) ? json.experience
-    : Array.isArray(json?.experiences) ? json.experiences
-    : [];
-  const education = Array.isArray(json?.education) ? json.education
-    : Array.isArray(json?.educations) ? json.educations
-    : [];
+  const experience = Array.isArray(json?.experience) ? json.experience : [];
+  const education = Array.isArray(json?.education) ? json.education : [];
   const skills = Array.isArray(json?.skills) ? json.skills : [];
-  const current_company = pickFirst(
-    json?.currentPosition?.companyName,
-    json?.currentCompany,
-    json?.current_company,
-    experience[0]?.companyName,
-    experience[0]?.company,
-  );
-  const current_title = pickFirst(
-    json?.currentPosition?.title,
-    json?.currentTitle,
-    json?.current_title,
-    experience[0]?.title,
-    experience[0]?.position,
-  );
+  // Current role: experience[0] is the most recent entry; use it if it
+  // has end_date "Present" (current) or just take it as best signal.
+  const top = experience[0] || {};
+  const current_company = pickFirst(top.company, top.companyName);
+  const current_title = pickFirst(top.title, top.position);
   return {
     profile_url,
     name,
