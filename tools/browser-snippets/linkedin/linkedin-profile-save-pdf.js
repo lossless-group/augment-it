@@ -57,6 +57,36 @@
     return TARGET_LABELS.some((label) => t.includes(label));
   };
 
+  // ---- MANIFEST (cross-tab, localStorage) -------------------------------
+  // Every successful Save-to-PDF click is recorded so we know which
+  // profile each Chrome-named "Profile.pdf" belongs to without having to
+  // pdftotext the file later. Dedup by profile_url; last-wins.
+  const MANIFEST_KEY = 'lossless:li-pdf-manifest';
+  const loadManifest = () => {
+    try {
+      const raw = localStorage.getItem(MANIFEST_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
+  };
+  const saveManifest = (rows) => {
+    try { localStorage.setItem(MANIFEST_KEY, JSON.stringify(rows)); return true; }
+    catch (err) { log('warning: localStorage write failed:', err && err.message ? err.message : err); return false; }
+  };
+  const normalizeProfileUrl = () => {
+    try {
+      const u = new URL(window.location.href);
+      const m = u.pathname.match(/^\/in\/[^/]+/);
+      const path = m ? m[0] : u.pathname.replace(/\/$/, '');
+      return `${u.origin}${path}`;
+    } catch { return window.location.href; }
+  };
+  const slugFromUrl = (url) => {
+    const m = (url || '').match(/\/in\/([^/?#]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  };
+
   // ---- 1. FIND THE MORE BUTTON IN THE TOP CARD --------------------------
   // The top card has a "More" button distinct from any other More buttons
   // on the page (e.g., post-level controls). Strategy: scope to the
@@ -70,6 +100,13 @@
     log('🚨 top card not found. Are you on a /in/<slug>/ profile page?');
     return;
   }
+
+  // Capture profile identity NOW (while we know we're on the right page).
+  const profile_url = normalizeProfileUrl();
+  const slug = slugFromUrl(profile_url);
+  const nameEl = topCard.querySelector('h1, h2');
+  const name = nameEl ? (nameEl.textContent || '').replace(/\s+/g, ' ').trim() : '';
+
   const buttons = Array.from(topCard.querySelectorAll('button'));
   const moreButton = buttons.find((b) => {
     const t = (b.textContent || '').trim().toLowerCase();
@@ -104,6 +141,20 @@
       if (!text) continue;
       if (matchesTarget(text)) {
         log(`found menu item: "${text}" — clicking`);
+        // Record manifest entry BEFORE clicking — if the user dismisses
+        // LinkedIn's confirmation dialog, the worst case is a stale entry
+        // (which we can spot later by diffing manifest vs. files on disk).
+        const triggered_at = new Date().toISOString();
+        try {
+          const rows = loadManifest();
+          const idx = rows.findIndex((r) => r.profile_url === profile_url);
+          const entry = { profile_url, slug, name, triggered_at };
+          if (idx >= 0) rows[idx] = entry; else rows.push(entry);
+          saveManifest(rows);
+          log(`manifest: ${rows.length} entr${rows.length === 1 ? 'y' : 'ies'} (${slug || '(no slug)'})`);
+        } catch (err) {
+          log('manifest write failed (non-fatal):', err && err.message ? err.message : err);
+        }
         el.click();
         log('PDF download triggered. Check your Downloads folder.');
         return true;
@@ -132,4 +183,46 @@
         .filter(Boolean));
     }
   }, POLL_MS);
+
+  // ---- INSPECT / DOWNLOAD / CLEAR HELPERS -------------------------------
+  // Use these from the DevTools console anytime — they read live from
+  // localStorage so any tab sees the latest count.
+  window.__liPdfManifestCount = () => {
+    const n = loadManifest().length;
+    log(`${n} entr${n === 1 ? 'y' : 'ies'} in pdf manifest.`);
+    return n;
+  };
+  window.__liPdfManifestDownloadJson = () => {
+    const rows = loadManifest();
+    if (!rows.length) { log('manifest is empty.'); return; }
+    const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `li-pdf-manifest-${Date.now()}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    log(`downloaded ${rows.length} entries as ${a.download}`);
+  };
+  window.__liPdfManifestDownloadCsv = () => {
+    const rows = loadManifest();
+    if (!rows.length) { log('manifest is empty.'); return; }
+    const headers = ['slug', 'name', 'profile_url', 'triggered_at'];
+    const esc = (s) => {
+      const v = String(s ?? '');
+      return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+    };
+    const lines = [headers.join(',')];
+    for (const r of rows) lines.push(headers.map((h) => esc(r[h])).join(','));
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `li-pdf-manifest-${Date.now()}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    log(`downloaded ${rows.length} entries as ${a.download}`);
+  };
+  window.__liPdfManifestClear = () => {
+    try { localStorage.removeItem(MANIFEST_KEY); } catch {}
+    log('pdf manifest cleared.');
+  };
 })();

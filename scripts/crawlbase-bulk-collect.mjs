@@ -39,8 +39,13 @@ function parseArgs(argv) {
   return out;
 }
 
+// Slim CSV: at-a-glance manifest. Full JSON per profile lives in the
+// sibling .jsonl file (one complete Crawlbase response per line). Add
+// columns here only when you want a flat scalar to sort/filter on; for
+// arrays and nested objects, query the JSONL.
 const HEADERS = [
   'profile_url',
+  'canonical_profile_url',
   'name',
   'headline',
   'location',
@@ -49,9 +54,14 @@ const HEADERS = [
   'about',
   'connections_count',
   'followers_count',
-  'experience_json',
-  'education_json',
-  'sublines_json',
+  'experience_total',
+  'education_count',
+  'recommendations_count',
+  'website_link',
+  'profile_image',
+  'cover_image',
+  'first_school',
+  'first_school_dates',
   'fetched_at',
   'crawlbase_status',
   'crawlbase_error',
@@ -67,8 +77,6 @@ function pickFirst(...vals) {
   return '';
 }
 
-// Same field mapping as crawlbase-linkedin-profiles.mjs (kept inline so this
-// script has no internal imports).
 function rowFromScrape(profile_url, json) {
   const name = pickFirst(json?.title, json?.full_name, json?.name);
   const headline = pickFirst(json?.headline, json?.tagline);
@@ -86,10 +94,16 @@ function rowFromScrape(profile_url, json) {
   };
   const connections_count = findCount(/connection/i);
   const followers_count = findCount(/follower/i);
-  const experience = json?.experience ?? {};
+  const experience_total = json?.experience?.experienceTotal ?? '';
   const education = Array.isArray(json?.education) ? json.education : [];
+  const recommendations = Array.isArray(json?.recommendations) ? json.recommendations : [];
+  const firstEdu = education[0] || {};
+  const firstSchoolDates = firstEdu.startDate || firstEdu.endDate
+    ? `${firstEdu.startDate || ''}-${firstEdu.endDate || ''}`
+    : '';
   return {
     profile_url,
+    canonical_profile_url: pickFirst(json?.profileUrl),
     name,
     headline,
     location,
@@ -98,9 +112,14 @@ function rowFromScrape(profile_url, json) {
     about,
     connections_count,
     followers_count,
-    experience_json: JSON.stringify(experience),
-    education_json: JSON.stringify(education),
-    sublines_json: JSON.stringify(sublines),
+    experience_total,
+    education_count: education.length,
+    recommendations_count: recommendations.length,
+    website_link: pickFirst(json?.websiteInfo?.link),
+    profile_image: pickFirst(json?.profileImage),
+    cover_image: pickFirst(json?.coverImage),
+    first_school: pickFirst(firstEdu.school),
+    first_school_dates: firstSchoolDates,
     fetched_at: new Date().toISOString(),
     crawlbase_status: 'ok',
     crawlbase_error: '',
@@ -110,10 +129,13 @@ function rowFromScrape(profile_url, json) {
 function rowFromError(profile_url, status, error) {
   return {
     profile_url,
+    canonical_profile_url: '',
     name: '', headline: '', location: '',
     current_company: '', current_company_url: '', about: '',
     connections_count: '', followers_count: '',
-    experience_json: '{}', education_json: '[]', sublines_json: '[]',
+    experience_total: '', education_count: '', recommendations_count: '',
+    website_link: '', profile_image: '', cover_image: '',
+    first_school: '', first_school_dates: '',
     fetched_at: new Date().toISOString(),
     crawlbase_status: status,
     crawlbase_error: String(error || '').slice(0, 500),
@@ -198,25 +220,39 @@ async function main() {
   }
   const rids = Array.from(ridToUrl.keys());
   const outPath = resolve(args.out);
+  // Sibling JSONL: full Crawlbase response per profile, no field dropped.
+  // Same path as CSV but with .jsonl extension (or .raw.jsonl if CSV ext absent).
+  const jsonlPath = outPath.endsWith('.csv')
+    ? outPath.replace(/\.csv$/, '.jsonl')
+    : outPath + '.jsonl';
 
   console.log(`rids to fetch: ${rids.length}`);
-  console.log(`out:           ${outPath}`);
+  console.log(`csv:           ${outPath}`);
+  console.log(`jsonl:         ${jsonlPath}`);
   console.log(`auto-delete:   ${!!args.autoDelete}`);
   console.log('');
 
-  // Fresh CSV every run (this is a one-shot snapshot of all stored data).
+  // Fresh CSV + JSONL every run (one-shot snapshot of all stored data).
   await writeFile(outPath, HEADERS.join(',') + '\n');
+  await writeFile(jsonlPath, '');
 
-  // Also write URLs that have no rid as error rows (e.g., submits that
-  // failed entirely during phaseSubmit).
+  // URLs with no rid → CSV error row + JSONL stub so the two files stay aligned.
   for (const [url, job] of Object.entries(jobs)) {
     if (!job?.rid) {
       await appendFile(outPath, rowToCsv(rowFromError(url, 'not_submitted', job?.error || 'no rid')) + '\n');
+      await appendFile(jsonlPath, JSON.stringify({
+        profile_url: url,
+        rid: null,
+        fetched_at: new Date().toISOString(),
+        crawlbase_status: 'not_submitted',
+        crawlbase_error: job?.error || 'no rid',
+        scrape: null,
+      }) + '\n');
     }
   }
 
   const batches = chunk(rids, 100);
-  let okCount = 0, errCount = 0;
+  let okCount = 0, errCount = 0, skeletonCount = 0;
   let shapeLogged = false;
   for (let bi = 0; bi < batches.length; bi += 1) {
     const batch = batches[bi];
@@ -265,32 +301,73 @@ async function main() {
       const rid = entry.rid;
       const url = ridToUrl.get(rid) || entry.url || rid;
       seenRids.add(rid);
+      const { body, ...entryMeta } = entry;
       try {
-        const decoded = decodeBody(entry.body || '');
+        const decoded = decodeBody(body || '');
         if (!shapeLogged) {
           console.log('  first decoded body (first 300 chars):', decoded.slice(0, 300));
           shapeLogged = true;
         }
         const json = JSON.parse(decoded);
+        // Drop peopleAlsoViewed before persisting — large, not needed for this run.
+        if (json && typeof json === 'object') delete json.peopleAlsoViewed;
         const row = rowFromScrape(url, json);
+        // Skeleton detection: scraper succeeded but page wasn't visible.
+        // Mark in CSV so we can re-submit later, but still keep the JSONL
+        // line so we have the rid and the empty shape on record.
+        const isSkeleton = !row.name && !row.headline && !(row.about) && !row.current_company;
+        if (isSkeleton) {
+          row.crawlbase_status = 'empty_skeleton';
+          skeletonCount += 1;
+        } else {
+          okCount += 1;
+        }
         await appendFile(outPath, rowToCsv(row) + '\n');
-        okCount += 1;
+        await appendFile(jsonlPath, JSON.stringify({
+          profile_url: url,
+          rid,
+          fetched_at: row.fetched_at,
+          crawlbase_status: row.crawlbase_status,
+          crawlbase_error: '',
+          entry: entryMeta,
+          scrape: json,
+        }) + '\n');
       } catch (err) {
-        await appendFile(outPath, rowToCsv(rowFromError(url, 'parse_error', err && err.message ? err.message : String(err))) + '\n');
+        const msg = err && err.message ? err.message : String(err);
+        await appendFile(outPath, rowToCsv(rowFromError(url, 'parse_error', msg)) + '\n');
+        await appendFile(jsonlPath, JSON.stringify({
+          profile_url: url,
+          rid,
+          fetched_at: new Date().toISOString(),
+          crawlbase_status: 'parse_error',
+          crawlbase_error: msg,
+          entry: entryMeta,
+          scrape: null,
+          raw_body_b64: body || null,
+        }) + '\n');
         errCount += 1;
       }
     }
-    // RIDs in this batch that did NOT come back at all from /storage/bulk.
     for (const rid of batch) {
       if (seenRids.has(rid)) continue;
       const url = ridToUrl.get(rid) || rid;
       await appendFile(outPath, rowToCsv(rowFromError(url, 'rid_not_in_bulk_response', 'storage may have expired or been deleted')) + '\n');
+      await appendFile(jsonlPath, JSON.stringify({
+        profile_url: url,
+        rid,
+        fetched_at: new Date().toISOString(),
+        crawlbase_status: 'rid_not_in_bulk_response',
+        crawlbase_error: 'storage may have expired or been deleted',
+        scrape: null,
+      }) + '\n');
       errCount += 1;
     }
   }
 
   console.log('');
-  console.log(`done. ${okCount} ok, ${errCount} errors. → ${outPath}`);
+  console.log(`done. ${okCount} populated, ${skeletonCount} empty skeletons, ${errCount} errors.`);
+  console.log(`  csv:   ${outPath}`);
+  console.log(`  jsonl: ${jsonlPath}`);
 }
 
 main().catch((err) => {
