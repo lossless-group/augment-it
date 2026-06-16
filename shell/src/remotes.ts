@@ -127,11 +127,26 @@ export const SORT_FILTER_LENS_REMOTE: RemoteEntry = {
   importMount: () => import('sortFilterLens/mount'),
 };
 
+// PERSON_ENRICHMENT_REMOTE — the first PULSE-SURFACE in the tree.
+// One pulse against one entity, expressed as N pulse-dimension
+// components (NameFields, SocialsFields, EmailListField, OrgPicker).
+// v0 hardcoded to the Turning-Jobs-Into-Degrees event; not in rotation
+// yet, reachable directly via dynamic import. See
+// [[context-v/specs/Sparse-Person-Enrichment-Surface.md]] for the
+// spec and the broader pulse-pattern framing.
+export const PERSON_ENRICHMENT_REMOTE: RemoteEntry = {
+  id: 'personEnrichment',
+  label: 'Person Enrichment',
+  description: 'Per-event pulse-surface: turn sparse persons into named persons with socials, emails, and orgs',
+  // @ts-expect-error — federation remote, type comes from the MF runtime
+  importMount: () => import('personEnrichment/mount'),
+};
+
 // "Extra" remotes — federation-registered + reachable via PAIRING /
 // augment-it:navigate, but excluded from the peek-flow rotation in REMOTES.
 // Same shape as CHAT_REMOTE; aggregated here so remoteById() can fall back
 // to look them up without each caller having to know about each extra.
-const EXTRA_REMOTES: RemoteEntry[] = [CHAT_REMOTE, PACK_RUNNER_REMOTE, SORT_FILTER_LENS_REMOTE];
+const EXTRA_REMOTES: RemoteEntry[] = [CHAT_REMOTE, PACK_RUNNER_REMOTE, SORT_FILTER_LENS_REMOTE, PERSON_ENRICHMENT_REMOTE];
 
 // Co-existence pairings — which two remotes share the viewport in Mode B,
 // and the default left-panel width %. Different pairs want different

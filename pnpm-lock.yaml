@@ -127,6 +127,40 @@ importers:
         specifier: ^5.8.3
         version: 5.9.3
 
+  apps/person-enrichment:
+    dependencies:
+      '@augment-it/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
+      '@augment-it/workspace':
+        specifier: workspace:*
+        version: link:../../packages/workspace
+      surrealdb:
+        specifier: ^2.0.3
+        version: 2.0.3(tslib@2.8.1)(typescript@5.9.3)
+      svelte:
+        specifier: ^5.0.0
+        version: 5.55.9
+    devDependencies:
+      '@module-federation/enhanced':
+        specifier: ^0.18.0
+        version: 0.18.4(@rspack/core@1.7.11(@swc/helpers@0.5.21))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(webpack@5.107.1)
+      '@module-federation/rsbuild-plugin':
+        specifier: ^0.18.0
+        version: 0.18.4(@rsbuild/core@1.7.5)(@rspack/core@1.7.11(@swc/helpers@0.5.21))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(webpack@5.107.1)
+      '@rsbuild/core':
+        specifier: ^1.4.3
+        version: 1.7.5
+      '@rsbuild/plugin-svelte':
+        specifier: ^1.0.7
+        version: 1.1.1(@rsbuild/core@1.7.5)(svelte@5.55.9)(typescript@5.9.3)
+      svelte-check:
+        specifier: ^4.0.0
+        version: 4.4.8(svelte@5.55.9)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
   apps/prompt-template-manager:
     dependencies:
       '@augment-it/theme':

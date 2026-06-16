@@ -22,6 +22,7 @@ export default defineConfig({
         packRunner: 'packRunner@http://localhost:3009/remoteEntry.js',
         recordsSurface: 'recordsSurface@http://localhost:3011/remoteEntry.js',
         sortFilterLens: 'sortFilterLens@http://localhost:3013/remoteEntry.js',
+        personEnrichment: 'personEnrichment@http://localhost:3015/remoteEntry.js',
       },
       // No `shared` block — sharing Svelte 5's reactive runtime and a
       // .svelte.ts singleton across federation has known issues with the
