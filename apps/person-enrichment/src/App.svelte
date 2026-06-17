@@ -14,12 +14,13 @@
 
   import { onMount, onDestroy } from 'svelte';
   import { getDb, disconnect, CLIENT } from './lib/surreal';
-  import type { Person, EventRow, Link } from './lib/types';
+  import type { Person, EventRow, Link, OrgDomain, OrgSuggestion } from './lib/types';
 
-  import NameFields      from './pulse-dimensions/NameFields.svelte';
-  import EmailListField  from './pulse-dimensions/EmailListField.svelte';
-  import OrgCreate       from './pulse-dimensions/OrgCreate.svelte';
-  import LinkList        from './pulse-dimensions/LinkList.svelte';
+  import NameFields       from './pulse-dimensions/NameFields.svelte';
+  import EmailListField   from './pulse-dimensions/EmailListField.svelte';
+  import LinkList         from './pulse-dimensions/LinkList.svelte';
+  import AffiliationCard  from './pulse-dimensions/AffiliationCard.svelte';
+  import type { AffiliationState } from './lib/types';
 
   const EVENT_SLUG = '2026-05-21-turning-jobs-into-degrees';
   const RSVP_PREDICATES = ['invited_to', 'visited_event_page', 'email_bounced'] as const;
@@ -41,10 +42,7 @@
   let additional_emails    = $state<string[]>([]);
   let personal_links       = $state<Link[]>([]);   // identity URLs
   let personal_corpus      = $state<Link[]>([]);   // content URLs (LLM-ingest target)
-  let org_complete_name    = $state('');
-  let org_conventional     = $state('');
-  let org_links            = $state<Link[]>([]);   // org's identity URLs
-  let org_corpus           = $state<Link[]>([]);   // content the org publishes
+  let affiliations         = $state<AffiliationState[]>([]);  // org affiliations — primary + board + advisor + past + …
 
   const current = $derived(
     worklistIdx >= 0 && worklistIdx < worklist.length
@@ -100,9 +98,10 @@
     }
   }
 
-  let activeOrgId        = $state<string | null>(null);
-  let autoDetectedFrom   = $state<'email_domain' | 'previous_affiliation' | null>(null);
-  let affiliationCreated = $state<boolean>(false);  // once-per-session — guards against duplicate edges
+  // (activeOrgId / autoDetectedFrom / affiliationCreated now live INSIDE
+  // each AffiliationState — see lib/types.ts. The per-card AffiliationCard
+  // owns one of these. The savers below take an `i` parameter to indicate
+  // which affiliation index they're committing to.)
 
   // Personal-email providers — skipped by auto-detect because their domain
   // doesn't identify an org. Same list we'll seed into a SurrealDB table
@@ -123,42 +122,80 @@
     additional_emails    = (c?.emails ?? []).filter((e) => e && e !== c?.email);
     personal_links       = (c as any)?.personal_links  ?? [];
     personal_corpus      = (c as any)?.personal_corpus ?? [];
-    org_complete_name    = '';
-    org_conventional     = '';
-    org_links            = [];
-    org_corpus           = [];
-    activeOrgId          = null;
-    autoDetectedFrom     = null;
-    affiliationCreated   = false;
-    // Auto-detect runs in the background and pre-fills the org section
-    // when we recognize the person (existing affiliation) or their email
-    // domain (matches a known org's links/corpus).
-    void autoDetectOrg();
+    affiliations         = [];
+    // Auto-detect loads ALL existing affiliations + (when none) suggests
+    // one based on email-domain.
+    void autoDetectAffiliations();
   }
 
-  async function autoDetectOrg() {
+  function newAffiliationState(initial: Partial<AffiliationState> = {}): AffiliationState {
+    return {
+      uiId:               crypto.randomUUID(),
+      expanded:           true,
+      role:               '',
+      activeOrgId:        null,
+      completeName:       '',
+      conventionalName:   '',
+      orgLinks:           [],
+      orgCorpus:          [],
+      orgDomains:         [],
+      affiliationCreated: false,
+      autoDetectedFrom:   null,
+      ...initial,
+    };
+  }
+  function addAffiliation() {
+    affiliations = [...affiliations, newAffiliationState()];
+  }
+  function removeAffiliation(i: number) {
+    // Only removes from this person's UI session — does NOT delete the
+    // org row or any already-saved affiliations edge. To remove the
+    // edge you'd query SurrealDB directly.
+    affiliations = affiliations.filter((_, idx) => idx !== i);
+  }
+
+  async function autoDetectAffiliations() {
     if (!current) return;
     const db = await getDb();
 
-    // 1. Already affiliated from a previous session? Use that org.
+    // 1. Existing affiliations (graph traversal) — load ALL, each as a
+    //    collapsed pill the operator can click to expand for edit.
     try {
+      // LEAN fetch — just enough to render the collapsed pill. The
+      // heavier per-org fields (org_links / org_corpus / domains)
+      // hydrate lazily via hydrateOrgDetail() when the operator
+      // expands a pill. Keeps page-load fast even when a person has
+      // many affiliations.
       const r = await db.query(
-        `SELECT ->affiliations->organizations.* AS orgs FROM $id`,
+        `SELECT
+            kind                       AS role,
+            added_at,
+            out.id                     AS org_id,
+            out.complete_name          AS complete_name,
+            out.conventional_name      AS conventional_name
+           FROM affiliations
+           WHERE in = $id
+           ORDER BY added_at ASC`,
         { id: current.id },
       );
-      const orgs = ((r?.[0] as any)?.[0]?.orgs ?? []) as any[];
-      if (orgs.length > 0) {
-        const o = orgs[0];
-        org_complete_name  = o.complete_name     ?? '';
-        org_conventional   = o.conventional_name ?? '';
-        activeOrgId        = String(o.id);
-        affiliationCreated = true;  // already exists
-        autoDetectedFrom   = 'previous_affiliation';
+      const edges = ((r?.[0] as any) ?? []) as any[];
+      if (edges.length > 0) {
+        affiliations = edges.map((e) => newAffiliationState({
+          expanded:           false,            // collapsed pill on load
+          role:               String(e.role ?? ''),
+          completeName:       String(e.complete_name ?? ''),
+          conventionalName:   String(e.conventional_name ?? ''),
+          activeOrgId:        e.org_id,
+          affiliationCreated: true,             // edge already exists in canonical
+          autoDetectedFrom:   'previous_affiliation',
+        }));
         return;
       }
     } catch { /* fall through to email-domain heuristic */ }
 
-    // 2. Email-domain match against existing orgs' links/corpus.
+    // 2. No existing affiliations — email-domain match against orgs.
+    //    If we find one, surface it as ONE auto-detected pill (operator
+    //    can confirm by expanding + Entering on the role / name fields).
     const domain = current.email?.split('@')[1]?.toLowerCase().replace(/^www\./, '');
     if (!domain || PERSONAL_EMAIL_DOMAINS.has(domain)) return;
     try {
@@ -166,7 +203,8 @@
         `SELECT * FROM organizations
            WHERE client_access CONTAINS $client
              AND (
-               $domain IN org_links.*.url_domain
+               $domain IN domains.*.domain
+               OR $domain IN org_links.*.url_domain
                OR $domain IN org_corpus.*.url_domain
              )
            LIMIT 1`,
@@ -174,12 +212,95 @@
       );
       const o = (r?.[0] as any)?.[0];
       if (o) {
-        org_complete_name  = o.complete_name     ?? '';
-        org_conventional   = o.conventional_name ?? '';
-        activeOrgId        = String(o.id);
-        autoDetectedFrom   = 'email_domain';
+        // Email-domain match runs once. We can include the heavier
+        // fields here without paying per-affiliation cost — there's
+        // at most one match and the response is one row.
+        affiliations = [newAffiliationState({
+          expanded:           false,            // auto-suggestion shows as a pill
+          role:               'primary',        // safe default for email-domain match
+          completeName:       String(o.complete_name ?? ''),
+          conventionalName:   String(o.conventional_name ?? ''),
+          activeOrgId:        o.id,
+          orgLinks:           (o.org_links ?? []) as Link[],
+          orgCorpus:          (o.org_corpus ?? []) as Link[],
+          orgDomains:         (o.domains   ?? []) as OrgDomain[],
+          affiliationCreated: false,            // edge doesn't exist yet for THIS person
+          autoDetectedFrom:   'email_domain',
+        })];
       }
     } catch { /* no match, leave empty */ }
+  }
+
+  // Lazy per-org hydration — fired by AffiliationCard.expand() when the
+  // operator opens a pill. Pulls org_links / org_corpus / domains for
+  // ONE org and patches them into affiliations[i]. Idempotent: if the
+  // fields are already populated, skips the query.
+  async function hydrateOrgDetail(i: number) {
+    const a = affiliations[i];
+    if (!a || !a.activeOrgId) return;
+    // Skip if any of the three are already non-empty — already hydrated
+    // (either from an explicit pickOrg or a prior expand).
+    if (a.orgLinks.length || a.orgCorpus.length || a.orgDomains.length) return;
+    try {
+      const db = await getDb();
+      const r = await db.query(
+        `SELECT org_links, org_corpus, domains FROM $id LIMIT 1;`,
+        { id: a.activeOrgId },
+      );
+      const row = (r?.[0] as any)?.[0];
+      if (!row) return;
+      affiliations[i] = {
+        ...affiliations[i],
+        orgLinks:   (row.org_links ?? []) as Link[],
+        orgCorpus:  (row.org_corpus ?? []) as Link[],
+        orgDomains: (row.domains   ?? []) as OrgDomain[],
+      };
+    } catch { /* silently — the card still works with empty arrays */ }
+  }
+
+  // ---- Org autocomplete + pick-existing ------------------------------------
+  // Debounced lookup the AffiliationCard calls as the operator types into
+  // complete_name. Matches both name fields case-insensitively and pulls
+  // the full row so a click can fully hydrate the affiliation.
+  async function lookupOrgs(q: string): Promise<OrgSuggestion[]> {
+    const trimmed = q?.trim().toLowerCase();
+    if (!trimmed || trimmed.length < 2) return [];
+    try {
+      const db = await getDb();
+      const r = await db.query(
+        `SELECT id, complete_name, conventional_name, org_links, org_corpus, domains
+           FROM organizations
+           WHERE client_access CONTAINS $client
+             AND (
+               string::lowercase(complete_name)     CONTAINS $q
+               OR string::lowercase(conventional_name) CONTAINS $q
+               OR string::lowercase(slug)              CONTAINS $q
+             )
+           ORDER BY complete_name ASC
+           LIMIT 8`,
+        { client: CLIENT, q: trimmed },
+      );
+      return ((r?.[0] as any) ?? []) as OrgSuggestion[];
+    } catch {
+      return [];
+    }
+  }
+
+  function pickOrg(i: number, o: OrgSuggestion) {
+    if (!affiliations[i]) return;
+    const cur = affiliations[i];
+    affiliations[i] = {
+      ...cur,
+      activeOrgId:        o.id,
+      completeName:       String(o.complete_name ?? cur.completeName),
+      conventionalName:   String(o.conventional_name ?? cur.conventionalName),
+      orgLinks:           (o.org_links ?? []) as Link[],
+      orgCorpus:          (o.org_corpus ?? []) as Link[],
+      orgDomains:         (o.domains   ?? []) as OrgDomain[],
+      affiliationCreated: false,            // edge for THIS person still needs to be created
+      autoDetectedFrom:   null,             // user-explicit choice, not auto
+    };
+    announce([`picked existing org (${o.complete_name ?? '(unnamed)'}) — name save will RELATE only`]);
   }
 
   // ---- Per-field savers — Enter on a row commits to canonical immediately.
@@ -333,148 +454,14 @@
     });
   }
 
-  async function ensureOrgExists(): Promise<string | null> {
-    if (activeOrgId) {
-      // Refresh names if operator edited them
-      const db = await getDb();
-      if (org_complete_name.trim()) {
-        await db.query(
-          `UPDATE $id SET
-              complete_name     = $complete_name,
-              conventional_name = $conventional_name,
-              client_access     = array::union(client_access ?? [], [$client]),
-              last_touched_by   = $client,
-              last_touched_at   = time::now();`,
-          { id: activeOrgId, complete_name: org_complete_name.trim(), conventional_name: org_conventional.trim() || org_complete_name.trim(), client: CLIENT },
-        );
-        announce(['organizations (refreshed names)']);
-      }
-      // Auto-detected orgs need an affiliation edge for THIS person on
-      // the first commit — confirms that this person is affiliated with
-      // the pre-filled org. Only fires once per session.
-      if (current && !affiliationCreated) {
-        await db.query(
-          `RELATE $person->affiliations->$org SET
-              kind     = "operator-confirmed",
-              added_at = time::now(),
-              client   = $client;`,
-          { person: current.id, org: activeOrgId, client: CLIENT },
-        );
-        affiliationCreated = true;
-        announce(['affiliations edge (persons→organizations)']);
-      }
-      return activeOrgId;
-    }
-    if (!org_complete_name.trim()) return null;
-    const db = await getDb();
-    const completeName     = org_complete_name.trim();
-    const conventionalName = org_conventional.trim() || completeName;
-    const slug             = slugify(completeName);
-    const existing = await db.query(
-      'SELECT id FROM organizations WHERE slug = $slug LIMIT 1',
-      { slug },
-    );
-    let orgId: string | null = (existing?.[0] as any)?.[0]?.id ?? null;
-    let created = false;
-    if (!orgId) {
-      const createdRes = await db.query(
-        `CREATE organizations SET
-            id = rand::uuid::v7(),
-            slug = $slug,
-            complete_name = $complete_name,
-            conventional_name = $conventional_name,
-            source = "person-enrichment",
-            client_access = [$client],
-            first_touched_by = $client,
-            last_touched_by  = $client,
-            last_touched_at  = time::now(),
-            first_seen_at = time::now(),
-            last_seen_at  = time::now()
-         RETURN id;`,
-        { slug, complete_name: completeName, conventional_name: conventionalName, client: CLIENT },
-      );
-      orgId = (createdRes?.[0] as any)?.[0]?.id ?? null;
-      created = true;
-    } else {
-      await db.query(
-        `UPDATE $id SET
-            complete_name    = $complete_name,
-            conventional_name= $conventional_name,
-            client_access    = array::union(client_access ?? [], [$client]),
-            last_touched_by  = $client,
-            last_touched_at  = time::now();`,
-        { id: orgId, complete_name: completeName, conventional_name: conventionalName, client: CLIENT },
-      );
-    }
-    activeOrgId = orgId;
-    if (current && orgId && !affiliationCreated) {
-      await db.query(
-        `RELATE $person->affiliations->$org SET
-            kind     = "operator-confirmed",
-            added_at = time::now(),
-            client   = $client;`,
-        { person: current.id, org: orgId, client: CLIENT },
-      );
-      affiliationCreated = true;
-      announce([
-        created ? 'organizations (new row)' : 'organizations (existing)',
-        'affiliations edge (persons→organizations)',
-      ]);
-    } else {
-      announce([created ? 'organizations (new row)' : 'organizations (existing — refreshed names)']);
-    }
-    return orgId;
-  }
-
-  async function appendOrgLink(link: Link) {
-    if (!link.url.trim()) return;
-    const orgId = await ensureOrgExists();
-    if (!orgId) return;
-    const db = await getDb();
-    const shaped = shapeLink(link);
-    await db.query(
-      `UPDATE $id SET
-          org_links       = array::concat(org_links ?? [], [$link]),
-          client_access   = array::union(client_access ?? [], [$client]),
-          last_touched_by = $client,
-          last_touched_at = time::now();`,
-      { id: orgId, link: shaped, client: CLIENT },
-    );
-    announce(['organizations.org_links']);
-  }
-
-  async function appendOrgCorpus(link: Link) {
-    if (!link.url.trim()) return;
-    const orgId = await ensureOrgExists();
-    if (!orgId) return;
-    const db = await getDb();
-    const shaped = shapeLink(link);
-    const content_id = await findOrCreateContent(db, shaped.url, shaped.kind, shaped.url_domain);
-    const entry = { ...shaped, content_id };
-    await db.query(
-      `UPDATE $id SET
-          org_corpus      = array::concat(org_corpus ?? [], [$entry]),
-          client_access   = array::union(client_access ?? [], [$client]),
-          last_touched_by = $client,
-          last_touched_at = time::now();`,
-      { id: orgId, entry, client: CLIENT },
-    );
-    const entryId = crypto.randomUUID();
-    saveLog = [...saveLog, {
-      id: entryId, at: new Date(), icon: '…',
-      targets: [`content_items (${String(content_id).slice(0, 30)}…)`, 'organizations.org_corpus'],
-      verify: { content_id: String(content_id), url: shaped.url, verified: null },
-    }];
-    verifyCorpus(String(content_id), shaped.url, entryId).then(() => {
-      saveLog = saveLog.map((e) => e.id === entryId ? { ...e, icon: e.verify?.verified ? '✓' : '✗' } : e);
-    });
-  }
 
   // ---- Save (one transaction, all dimensions) --------------------------------
 
   function slugify(s: string): string {
     return s
+      .trim()
       .toLowerCase()
+      .replace(/^the\s+/, '')                  // strip leading article — "The Institute" and "Institute" dedupe to the same slug
       .replace(/&/g, ' and ')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
@@ -527,6 +514,162 @@
       { url, url_domain, kind },
     );
     return (created?.[0] as any)?.[0]?.id ?? null;
+  }
+
+  // ---- Per-affiliation savers ------------------------------------------------
+  // Each takes an `i` parameter pointing into the affiliations[] array.
+
+  async function ensureOrgExists(i: number): Promise<any> {
+    const a = affiliations[i];
+    if (!a) return null;
+    const db = await getDb();
+
+    if (a.activeOrgId) {
+      if (a.completeName.trim()) {
+        await db.query(
+          `UPDATE $id SET
+              complete_name     = $complete_name,
+              conventional_name = $conventional_name,
+              client_access     = array::union(client_access ?? [], [$client]),
+              last_touched_by   = $client,
+              last_touched_at   = time::now();`,
+          { id: a.activeOrgId, complete_name: a.completeName.trim(), conventional_name: a.conventionalName.trim() || a.completeName.trim(), client: CLIENT },
+        );
+        announce(['organizations (refreshed names)']);
+      }
+      if (current && !a.affiliationCreated) {
+        await db.query(
+          `RELATE $person->affiliations->$org SET
+              kind     = $role,
+              added_at = time::now(),
+              client   = $client;`,
+          { person: current.id, org: a.activeOrgId, role: a.role.trim() || 'other', client: CLIENT },
+        );
+        affiliations[i].affiliationCreated = true;
+        announce([`affiliations edge (${a.role.trim() || 'other'})`]);
+      }
+      return a.activeOrgId;
+    }
+
+    if (!a.completeName.trim()) return null;
+    const completeName     = a.completeName.trim();
+    const conventionalName = a.conventionalName.trim() || completeName;
+    const slug             = slugify(completeName);
+    const existing = await db.query(
+      'SELECT id FROM organizations WHERE slug = $slug LIMIT 1',
+      { slug },
+    );
+    let orgId: any = (existing?.[0] as any)?.[0]?.id ?? null;
+    let created = false;
+    if (!orgId) {
+      const createdRes = await db.query(
+        `CREATE organizations SET
+            id = rand::uuid::v7(),
+            slug = $slug,
+            complete_name = $complete_name,
+            conventional_name = $conventional_name,
+            source = "person-enrichment",
+            client_access = [$client],
+            first_touched_by = $client,
+            last_touched_by  = $client,
+            last_touched_at  = time::now(),
+            first_seen_at = time::now(),
+            last_seen_at  = time::now()
+         RETURN id;`,
+        { slug, complete_name: completeName, conventional_name: conventionalName, client: CLIENT },
+      );
+      orgId = (createdRes?.[0] as any)?.[0]?.id ?? null;
+      created = true;
+    } else {
+      await db.query(
+        `UPDATE $id SET
+            complete_name    = $complete_name,
+            conventional_name= $conventional_name,
+            client_access    = array::union(client_access ?? [], [$client]),
+            last_touched_by  = $client,
+            last_touched_at  = time::now();`,
+        { id: orgId, complete_name: completeName, conventional_name: conventionalName, client: CLIENT },
+      );
+    }
+    affiliations[i].activeOrgId = orgId;
+    if (current && orgId && !affiliations[i].affiliationCreated) {
+      await db.query(
+        `RELATE $person->affiliations->$org SET
+            kind     = $role,
+            added_at = time::now(),
+            client   = $client;`,
+        { person: current.id, org: orgId, role: a.role.trim() || 'other', client: CLIENT },
+      );
+      affiliations[i].affiliationCreated = true;
+      announce([
+        created ? 'organizations (new row)' : 'organizations (existing)',
+        `affiliations edge (${a.role.trim() || 'other'})`,
+      ]);
+    } else {
+      announce([created ? 'organizations (new row)' : 'organizations (existing — refreshed names)']);
+    }
+    return orgId;
+  }
+
+  async function appendOrgLink(i: number, link: Link) {
+    if (!link.url.trim()) return;
+    const orgId = await ensureOrgExists(i);
+    if (!orgId) return;
+    const db = await getDb();
+    const shaped = shapeLink(link);
+    await db.query(
+      `UPDATE $id SET
+          org_links       = array::concat(org_links ?? [], [$link]),
+          client_access   = array::union(client_access ?? [], [$client]),
+          last_touched_by = $client,
+          last_touched_at = time::now();`,
+      { id: orgId, link: shaped, client: CLIENT },
+    );
+    announce(['organizations.org_links']);
+  }
+
+  async function appendOrgDomain(i: number, d: OrgDomain) {
+    if (!d.domain.trim()) return;
+    const orgId = await ensureOrgExists(i);
+    if (!orgId) return;
+    const db = await getDb();
+    const entry = { domain: d.domain.trim().toLowerCase(), kind: d.kind.trim() || 'primary', added_at: new Date() };
+    await db.query(
+      `UPDATE $id SET
+          domains         = array::concat(domains ?? [], [$entry]),
+          client_access   = array::union(client_access ?? [], [$client]),
+          last_touched_by = $client,
+          last_touched_at = time::now();`,
+      { id: orgId, entry, client: CLIENT },
+    );
+    announce([`organizations.domains (${entry.domain} · ${entry.kind})`]);
+  }
+
+  async function appendOrgCorpus(i: number, link: Link) {
+    if (!link.url.trim()) return;
+    const orgId = await ensureOrgExists(i);
+    if (!orgId) return;
+    const db = await getDb();
+    const shaped = shapeLink(link);
+    const content_id = await findOrCreateContent(db, shaped.url, shaped.kind, shaped.url_domain);
+    const entry = { ...shaped, content_id };
+    await db.query(
+      `UPDATE $id SET
+          org_corpus      = array::concat(org_corpus ?? [], [$entry]),
+          client_access   = array::union(client_access ?? [], [$client]),
+          last_touched_by = $client,
+          last_touched_at = time::now();`,
+      { id: orgId, entry, client: CLIENT },
+    );
+    const entryId = crypto.randomUUID();
+    saveLog = [...saveLog, {
+      id: entryId, at: new Date(), icon: '…',
+      targets: [`content_items (${String(content_id).slice(0, 30)}…)`, 'organizations.org_corpus'],
+      verify: { content_id: String(content_id), url: shaped.url, verified: null },
+    }];
+    verifyCorpus(String(content_id), shaped.url, entryId).then(() => {
+      saveLog = saveLog.map((e) => e.id === entryId ? { ...e, icon: e.verify?.verified ? '✓' : '✗' } : e);
+    });
   }
 
 
@@ -623,30 +766,27 @@
         <LinkList        label="Personal links" bind:links={personal_links} onAppend={appendPersonalLink} />
         <LinkList        label="Personal corpus (content for LLM/RAG)" bind:links={personal_corpus} onAppend={appendPersonalCorpus} />
 
-        {#if autoDetectedFrom}
-          <div class="pe-auto-detect">
-            ✓ Org pre-filled
-            {#if autoDetectedFrom === 'previous_affiliation'}
-              <span>— this person is already affiliated with</span>
-              <strong>{org_complete_name}</strong>
-              <span>(loaded from canonical)</span>
-            {:else}
-              <span>— matched email domain</span>
-              <code>{current.email?.split('@')[1]}</code>
-              <span>→</span>
-              <strong>{org_complete_name}</strong>
-              <span>· Enter on name to confirm the affiliation, or edit to change</span>
-            {/if}
-          </div>
-        {/if}
-
-        <OrgCreate       bind:complete_name={org_complete_name}
-                         bind:conventional_name={org_conventional}
-                         bind:org_links
-                         bind:org_corpus
-                         onSaveOrgName={async () => { await ensureOrgExists(); }}
-                         onAppendOrgLink={appendOrgLink}
-                         onAppendOrgCorpus={appendOrgCorpus} />
+        <section class="pe-affiliations-section">
+          <h3 class="pd-title">Affiliations <span class="pd-hint">— primary, board, advisor, past, any role</span></h3>
+          {#if affiliations.length > 0}
+            <div class="pe-affiliations-list">
+              {#each affiliations as _aff, i (affiliations[i].uiId)}
+                <AffiliationCard
+                  bind:affiliation={affiliations[i]}
+                  onSaveOrgName={async () => { await ensureOrgExists(i); }}
+                  onAppendOrgLink={(link) => appendOrgLink(i, link)}
+                  onAppendOrgCorpus={(link) => appendOrgCorpus(i, link)}
+                  onAppendOrgDomain={(d) => appendOrgDomain(i, d)}
+                  onLookupOrgs={lookupOrgs}
+                  onPickOrg={(o) => pickOrg(i, o)}
+                  onExpand={() => hydrateOrgDetail(i)}
+                  onRemove={() => removeAffiliation(i)}
+                />
+              {/each}
+            </div>
+          {/if}
+          <button type="button" class="pd-ghost-btn" onclick={addAffiliation}>+ add affiliation</button>
+        </section>
 
         <div class="pe-actions">
           <button class="pe-btn pe-btn-ghost" type="button" onclick={back} disabled={worklistIdx === 0}>← back</button>

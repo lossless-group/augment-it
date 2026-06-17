@@ -84,3 +84,46 @@ export type Link = {
   url: string;
   kind: LinkKind;
 };
+
+// One email domain associated with an org. An org can have many — e.g.
+// IHS has its own `theihs.org` AND `ihs.gmu.edu` because it's housed in
+// George Mason University. `kind` is free-text so the operator can use
+// whatever fits ("primary", "secondary", "alias", "parent_domain", "subunit",
+// "legacy", etc.) — no dropdown, same flexibility as link kind.
+export type OrgDomain = {
+  domain: string;     // bare hostname — "theihs.org", "ihs.gmu.edu"
+  kind:   string;     // free-text
+  added_at?: Date;
+};
+
+// What an autocomplete row carries — enough to fully hydrate an
+// AffiliationState when the operator clicks it.
+export type OrgSuggestion = {
+  id:                 any;           // SDK RecordId
+  complete_name:      string | null;
+  conventional_name:  string | null;
+  org_links?:         Link[]      | null;
+  org_corpus?:        Link[]      | null;
+  domains?:           OrgDomain[] | null;
+};
+
+// One affiliation card on the person-enrichment surface. A person can
+// have many — primary employer + board seats + advisor roles + past
+// employers — each one is one row in this array and produces one
+// `affiliations` graph edge against the person on save. Role is
+// free-text; the operator types whatever fits ("board", "primary",
+// "past CFO", "investor"). The `kind` field on the affiliations edge
+// gets this string.
+export type AffiliationState = {
+  uiId:               string;     // local crypto.randomUUID() for #each key + ephemeral identity
+  expanded:           boolean;    // collapsed pill (shows role · conventional_name) vs expanded edit card
+  role:               string;     // free-text — written to affiliations.kind on the edge
+  activeOrgId:        any;        // SDK RecordId once the org exists; null when adding new
+  completeName:       string;
+  conventionalName:   string;
+  orgLinks:           Link[];
+  orgCorpus:          Link[];
+  orgDomains:         OrgDomain[];   // email-domains the org owns / accepts mail at — many per org allowed
+  affiliationCreated: boolean;    // true if the edge already exists (loaded) OR has been written this session
+  autoDetectedFrom:   'email_domain' | 'previous_affiliation' | null;
+};

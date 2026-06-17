@@ -16,6 +16,11 @@ export const SURREAL_DB = DB;
 
 let db: Surreal | null = null;
 
+async function signinAndUse(instance: Surreal): Promise<void> {
+  await instance.signin({ username: USER, password: PASS });
+  await instance.use({ namespace: NS, database: DB });
+}
+
 export async function getDb(): Promise<Surreal> {
   if (db) return db;
   if (!URL || !USER || !PASS || !NS || !DB) {
@@ -29,8 +34,31 @@ export async function getDb(): Promise<Surreal> {
   }
   const instance = new Surreal();
   await instance.connect(URL);
-  await instance.signin({ username: USER, password: PASS });
-  await instance.use({ namespace: NS, database: DB });
+  await signinAndUse(instance);
+
+  // Defensive auth retry: the WebSocket can drop on idle timeout / network
+  // blip and the SDK auto-reconnects WITHOUT re-signing in — the next
+  // query then comes back with "Anonymous access not allowed". Wrap
+  // .query so it catches that one specific failure mode and retries
+  // ONCE after a fresh signin/use. Real auth errors (wrong creds) still
+  // bubble up after the retry.
+  const originalQuery = instance.query.bind(instance);
+  (instance as any).query = async (sql: string, vars?: Record<string, unknown>) => {
+    try {
+      return await originalQuery(sql, vars);
+    } catch (e: any) {
+      const msg = String(e?.message ?? '');
+      if (e?.name === 'NotAllowedError' || /Anonymous access not allowed/i.test(msg)) {
+        try {
+          await signinAndUse(instance);
+          return await originalQuery(sql, vars);
+        } catch (e2) {
+          throw e2;
+        }
+      }
+      throw e;
+    }
+  };
   db = instance;
   return db;
 }
