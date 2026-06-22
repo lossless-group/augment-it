@@ -2,12 +2,12 @@
 title: "Workspaces as Tenant Primitive — toggling, tenant-aware microservices, per-tenant env-var pickup, and the seam that lets MCPs and connectors vary per client"
 lede: "Augment-It (and, by inheritance, its sibling pillar apps memopop-ai and dididecks-ai) needs a tenant primitive named workspace — the boundary that says 'humain-vc' vs 'reach-edu' vs whoever comes next. The terminal state is rich: per-workspace branded theme, team membership, roles + permissions, registration flow, auth, per-tenant choice of LLM provider / CRM / MCP server / search connector / storage destination. We are filesystem-backed and local right now, so this spec lays out the vision once and then scopes baby step 1 down to its bones: a workspace toggle, a workspace-aware envelope on every microservice request, I/O routing to `clients/<slug>/`, and a per-workspace `.env` pickup that resolves through a connector-config seam designed to absorb Decile-shaped (and future MCP-shaped, future LLM-shaped) per-tenant integrations without re-design. Inspired by [[Cloud-Variant-of-Dididecks-AI-Workspace]] but diverges on storage (filesystem-now vs cloud) and on cross-cutting reach (this is the contract sibling pillar apps inherit, not a dididecks-only artifact)."
 date_created: 2026-06-11
-date_modified: 2026-06-11
+date_modified: 2026-06-21
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7 (1M context)
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 tags:
   - Spec
   - Augment-It
@@ -261,10 +261,14 @@ when running together, via NATS request/reply when separated).
 `clients/humain-vc/.env` contains:
 
 ```sh
-DECILE_API_BASE_URL=https://api.decile.example/v1
-DECILE_API_KEY=...
-DECILE_TENANT_ID=...
+DECILE_API_URL=https://humain.decilehub.com
+DECILE_HUB_API_KEY=...
 ```
+
+(These are the real Decile Hub var names, confirmed against the API spec — the
+tenant is encoded in the subdomain, so there is no separate `DECILE_TENANT_ID`,
+and the token is sent raw in the `Authorization` header. See the
+[[decile-hub-connector]] skill.)
 
 The connector resolver maps the `DECILE_*` prefix to a `crm` connector of
 kind `decile`. A future `crm.list_deals` capability dispatches against
