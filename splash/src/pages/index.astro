@@ -37,35 +37,34 @@ const base = import.meta.env.BASE_URL;
 >
   <Header />
 
-  <!-- ───────────────────── HERO MANIFEST ─────────────────────
-       The hero is not a centered headline + diagram pair — it's a
-       module-federation manifest. Six microfrontends rendered as a 2×3
-       grid, intro copy lives in the manifest header instead of competing
-       with the cards for primacy. -->
+  <!-- ───────────────────── HERO ─────────────────────
+       Plain-language marketing hero for a non-technical audience: lead
+       with the benefit (AI does the research busywork), then the cards
+       show what that looks like. -->
   <section class="manifest">
     <div class="container">
       <header class="manifest__head">
-        <p class="folio" data-num="MFE">augment-it · v0</p>
+        <p class="folio" data-num="AI">Augment It</p>
         <h1 class="manifest__title">
-          A <span class="gradient-text">module-federated</span>
-          workshop for augmenting data with AI.
+          Let AI do your <span class="gradient-text">research busywork</span>.
         </h1>
         <p class="manifest__tagline">
-          One shell. Six microfrontends. A small set of disciplined surfaces
-          for the work of <em>collect → prompt → request → review → highlight → insight</em>.
+          Start with a plain list of names, emails, or organizations. Augment It
+          uses AI to fill in the rest — who they are, where they work, what they
+          care about — and keeps it all organized and private to you.
         </p>
         <div class="manifest__meta mono">
           <span class="manifest__meta-item">
-            <span class="manifest__meta-label">shell</span>
-            <span class="ver-chip">rsbuild + mf</span>
+            <span class="manifest__meta-label">for</span>
+            <span class="ver-chip">non-technical teams</span>
           </span>
           <span class="manifest__meta-item">
-            <span class="manifest__meta-label">ui</span>
-            <span class="ver-chip">react · next</span>
+            <span class="manifest__meta-label">great at</span>
+            <span class="ver-chip">people &amp; organizations</span>
           </span>
           <span class="manifest__meta-item">
-            <span class="manifest__meta-label">runtime</span>
-            <span class="ver-chip">turbo · docker</span>
+            <span class="manifest__meta-label">keeps</span>
+            <span class="ver-chip">your data private</span>
           </span>
         </div>
       </header>
@@ -75,42 +74,38 @@ const base = import.meta.env.BASE_URL;
       </div>
 
       <div class="manifest__cta">
-        <a class="btn btn-primary" href="https://github.com/lossless-group/augment-it" target="_blank" rel="noopener">
-          View on GitHub
+        <a class="btn btn-primary" href={`${base}changelog/`}>
+          See what's new
         </a>
-        <a class="btn" href={`${base}context-v/`}>
-          Read the context
+        <a class="btn" href="https://github.com/lossless-group/augment-it" target="_blank" rel="noopener">
+          View on GitHub
         </a>
       </div>
     </div>
   </section>
 
-  <!-- ───────────────────── PIPELINE STRIP ─────────────────────
-       Tiny annotated pipeline rail — the six apps in flow order, mono
-       arrows between. A quiet reinforcement of the workshop story. -->
+  <!-- ───────────────────── HOW IT WORKS STRIP ─────────────────────
+       Four plain steps, the benefit journey from a raw list to finished
+       profiles. No app slugs, no jargon. -->
   <section class="pipeline">
     <div class="container">
       <header class="section-header">
-        <p class="folio" data-num="§ 1">Flow</p>
-        <h2>How a record moves through the workshop</h2>
+        <p class="folio" data-num="§ 1">How it works</p>
+        <h2>From a plain list to rich profiles</h2>
         <p class="section-lede">
-          Each microfrontend owns one surface. Federation keeps them composable;
-          a record's provenance carries through from ingest to insight.
+          You stay in control the whole way through — AI does the digging, you
+          decide what's worth keeping.
         </p>
       </header>
 
-      <ol class="pipeline__rail mono" aria-label="Augmentation flow">
-        <li class="pipeline__step"><span class="pipeline__num">01</span> record-collector</li>
+      <ol class="pipeline__rail mono" aria-label="How it works">
+        <li class="pipeline__step"><span class="pipeline__num">01</span> Bring your list</li>
         <li class="pipeline__arrow" aria-hidden="true">→</li>
-        <li class="pipeline__step"><span class="pipeline__num">02</span> prompt-template-manager</li>
+        <li class="pipeline__step"><span class="pipeline__num">02</span> AI does the research</li>
         <li class="pipeline__arrow" aria-hidden="true">→</li>
-        <li class="pipeline__step"><span class="pipeline__num">03</span> request-reviewer</li>
+        <li class="pipeline__step"><span class="pipeline__num">03</span> You review &amp; confirm</li>
         <li class="pipeline__arrow" aria-hidden="true">→</li>
-        <li class="pipeline__step"><span class="pipeline__num">04</span> response-reviewer</li>
-        <li class="pipeline__arrow" aria-hidden="true">→</li>
-        <li class="pipeline__step"><span class="pipeline__num">05</span> highlight-collector</li>
-        <li class="pipeline__arrow" aria-hidden="true">→</li>
-        <li class="pipeline__step"><span class="pipeline__num">06</span> insight-manager</li>
+        <li class="pipeline__step"><span class="pipeline__num">04</span> Get rich, organized profiles</li>
       </ol>
     </div>
   </section>

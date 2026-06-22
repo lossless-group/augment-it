@@ -11,19 +11,19 @@ export const STATIC_SEO = {
   root: {
     title: 'Augment It',
     description:
-      'A microfrontend workshop for augmenting data with AI. Module-federated apps for prompts, requests, responses, highlights, and insights — composed by a single shell.',
+      'Augment It uses AI to turn thin lists — names, emails, organizations — into rich, researched profiles. Point it at your data and it fills in the details, keeps everything organized, and stays private to you. No technical skills required.',
   },
 
   changelog: {
-    title: 'Changelog',
+    title: "What's New",
     description:
-      'What shipped, when, and why — entry-by-entry notes for augment-it.',
+      'The latest features and improvements in Augment It, in plain language.',
   },
 
   contextV: {
-    title: 'Context Vigilance',
+    title: 'Behind the Build',
     description:
-      'Specs, habits, and reflections shaping how augment-it gets built.',
+      'The ideas, plans, and decisions behind how Augment It gets made.',
   },
 } as const;
 
@@ -36,5 +36,5 @@ export const DEFAULT_OG = {
   width: 1200,
   height: 630,
   type: 'image/png',
-  alt: 'Augment It — module-federated AI data augmentation',
+  alt: 'Augment It — AI that turns simple lists into rich, researched profiles',
 } as const;
