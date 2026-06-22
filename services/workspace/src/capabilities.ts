@@ -131,6 +131,13 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // time. Plan: [[Augmentation-State-Preservation-and-Snapshot-
   // Promotion]] §Phase B.
   'pipeline.promote_snapshot': 'pipeline.promote_snapshot.requested',
+  // Record ↔ DB Resolver — operator-driven match/create bridge from row-store
+  // records to canonical SurrealDB organizations. DB-agnostic capability
+  // contract; the record-surrealdb-resolver service is the consumer. Per
+  // context-v/specs/Record-DB-Resolver.md.
+  'resolver.candidates': 'resolver.candidates.requested',
+  'resolver.search': 'resolver.search.requested',
+  'resolver.apply': 'resolver.apply.requested',
 };
 
 const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
@@ -183,6 +190,12 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   // without forcing a chunking strategy. Plan:
   // Augmentation-State-Preservation-and-Snapshot-Promotion §Phase B.
   'pipeline.promote_snapshot': 120_000,
+  // Resolver — one client-org read + scoring (candidates), one small query
+  // (search), or one additive write + a few content_items upserts (apply).
+  // SurrealDB Cloud round-trips; 30s is generous for the org-set scale.
+  'resolver.candidates': 30_000,
+  'resolver.search': 30_000,
+  'resolver.apply': 30_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {

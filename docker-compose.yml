@@ -167,6 +167,22 @@ services:
     volumes:
       - ./clients:/clients
 
+  # Record ↔ DB Resolver — operator-driven match/create bridge from row-store
+  # records to canonical SurrealDB organizations. The FIRST service to talk
+  # SurrealDB server-side; reads SURREAL_* from the repo-root .env (same vars
+  # the scripts + browser apps use). Per context-v/specs/Record-DB-Resolver.md.
+  record-surrealdb-resolver:
+    build: ./services/record-surrealdb-resolver
+    depends_on:
+      - nats
+    environment:
+      NATS_URL: nats://nats:4222
+      SURREAL_URL: ${SURREAL_URL:-}
+      SURREAL_NS: ${SURREAL_NS:-}
+      SURREAL_DB: ${SURREAL_DB:-}
+      SURREAL_USER: ${SURREAL_USER:-}
+      SURREAL_PASS: ${SURREAL_PASS:-}
+
 volumes:
   workspace-data:
   row-store-data:

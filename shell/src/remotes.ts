@@ -33,6 +33,7 @@ export type RemoteEntry = {
  */
 export const ROTATION: string[] = [
   'recordCollector',
+  'recordDbResolver',    // bridge — reconcile records to canonical orgs (match/create) before enrichment passes
   'augment',             // composite — PTM ⇄ Pack Runner via in-slot toggle (renamed from 'enrichment' per Decision §11)
   'recordsSurface',      // step 3 — per-record connector firing for finding OfficialUpdate URLs (replaces requestReviewer in the rotation; the remote stays registered + reachable via navigate, just not in the numbered Flow)
   'responseReviewer',
@@ -81,6 +82,13 @@ export const REMOTES: RemoteEntry[] = [
     description: 'Per-record connector firing for finding OfficialUpdate URLs',
     // @ts-expect-error — federation remote, type comes from the MF runtime
     importMount: () => import('recordsSurface/mount'),
+  },
+  {
+    id: 'recordDbResolver',
+    label: 'DB Resolver',
+    description: 'Match each record to a canonical org (or create one) — additive enrich, one by one',
+    // @ts-expect-error — federation remote, type comes from the MF runtime
+    importMount: () => import('recordDbResolver/mount'),
   },
 ];
 

@@ -1,0 +1,472 @@
+// Candidate matching + additive write for the record ↔ organizations bridge.
+//
+// Matching ports scripts/surreal-reconcile-corpus.mjs (slug + url-domain joins)
+// and adds a fuzzy name pass. Writes port apps/person-enrichment/src/App.svelte
+// (ensureOrgExists / appendOrgLink / appendOrgCorpus / findOrCreateContent /
+// slugify) to the server. Cross-wire org identity is the **slug**, never the
+// SDK RecordId (which doesn't survive JSON serialization over NATS) — apply
+// re-looks-up the live RecordId by slug inside the service.
+//
+// Mapping (locked 2026-06-22, see context-v/specs/Record-DB-Resolver.md):
+//   record.url        → org_links     (kind 'website')
+//   record.socials[]  → org_links     (kind inferred)
+//   record.streams[]  → media_streams (party 'first_party') — NEW tier
+//   record.corpus[]   → org_corpus    (+ content_items ledger row)
+//   CRM/pipeline cols → not written
+
+import type { Surreal } from 'surrealdb';
+
+export type RawLink = string | { url: string; kind?: string };
+
+export type NormRecord = {
+  name: string;
+  slug_hint?: string | null;
+  url?: string | null;
+  domains?: string[];
+  socials?: RawLink[];
+  streams?: RawLink[];
+  corpus?: RawLink[];
+};
+
+type ShapedLink = { url: string; kind: string; url_domain: string; added_at: string };
+type ShapedStream = {
+  url: string;
+  kind: string;
+  party: string;
+  url_domain: string;
+  added_at: string;
+};
+
+type OrgRow = {
+  id: unknown;
+  slug: string;
+  complete_name?: string | null;
+  conventional_name?: string | null;
+  org_links?: { url?: string }[] | null;
+  org_corpus?: { url?: string }[] | null;
+  media_streams?: { url?: string }[] | null;
+  domains?: { domain?: string }[] | null;
+};
+
+export type Candidate = {
+  org_id: string;
+  slug: string;
+  complete_name: string | null;
+  conventional_name: string | null;
+  score: number;
+  match_reason: string[];
+  existing: { org_links: number; media_streams: number; org_corpus: number };
+  append_preview: {
+    org_links: ShapedLink[];
+    media_streams: ShapedStream[];
+    org_corpus: ShapedLink[];
+  };
+};
+
+// ---------------------------------------------------------------------------
+// Pure helpers
+// ---------------------------------------------------------------------------
+
+export function slugify(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/^the\s+/, '')
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
+function urlDomain(url: string): string {
+  try {
+    return new URL(url.trim()).hostname.toLowerCase().replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
+// Mirrors apps/person-enrichment/src/pulse-dimensions/LinkList.svelte inferKind.
+function inferLinkKind(url: string): string {
+  let path = '';
+  let host = '';
+  try {
+    const u = new URL(url);
+    path = u.pathname.toLowerCase();
+    host = u.hostname.toLowerCase().replace(/^www\./, '');
+  } catch {
+    return 'other';
+  }
+  if (host === 'linkedin.com' && /^\/in\/[^/]+/.test(path)) return 'linkedin_profile';
+  if (host === 'linkedin.com' && /^\/company\/[^/]+/.test(path)) return 'linkedin_company';
+  if (host === 'x.com' || host === 'twitter.com') return 'x_profile';
+  if (host === 'github.com' && /^\/[^/]+\/?$/.test(path)) return 'github_profile';
+  if (/\.substack\.com$/.test(host) || host === 'substack.com') return 'substack';
+  if (host === 'threads.net') return 'threads_profile';
+  if (host === 'bsky.app') return 'bluesky_profile';
+  if (/mastodon/.test(host)) return 'mastodon_profile';
+  if (host === 'youtube.com' || host === 'youtu.be') return 'youtube';
+  if (host === 'facebook.com' || host === 'fb.com') return 'facebook_profile';
+  if (host === 'instagram.com') return 'instagram_profile';
+  if (path === '/' || path === '') return 'website';
+  return 'other';
+}
+
+// Streams are recurring publishers, not single posts. Light kind inference.
+function inferStreamKind(url: string): string {
+  let path = '';
+  let host = '';
+  try {
+    const u = new URL(url);
+    path = u.pathname.toLowerCase();
+    host = u.hostname.toLowerCase().replace(/^www\./, '');
+  } catch {
+    return 'updates_index';
+  }
+  if (/rss|\.xml$|\/feed\/?$|atom/.test(path)) return 'rss';
+  if (/press|news[-_]?room|\/news\/?$|media[-_]?center/.test(path)) return 'newsroom';
+  if (/blog|stories|insights|ideas|posts/.test(path)) return 'blog_index';
+  if (host === 'youtube.com') return 'youtube_channel';
+  if (/substack\.com$/.test(host)) return 'substack';
+  return 'updates_index';
+}
+
+function rawToUrl(l: RawLink): string {
+  return (typeof l === 'string' ? l : l?.url ?? '').trim();
+}
+
+function shapeLink(l: RawLink): ShapedLink | null {
+  const url = rawToUrl(l);
+  if (!url) return null;
+  const kind = typeof l === 'object' && l?.kind ? l.kind : inferLinkKind(url);
+  return { url, kind, url_domain: urlDomain(url), added_at: new Date().toISOString() };
+}
+
+function shapeStream(l: RawLink): ShapedStream | null {
+  const url = rawToUrl(l);
+  if (!url) return null;
+  const kind = typeof l === 'object' && l?.kind ? l.kind : inferStreamKind(url);
+  return {
+    url,
+    kind,
+    party: 'first_party',
+    url_domain: urlDomain(url),
+    added_at: new Date().toISOString(),
+  };
+}
+
+function existingUrls(arr?: { url?: string }[] | null): Set<string> {
+  return new Set((arr ?? []).map((e) => (e?.url ?? '').trim()).filter(Boolean));
+}
+
+// Build the deduped append set for one org row given a record. Pure — no writes.
+function buildAppend(record: NormRecord, org: OrgRow) {
+  const haveLinks = existingUrls(org.org_links);
+  const haveStreams = existingUrls(org.media_streams);
+  const haveCorpus = existingUrls(org.org_corpus);
+
+  // org_links = website (record.url) + socials, deduped vs existing + within-batch
+  const linkRaws: RawLink[] = [];
+  if (record.url) linkRaws.push({ url: record.url, kind: 'website' });
+  for (const s of record.socials ?? []) linkRaws.push(s);
+
+  const seenLinks = new Set<string>();
+  const org_links: ShapedLink[] = [];
+  for (const r of linkRaws) {
+    const shaped = shapeLink(r);
+    if (!shaped) continue;
+    if (haveLinks.has(shaped.url) || seenLinks.has(shaped.url)) continue;
+    seenLinks.add(shaped.url);
+    org_links.push(shaped);
+  }
+
+  const seenStreams = new Set<string>();
+  const media_streams: ShapedStream[] = [];
+  for (const r of record.streams ?? []) {
+    const shaped = shapeStream(r);
+    if (!shaped) continue;
+    if (haveStreams.has(shaped.url) || seenStreams.has(shaped.url)) continue;
+    seenStreams.add(shaped.url);
+    media_streams.push(shaped);
+  }
+
+  const seenCorpus = new Set<string>();
+  const org_corpus: ShapedLink[] = [];
+  for (const r of record.corpus ?? []) {
+    const shaped = shapeLink(r);
+    if (!shaped) continue;
+    if (haveCorpus.has(shaped.url) || seenCorpus.has(shaped.url)) continue;
+    seenCorpus.add(shaped.url);
+    org_corpus.push(shaped);
+  }
+
+  return { org_links, media_streams, org_corpus };
+}
+
+// ---------------------------------------------------------------------------
+// SurrealDB reads
+// ---------------------------------------------------------------------------
+
+const ORG_FIELDS =
+  'id, slug, complete_name, conventional_name, org_links, org_corpus, media_streams, domains';
+
+async function loadClientOrgs(db: Surreal, client: string): Promise<OrgRow[]> {
+  const r = await db.query(
+    `SELECT ${ORG_FIELDS} FROM organizations WHERE client_access CONTAINS $client;`,
+    { client },
+  );
+  return ((r?.[0] as OrgRow[]) ?? []).filter((o) => o && o.slug);
+}
+
+// ---------------------------------------------------------------------------
+// Capability: resolver.candidates
+// ---------------------------------------------------------------------------
+
+export async function findCandidates(
+  db: Surreal,
+  record: NormRecord,
+  client: string,
+): Promise<{ candidates: Candidate[] }> {
+  const orgs = await loadClientOrgs(db, client);
+  const bySlug = new Map<string, OrgRow>();
+  const byDomain = new Map<string, OrgRow>();
+  for (const o of orgs) {
+    bySlug.set(o.slug, o);
+    for (const d of o.domains ?? []) {
+      const dom = (d?.domain ?? '').toLowerCase().replace(/^www\./, '');
+      if (dom) byDomain.set(dom, o);
+    }
+    for (const l of o.org_links ?? []) {
+      const dom = urlDomain(l?.url ?? '');
+      if (dom && !byDomain.has(dom)) byDomain.set(dom, o);
+    }
+  }
+
+  // org -> { score, reasons }
+  const scored = new Map<string, { org: OrgRow; score: number; reasons: Set<string> }>();
+  const bump = (org: OrgRow | undefined, score: number, reason: string) => {
+    if (!org) return;
+    const key = org.slug;
+    const cur = scored.get(key);
+    if (cur) {
+      cur.score = Math.max(cur.score, score);
+      cur.reasons.add(reason);
+    } else {
+      scored.set(key, { org, score, reasons: new Set([reason]) });
+    }
+  };
+
+  // 1. exact slug
+  const slug = (record.slug_hint && record.slug_hint.trim()) || slugify(record.name);
+  if (slug) bump(bySlug.get(slug), 100, 'slug');
+
+  // 2. domain (record url + declared domains)
+  const recDomains = new Set<string>();
+  if (record.url) recDomains.add(urlDomain(record.url));
+  for (const d of record.domains ?? []) recDomains.add(d.toLowerCase().replace(/^www\./, ''));
+  for (const dom of recDomains) {
+    if (dom) bump(byDomain.get(dom), 90, 'domain');
+  }
+
+  // 3. fuzzy name (in-memory CONTAINS over the loaded client orgs)
+  const q = record.name.trim().toLowerCase();
+  if (q.length >= 3) {
+    for (const o of orgs) {
+      const hay = `${o.complete_name ?? ''} ${o.conventional_name ?? ''} ${o.slug}`.toLowerCase();
+      if (hay.includes(q) || q.includes((o.conventional_name ?? '').toLowerCase().trim() || ' ')) {
+        bump(o, 60, 'name');
+      }
+    }
+  }
+
+  const candidates: Candidate[] = [...scored.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8)
+    .map(({ org, score, reasons }) => {
+      const append = buildAppend(record, org);
+      return {
+        org_id: String(org.id),
+        slug: org.slug,
+        complete_name: org.complete_name ?? null,
+        conventional_name: org.conventional_name ?? null,
+        score,
+        match_reason: [...reasons],
+        existing: {
+          org_links: (org.org_links ?? []).length,
+          media_streams: (org.media_streams ?? []).length,
+          org_corpus: (org.org_corpus ?? []).length,
+        },
+        append_preview: append,
+      };
+    });
+
+  return { candidates };
+}
+
+// ---------------------------------------------------------------------------
+// Capability: resolver.search (manual autocomplete)
+// ---------------------------------------------------------------------------
+
+export async function searchOrgs(
+  db: Surreal,
+  q: string,
+  client: string,
+): Promise<{ candidates: Pick<Candidate, 'org_id' | 'slug' | 'complete_name' | 'conventional_name'>[] }> {
+  const trimmed = q?.trim().toLowerCase();
+  if (!trimmed || trimmed.length < 2) return { candidates: [] };
+  const r = await db.query(
+    `SELECT id, complete_name, conventional_name, slug
+       FROM organizations
+       WHERE client_access CONTAINS $client
+         AND (
+           string::lowercase(complete_name)      CONTAINS $q
+           OR string::lowercase(conventional_name) CONTAINS $q
+           OR string::lowercase(slug)             CONTAINS $q
+         )
+       ORDER BY complete_name ASC
+       LIMIT 8`,
+    { client, q: trimmed },
+  );
+  const rows = ((r?.[0] as OrgRow[]) ?? []).map((o) => ({
+    org_id: String(o.id),
+    slug: o.slug,
+    complete_name: o.complete_name ?? null,
+    conventional_name: o.conventional_name ?? null,
+  }));
+  return { candidates: rows };
+}
+
+// ---------------------------------------------------------------------------
+// content_items ledger — find-or-create by URL, returns the shared id.
+// (Ports apps/person-enrichment/src/App.svelte findOrCreateContent.)
+// ---------------------------------------------------------------------------
+
+async function findOrCreateContent(
+  db: Surreal,
+  url: string,
+  kind: string,
+  url_domain: string,
+): Promise<unknown> {
+  const existing = await db.query('SELECT VALUE id FROM content_items WHERE url = $url LIMIT 1', {
+    url,
+  });
+  const hit = (existing?.[0] as unknown[])?.[0];
+  if (hit) {
+    await db.query(
+      `UPDATE $id SET last_referenced_at = time::now(), reference_count = (reference_count ?? 1) + 1`,
+      { id: hit },
+    );
+    return hit;
+  }
+  const created = await db.query(
+    `CREATE content_items SET
+        id = rand::uuid::v7(), url = $url, url_domain = $url_domain, kind = $kind,
+        first_seen_at = time::now(), last_referenced_at = time::now(), reference_count = 1
+     RETURN id;`,
+    { url, url_domain, kind },
+  );
+  return (created?.[0] as { id?: unknown }[])?.[0]?.id ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Capability: resolver.apply
+// ---------------------------------------------------------------------------
+
+export type ApplyInput = {
+  action: 'match' | 'create';
+  org_slug?: string;
+  record: NormRecord;
+  client: string;
+  source?: string;
+};
+
+export type ApplyResult = {
+  ok: true;
+  org_id: string;
+  slug: string;
+  created: boolean;
+  appended: { org_links: number; media_streams: number; org_corpus: number };
+};
+
+async function fetchOrgBySlug(db: Surreal, slug: string): Promise<OrgRow | null> {
+  const r = await db.query(`SELECT ${ORG_FIELDS} FROM organizations WHERE slug = $slug LIMIT 1;`, {
+    slug,
+  });
+  return ((r?.[0] as OrgRow[]) ?? [])[0] ?? null;
+}
+
+export async function applyResolution(db: Surreal, input: ApplyInput): Promise<ApplyResult> {
+  const { record, client } = input;
+  const source = input.source || 'record-db-resolver';
+
+  let org: OrgRow | null = null;
+  let created = false;
+
+  if (input.action === 'match') {
+    if (!input.org_slug) throw new Error('resolver.apply (match) requires org_slug');
+    org = await fetchOrgBySlug(db, input.org_slug);
+    if (!org) throw new Error(`org not found for slug: ${input.org_slug}`);
+  } else {
+    // create — but defend against a race / pre-existing slug (treat as match).
+    const slug = (record.slug_hint && record.slug_hint.trim()) || slugify(record.name);
+    if (!slug) throw new Error('resolver.apply (create) requires a non-empty name/slug');
+    org = await fetchOrgBySlug(db, slug);
+    if (!org) {
+      const completeName = record.name.trim();
+      const createdRes = await db.query(
+        `CREATE organizations SET
+            id = rand::uuid::v7(), slug = $slug,
+            complete_name = $complete_name, conventional_name = $conventional_name,
+            source = $source, client_access = [$client],
+            first_touched_by = $client, last_touched_by = $client,
+            last_touched_at = time::now(), first_seen_at = time::now(), last_seen_at = time::now()
+         RETURN ${ORG_FIELDS};`,
+        { slug, complete_name: completeName, conventional_name: completeName, source, client },
+      );
+      org = ((createdRes?.[0] as OrgRow[]) ?? [])[0] ?? null;
+      created = true;
+      if (!org) throw new Error('org create returned no row');
+    }
+  }
+
+  const append = buildAppend(record, org);
+
+  // Ledger the corpus items and stamp content_id onto each entry.
+  const corpusWithIds: (ShapedLink & { content_id?: unknown })[] = [];
+  for (const entry of append.org_corpus) {
+    const content_id = await findOrCreateContent(db, entry.url, entry.kind, entry.url_domain);
+    corpusWithIds.push({ ...entry, content_id });
+  }
+
+  await db.query(
+    `UPDATE $id SET
+        org_links     = array::concat(org_links ?? [], $links),
+        media_streams = array::concat(media_streams ?? [], $streams),
+        org_corpus    = array::concat(org_corpus ?? [], $corpus),
+        client_access = array::union(client_access ?? [], [$client]),
+        source        = source ?? $source,
+        last_touched_by = $client,
+        last_touched_at = time::now(),
+        last_seen_at    = time::now();`,
+    {
+      id: org.id,
+      links: append.org_links,
+      streams: append.media_streams,
+      corpus: corpusWithIds,
+      client,
+      source,
+    },
+  );
+
+  return {
+    ok: true,
+    org_id: String(org.id),
+    slug: org.slug,
+    created,
+    appended: {
+      org_links: append.org_links.length,
+      media_streams: append.media_streams.length,
+      org_corpus: append.org_corpus.length,
+    },
+  };
+}
