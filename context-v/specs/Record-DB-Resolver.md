@@ -20,6 +20,21 @@ tags:
   - reach-edu
 ---
 
+# Iterations
+
+## v0.0.0.1
+Shipped the basic resolver UI and backend service on June 22, 2026 at 17:00 CST.
+
+## v0.0.0.2
+1. Clarify how the DB entity matching works as it is saved in the record data. (Now we are working from a CSV file as it's represented in state. In theory, after the resolver augmentation is complete there is a "new version" of the CSV file that includes the canonical entity matches.)
+2. Add support for the augment-it user altering the Name and slug fields on the canonical entity as it becomes represented in the DB  , yet don't lose the match to the source record.  If a user changes the name of an organization, the match should still be preserved even with the source CSV records. (The client will not want to lose their own terminology or notes, but after web research and augment-it augmentation, the data-augmenter (primary user) will want to update the name and slug of the cannonical source.)
+   - Live example: The client has a record "Howard Schulz Foundation" but the canonical entity based on research is `schulz-family-foundation` as the slug and "The Schulz Family Foundation" as the name. 
+3. Add support for creating a "person" canonical entity from a record.  Some of the records are not organizations but people. 
+
+## v0.0.0.3
+1. We need a new relationship (could be a type of observation) to deal with multiple records that reference the same cannonical entity.  This happens for `accelerate-the-future` where there are multiple records that reference the same organization. What the client stakeholder intended was that these are separate "opportunities" rather than separate cannonical entities.  We either need to unfortunately get more CRM like and offer the ability to create and add to additional tables/data types, or hardcode "opportunities" as either its own relational table or as a type of observation. My preference here is probably to just go with opportunities as its own table, as there are CRM style features that would be useful to add in the future, as well as CRM style input data that would only make sense in an opportunitities table.  
+> NOTE: There could be a way to `abstract` the concept of opportunities, such as with `record_subset` of type `opportunity` and then later if there is some other `record_subset` it can get handled as a different type.  Would need to use document style flexible data.
+
 # Record ↔ DB Resolver
 
 ## Why this exists
