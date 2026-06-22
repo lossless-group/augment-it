@@ -14,7 +14,7 @@
   import RecordCard from './components/RecordCard.svelte';
   import CandidateList from './components/CandidateList.svelte';
   import { normalizeRecord } from './lib/normalize';
-  import { fetchCandidates, searchOrgs, applyResolution } from './lib/resolver-client';
+  import { fetchCandidates, searchOrgs, applyResolution, updateOrg, stampRow } from './lib/resolver-client';
   import type { Candidate, OrgSuggestion, ApplyResult } from './lib/types';
 
   const TOKEN_KEY = 'augment-it:session-token';
@@ -39,6 +39,15 @@
   let lastResult = $state<ApplyResult | null>(null);
   let actionError = $state<string | null>(null);
 
+  // Canonical-edit (v0.0.0.2 #2) — edit the matched/created org's name + slug.
+  let editName = $state('');
+  let editConventional = $state('');
+  let editSlug = $state('');
+  let editBusy = $state(false);
+  let editError = $state<string | null>(null);
+  let editSaved = $state(false);
+  let showEdit = $state(false);
+
   let searchQuery = $state('');
   let searchResults = $state<OrgSuggestion[]>([]);
   let searching = $state(false);
@@ -49,6 +58,15 @@
   const current = $derived(idx >= 0 && idx < rows.length ? rows[idx] : null);
   const record = $derived(current ? normalizeRecord(current.fields) : null);
   const source = $derived(selectedSet ? `record-set:${selectedSet.name}` : 'record-db-resolver');
+
+  // If this row was already resolved in a prior session, the bond is stamped on
+  // it (round-trip write-back). Surface it so the operator knows; re-resolving is
+  // safe (additive). Empty string when unresolved.
+  const alreadyResolvedSlug = $derived.by(() => {
+    const f = current?.fields as Record<string, unknown> | undefined;
+    if (!f || !f.resolved_org_id) return '';
+    return String(f.resolved_org_slug ?? f.resolved_org_id);
+  });
 
   onMount(() => {
     workspace.connect({
@@ -103,6 +121,12 @@
     actionError = null;
     searchQuery = '';
     searchResults = [];
+    editName = '';
+    editConventional = '';
+    editSlug = '';
+    editError = null;
+    editSaved = false;
+    showEdit = false;
   }
 
   // Load candidates whenever the current record changes (and we know the client).
@@ -136,26 +160,103 @@
 
   async function doMatch(c: Candidate) {
     if (!record) return;
-    await apply({ action: 'match', org_slug: c.slug, record, client, source });
+    await apply({ action: 'match', org_slug: c.slug, record, client, source, row_id: current?.row_id });
   }
   async function doCreate() {
     if (!record) return;
-    await apply({ action: 'create', record, client, source });
+    await apply({ action: 'create', record, client, source, row_id: current?.row_id });
   }
   async function doMatchSlug(slug: string) {
     if (!record) return;
-    await apply({ action: 'match', org_slug: slug, record, client, source });
+    await apply({ action: 'match', org_slug: slug, record, client, source, row_id: current?.row_id });
   }
 
   async function apply(args: Parameters<typeof applyResolution>[0]) {
     applyBusy = true;
     actionError = null;
     try {
-      lastResult = await applyResolution(args);
+      const res = await applyResolution(args);
+      lastResult = res;
+      // Reflect the stamp in local state so the already-resolved indicator (and a
+      // future ToC status) update without a refetch. row_id is unchanged, so the
+      // candidate-loading effect does not refire.
+      if (res.stamped && current) {
+        const i = idx;
+        rows[i] = {
+          ...rows[i],
+          fields: {
+            ...rows[i].fields,
+            resolved_org_id: res.org_id,
+            resolved_org_slug: res.slug,
+            resolved_org_name: res.complete_name ?? null,
+          },
+        };
+      }
+      // Seed the canonical-edit fields from what we just wrote.
+      editName = res.complete_name ?? record?.name ?? '';
+      editConventional = res.conventional_name ?? '';
+      editSlug = res.slug;
+      editError = null;
+      editSaved = false;
+      showEdit = false;
     } catch (err) {
       actionError = err instanceof Error ? err.message : String(err);
     } finally {
       applyBusy = false;
+    }
+  }
+
+  // Edit the canonical org's name/slug (#2). A slug rename pushes the old slug
+  // into aliases[] server-side; here we re-stamp the current row's
+  // resolved_org_slug/name (the id bond never changes).
+  async function saveCanonicalEdits() {
+    if (!lastResult) return;
+    editBusy = true;
+    editError = null;
+    editSaved = false;
+    try {
+      const next = editSlug.trim();
+      const res = await updateOrg({
+        org_slug: lastResult.slug,
+        new_slug: next && next !== lastResult.slug ? next : undefined,
+        complete_name: editName.trim() || undefined,
+        conventional_name: editConventional.trim() || undefined,
+        client,
+      });
+      lastResult = {
+        ...lastResult,
+        slug: res.slug,
+        complete_name: res.complete_name,
+        conventional_name: res.conventional_name,
+      };
+      editSlug = res.slug;
+      // Re-stamp the bonded row's display copy (id unchanged).
+      if (current) {
+        try {
+          await stampRow(current.row_id, {
+            resolved_org_id: lastResult.org_id,
+            resolved_org_slug: res.slug,
+            resolved_org_name: res.complete_name ?? null,
+            resolved_at: new Date().toISOString(),
+          });
+          const i = idx;
+          rows[i] = {
+            ...rows[i],
+            fields: {
+              ...rows[i].fields,
+              resolved_org_slug: res.slug,
+              resolved_org_name: res.complete_name ?? null,
+            },
+          };
+        } catch {
+          /* non-fatal — canonical edit landed; row display copy can lag */
+        }
+      }
+      editSaved = true;
+    } catch (err) {
+      editError = err instanceof Error ? err.message : String(err);
+    } finally {
+      editBusy = false;
     }
   }
 
@@ -232,6 +333,13 @@
             {#if loadingCandidates}<span class="rdr-muted">finding candidates…</span>{/if}
           </div>
 
+          {#if alreadyResolvedSlug && !lastResult}
+            <div class="rdr-resolved-banner">
+              ↩ already resolved → <code>{alreadyResolvedSlug}</code>
+              <span class="rdr-muted">re-resolving is safe (additive)</span>
+            </div>
+          {/if}
+
           {#if candidatesError}
             <div class="rdr-error">candidates: {candidatesError}</div>
           {/if}
@@ -272,10 +380,45 @@
             <div class="rdr-result">
               <div class="rdr-result-head">
                 {lastResult.created ? '✓ created' : '✓ matched'} <code>{lastResult.slug}</code>
+                {#if lastResult.stamped}
+                  <span class="rdr-stamp-ok">↩ stamped to row</span>
+                {:else}
+                  <span class="rdr-stamp-warn">⚠ canonical saved, row not stamped — re-apply to retry</span>
+                {/if}
               </div>
               <p class="rdr-result-body">
                 appended +{lastResult.appended.org_links} links · +{lastResult.appended.media_streams} streams · +{lastResult.appended.org_corpus} corpus
               </p>
+
+              {#if record && lastResult.complete_name && record.name && lastResult.complete_name !== record.name}
+                <p class="rdr-divergence">
+                  client keeps <strong>{record.name}</strong> · canonical is <strong>{lastResult.complete_name}</strong>
+                </p>
+              {/if}
+
+              <button type="button" class="rdr-toggle" onclick={() => (showEdit = !showEdit)}>
+                {showEdit ? '▾ hide canonical edits' : '▸ edit canonical name / slug'}
+              </button>
+              {#if showEdit}
+                <div class="rdr-edit">
+                  <label class="rdr-edit-row"><span>name</span>
+                    <input type="text" bind:value={editName} placeholder="The Schultz Family Foundation" /></label>
+                  <label class="rdr-edit-row"><span>short name</span>
+                    <input type="text" bind:value={editConventional} placeholder="Schultz Family Foundation" /></label>
+                  <label class="rdr-edit-row"><span>slug</span>
+                    <input type="text" bind:value={editSlug} placeholder="schultz-family-foundation" /></label>
+                  <div class="rdr-edit-actions">
+                    <button type="button" class="rdr-btn rdr-btn-primary" disabled={editBusy} onclick={() => void saveCanonicalEdits()}>
+                      {editBusy ? 'saving…' : 'save canonical edits'}
+                    </button>
+                    {#if editSaved}<span class="rdr-stamp-ok">✓ saved</span>{/if}
+                  </div>
+                  {#if editError}<div class="rdr-error">{editError}</div>{/if}
+                  <p class="rdr-muted rdr-edit-hint">
+                    Renaming the slug keeps the old one as an alias and re-stamps this row — the id bond never changes.
+                  </p>
+                </div>
+              {/if}
             </div>
           {/if}
 

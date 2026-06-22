@@ -43,6 +43,31 @@ export type ApplyResult = {
   org_id: string;
   slug: string;
   created: boolean;
+  complete_name: string | null;
+  conventional_name: string | null;
   appended: { org_links: number; media_streams: number; org_corpus: number };
+  // client-side: whether the source row was stamped with the bond after the
+  // canonical write (the round-trip write-back). False means the canonical
+  // write landed but the row stamp failed — re-apply (idempotent) to retry.
+  stamped?: boolean;
+  error?: string;
+};
+
+export type UpdateOrgInput = {
+  org_slug: string;
+  new_slug?: string;
+  complete_name?: string;
+  conventional_name?: string;
+  client: string;
+};
+
+export type UpdateOrgResult = {
+  ok: boolean;
+  org_id: string;
+  slug: string;
+  complete_name: string | null;
+  conventional_name: string | null;
+  aliases: string[];
+  renamed: boolean;
   error?: string;
 };

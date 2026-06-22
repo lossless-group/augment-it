@@ -138,6 +138,9 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'resolver.candidates': 'resolver.candidates.requested',
   'resolver.search': 'resolver.search.requested',
   'resolver.apply': 'resolver.apply.requested',
+  // v0.0.0.2 — edit the matched/created canonical org's name + slug (slug rename
+  // pushes the old slug into aliases[]; the UI re-stamps the bonded row after).
+  'resolver.update_org': 'resolver.update_org.requested',
 };
 
 const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
@@ -196,6 +199,7 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'resolver.candidates': 30_000,
   'resolver.search': 30_000,
   'resolver.apply': 30_000,
+  'resolver.update_org': 30_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {

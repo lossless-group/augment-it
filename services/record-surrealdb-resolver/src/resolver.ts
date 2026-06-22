@@ -46,6 +46,7 @@ type OrgRow = {
   org_corpus?: { url?: string }[] | null;
   media_streams?: { url?: string }[] | null;
   domains?: { domain?: string }[] | null;
+  aliases?: string[] | null;
 };
 
 export type Candidate = {
@@ -208,7 +209,7 @@ function buildAppend(record: NormRecord, org: OrgRow) {
 // ---------------------------------------------------------------------------
 
 const ORG_FIELDS =
-  'id, slug, complete_name, conventional_name, org_links, org_corpus, media_streams, domains';
+  'id, slug, complete_name, conventional_name, org_links, org_corpus, media_streams, domains, aliases';
 
 async function loadClientOrgs(db: Surreal, client: string): Promise<OrgRow[]> {
   const r = await db.query(
@@ -385,7 +386,27 @@ export type ApplyResult = {
   org_id: string;
   slug: string;
   created: boolean;
+  complete_name: string | null;
+  conventional_name: string | null;
   appended: { org_links: number; media_streams: number; org_corpus: number };
+};
+
+export type UpdateOrgInput = {
+  org_slug: string; // current operative slug (resolved_org_slug)
+  new_slug?: string;
+  complete_name?: string;
+  conventional_name?: string;
+  client: string;
+};
+
+export type UpdateOrgResult = {
+  ok: true;
+  org_id: string;
+  slug: string;
+  complete_name: string | null;
+  conventional_name: string | null;
+  aliases: string[];
+  renamed: boolean;
 };
 
 async function fetchOrgBySlug(db: Surreal, slug: string): Promise<OrgRow | null> {
@@ -463,10 +484,71 @@ export async function applyResolution(db: Surreal, input: ApplyInput): Promise<A
     org_id: String(org.id),
     slug: org.slug,
     created,
+    complete_name: org.complete_name ?? null,
+    conventional_name: org.conventional_name ?? null,
     appended: {
       org_links: append.org_links.length,
       media_streams: append.media_streams.length,
       org_corpus: append.org_corpus.length,
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Capability: resolver.update_org — edit the canonical entity's name/slug.
+//
+// Per the v0.0.0.2 decision (see context-v/issues/Grilling-on-DB-Resolver--
+// Future-Versions.md #2): the immutable RecordId stays the bond; `slug` is
+// editable display. A rename pushes the old slug into `aliases[]` so artifacts
+// stamped before the rename (corpus dirs, content_items.about[].org_slug) still
+// resolve, and refuses a slug already taken by another org. The UI re-stamps the
+// bonded row's resolved_org_slug/name after this returns.
+// ---------------------------------------------------------------------------
+
+export async function updateOrg(db: Surreal, input: UpdateOrgInput): Promise<UpdateOrgResult> {
+  const org = await fetchOrgBySlug(db, input.org_slug);
+  if (!org) throw new Error(`org not found for slug: ${input.org_slug}`);
+
+  const wantSlug = input.new_slug?.trim();
+  const renamed = !!wantSlug && wantSlug !== org.slug;
+  if (renamed) {
+    const clash = await fetchOrgBySlug(db, wantSlug as string);
+    if (clash) throw new Error(`slug already in use: ${wantSlug}`);
+  }
+
+  const name = input.complete_name?.trim();
+  const conv = input.conventional_name?.trim();
+
+  const sets: string[] = [];
+  const vars: Record<string, unknown> = { id: org.id, client: input.client };
+  if (name) {
+    sets.push('complete_name = $complete_name');
+    vars.complete_name = name;
+  }
+  if (conv) {
+    sets.push('conventional_name = $conventional_name');
+    vars.conventional_name = conv;
+  }
+  if (renamed) {
+    sets.push('slug = $new_slug');
+    sets.push('aliases = array::union(aliases ?? [], [$old_slug])');
+    vars.new_slug = wantSlug;
+    vars.old_slug = org.slug;
+  }
+  sets.push('client_access = array::union(client_access ?? [], [$client])');
+  sets.push('last_touched_by = $client');
+  sets.push('last_touched_at = time::now()');
+
+  await db.query(`UPDATE $id SET ${sets.join(', ')};`, vars);
+
+  const fresh = (await fetchOrgBySlug(db, renamed ? (wantSlug as string) : org.slug)) ?? org;
+  return {
+    ok: true,
+    org_id: String(fresh.id),
+    slug: fresh.slug,
+    complete_name: fresh.complete_name ?? null,
+    conventional_name: fresh.conventional_name ?? null,
+    aliases: fresh.aliases ?? [],
+    renamed,
   };
 }

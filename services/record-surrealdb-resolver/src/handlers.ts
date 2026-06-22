@@ -14,8 +14,10 @@ import {
   findCandidates,
   searchOrgs,
   applyResolution,
+  updateOrg,
   type NormRecord,
   type ApplyInput,
+  type UpdateOrgInput,
 } from './resolver';
 
 const jc = JSONCodec();
@@ -61,6 +63,22 @@ export function registerHandlers(nc: NatsConnection): void {
       try {
         const db = await getDb();
         const result = await applyResolution(db, args);
+        if (msg.reply) msg.respond(jc.encode(result));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // resolver.update_org — edit the canonical entity's name/slug (v0.0.0.2)
+  (async () => {
+    const sub = nc.subscribe('resolver.update_org.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as UpdateOrgInput;
+      try {
+        const db = await getDb();
+        const result = await updateOrg(db, args);
         if (msg.reply) msg.respond(jc.encode(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
