@@ -2,7 +2,11 @@ name: Deploy splash to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    # The augment-it rebuild currently lives on `rebuild/turbo-rsbuild` — that's
+    # where splash/ exists, so that's what we deploy from. `main` is kept for
+    # after the rebuild lands there. (master/development are intentionally NOT
+    # watched yet: they have no splash/, so a push would just fail the build.)
+    branches: [rebuild/turbo-rsbuild, main]
   workflow_dispatch:
 
 permissions:
