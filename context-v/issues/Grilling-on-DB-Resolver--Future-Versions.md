@@ -213,7 +213,38 @@ to canonical because they're reach-edu-private and **Decile is their home**. An
   *working copy that syncs* to Decile, or a *replacement*? If Decile owns the
   pipeline, maybe opportunities push there rather than live in SurrealDB.
 
-**Decision:** _pending_
+**User answer (2026-06-22):** Only **humain-vc** uses Decile. (Confirmed on disk —
+the connector + swagger live under `clients/humain-vc/`; reach-edu's pipeline is the
+CSV tracker, no Decile.)
+
+**Decision (Decile sub-point — locked):**
+
+- **The contradiction dissolves.** The CRM-out-of-canonical lock protected the
+  *shared* `organizations` row from cross-client leak. A **client-scoped**
+  opportunities store doesn't leak — it's exactly where client-private CRM data
+  belongs. So opportunities are never hung off the shared org, but they *can* live
+  in augment-it, client-partitioned.
+- **"Opportunities = Decile pipeline-prospects" is dead as a universal model.**
+  reach-edu has no Decile, so opportunities **must** live in augment-it
+  (client-scoped). **Decile is a per-client *push target* (humain-vc only), not the
+  store or the source.** Build augment-it-native; sync to Decile later for clients
+  who use it.
+
+**User answer (2026-06-22):** **YES — opportunities outlive a single CSV import.**
+SurrealDB is the canonical truth (one DB, client-tagged — no per-client DBs); this
+is The Lossless Group's intel across every client we augment. The likely near-term
+flow is *another export / DB-app / API pull that ADDs or UPDATEs the existing
+canonical DB.* Crucially: **losing an opportunity is the cardinal sin** ("you don't
+have the three opportunities we have for Accelerate the Future"); **duplicate
+opportunities from different record sets are harmless.** Closing opportunities + a
+lifecycle UI may come later.
+
+**Decision (#4 home — LOCKED):** a dedicated **client-scoped `opportunities` table**
+in SurrealDB. First-class, persists across imports, accumulates over time, never
+hung off the shared org (client-partitioned via a `client` field per
+[[Client-Tagging-on-Canonical-Writes]]). Decile stays a humain-vc-only push target.
+This makes the reverse bond (org → opportunities — the #2(c) deferral) a native
+query on the table.
 
 ### 5. What is an opportunity, cardinally?
 
@@ -234,7 +265,35 @@ For `accelerate-the-future`: multiple records, one org, "separate opportunities.
   the abstraction earns itself rather than being speculative generality? (If you
   can't name the second one, hardcode `opportunities` and abstract later.)
 
-**Decision:** _pending_
+**Decision (#5 — LOCKED; ethos: redundancy over normalization, never lose data):**
+
+- (a) **Cardinality:** an opportunity is **1:1 with a source record** (`record_uuid`)
+  and **many:1 to the canonical org** (`resolved_org_id`). The three
+  accelerate-the-future records → three opportunities, one org. Each opportunity
+  carries its provenance — source record set + `source` (which CSV/API import
+  produced it) — so "the DC list" / "the June tracker" stay queryable sets.
+- (a) **CRM fields live on the opportunity.** This answers the long-open "where do
+  the deferred Stage / $ / Owner / Next-Step columns go" — onto the **client-scoped
+  opportunity**, never the shared org. The row/CSV keeps its own copy as the
+  working/export layer; the redundancy is fine and intended.
+- (b) **Default: do NOT force-merge.** Duplicates across imports are harmless and
+  must never be silently dropped. Same `record_uuid` re-resolved = **update** the
+  existing opportunity; different record, same org = a **new** opportunity.
+  Matchmaking-to-merge is optional, best-effort, and a *later* feature — never a
+  gate. Losing data is the only failure mode that matters. (Mirrors the
+  [[Funder-Fit-Engine-Org-Corpora-and-the-Story-Unlock-Cycle|"each list is its own
+  entity; aggregation rides on top"]] principle.)
+- (c) **Hardcode `opportunities`** now as its own SCHEMALESS (document-flexible)
+  table; do **not** abstract to `record_subset` until a genuine second subset type
+  is named. The flexible doc shape absorbs CRM columns that vary across clients and
+  imports.
+
+**Residual (small, lean noted):** creation trigger — **auto-mint an opportunity
+whenever a record resolves** (lean: yes — each resolved record *is* an opportunity)
+vs an explicit operator step. Confirm.
+
+**Decision:** _#5 LOCKED per above; only the auto-mint-on-resolve trigger awaits a
+yes/no._
 
 ---
 

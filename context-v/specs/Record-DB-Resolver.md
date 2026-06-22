@@ -31,9 +31,35 @@ Shipped the basic resolver UI and backend service on June 22, 2026 at 17:00 CST.
    - Live example: The client has a record "Howard Schulz Foundation" but the canonical entity based on research is `schulz-family-foundation` as the slug and "The Schulz Family Foundation" as the name. 
 3. Add support for creating a "person" canonical entity from a record.  Some of the records are not organizations but people. 
 
+**Status (2026-06-22): items 1 + 2 SHIPPED** — round-trip row write-back
+(`resolved_org_id`/`slug`/`name` stamped live onto the row) and editable canonical
+name/slug with `aliases[]` on rename (id-as-bond). **Item 3 (person) deferred** —
+its design questions are still open in [[Grilling-on-DB-Resolver--Future-Versions]] #3.
+Decisions log: that same file, #1 + #2 locked.
+
 ## v0.0.0.3
 1. We need a new relationship (could be a type of observation) to deal with multiple records that reference the same cannonical entity.  This happens for `accelerate-the-future` where there are multiple records that reference the same organization. What the client stakeholder intended was that these are separate "opportunities" rather than separate cannonical entities.  We either need to unfortunately get more CRM like and offer the ability to create and add to additional tables/data types, or hardcode "opportunities" as either its own relational table or as a type of observation. My preference here is probably to just go with opportunities as its own table, as there are CRM style features that would be useful to add in the future, as well as CRM style input data that would only make sense in an opportunitities table.  
 > NOTE: There could be a way to `abstract` the concept of opportunities, such as with `record_subset` of type `opportunity` and then later if there is some other `record_subset` it can get handled as a different type.  Would need to use document style flexible data.
+
+**Locked (2026-06-22) — see [[Grilling-on-DB-Resolver--Future-Versions]] #4/#5:**
+
+- **Opportunities are a dedicated, client-scoped `opportunities` table** in SurrealDB
+  (one DB, `client`-partitioned — the Lossless canonical intel; no per-client DBs).
+  First-class, persists across imports, accumulates over time.
+- **Cardinality:** an opportunity is **1:1 with a source record** (`record_uuid`),
+  **many:1 to the canonical org** (`resolved_org_id`). The three accelerate-the-future
+  records → three opportunities, one org. Each carries provenance (record_set + source).
+- **The opportunity is the home for the deferred CRM columns** (Stage / $ / Owner /
+  Next-Step …) — client-scoped, never on the shared org.
+- **Never lose; duplicates are harmless; do NOT force-merge.** Same `record_uuid`
+  re-resolved = update; new record same org = new opportunity. Matchmaking-to-merge
+  is optional and later. (Redundancy over normalization.)
+- **Auto-mint on resolve** — every resolved record mints/updates its opportunity, so
+  the count is never lost.
+- **Hardcode `opportunities`** as a SCHEMALESS table; no `record_subset` abstraction
+  until a real second type appears.
+- **Decile is a humain-vc-only push target**, never the store/source (reach-edu has
+  no Decile — its pipeline is the CSV tracker).
 
 # Record ↔ DB Resolver
 
