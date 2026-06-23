@@ -84,8 +84,9 @@
 
         <div class="rdr-candidate-actions">
           <button type="button" class="rdr-btn rdr-btn-primary" disabled={busy} onclick={() => onMatch(c)}>
-            {adds > 0 ? `match → enrich (+${adds})` : 'match (nothing new to add)'}
+            {adds > 0 ? `match → enrich (+${adds}) + opportunity` : 'match → record opportunity'}
           </button>
+          <span class="rdr-match-note">every match records an opportunity for this org — even when there's nothing new to enrich</span>
         </div>
       </li>
     {/each}

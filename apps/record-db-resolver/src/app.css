@@ -66,6 +66,7 @@
 .rdr-preview { border-top: 1px dashed var(--color-border, #2a2c33); margin-top: 0.3rem; padding-top: 0.4rem; }
 .rdr-preview-group { margin: 0.3rem 0; }
 .rdr-candidate-actions { margin-top: 0.5rem; }
+.rdr-match-note { display: block; margin-top: 0.3rem; font-size: 0.68rem; color: var(--color-text-muted, #9aa0aa); }
 
 .rdr-create { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.4rem; }
 .rdr-create-hint { font-size: 0.74rem; }
@@ -83,6 +84,7 @@
 .rdr-stamp-ok { font-size: 0.7rem; font-weight: 500; color: var(--color-ok-text, #6ee7a8); border: 1px solid var(--color-ok-text, #6ee7a8); border-radius: 3px; padding: 0 0.35rem; }
 .rdr-stamp-warn { font-size: 0.7rem; font-weight: 500; color: var(--color-error-text, #f3a3a3); border: 1px solid var(--color-error-text, #f3a3a3); border-radius: 3px; padding: 0 0.35rem; }
 .rdr-divergence { margin: 0.4rem 0 0; font-size: 0.78rem; color: var(--color-text-muted, #9aa0aa); }
+.rdr-opp { margin: 0.3rem 0 0; font-size: 0.8rem; color: var(--color-accent, #b98bdd); }
 
 .rdr-resolved-banner { background: var(--color-surface, #1c1e25); border: 1px dashed var(--color-border, #2a2c33); border-radius: 6px; padding: 0.4rem 0.6rem; font-size: 0.8rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 

@@ -292,8 +292,15 @@ For `accelerate-the-future`: multiple records, one org, "separate opportunities.
 whenever a record resolves** (lean: yes — each resolved record *is* an opportunity)
 vs an explicit operator step. Confirm.
 
-**Decision:** _#5 LOCKED per above; only the auto-mint-on-resolve trigger awaits a
-yes/no._
+**Auto-mint trigger (confirmed 2026-06-22):** **keep auto-mint on resolve** — every
+match/create records the opportunity; no separate "add as opportunity" button. The
+operator went looking for an explicit action, which proved the *silent* auto-mint was
+mis-communicated, so the match button now names what it does ("match → record
+opportunity" / "… + opportunity") with a one-line note. Auto-mint behavior unchanged;
+only the labels.
+
+**Decision:** _#5 LOCKED — auto-mint on resolve, honest labels, no separate
+opportunity button._
 
 ---
 
