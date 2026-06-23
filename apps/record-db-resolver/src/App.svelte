@@ -68,6 +68,22 @@
     return String(f.resolved_org_slug ?? f.resolved_org_id);
   });
 
+  // Re-scope everything when the operator switches workspace. The workspace
+  // singleton broadcasts this on `window` (shared across the federation), so the
+  // resolver follows a switch instead of being stuck on whatever client was
+  // active at mount. Record sets AND the candidate client filter are tenant-scoped,
+  // so both must reload.
+  function onWorkspaceChanged(e: Event) {
+    const detail = (e as CustomEvent).detail as { client_id?: string } | undefined;
+    if (detail?.client_id) client = detail.client_id;
+    else void loadActiveClient();
+    rows = [];
+    idx = 0;
+    candidates = [];
+    resetPerRecord();
+    void loadRecordSets();
+  }
+
   onMount(() => {
     workspace.connect({
       url: WS_URL,
@@ -77,6 +93,8 @@
     });
     void loadActiveClient();
     void loadRecordSets();
+    window.addEventListener('augment-it:workspace-changed', onWorkspaceChanged);
+    return () => window.removeEventListener('augment-it:workspace-changed', onWorkspaceChanged);
   });
 
   async function loadActiveClient() {
