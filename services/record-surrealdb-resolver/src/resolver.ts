@@ -379,6 +379,20 @@ export type ApplyInput = {
   record: NormRecord;
   client: string;
   source?: string;
+  // v0.0.0.3 — auto-mint an opportunity for the source record. record_uuid is the
+  // 1:1 key; crm is the passthrough pipeline snapshot (Stage/$/Owner/…) that lives
+  // on the opportunity, not the shared org.
+  record_uuid?: string;
+  record_set_id?: string;
+  crm?: OpportunityCrm;
+};
+
+export type OpportunityCrm = Record<string, unknown>;
+
+export type OpportunityOutcome = {
+  id: string;
+  created: boolean; // false = updated an existing opportunity for this record_uuid
+  org_total: number; // how many opportunities this org now has (for this client)
 };
 
 export type ApplyResult = {
@@ -389,6 +403,16 @@ export type ApplyResult = {
   complete_name: string | null;
   conventional_name: string | null;
   appended: { org_links: number; media_streams: number; org_corpus: number };
+  opportunity: OpportunityOutcome | null;
+};
+
+export type OpportunitySummary = {
+  id: string;
+  name: string | null;
+  status: string | null;
+  record_uuid: string | null;
+  record_set_id: string | null;
+  source: string | null;
 };
 
 export type UpdateOrgInput = {
@@ -414,6 +438,123 @@ async function fetchOrgBySlug(db: Surreal, slug: string): Promise<OrgRow | null>
     slug,
   });
   return ((r?.[0] as OrgRow[]) ?? [])[0] ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Opportunities (v0.0.0.3) — a client-scoped, first-class entity: 1:1 with a
+// source record (record_uuid), many:1 to the canonical org. Holds the CRM
+// snapshot. Persists across imports; never auto-merged (duplicates across record
+// sets are intentional — losing one is the only failure). See
+// context-v/issues/Grilling-on-DB-Resolver--Future-Versions.md #4/#5.
+// ---------------------------------------------------------------------------
+
+let oppSchemaReady = false;
+async function ensureOpportunitiesSchema(db: Surreal): Promise<void> {
+  if (oppSchemaReady) return;
+  await db.query(`
+    DEFINE TABLE IF NOT EXISTS opportunities SCHEMALESS;
+    DEFINE INDEX IF NOT EXISTS opp_record ON opportunities FIELDS client, record_uuid;
+    DEFINE INDEX IF NOT EXISTS opp_org ON opportunities FIELDS org_slug;
+  `);
+  oppSchemaReady = true;
+}
+
+async function upsertOpportunity(
+  db: Surreal,
+  args: {
+    client: string;
+    org: unknown; // org RecordId (graph link)
+    orgSlug: string;
+    record_uuid: string;
+    record_set_id: string | null;
+    source: string;
+    name: string;
+    crm: OpportunityCrm;
+  },
+): Promise<{ id: string; created: boolean }> {
+  // 1:1 with record_uuid per client. Same record re-resolved → update; a different
+  // record (even same org) is a separate opportunity by construction.
+  const existing = await db.query(
+    'SELECT VALUE id FROM opportunities WHERE client = $client AND record_uuid = $record_uuid LIMIT 1',
+    { client: args.client, record_uuid: args.record_uuid },
+  );
+  const hit = (existing?.[0] as unknown[])?.[0];
+  if (hit) {
+    await db.query(
+      `UPDATE $id SET
+          org = $org, org_slug = $org_slug, name = $name, source = $source,
+          record_set_id = $record_set_id, crm = $crm,
+          last_touched_by = $client, last_touched_at = time::now();`,
+      {
+        id: hit,
+        org: args.org,
+        org_slug: args.orgSlug,
+        name: args.name,
+        source: args.source,
+        record_set_id: args.record_set_id,
+        crm: args.crm,
+        client: args.client,
+      },
+    );
+    return { id: String(hit), created: false };
+  }
+  const created = await db.query(
+    `CREATE opportunities SET
+        id = rand::uuid::v7(), client = $client,
+        org = $org, org_slug = $org_slug,
+        record_uuid = $record_uuid, record_set_id = $record_set_id, source = $source,
+        name = $name, crm = $crm, status = 'open',
+        client_access = [$client],
+        first_seen_at = time::now(), first_touched_by = $client,
+        last_touched_by = $client, last_touched_at = time::now()
+     RETURN id;`,
+    {
+      client: args.client,
+      org: args.org,
+      org_slug: args.orgSlug,
+      record_uuid: args.record_uuid,
+      record_set_id: args.record_set_id,
+      source: args.source,
+      name: args.name,
+      crm: args.crm,
+    },
+  );
+  return { id: String((created?.[0] as { id?: unknown }[])?.[0]?.id ?? ''), created: true };
+}
+
+async function countOpportunitiesForOrg(db: Surreal, client: string, orgSlug: string): Promise<number> {
+  const r = await db.query(
+    'SELECT count() FROM opportunities WHERE client = $client AND org_slug = $org_slug GROUP ALL;',
+    { client, org_slug: orgSlug },
+  );
+  return ((r?.[0] as { count?: number }[])?.[0]?.count) ?? 0;
+}
+
+// Capability: resolver.opportunities_for_org — the reverse bond, org → its
+// opportunities (closes the #2(c) deferral natively).
+export async function opportunitiesForOrg(
+  db: Surreal,
+  org_slug: string,
+  client: string,
+): Promise<{ opportunities: OpportunitySummary[] }> {
+  await ensureOpportunitiesSchema(db);
+  const r = await db.query(
+    // last_touched_at must be in the projection to ORDER BY it (SurrealDB 2.x).
+    `SELECT id, name, status, record_uuid, record_set_id, source, last_touched_at
+       FROM opportunities
+       WHERE client = $client AND org_slug = $org_slug
+       ORDER BY last_touched_at DESC;`,
+    { client, org_slug },
+  );
+  const rows = ((r?.[0] as Record<string, unknown>[]) ?? []).map((o) => ({
+    id: String(o.id),
+    name: (o.name as string) ?? null,
+    status: (o.status as string) ?? null,
+    record_uuid: (o.record_uuid as string) ?? null,
+    record_set_id: (o.record_set_id as string) ?? null,
+    source: (o.source as string) ?? null,
+  }));
+  return { opportunities: rows };
 }
 
 export async function applyResolution(db: Surreal, input: ApplyInput): Promise<ApplyResult> {
@@ -479,6 +620,25 @@ export async function applyResolution(db: Surreal, input: ApplyInput): Promise<A
     },
   );
 
+  // Auto-mint the opportunity (v0.0.0.3) — every resolved record mints/updates its
+  // opportunity so the count is never lost. Keyed 1:1 on record_uuid.
+  let opportunity: OpportunityOutcome | null = null;
+  if (input.record_uuid) {
+    await ensureOpportunitiesSchema(db);
+    const upserted = await upsertOpportunity(db, {
+      client,
+      org: org.id,
+      orgSlug: org.slug,
+      record_uuid: input.record_uuid,
+      record_set_id: input.record_set_id ?? null,
+      source,
+      name: input.record.name,
+      crm: input.crm ?? {},
+    });
+    const org_total = await countOpportunitiesForOrg(db, client, org.slug);
+    opportunity = { id: upserted.id, created: upserted.created, org_total };
+  }
+
   return {
     ok: true,
     org_id: String(org.id),
@@ -491,6 +651,7 @@ export async function applyResolution(db: Surreal, input: ApplyInput): Promise<A
       media_streams: append.media_streams.length,
       org_corpus: append.org_corpus.length,
     },
+    opportunity,
   };
 }
 

@@ -38,6 +38,21 @@ export type OrgSuggestion = {
   conventional_name: string | null;
 };
 
+export type OpportunityOutcome = {
+  id: string;
+  created: boolean; // false = updated the existing opportunity for this record
+  org_total: number; // opportunities this org now has (for this client)
+};
+
+export type OpportunitySummary = {
+  id: string;
+  name: string | null;
+  status: string | null;
+  record_uuid: string | null;
+  record_set_id: string | null;
+  source: string | null;
+};
+
 export type ApplyResult = {
   ok: boolean;
   org_id: string;
@@ -46,6 +61,8 @@ export type ApplyResult = {
   complete_name: string | null;
   conventional_name: string | null;
   appended: { org_links: number; media_streams: number; org_corpus: number };
+  // v0.0.0.3 — the opportunity auto-minted for this record (null if no record_uuid).
+  opportunity?: OpportunityOutcome | null;
   // client-side: whether the source row was stamped with the bond after the
   // canonical write (the round-trip write-back). False means the canonical
   // write landed but the row stamp failed — re-apply (idempotent) to retry.

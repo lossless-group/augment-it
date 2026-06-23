@@ -141,6 +141,8 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // v0.0.0.2 — edit the matched/created canonical org's name + slug (slug rename
   // pushes the old slug into aliases[]; the UI re-stamps the bonded row after).
   'resolver.update_org': 'resolver.update_org.requested',
+  // v0.0.0.3 — opportunities (auto-minted on apply); reverse bond org → opportunities.
+  'resolver.opportunities_for_org': 'resolver.opportunities_for_org.requested',
 };
 
 const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
@@ -200,6 +202,7 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'resolver.search': 30_000,
   'resolver.apply': 30_000,
   'resolver.update_org': 30_000,
+  'resolver.opportunities_for_org': 30_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {

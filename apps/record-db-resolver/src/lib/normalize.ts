@@ -58,6 +58,26 @@ function urlsFrom(v: unknown): string[] {
     .filter(Boolean);
 }
 
+// The pipeline/CRM columns that ride onto the opportunity (v0.0.0.3) — NOT onto the
+// shared canonical org. Allowlist from the reach-edu Master Pipeline Tracker; only
+// non-empty values are carried. Schemaless on the DB side, so this can grow freely.
+const CRM_KEYS = [
+  'Type', 'Owner', 'Joe Involved? (Y/N)', 'Joe Role', 'Resource Connector', 'Stage',
+  'Total Commitment ($)', 'FY26 Revenue ($)', 'FY27 Revenue ($)', 'Probability (auto)',
+  'Weighted FY26 (auto)', 'Weighted FY27 (auto)', 'Last Contact/Update', 'Notes/Context',
+  'Next Step', 'Next Step Due', 'Next Step Owner', 'Next Step Status', 'Upcoming Event',
+  'RSVP Status', 'Days Since Contact (auto)', 'Overdue? (auto)', 'Stalled? (auto)',
+];
+
+export function buildCrm(fields: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const k of CRM_KEYS) {
+    const v = fields[k];
+    if (v !== undefined && v !== null && String(v).trim() !== '') out[k] = v;
+  }
+  return out;
+}
+
 export function normalizeRecord(fields: Record<string, unknown>): NormRecord {
   const name = firstString(fields, NAME_KEYS);
   const slug_hint = str(fields['corpus_funder_slug']) || null;

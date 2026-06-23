@@ -15,6 +15,7 @@ import {
   searchOrgs,
   applyResolution,
   updateOrg,
+  opportunitiesForOrg,
   type NormRecord,
   type ApplyInput,
   type UpdateOrgInput,
@@ -80,6 +81,22 @@ export function registerHandlers(nc: NatsConnection): void {
         const db = await getDb();
         const result = await updateOrg(db, args);
         if (msg.reply) msg.respond(jc.encode(result));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // resolver.opportunities_for_org — reverse bond, org → its opportunities (v0.0.0.3)
+  (async () => {
+    const sub = nc.subscribe('resolver.opportunities_for_org.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as { org_slug: string; client: string };
+      try {
+        const db = await getDb();
+        const result = await opportunitiesForOrg(db, args.org_slug, args.client);
+        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
         if (msg.reply) msg.respond(jc.encode({ ok: false, error }));

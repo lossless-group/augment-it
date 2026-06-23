@@ -13,7 +13,7 @@
   import { workspace, type RecordSet, type Row } from '@augment-it/workspace';
   import RecordCard from './components/RecordCard.svelte';
   import CandidateList from './components/CandidateList.svelte';
-  import { normalizeRecord } from './lib/normalize';
+  import { normalizeRecord, buildCrm } from './lib/normalize';
   import { fetchCandidates, searchOrgs, applyResolution, updateOrg, stampRow } from './lib/resolver-client';
   import type { Candidate, OrgSuggestion, ApplyResult } from './lib/types';
 
@@ -175,7 +175,15 @@
     applyBusy = true;
     actionError = null;
     try {
-      const res = await applyResolution(args);
+      // Inject the opportunity payload (v0.0.0.3) — record_uuid is the 1:1 key,
+      // crm is the pipeline snapshot that lands on the opportunity, not the org.
+      const f = (current?.fields ?? {}) as Record<string, unknown>;
+      const res = await applyResolution({
+        ...args,
+        record_uuid: f.record_uuid ? String(f.record_uuid) : undefined,
+        record_set_id: current?.record_set_id,
+        crm: buildCrm(f),
+      });
       lastResult = res;
       // Reflect the stamp in local state so the already-resolved indicator (and a
       // future ToC status) update without a refetch. row_id is unchanged, so the
@@ -389,6 +397,14 @@
               <p class="rdr-result-body">
                 appended +{lastResult.appended.org_links} links · +{lastResult.appended.media_streams} streams · +{lastResult.appended.org_corpus} corpus
               </p>
+
+              {#if lastResult.opportunity}
+                <p class="rdr-opp">
+                  opportunity {lastResult.opportunity.created ? 'recorded' : 'updated'} ·
+                  this org now has <strong>{lastResult.opportunity.org_total}</strong>
+                  opportunit{lastResult.opportunity.org_total === 1 ? 'y' : 'ies'}
+                </p>
+              {/if}
 
               {#if record && lastResult.complete_name && record.name && lastResult.complete_name !== record.name}
                 <p class="rdr-divergence">

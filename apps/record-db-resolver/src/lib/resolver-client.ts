@@ -9,6 +9,7 @@ import type {
   ApplyResult,
   UpdateOrgInput,
   UpdateOrgResult,
+  OpportunitySummary,
 } from './types';
 
 // The bond fields stamped onto the source row after a canonical write. The id is
@@ -56,6 +57,11 @@ export async function applyResolution(args: {
   client: string;
   source: string;
   row_id?: string;
+  // v0.0.0.3 — auto-mint the opportunity. record_uuid is the 1:1 key; crm is the
+  // pipeline snapshot that lands on the opportunity (not the shared org).
+  record_uuid?: string;
+  record_set_id?: string;
+  crm?: Record<string, unknown>;
 }): Promise<ApplyResult> {
   const { row_id, ...applyArgs } = args;
   const r = (await workspace.invoke('resolver.apply', applyArgs)) as ApplyResult;
@@ -86,4 +92,17 @@ export async function updateOrg(args: UpdateOrgInput): Promise<UpdateOrgResult> 
   const r = (await workspace.invoke('resolver.update_org', args)) as UpdateOrgResult;
   if (!r.ok) throw new Error(r.error || 'resolver.update_org failed');
   return r;
+}
+
+export async function opportunitiesForOrg(
+  org_slug: string,
+  client: string,
+): Promise<OpportunitySummary[]> {
+  const r = (await workspace.invoke('resolver.opportunities_for_org', { org_slug, client })) as {
+    ok: boolean;
+    opportunities?: OpportunitySummary[];
+    error?: string;
+  };
+  if (!r.ok) throw new Error(r.error || 'resolver.opportunities_for_org failed');
+  return r.opportunities ?? [];
 }
