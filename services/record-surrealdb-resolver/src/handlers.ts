@@ -15,10 +15,12 @@ import {
   searchOrgs,
   applyResolution,
   updateOrg,
+  updateOpportunity,
   opportunitiesForOrg,
   type NormRecord,
   type ApplyInput,
   type UpdateOrgInput,
+  type UpdateOpportunityInput,
 } from './resolver';
 
 const jc = JSONCodec();
@@ -80,6 +82,22 @@ export function registerHandlers(nc: NatsConnection): void {
       try {
         const db = await getDb();
         const result = await updateOrg(db, args);
+        if (msg.reply) msg.respond(jc.encode(result));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // resolver.update_opportunity — edit an opportunity's name (v0.0.0.4)
+  (async () => {
+    const sub = nc.subscribe('resolver.update_opportunity.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as UpdateOpportunityInput;
+      try {
+        const db = await getDb();
+        const result = await updateOpportunity(db, args);
         if (msg.reply) msg.respond(jc.encode(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);

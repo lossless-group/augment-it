@@ -14,7 +14,7 @@
   import RecordCard from './components/RecordCard.svelte';
   import CandidateList from './components/CandidateList.svelte';
   import { normalizeRecord, buildCrm } from './lib/normalize';
-  import { fetchCandidates, searchOrgs, applyResolution, updateOrg, stampRow } from './lib/resolver-client';
+  import { fetchCandidates, searchOrgs, applyResolution, updateOrg, updateOpportunity, stampRow } from './lib/resolver-client';
   import type { Candidate, OrgSuggestion, ApplyResult } from './lib/types';
 
   const TOKEN_KEY = 'augment-it:session-token';
@@ -43,6 +43,7 @@
   let editName = $state('');
   let editConventional = $state('');
   let editSlug = $state('');
+  let editOppName = $state(''); // v0.0.0.4 — opportunity name, edited alongside the org
   let editBusy = $state(false);
   let editError = $state<string | null>(null);
   let editSaved = $state(false);
@@ -142,6 +143,7 @@
     editName = '';
     editConventional = '';
     editSlug = '';
+    editOppName = '';
     editError = null;
     editSaved = false;
     showEdit = false;
@@ -222,6 +224,9 @@
       editName = res.complete_name ?? record?.name ?? '';
       editConventional = res.conventional_name ?? '';
       editSlug = res.slug;
+      // The opportunity was minted with the record's (qualified) name; seed it so
+      // the operator can keep the qualifier here while cleaning the org name above.
+      editOppName = res.opportunity ? (record?.name ?? '') : '';
       editError = null;
       editSaved = false;
       showEdit = false;
@@ -276,6 +281,14 @@
           };
         } catch {
           /* non-fatal — canonical edit landed; row display copy can lag */
+        }
+      }
+      // Also save the opportunity name (v0.0.0.4) — keyed by record_uuid so the org
+      // can be clean while the opportunity keeps its qualifier.
+      if (lastResult.opportunity) {
+        const ru = (current?.fields as Record<string, unknown>)?.record_uuid;
+        if (ru && editOppName.trim()) {
+          await updateOpportunity({ client, record_uuid: String(ru), name: editOppName.trim() });
         }
       }
       editSaved = true;
@@ -431,25 +444,31 @@
               {/if}
 
               <button type="button" class="rdr-toggle" onclick={() => (showEdit = !showEdit)}>
-                {showEdit ? '▾ hide canonical edits' : '▸ edit canonical name / slug'}
+                {showEdit ? '▾ hide edits' : '▸ edit org / opportunity names'}
               </button>
               {#if showEdit}
                 <div class="rdr-edit">
+                  <div class="rdr-edit-group">organization</div>
                   <label class="rdr-edit-row"><span>name</span>
-                    <input type="text" bind:value={editName} placeholder="The Schultz Family Foundation" /></label>
+                    <input type="text" bind:value={editName} placeholder="Accelerate the Future" /></label>
                   <label class="rdr-edit-row"><span>short name</span>
-                    <input type="text" bind:value={editConventional} placeholder="Schultz Family Foundation" /></label>
+                    <input type="text" bind:value={editConventional} placeholder="Accelerate the Future" /></label>
                   <label class="rdr-edit-row"><span>slug</span>
-                    <input type="text" bind:value={editSlug} placeholder="schultz-family-foundation" /></label>
+                    <input type="text" bind:value={editSlug} placeholder="accelerate-the-future" /></label>
+                  {#if lastResult.opportunity}
+                    <div class="rdr-edit-group">opportunity</div>
+                    <label class="rdr-edit-row"><span>name</span>
+                      <input type="text" bind:value={editOppName} placeholder="Accelerate the Future (NCAD)" /></label>
+                  {/if}
                   <div class="rdr-edit-actions">
                     <button type="button" class="rdr-btn rdr-btn-primary" disabled={editBusy} onclick={() => void saveCanonicalEdits()}>
-                      {editBusy ? 'saving…' : 'save canonical edits'}
+                      {editBusy ? 'saving…' : 'save edits'}
                     </button>
                     {#if editSaved}<span class="rdr-stamp-ok">✓ saved</span>{/if}
                   </div>
                   {#if editError}<div class="rdr-error">{editError}</div>{/if}
                   <p class="rdr-muted rdr-edit-hint">
-                    Renaming the slug keeps the old one as an alias and re-stamps this row — the id bond never changes.
+                    Keep the org name clean (e.g. “Accelerate the Future”) and let the opportunity carry the qualifier (e.g. “(NCAD)”). Slug renames keep the old slug as an alias; the id bond never changes.
                   </p>
                 </div>
               {/if}

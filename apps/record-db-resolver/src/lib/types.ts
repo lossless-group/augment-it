@@ -88,3 +88,16 @@ export type UpdateOrgResult = {
   renamed: boolean;
   error?: string;
 };
+
+export type UpdateOpportunityInput = {
+  client: string;
+  record_uuid: string;
+  name?: string;
+};
+
+export type UpdateOpportunityResult = {
+  ok: boolean;
+  updated: number;
+  name: string | null;
+  error?: string;
+};

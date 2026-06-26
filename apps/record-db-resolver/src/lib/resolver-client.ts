@@ -9,6 +9,8 @@ import type {
   ApplyResult,
   UpdateOrgInput,
   UpdateOrgResult,
+  UpdateOpportunityInput,
+  UpdateOpportunityResult,
   OpportunitySummary,
 } from './types';
 
@@ -91,6 +93,12 @@ export async function applyResolution(args: {
 export async function updateOrg(args: UpdateOrgInput): Promise<UpdateOrgResult> {
   const r = (await workspace.invoke('resolver.update_org', args)) as UpdateOrgResult;
   if (!r.ok) throw new Error(r.error || 'resolver.update_org failed');
+  return r;
+}
+
+export async function updateOpportunity(args: UpdateOpportunityInput): Promise<UpdateOpportunityResult> {
+  const r = (await workspace.invoke('resolver.update_opportunity', args)) as UpdateOpportunityResult;
+  if (!r.ok) throw new Error(r.error || 'resolver.update_opportunity failed');
   return r;
 }
 

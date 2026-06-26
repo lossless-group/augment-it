@@ -530,6 +530,29 @@ async function countOpportunitiesForOrg(db: Surreal, client: string, orgSlug: st
   return ((r?.[0] as { count?: number }[])?.[0]?.count) ?? 0;
 }
 
+// Capability: resolver.update_opportunity — edit an opportunity's name (v0.0.0.4).
+// Keyed by (client, record_uuid) so we never round-trip the SDK RecordId string.
+// Lets the org go clean ("Accelerate the Future") while the opportunity keeps its
+// qualifier ("Accelerate the Future (NCAD)").
+export type UpdateOpportunityInput = { client: string; record_uuid: string; name?: string };
+export type UpdateOpportunityResult = { ok: true; updated: number; name: string | null };
+
+export async function updateOpportunity(
+  db: Surreal,
+  input: UpdateOpportunityInput,
+): Promise<UpdateOpportunityResult> {
+  await ensureOpportunitiesSchema(db);
+  if (!input.record_uuid) throw new Error('update_opportunity requires record_uuid');
+  const name = input.name?.trim();
+  if (!name) return { ok: true, updated: 0, name: null };
+  await db.query(
+    `UPDATE opportunities SET name = $name, last_touched_by = $client, last_touched_at = time::now()
+       WHERE client = $client AND record_uuid = $record_uuid;`,
+    { name, client: input.client, record_uuid: input.record_uuid },
+  );
+  return { ok: true, updated: 1, name };
+}
+
 // Capability: resolver.opportunities_for_org — the reverse bond, org → its
 // opportunities (closes the #2(c) deferral natively).
 export async function opportunitiesForOrg(
@@ -701,6 +724,18 @@ export async function updateOrg(db: Surreal, input: UpdateOrgInput): Promise<Upd
   sets.push('last_touched_at = time::now()');
 
   await db.query(`UPDATE $id SET ${sets.join(', ')};`, vars);
+
+  // Fan-out re-stamp: a slug rename leaves bonded opportunities pointing at the old
+  // org_slug, which orphans the reverse lookup. Re-stamp them so org → opportunities
+  // stays correct. (The org keeps the old slug in aliases[] for content_items/corpus.)
+  if (renamed) {
+    await ensureOpportunitiesSchema(db);
+    await db.query(
+      `UPDATE opportunities SET org_slug = $new_slug, last_touched_at = time::now()
+         WHERE org_slug = $old_slug;`,
+      { new_slug: wantSlug, old_slug: org.slug },
+    );
+  }
 
   const fresh = (await fetchOrgBySlug(db, renamed ? (wantSlug as string) : org.slug)) ?? org;
   return {

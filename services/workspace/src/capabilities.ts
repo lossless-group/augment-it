@@ -143,6 +143,8 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'resolver.update_org': 'resolver.update_org.requested',
   // v0.0.0.3 — opportunities (auto-minted on apply); reverse bond org → opportunities.
   'resolver.opportunities_for_org': 'resolver.opportunities_for_org.requested',
+  // v0.0.0.4 — edit an opportunity's name (distinct from the org name).
+  'resolver.update_opportunity': 'resolver.update_opportunity.requested',
 };
 
 const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
@@ -203,6 +205,7 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'resolver.apply': 30_000,
   'resolver.update_org': 30_000,
   'resolver.opportunities_for_org': 30_000,
+  'resolver.update_opportunity': 30_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {
