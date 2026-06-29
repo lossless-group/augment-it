@@ -15,12 +15,12 @@ export type JinaResult =
     }
   | { ok: false; error: string; status?: number };
 
-export async function fetchViaJina(url: string): Promise<JinaResult> {
+export async function fetchViaJina(url: string, opts: { noCache?: boolean } = {}): Promise<JinaResult> {
   const RETRIES = 3;
   let backoffMs = 2000;
   let lastErr: { ok: false; error: string; status?: number } | null = null;
   for (let attempt = 0; attempt < RETRIES; attempt += 1) {
-    const result = await jinaFetchOnce(url);
+    const result = await jinaFetchOnce(url, opts.noCache);
     if (result.ok) return result;
     if (result.status !== 429) return result;
     lastErr = result;
@@ -32,11 +32,12 @@ export async function fetchViaJina(url: string): Promise<JinaResult> {
   return lastErr ?? { ok: false, error: 'jina fetch failed after retries' };
 }
 
-async function jinaFetchOnce(url: string): Promise<JinaResult> {
+async function jinaFetchOnce(url: string, noCache = false): Promise<JinaResult> {
   const fetched_at = new Date().toISOString();
   const apiKey = process.env.JINA_API_KEY;
   const headers: Record<string, string> = { Accept: 'text/markdown' };
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+  if (noCache) headers['X-No-Cache'] = 'true'; // bypass Jina's cached snapshot (retry)
 
   let res: Response;
   try {

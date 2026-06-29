@@ -32,12 +32,14 @@ export function normalizeUrl(raw: string): string {
   }
 }
 
-export function toTrainCase(s: string): string {
+// Tags: enforce dashes-not-spaces but PRESERVE the casing the user typed, so
+// "Impact of AI" → "Impact-of-AI" (not "Impact-Of-Ai"). Acronyms and small words
+// survive intact — the user owns the casing.
+export function toDashed(s: string): string {
   return s
     .trim()
-    .split(/[^a-z0-9]+/i)
+    .split(/[^a-zA-Z0-9]+/)
     .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join('-');
 }
 
@@ -58,6 +60,14 @@ async function ensureDomainSchema(db: Surreal): Promise<void> {
     DEFINE INDEX IF NOT EXISTS usage_lookup ON source_usages FIELDS client_slug, domain_type, domain_slug;
     DEFINE TABLE IF NOT EXISTS tag_vocab SCHEMALESS;
     DEFINE INDEX IF NOT EXISTS tag_vocab_uq ON tag_vocab FIELDS client_slug, tag UNIQUE;
+  `);
+  // One-time normalization: source_uuid must be a STRING to survive JSON/NATS
+  // round-trips and match in WHERE clauses (SurrealDB `uuid` types don't — the
+  // same lesson as the resolver's slug-not-RecordId rule). Idempotent:
+  // type::string of an already-string value is unchanged.
+  await db.query(`
+    UPDATE sources SET source_uuid = type::string(source_uuid);
+    UPDATE source_usages SET source_uuid = type::string(source_uuid);
   `);
   domainSchemaReady = true;
 }
@@ -102,6 +112,8 @@ export type UsageRow = {
   domain_slug: string;
   status: string;
   tags: string[];
+  source_slug?: string;
+  corpus_path?: string;
 };
 
 // --- domains ---------------------------------------------------------------
@@ -111,7 +123,7 @@ export async function createDomain(
   args: { type: string; slug: string; title: string; client_slug: string; tags?: string[] },
 ): Promise<{ domain: DomainRow }> {
   const { type, slug, title, client_slug } = args;
-  const tags = (args.tags ?? []).map(toTrainCase);
+  const tags = (args.tags ?? []).map(toDashed);
   for (const t of tags) await ensureTagInVocab(db, client_slug, t);
   const existing = first<DomainRow>(
     await db.query('SELECT type, slug, title, client_slugs, tags FROM domains WHERE type = $type AND slug = $slug LIMIT 1', {
@@ -160,7 +172,8 @@ export async function listDomains(db: Surreal, args: { type?: string; client_slu
     vars.client = args.client_slug;
   }
   const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
-  const res = await db.query(`SELECT type, slug, title, client_slugs, tags FROM domains ${where} ORDER BY created_at DESC`, vars);
+  // created_at must be in the projection to ORDER BY it (SurrealDB 2.x idiom rule).
+  const res = await db.query(`SELECT type, slug, title, client_slugs, tags, created_at FROM domains ${where} ORDER BY created_at DESC`, vars);
   return { domains: ((res as unknown[])?.[0] as DomainRow[]) ?? [] };
 }
 
@@ -178,7 +191,7 @@ async function upsertSource(db: Surreal, args: { url: string }): Promise<SourceR
   const created = first<SourceRow>(
     await db.query(
       `CREATE sources SET
-          id = rand::uuid::v7(), source_uuid = rand::uuid::v7(),
+          id = rand::uuid::v7(), source_uuid = type::string(rand::uuid::v7()),
           normalized_url = $n, url = $url,
           title = '', publisher = '', published_date = '', content_type = '',
           first_seen_at = time::now()
@@ -216,12 +229,12 @@ export async function addSource(
 export async function assembleDomain(
   db: Surreal,
   args: { type: string; slug: string; client_slug: string },
-): Promise<{ sources: (SourceRow & { status: string; tags: string[] })[] }> {
+): Promise<{ sources: (SourceRow & { status: string; tags: string[]; source_slug?: string; corpus_path?: string })[] }> {
   const usages = ((await db.query(
-    'SELECT source_uuid, status, tags FROM source_usages WHERE domain_type = $t AND domain_slug = $s AND client_slug = $c ORDER BY created_at ASC',
+    'SELECT source_uuid, status, tags, source_slug, corpus_path, created_at FROM source_usages WHERE domain_type = $t AND domain_slug = $s AND client_slug = $c ORDER BY created_at ASC',
     { t: args.type, s: args.slug, c: args.client_slug },
   )) as unknown[])?.[0] as UsageRow[] | undefined;
-  const sources: (SourceRow & { status: string; tags: string[] })[] = [];
+  const sources: (SourceRow & { status: string; tags: string[]; source_slug?: string; corpus_path?: string })[] = [];
   for (const u of usages ?? []) {
     const s = first<SourceRow>(
       await db.query(
@@ -229,7 +242,7 @@ export async function assembleDomain(
         { u: u.source_uuid },
       ),
     );
-    if (s) sources.push({ ...s, status: u.status ?? 'metadata-only', tags: u.tags ?? [] });
+    if (s) sources.push({ ...s, status: u.status ?? 'metadata-only', tags: u.tags ?? [], source_slug: u.source_slug, corpus_path: u.corpus_path });
   }
   return { sources };
 }
@@ -237,8 +250,8 @@ export async function assembleDomain(
 // --- tags (workspace vocabulary, Train-Case) -------------------------------
 
 export async function suggestTags(db: Surreal, args: { client_slug: string; prefix?: string }): Promise<{ tags: string[] }> {
-  const res = await db.query('SELECT VALUE tag FROM tag_vocab WHERE client_slug = $c ORDER BY tag ASC', { c: args.client_slug });
-  let tags = (((res as unknown[])?.[0] as string[]) ?? []).filter(Boolean);
+  const res = await db.query('SELECT tag FROM tag_vocab WHERE client_slug = $c ORDER BY tag ASC', { c: args.client_slug });
+  let tags = (((res as unknown[])?.[0] as { tag: string }[]) ?? []).map((r) => r.tag).filter(Boolean);
   const p = (args.prefix ?? '').trim().toLowerCase();
   if (p) tags = tags.filter((t) => t.toLowerCase().includes(p));
   return { tags: tags.slice(0, 25) };
@@ -248,7 +261,7 @@ export async function applyTag(
   db: Surreal,
   args: { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; tag: string; op?: 'add' | 'remove' },
 ): Promise<{ ok: true; tag: string }> {
-  const tag = toTrainCase(args.tag);
+  const tag = toDashed(args.tag);
   const op = args.op ?? 'add';
   const fn = op === 'remove' ? 'array::complement' : 'array::union';
   await db.query(
@@ -317,7 +330,266 @@ export function registerDomainHandlers(nc: NatsConnection): void {
 
   handle('domain.list.requested', listDomains);
   handle('domain.assemble.requested', assembleDomain);
-  handle('source.add.requested', addSource);
+
+  // source.add — DB registry + usage, then cross-call content-ingest to Jina-fetch
+  // metadata and write the per-source file. Update the registry title + usage path.
+  void (async () => {
+    const sub = nc.subscribe('source.add.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as { url: string; domain_type: string; domain_slug: string; client_slug: string };
+      try {
+        const db = await getDb();
+        await ensureDomainSchema(db);
+        const { source } = await addSource(db, args);
+        const reply = await nc.request(
+          'corpus.source.add.requested',
+          jc.encode({
+            client_slug: args.client_slug,
+            domain_type: args.domain_type,
+            domain_slug: args.domain_slug,
+            source_uuid: source.source_uuid,
+            url: source.url,
+            normalized_url: source.normalized_url,
+          }),
+          { timeout: 60_000 }, // Jina can be slow
+        );
+        const f = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; source_slug?: string; title?: string; error?: string };
+        if (!f.ok) throw new Error(`source file write failed: ${f.error ?? 'unknown'}`);
+        if (f.title) {
+          await db.query('UPDATE sources SET title = $title WHERE source_uuid = $u;', { title: f.title, u: source.source_uuid });
+        }
+        await db.query(
+          `UPDATE source_usages SET corpus_path = $p, source_slug = $sl
+             WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s;`,
+          { p: f.corpus_path ?? null, sl: f.source_slug ?? null, u: source.source_uuid, c: args.client_slug, t: args.domain_type, s: args.domain_slug },
+        );
+        if (msg.reply) {
+          msg.respond(jc.encode({ ok: true, source: { ...source, title: f.title ?? source.title, status: 'metadata-only', corpus_path: f.corpus_path } }));
+        }
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  type SourceRef = { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string };
+  const usageOf = async (db: Surreal, a: SourceRef) =>
+    first<{ source_slug?: string }>(
+      await db.query(
+        'SELECT source_slug FROM source_usages WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s LIMIT 1',
+        { u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
+      ),
+    );
+
+  // source.fetch / source.retry — pull full content via content-ingest; update
+  // registry title + usage status. retry forces a Jina cache bypass. Self-rescues
+  // sources that have no file/slug yet.
+  async function runSourceFetch(a: SourceRef, noCache: boolean): Promise<{ ok: boolean; source?: unknown; error?: string }> {
+    try {
+      const db = await getDb();
+      await ensureDomainSchema(db);
+      const src = first<{ url: string }>(await db.query('SELECT url FROM sources WHERE source_uuid = $u LIMIT 1', { u: a.source_uuid }));
+      if (!src) throw new Error('source not found in registry');
+      const usage = await usageOf(db, a);
+      const reply = await nc.request(
+        'corpus.source.fetch.requested',
+        jc.encode({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_uuid: a.source_uuid, url: src.url, source_slug: usage?.source_slug ?? undefined, no_cache: noCache }),
+        { timeout: 90_000 },
+      );
+      const f = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; source_slug?: string; title?: string; content_pulled?: boolean; error?: string };
+      if (!f.ok) throw new Error(`fetch failed: ${f.error ?? 'unknown'}`);
+      if (f.title) await db.query('UPDATE sources SET title = $title WHERE source_uuid = $u;', { title: f.title, u: a.source_uuid });
+      await db.query(
+        `UPDATE source_usages SET status = 'fetched', source_slug = $sl, corpus_path = $p
+           WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s;`,
+        { sl: f.source_slug ?? usage?.source_slug ?? null, p: f.corpus_path ?? null, u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
+      );
+      return { ok: true, source: { source_uuid: a.source_uuid, url: src.url, title: f.title, status: 'fetched', content_pulled: f.content_pulled ?? true, corpus_path: f.corpus_path } };
+    } catch (err: unknown) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+  const fetchHandler = (subject: string, noCache: boolean): void => {
+    void (async () => {
+      const sub = nc.subscribe(subject);
+      for await (const msg of sub) {
+        const res = await runSourceFetch(jc.decode(msg.data) as SourceRef, noCache);
+        if (msg.reply) msg.respond(jc.encode(res));
+      }
+    })();
+  };
+  fetchHandler('source.fetch.requested', false);
+  fetchHandler('source.retry.requested', true);
+
+  // source.remove — drop the (client, domain, source) usage + delete its file. The
+  // canonical sources registry row is kept (shared identity).
+  void (async () => {
+    const sub = nc.subscribe('source.remove.requested');
+    for await (const msg of sub) {
+      const a = jc.decode(msg.data) as SourceRef;
+      try {
+        const db = await getDb();
+        await ensureDomainSchema(db);
+        const usage = await usageOf(db, a);
+        await db.query(
+          'DELETE source_usages WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s;',
+          { u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
+        );
+        if (usage?.source_slug) {
+          await nc.request('corpus.source.remove.requested', jc.encode({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: usage.source_slug }), { timeout: 15_000 });
+        }
+        if (msg.reply) msg.respond(jc.encode({ ok: true, source_uuid: a.source_uuid }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // source.update — patch the registry's bibliographic fields + the file frontmatter.
+  void (async () => {
+    const sub = nc.subscribe('source.update.requested');
+    for await (const msg of sub) {
+      const a = jc.decode(msg.data) as SourceRef & { fields: Record<string, string> };
+      try {
+        const db = await getDb();
+        await ensureDomainSchema(db);
+        const fields = a.fields ?? {};
+        const setParts: string[] = [];
+        const vars: Record<string, unknown> = { u: a.source_uuid };
+        for (const k of ['title', 'publisher', 'published_date']) {
+          if (k in fields) {
+            setParts.push(`${k} = $${k}`);
+            vars[k] = fields[k];
+          }
+        }
+        if (setParts.length) await db.query(`UPDATE sources SET ${setParts.join(', ')} WHERE source_uuid = $u;`, vars);
+        const usage = await usageOf(db, a);
+        let source_slug = usage?.source_slug;
+        if (usage?.source_slug) {
+          const reply = await nc.request('corpus.source.update.requested', jc.encode({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: usage.source_slug, fields }), { timeout: 15_000 });
+          const r = jc.decode(reply.data) as { ok?: boolean; source_slug?: string; corpus_path?: string };
+          // a title edit re-slugs (and renames) the file — keep the usage row pointed at it
+          if (r?.source_slug && r.source_slug !== usage.source_slug) {
+            source_slug = r.source_slug;
+            await db.query(
+              `UPDATE source_usages SET source_slug = $sl, corpus_path = $p
+                 WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s;`,
+              { sl: r.source_slug, p: r.corpus_path ?? null, u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
+            );
+          }
+        }
+        if (msg.reply) msg.respond(jc.encode({ ok: true, fields, source_slug }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // source.attach — hang an operator-uploaded binary (PDF the analyst downloaded
+  // themselves) under the source. Identity (url) is unchanged; this just sets the
+  // content artifact + marks the usage fetched.
+  void (async () => {
+    const sub = nc.subscribe('source.attach.requested');
+    for await (const msg of sub) {
+      const a = jc.decode(msg.data) as SourceRef & { filename: string; content_base64: string; content_type?: string };
+      try {
+        const db = await getDb();
+        await ensureDomainSchema(db);
+        const usage = await usageOf(db, a);
+        if (!usage?.source_slug) throw new Error('source has no file yet — add it first');
+        const reply = await nc.request(
+          'corpus.source.attach.requested',
+          jc.encode({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: usage.source_slug, filename: a.filename, content_base64: a.content_base64, content_type: a.content_type }),
+          { timeout: 60_000 },
+        );
+        const r = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; binary_filename?: string; bytes?: number; original_bytes?: number; compressed?: boolean; error?: string };
+        if (!r.ok) throw new Error(`attach failed: ${r.error ?? 'unknown'}`);
+        await db.query(
+          `UPDATE source_usages SET status = 'fetched', corpus_path = $p
+             WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s;`,
+          { p: r.corpus_path ?? null, u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
+        );
+        if (msg.reply) {
+          msg.respond(jc.encode({ ok: true, source: { source_uuid: a.source_uuid, status: 'fetched', content_pulled: true, corpus_path: r.corpus_path, binary_filename: r.binary_filename, bytes: r.bytes, original_bytes: r.original_bytes, compressed: r.compressed } }));
+        }
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // extract.add — append a pasted extract to the source's file (needs a file = a source_slug).
+  void (async () => {
+    const sub = nc.subscribe('extract.add.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; kind: string; text: string };
+      try {
+        const db = await getDb();
+        await ensureDomainSchema(db);
+        const usage = first<{ source_slug?: string }>(
+          await db.query(
+            'SELECT source_slug FROM source_usages WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s LIMIT 1',
+            { u: args.source_uuid, c: args.client_slug, t: args.domain_type, s: args.domain_slug },
+          ),
+        );
+        if (!usage?.source_slug) throw new Error('source has no file yet — fetch the source first');
+        const reply = await nc.request(
+          'corpus.source.extract.requested',
+          jc.encode({
+            client_slug: args.client_slug,
+            domain_type: args.domain_type,
+            domain_slug: args.domain_slug,
+            source_slug: usage.source_slug,
+            kind: args.kind,
+            text: args.text,
+          }),
+          { timeout: 15_000 },
+        );
+        const f = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; error?: string };
+        if (!f.ok) throw new Error(`extract write failed: ${f.error ?? 'unknown'}`);
+        if (msg.reply) msg.respond(jc.encode({ ok: true, corpus_path: f.corpus_path }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
   handle('tag.suggest.requested', suggestTags);
-  handle('tag.apply.requested', applyTag);
+
+  // tag.apply — update the usage's tags in the DB, then mirror the resulting
+  // list into the source file's frontmatter so the corpus stays self-describing.
+  void (async () => {
+    const sub = nc.subscribe('tag.apply.requested');
+    for await (const msg of sub) {
+      const a = jc.decode(msg.data) as { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; tag: string; op?: 'add' | 'remove' };
+      try {
+        const db = await getDb();
+        await ensureDomainSchema(db);
+        const res = await applyTag(db, a);
+        const row = first<{ tags?: string[]; source_slug?: string }>(
+          await db.query(
+            'SELECT tags, source_slug FROM source_usages WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s LIMIT 1',
+            { u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
+          ),
+        );
+        const tags = row?.tags ?? [];
+        if (row?.source_slug) {
+          await nc.request(
+            'corpus.source.update.requested',
+            jc.encode({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: row.source_slug, fields: {}, tags }),
+            { timeout: 15_000 },
+          );
+        }
+        if (msg.reply) msg.respond(jc.encode({ ok: true, tag: res.tag, tags }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
 }

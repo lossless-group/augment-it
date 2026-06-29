@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { curation, slugify, toTrainCase } from './curation.svelte';
+  import { curation, slugify, toDashed } from './curation.svelte';
 
   let title = $state('');
   let slug = $state('');
@@ -17,7 +17,7 @@
     slug = slugify(v);
   }
   function addTag(t: string): void {
-    const tt = toTrainCase(t);
+    const tt = toDashed(t);
     if (tt && !pendingTags.includes(tt)) pendingTags = [...pendingTags, tt];
     tagInput = '';
   }

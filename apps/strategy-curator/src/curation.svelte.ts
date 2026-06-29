@@ -22,13 +22,13 @@ export function slugify(s: string): string {
   return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
-// Tags are Train-Case, no spaces: "workforce development" → "Workforce-Development".
-export function toTrainCase(s: string): string {
+// Tags: enforce dashes-not-spaces but PRESERVE the casing the user typed, so
+// "Impact of AI" → "Impact-of-AI" (not "Impact-Of-Ai"). The user owns the casing.
+export function toDashed(s: string): string {
   return s
     .trim()
-    .split(/[^a-z0-9]+/i)
+    .split(/[^a-zA-Z0-9]+/)
     .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join('-');
 }
 
@@ -153,7 +153,7 @@ class CurationState {
     const title = input.title.trim();
     const strategy_slug = slugify(input.slug || title);
     if (!title || !strategy_slug) return;
-    const tags = input.tags.map(toTrainCase).filter(Boolean);
+    const tags = input.tags.map(toDashed).filter(Boolean);
     const r = await this.call<{ domain: Strategy; corpus_path?: string }>('domain.create', {
       type: DOMAIN_TYPE,
       slug: strategy_slug,
@@ -202,11 +202,135 @@ class CurationState {
     this.saveStatus = 'fetching…';
     const r = await this.call<{ source: Source }>('source.fetch', {
       source_uuid: source.source_uuid,
-      strategy_slug: this.activeSlug,
+      domain_type: DOMAIN_TYPE,
+      domain_slug: this.activeSlug,
+      client_slug: this.clientSlug,
     });
-    if (r?.source) this.replaceSource(r.source);
-    else if (!this.lastError) this.replaceSource({ ...source, status: 'fetched', content_pulled: true });
-    this.saveStatus = this.lastError ? 'fetch failed' : 'fetched';
+    if (!r?.source) {
+      this.saveStatus = this.lastError ?? 'fetch failed';
+      return;
+    }
+    // merge so we keep fields the fetch result doesn't echo back (e.g. tags)
+    this.replaceSource({ ...source, ...r.source });
+    this.saveStatus = 'fetched';
+  }
+
+  // retry — re-fetch with a Jina cache bypass (for stale/interstitial results)
+  async retrySource(source: Source): Promise<void> {
+    if (!this.activeSlug) return;
+    this.saveStatus = 'retrying…';
+    const r = await this.call<{ source: Source }>('source.retry', {
+      source_uuid: source.source_uuid,
+      domain_type: DOMAIN_TYPE,
+      domain_slug: this.activeSlug,
+      client_slug: this.clientSlug,
+    });
+    if (!r?.source) {
+      this.saveStatus = this.lastError ?? 'retry failed';
+      return;
+    }
+    this.replaceSource({ ...source, ...r.source });
+    this.saveStatus = 'retried';
+  }
+
+  // edit a bibliographic field (registry + file frontmatter). Filename is unchanged.
+  async updateSource(field: 'title' | 'publisher' | 'published_date', value: string): Promise<void> {
+    const f = this.focused;
+    if (!f || !this.activeSlug) return;
+    if (f[field] === value) return; // no-op (onchange fires even without a change)
+    // Replace the element with a NEW object so the list + field re-render reliably
+    // (mutating a nested $state property in place doesn't always invalidate).
+    this.replaceSource({ ...f, [field]: value });
+    await this.call('source.update', {
+      source_uuid: f.source_uuid,
+      domain_type: DOMAIN_TYPE,
+      domain_slug: this.activeSlug,
+      client_slug: this.clientSlug,
+      fields: { [field]: value },
+    });
+    this.saveStatus = this.lastError ? `${field} update failed` : `✓ ${field} saved`;
+  }
+
+  // rename the on-disk file directly (sources/<slug>.md). The slug is the
+  // filesystem identity; this moves the file + repoints the usage row.
+  async renameSource(slug: string): Promise<void> {
+    const f = this.focused;
+    if (!f || !this.activeSlug) return;
+    const next = slug.trim();
+    if (!next || next === f.source_slug) return;
+    const r = await this.call<{ source_slug?: string }>('source.update', {
+      source_uuid: f.source_uuid,
+      domain_type: DOMAIN_TYPE,
+      domain_slug: this.activeSlug,
+      client_slug: this.clientSlug,
+      fields: { slug: next },
+    });
+    if (!r) {
+      this.saveStatus = this.lastError ?? 'rename failed';
+      return;
+    }
+    this.replaceSource({ ...f, source_slug: r.source_slug ?? next });
+    this.saveStatus = `✓ renamed → ${r.source_slug ?? next}.md`;
+  }
+
+  // attach a locally-downloaded file (e.g. a report PDF the analyst pulled
+  // themselves because the citation page isn't the PDF, or it's anti-bot). The
+  // source identity (url) is unchanged; this hangs the bytes underneath it and
+  // marks it fetched. Rides base64 over the WS → NATS (max_payload 48MB), then
+  // content-ingest Ghostscript-compresses PDFs so the stored copy stays small.
+  async attachFile(file: File): Promise<void> {
+    const f = this.focused;
+    if (!f || !this.activeSlug) return;
+    if (!f.source_slug) {
+      this.saveStatus = 'add/fetch the source first — attach needs a filename';
+      return;
+    }
+    if (file.size > 32_000_000) {
+      this.saveStatus = `${file.name} is ${(file.size / 1e6).toFixed(1)}MB — over the ~32MB upload limit`;
+      return;
+    }
+    this.saveStatus = `attaching ${file.name} (${(file.size / 1e6).toFixed(1)}MB)…`;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    const r = await this.call<{ source: Source & { original_bytes?: number; bytes?: number; compressed?: boolean } }>('source.attach', {
+      source_uuid: f.source_uuid,
+      domain_type: DOMAIN_TYPE,
+      domain_slug: this.activeSlug,
+      client_slug: this.clientSlug,
+      filename: file.name,
+      content_type: file.type || undefined,
+      content_base64: btoa(binary),
+    });
+    if (!r?.source) {
+      this.saveStatus = this.lastError ?? 'attach failed';
+      return;
+    }
+    this.replaceSource({ ...f, ...r.source });
+    const mb = (n?: number) => (n ? `${(n / 1e6).toFixed(1)}MB` : '?');
+    this.saveStatus = r.source.compressed
+      ? `✓ attached ${file.name} — compressed ${mb(r.source.original_bytes)} → ${mb(r.source.bytes)}`
+      : `✓ attached ${file.name} (${mb(r.source.bytes)})`;
+  }
+
+  async removeSource(source: Source): Promise<void> {
+    if (!this.activeSlug) return;
+    const r = await this.call<{ ok: boolean }>('source.remove', {
+      source_uuid: source.source_uuid,
+      domain_type: DOMAIN_TYPE,
+      domain_slug: this.activeSlug,
+      client_slug: this.clientSlug,
+    });
+    if (!r) {
+      this.saveStatus = this.lastError ?? 'remove failed';
+      return;
+    }
+    const idx = this.sources.findIndex((s) => s.source_uuid === source.source_uuid);
+    if (idx >= 0) {
+      this.sources.splice(idx, 1);
+      if (this.focusIdx >= this.sources.length) this.focusIdx = Math.max(0, this.sources.length - 1);
+    }
+    this.saveStatus = 'removed';
   }
 
   async addExtract(kind: ExtractKind, text: string): Promise<void> {
@@ -215,7 +339,9 @@ class CurationState {
     if (!f || !body) return;
     await this.call('extract.add', {
       source_uuid: f.source_uuid,
-      strategy_slug: this.activeSlug,
+      domain_type: DOMAIN_TYPE,
+      domain_slug: this.activeSlug,
+      client_slug: this.clientSlug,
       kind,
       text: body,
     });
@@ -231,7 +357,7 @@ class CurationState {
 
   async applyTag(raw: string): Promise<void> {
     const f = this.focused;
-    const tag = toTrainCase(raw);
+    const tag = toDashed(raw);
     if (!f || !tag) return;
     await this.call('tag.apply', { source_uuid: f.source_uuid, domain_type: DOMAIN_TYPE, domain_slug: this.activeSlug, client_slug: this.clientSlug, tag, op: 'add' });
     f.tags = Array.from(new Set([...(f.tags ?? []), tag]));

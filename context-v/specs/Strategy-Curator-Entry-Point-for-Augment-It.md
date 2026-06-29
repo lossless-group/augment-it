@@ -7,7 +7,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.8 (1M context)
-semantic_version: 0.0.0.4
+semantic_version: 0.0.0.5
 status: Implementing
 tags:
   - Spec
@@ -443,9 +443,11 @@ formatting rule for per-source files.
 
 ## Implementation (as built — 2026-06-29)
 
-Built in two increments. Everything below **typechecks** (UI `svelte-check` 0/0; resolver,
-content-ingest, workspace `tsc` 0 errors) but is **not yet runtime-verified against a live
-SurrealDB / stack** — the SurrealQL needs a live DB to confirm.
+Built in three increments. Everything below **typechecks** (UI `svelte-check` 0/0; resolver,
+content-ingest, workspace `tsc` 0 errors) **and** — as of Increment 3 — is **runtime-verified
+end-to-end against the live stack** (`pnpm stack up`): UI → workspace WS → NATS → resolver →
+SurrealDB + content-ingest → corpus filesystem, exercised by firing each capability subject
+directly over NATS and confirming the DB rows + corpus files that result.
 
 ### Increment 1 — the Svelte remote
 `apps/strategy-curator/` — federation remote `strategyCurator` on `:3017`, the exact
@@ -482,17 +484,77 @@ form), `SourceList`, `SourceDetail`, `TagBar`. Registered in `shell/src/remotes.
   optimistic success** — so "created `…/index.md`" means it actually wrote.
 
 ### The create flow (as built)
-`title` → **live-editable `slug`** (re-slugified, lowercase-kebab) → **Train-Case tags**
-(workspace-vocab auto-complete) → **Create** → `domain.create { type:'strategy' }` → DB upsert
+`title` → **live-editable `slug`** (re-slugified, lowercase-kebab) → **tags** (`toDashed`,
+casing preserved; workspace-vocab auto-complete) → **Create** → `domain.create { type:'strategy' }` → DB upsert
 **+** `index.md` write → UI lists it + shows the `corpus_path`. (The UI carries `type='strategy'`
 on every `domain.*` / `source.*` / `tag.*` call.)
 
+### Increment 3 — the full per-source surface (runtime-verified)
+`source.add` now writes a real metadata-only file, and the whole source lifecycle is operator-
+controllable from `SourceDetail`. Every capability below was fired over NATS against the live
+stack and confirmed on disk + in the DB.
+
+- **`source.fetch`** — full Jina markdown into the file body; PDF URLs download the binary
+  sibling (`binary_asset`). Preserves any existing `# Extracts` and analyst `tags:` across the
+  rewrite.
+- **`source.retry`** — re-fetch with a Jina **cache bypass** (`X-No-Cache: true`), for stale or
+  interstitial captures.
+- **`source.update`** — edit the bibliographic fields (`title` / `publisher` / `published_date`)
+  in-form; writes both the SurrealDB registry **and** the file frontmatter. A `title` edit also
+  **re-slugs and renames the file** so a source never stays stuck on a junk interstitial name
+  (e.g. `just-a-moment` from a Cloudflare challenge). An explicit **`slug`** field renames the
+  file directly (the Filename field) and wins over the title-derived slug.
+- **`source.remove`** — drops the `(client, domain, source)` usage row + deletes the file (and
+  binary sibling); the canonical `sources` registry row is kept (shared identity).
+- **`source.attach`** — the **landing-page-vs-PDF** answer. When a source's `url` is a profile
+  page (e.g. `gao.gov/products/…`) and the real report is a separate, often anti-bot PDF, the
+  analyst downloads it and attaches it **in the source form**. Identity (`url`) is unchanged;
+  the bytes hang underneath as `sources/<slug>.pdf`, status flips to `fetched`. The file rides
+  base64 over the WS→NATS path the app already uses for CSV uploads. content-ingest then
+  **Ghostscript-compresses** any PDF >3MB (`-dPDFSETTINGS=/ebook`), keeping the smaller of
+  compressed/original (never inflates), and records `bytes` / `original_bytes` / `compressed` /
+  `sha256` in the `binary_asset` block.
+- **`extract.add`** — append a pasted extract under `## Quotes / ## Stats / ## References /
+  ## Mentions`.
+- **`tag.apply`** — updates the usage's `tags[]` in SurrealDB **and mirrors the list into the
+  file frontmatter `tags:` block**. Tags now use **`toDashed`**: dashes-not-spaces, **casing
+  preserved** (`Impact of AI` → `Impact-of-AI`, not `Impact-Of-Ai`) — this **supersedes** the
+  earlier Train-Case rule, which mangled small words and acronyms.
+
+**Transport limits (the upload path).** Browser→workspace→content-ingest sends file bytes as
+base64 over NATS, so `nats.conf` `max_payload` gates it: bumped **8MB → 48MB** so a ~28MB report
+(≈38MB base64) fits; the UI guards at 32MB. content-ingest's image now installs `ghostscript`.
+If the backend ever moves off-box (no shared filesystem), the right evolution is a direct HTTP
+upload endpoint that bypasses NATS entirely — noted, not built.
+
+### Gotchas the live stack taught us (checklist for the next SurrealDB-over-NATS service)
+1. **Strict mode → `DEFINE TABLE/INDEX IF NOT EXISTS` before any use** (run once via an
+   `ensureDomainSchema` guard).
+2. **`ORDER BY <field>` requires `<field>` in the `SELECT` projection** (SurrealDB 2.x idiom
+   rule) — `created_at` bit us on `domain.list` / `assemble` / `tag.suggest`.
+3. **Identity keys must be strings, never the SDK `uuid` type** — `rand::uuid::v7()` returns a
+   `uuid` that does **not** survive JSON/NATS round-trips and won't match in `WHERE`; wrap with
+   `type::string(...)`. Same lesson as the resolver's "identity is the slug, not the RecordId."
+4. **"Is my change live?"** A backend code change is inert until its container is rebuilt.
+   `pnpm stack up` = `docker compose up --build -d` (rebuilds all); a hand-run
+   `docker compose up --build -d <svc>` only rebuilds that one. First debug step when a backend
+   change "doesn't work": `docker compose ps` (fresh `Up Ns` vs `Up Nh`?), then `grep` the
+   change inside the running container, then fire the NATS subject directly to isolate
+   backend-correct from frontend-stale.
+5. **UI reactivity:** mutating a nested `$state` property in place doesn't reliably re-render —
+   replace the array element with a **new object** (`replaceSource({ …f, [field]: v })`).
+6. **A disabled field that "won't accept input"** usually means its backing value is missing
+   from stale data — reload to re-fetch, don't assume a broken handler.
+
 ### Not yet built (next increment)
-- `source.fetch` (full Jina markdown + PDF binary sibling) and `extract.add` — the per-source
-  content-ingest writes. `source.add` currently records the registry + usage rows only; **no
-  per-source `.md` file yet.**
-- `corpus/people/` bucket; promotion into `ROTATION`; **live SurrealQL verification** against
-  the stack (`pnpm stack up`).
+- **Interstitial detector** — flag `Just a moment…` / `Preparing to download…` / soft-403
+  captures at add/fetch time and refuse to derive a slug from the junk title.
+- **Auto text-extraction from attached PDFs** — `source.attach` stores + marks fetched, but
+  doesn't yet pull the PDF text into the body (local PDF→text needs a parser; Jina only does
+  URLs). Extracts are added manually via the panel until then.
+- **`content_url`** — an optional second URL for "the PDF is fetchable but lives elsewhere"
+  (fetch from it instead of `url`), for the cases that don't need a manual download.
+- `corpus/people/` bucket; promotion into `ROTATION`.
 
 ## Acceptance criteria
 
@@ -514,8 +576,10 @@ on every `domain.*` / `source.*` / `tag.*` call.)
 8. **Theme discipline:** the surface uses `@augment-it/theme` tokens only — no hardcoded
    colors — and renders correctly in all three modes (light / dark / vibrant).
 9. **Tags:** every entity (source / funder / person / strategy) carries `tags[]`; tags are
-   **Train-Case**, drawn from the **workspace** vocabulary via **auto-complete** (no
-   free-form entry), and never written into the canonical `sources` registry.
+   **dash-joined with casing preserved** (`toDashed` — `Impact of AI` → `Impact-of-AI`, *not*
+   Train-Case), drawn from the **workspace** vocabulary via **auto-complete**, written through
+   to the entity's file frontmatter `tags:` block, and never written into the canonical
+   `sources` registry.
 10. People live under `corpus/people/<slug>/` carrying `strategy_slugs[]` + `tags[]`,
     bonded to the SurrealDB `persons` table by slug.
 

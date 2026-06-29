@@ -36,7 +36,26 @@
 import { JSONCodec, type NatsConnection } from 'nats';
 import { fetchViaJina } from './jina';
 import * as cache from './cache';
-import { addToCorpus, addToInbox, addDomainIndex, listForRecord, type CorpusEntry, type DomainIndexArgs } from './corpus';
+import {
+  addToCorpus,
+  addToInbox,
+  addDomainIndex,
+  addSourceFile,
+  fetchSourceContent,
+  appendExtract,
+  removeSourceFile,
+  updateSourceFile,
+  attachSourceFile,
+  listForRecord,
+  type CorpusEntry,
+  type DomainIndexArgs,
+  type AddSourceFileArgs,
+  type FetchSourceArgs,
+  type AppendExtractArgs,
+  type SourceFileRef,
+  type UpdateSourceArgs,
+  type AttachFileArgs,
+} from './corpus';
 import { isNavigationUrl, isSameDomain } from './filters';
 import { downloadBinaryAsset, type BinaryAssetResult } from './binary-asset';
 import { promoteSnapshot } from './promote';
@@ -79,6 +98,105 @@ export function registerHandlers(nc: NatsConnection): void {
       try {
         if (!args?.client_slug || !args?.type || !args?.slug) throw new Error('client_slug, type and slug are required');
         const result = await addDomainIndex(args);
+        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // corpus.source.add — internal (resolver → here): Jina-fetch a source's metadata
+  // and write the metadata-only per-source file (<domain>/sources/<slug>.md).
+  (async () => {
+    const sub = nc.subscribe('corpus.source.add.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as AddSourceFileArgs;
+      try {
+        if (!args?.client_slug || !args?.domain_slug || !args?.url) throw new Error('client_slug, domain_slug and url are required');
+        const result = await addSourceFile(args);
+        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // corpus.source.fetch — internal: pull full body + PDF into the per-source file.
+  (async () => {
+    const sub = nc.subscribe('corpus.source.fetch.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as FetchSourceArgs;
+      try {
+        if (!args?.client_slug || !args?.domain_slug || !args?.url) throw new Error('client_slug, domain_slug and url are required');
+        const result = await fetchSourceContent(args);
+        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // corpus.source.remove — internal: delete a source's file (+ binary sibling).
+  (async () => {
+    const sub = nc.subscribe('corpus.source.remove.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as SourceFileRef;
+      try {
+        if (!args?.client_slug || !args?.domain_slug || !args?.source_slug) throw new Error('client_slug, domain_slug and source_slug are required');
+        const result = await removeSourceFile(args);
+        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // corpus.source.update — internal: patch frontmatter fields on a source file.
+  (async () => {
+    const sub = nc.subscribe('corpus.source.update.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as UpdateSourceArgs;
+      try {
+        if (!args?.client_slug || !args?.domain_slug || !args?.source_slug) throw new Error('client_slug, domain_slug and source_slug are required');
+        const result = await updateSourceFile(args);
+        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // corpus.source.attach — internal: write an operator-uploaded binary (PDF) as
+  // the source's content artifact + mark it fetched.
+  (async () => {
+    const sub = nc.subscribe('corpus.source.attach.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as AttachFileArgs;
+      try {
+        if (!args?.client_slug || !args?.domain_slug || !args?.source_slug) throw new Error('client_slug, domain_slug and source_slug are required');
+        if (!args?.content_base64) throw new Error('content_base64 is required');
+        const result = await attachSourceFile(args);
+        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
+  // corpus.source.extract — internal: append a pasted extract to a source file.
+  (async () => {
+    const sub = nc.subscribe('corpus.source.extract.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as AppendExtractArgs;
+      try {
+        if (!args?.client_slug || !args?.domain_slug || !args?.source_slug) throw new Error('client_slug, domain_slug and source_slug are required');
+        const result = await appendExtract(args);
         if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);

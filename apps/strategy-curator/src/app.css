@@ -117,6 +117,9 @@
 .sc-app .sc-primary { background: var(--color-accent); color: var(--color-on-accent); border-color: var(--color-accent); font-weight: 600; }
 .sc-app .sc-link { background: none; border: none; color: var(--color-accent); padding: 0.2rem; }
 .sc-app .sc-fetch { margin-top: 0.5rem; }
+.sc-app .sc-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.6rem; }
+.sc-app .sc-danger { color: var(--color-error-text); }
+.sc-app .sc-danger:hover { border-color: var(--color-error-text); }
 .sc-app button:disabled { opacity: 0.6; cursor: default; }
 
 .sc-app .sc-urllink { color: var(--color-accent); text-decoration: none; word-break: break-all; }

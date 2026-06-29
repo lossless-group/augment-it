@@ -154,6 +154,12 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'domain.list': 'domain.list.requested',
   'domain.assemble': 'domain.assemble.requested',
   'source.add': 'source.add.requested',
+  'source.fetch': 'source.fetch.requested',
+  'source.retry': 'source.retry.requested',
+  'source.remove': 'source.remove.requested',
+  'source.update': 'source.update.requested',
+  'source.attach': 'source.attach.requested',
+  'extract.add': 'extract.add.requested',
   'tag.suggest': 'tag.suggest.requested',
   'tag.apply': 'tag.apply.requested',
 };
@@ -221,7 +227,14 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'domain.create': 30_000,
   'domain.list': 30_000,
   'domain.assemble': 30_000,
-  'source.add': 30_000,
+  'source.add': 60_000, // includes a Jina metadata fetch
+  'source.fetch': 90_000, // full Jina fetch + possible PDF download
+  'source.retry': 90_000,
+  'source.remove': 30_000,
+  'source.update': 30_000,
+  'source.attach': 60_000, // operator-uploaded binary write
+  'extract.add': 15_000,
+
   'tag.suggest': 30_000,
   'tag.apply': 30_000,
 };

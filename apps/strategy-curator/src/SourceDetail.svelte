@@ -19,12 +19,33 @@
     <h3>Source {curation.focusIdx + 1} of {curation.sources.length}</h3>
 
     <div class="sc-field">
-      <span class="sc-label">Title</span>
-      <div class="sc-value">{s.title || '(no title — fetch to populate)'}</div>
+      <span class="sc-label">Title <span class="sc-muted sc-mini">— editable</span></span>
+      <input
+        value={s.title ?? ''}
+        placeholder="(no title — fetch, retry, or just type one)"
+        onchange={(e) => curation.updateSource('title', e.currentTarget.value)}
+      />
     </div>
-    {#if s.publisher}
-      <div class="sc-field"><span class="sc-label">Publisher</span><div class="sc-value">{s.publisher}</div></div>
-    {/if}
+    <div class="sc-field">
+      <span class="sc-label">Filename <span class="sc-muted sc-mini">— sources/<code>{s.source_slug ?? '…'}</code>.md</span></span>
+      <input
+        class="sc-mono"
+        value={s.source_slug ?? ''}
+        placeholder="(filename appears after first save/fetch)"
+        disabled={!s.source_slug}
+        onchange={(e) => curation.renameSource(e.currentTarget.value)}
+      />
+    </div>
+    <div class="grid2">
+      <div class="sc-field">
+        <span class="sc-label">Publisher</span>
+        <input value={s.publisher ?? ''} onchange={(e) => curation.updateSource('publisher', e.currentTarget.value)} />
+      </div>
+      <div class="sc-field">
+        <span class="sc-label">Published date</span>
+        <input value={s.published_date ?? ''} placeholder="YYYY-MM-DD" onchange={(e) => curation.updateSource('published_date', e.currentTarget.value)} />
+      </div>
+    </div>
     <div class="sc-field">
       <span class="sc-label">URL</span>
       <a class="sc-urllink" href={s.url} target="_blank" rel="noopener noreferrer">{s.url}</a>
@@ -34,9 +55,29 @@
       <span class="sc-status-chip">{s.status ?? 'metadata-only'}</span>
     </div>
 
-    <button class="sc-fetch" onclick={() => curation.fetchSource(s)} disabled={s.content_pulled}>
-      {s.content_pulled ? '✓ fetched' : '↓ Fetch full content (Jina / PDF)'}
-    </button>
+    <div class="sc-field">
+      <span class="sc-label">
+        Report file <span class="sc-muted sc-mini">— attach a PDF you downloaded (when the URL is the profile page, not the PDF)</span>
+      </span>
+      <input
+        type="file"
+        accept=".pdf,.docx,.doc,.pptx,.xlsx,application/pdf"
+        disabled={!s.source_slug}
+        onchange={(e) => {
+          const file = e.currentTarget.files?.[0];
+          if (file) curation.attachFile(file);
+          e.currentTarget.value = '';
+        }}
+      />
+    </div>
+
+    <div class="sc-actions">
+      <button onclick={() => curation.fetchSource(s)} disabled={s.content_pulled}>
+        {s.content_pulled ? '✓ fetched' : '↓ Fetch full content'}
+      </button>
+      <button onclick={() => curation.retrySource(s)} title="Re-fetch, bypassing Jina's cache">⟳ Retry</button>
+      <button class="sc-danger" onclick={() => curation.removeSource(s)}>🗑 Remove</button>
+    </div>
 
     <TagBar />
   </section>

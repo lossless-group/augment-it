@@ -31,4 +31,6 @@ export type Source = {
   status?: SourceStatus;
   content_pulled?: boolean;
   verdict_error?: boolean;
+  source_slug?: string; // the on-disk filename stem (sources/<source_slug>.md)
+  corpus_path?: string;
 };

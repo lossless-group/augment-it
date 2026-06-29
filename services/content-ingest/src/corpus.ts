@@ -9,9 +9,51 @@
 // corpus/ subdirectory, and the operator commits via the per-client repo's
 // git history.
 
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { extensionFromContentType } from './binary-asset';
+import { promisify } from 'node:util';
+import { downloadBinaryAsset, extensionFromContentType } from './binary-asset';
+import { fetchViaJina } from './jina';
+
+const execFileP = promisify(execFile);
+
+// Compress an uploaded PDF with Ghostscript (/ebook ≈ 150dpi, screen-readable).
+// Stores the SMALLER of (compressed, original) at finalPath. Falls back to the
+// original if gs is missing, errors, or produces a larger file. Non-PDFs and
+// small PDFs (< 3MB) skip this entirely.
+async function storePdfCompressed(buffer: Buffer, finalPath: string): Promise<{ stored_bytes: number; original_bytes: number; compressed: boolean }> {
+  const original_bytes = buffer.length;
+  const tmpPath = `${finalPath}.upload`;
+  await writeFile(tmpPath, buffer);
+  try {
+    await execFileP(
+      'gs',
+      [
+        '-sDEVICE=pdfwrite',
+        '-dCompatibilityLevel=1.4',
+        '-dPDFSETTINGS=/ebook',
+        '-dDetectDuplicateImages=true',
+        '-dNOPAUSE',
+        '-dQUIET',
+        '-dBATCH',
+        `-sOutputFile=${finalPath}`,
+        tmpPath,
+      ],
+      { timeout: 180_000 },
+    );
+    const out = await stat(finalPath).catch(() => null);
+    if (out && out.size > 0 && out.size < original_bytes) {
+      await rm(tmpPath).catch(() => {});
+      return { stored_bytes: out.size, original_bytes, compressed: true };
+    }
+  } catch {
+    // gs absent or failed — keep the original below
+  }
+  await rename(tmpPath, finalPath); // overwrite any partial gs output with the original
+  return { stored_bytes: original_bytes, original_bytes, compressed: false };
+}
 
 const CLIENTS_ROOT = process.env.CLIENTS_ROOT ?? '/clients';
 
@@ -415,6 +457,373 @@ function buildDomainFrontmatter(args: DomainIndexArgs): string {
   lines.push(`created_at: ${yamlString(args.created_at)}`);
   lines.push('---');
   return lines.join('\n');
+}
+
+// --- per-source files (the sources a domain gathers) ----------------------
+// Land at clients/<client>/corpus/<type-plural>/<domain-slug>/sources/<source-slug>.md.
+// source.add writes a METADATA-ONLY file (Jina title + excerpt, # Extracts skeleton);
+// source.fetch later pulls the full body + PDF sibling. Idempotent on the slug.
+
+export type AddSourceFileArgs = {
+  client_slug: string;
+  domain_type: string;
+  domain_slug: string;
+  source_uuid: string;
+  url: string;
+  normalized_url?: string;
+};
+
+function sourceExcerpt(markdown: string): string {
+  const body = markdown
+    .replace(/^Title:\s*.+$/gim, '')
+    .replace(/^URL Source:\s*.+$/gim, '')
+    .replace(/^Published Time:\s*.+$/gim, '')
+    .replace(/^Markdown Content:\s*$/gim, '')
+    .trim();
+  if (body.length <= 400) return body;
+  return body.slice(0, 400).replace(/\s+\S*$/, '') + '…';
+}
+
+const EXTRACTS_SKELETON = '# Extracts\n\n## Quotes\n\n## Stats\n\n## References\n\n## Mentions\n';
+
+export async function addSourceFile(
+  args: AddSourceFileArgs,
+): Promise<{ corpus_path: string; source_slug: string; title: string; excerpt: string; status: string; created: boolean }> {
+  // Jina metadata fetch — title + a short excerpt. We store metadata-only here;
+  // the full body lands on source.fetch.
+  let title = args.url;
+  let excerpt = '';
+  const jr = await fetchViaJina(args.url);
+  if (jr.ok) {
+    title = jr.title || args.url;
+    excerpt = sourceExcerpt(jr.markdown);
+  }
+  const source_slug = slugify(title) || slugify(args.url) || args.source_uuid.slice(0, 8);
+  const dir = join(CLIENTS_ROOT, args.client_slug, 'corpus', domainFolder(args.domain_type), args.domain_slug, 'sources');
+  await mkdir(dir, { recursive: true });
+  const target = join(dir, `${source_slug}.md`);
+  const corpus_path = target.replace(`${CLIENTS_ROOT}/`, '');
+
+  try {
+    await readFile(target, 'utf8');
+    return { corpus_path, source_slug, title, excerpt, status: 'metadata-only', created: false };
+  } catch {
+    // not present — write it
+  }
+
+  const fm = buildSourceFrontmatter({ ...args, title, status: 'metadata-only', content_pulled: false });
+  const body = excerpt ? `${excerpt}\n\n` : '';
+  await writeFile(target, `${fm}\n\n${body}${EXTRACTS_SKELETON}`, 'utf8');
+  return { corpus_path, source_slug, title, excerpt, status: 'metadata-only', created: true };
+}
+
+function buildSourceFrontmatter(args: {
+  source_uuid: string;
+  url: string;
+  normalized_url?: string;
+  title: string;
+  domain_type: string;
+  domain_slug: string;
+  status: string;
+  content_pulled: boolean;
+  binary_filename?: string | null;
+  tags?: string[];
+}): string {
+  const lines: string[] = ['---'];
+  lines.push(`source_uuid: ${yamlString(args.source_uuid)}`);
+  lines.push(`url: ${yamlString(args.url)}`);
+  if (args.normalized_url) lines.push(`normalized_url: ${yamlString(args.normalized_url)}`);
+  lines.push(`title: ${yamlString(args.title)}`);
+  lines.push('domains:');
+  lines.push(`  - ${yamlString(`${args.domain_type}:${args.domain_slug}`)}`);
+  lines.push(`status: ${yamlString(args.status)}`);
+  lines.push(`content_pulled: ${args.content_pulled}`);
+  lines.push(renderTagsBlock(args.tags ?? []));
+  if (args.binary_filename) {
+    lines.push('binary_asset:');
+    lines.push(`  filename: ${yamlString(args.binary_filename)}`);
+  }
+  lines.push(`fetched_at: ${yamlString(new Date().toISOString())}`);
+  lines.push('---');
+  return lines.join('\n');
+}
+
+// source.fetch — pull the FULL body via Jina (and a PDF sibling if applicable),
+// (re)write the per-source file, preserving any # Extracts the analyst already
+// added. Self-sufficient: works whether or not a metadata-only file exists yet
+// (so it also rescues sources added before source.add fetched metadata).
+export type FetchSourceArgs = {
+  client_slug: string;
+  domain_type: string;
+  domain_slug: string;
+  source_uuid: string;
+  url: string;
+  source_slug?: string;
+  no_cache?: boolean; // retry → bypass Jina's cached snapshot
+};
+
+export async function fetchSourceContent(
+  args: FetchSourceArgs,
+): Promise<{ corpus_path: string; source_slug: string; title: string; content_pulled: boolean; via: string; binary_filename: string | null }> {
+  const jr = await fetchViaJina(args.url, { noCache: args.no_cache });
+  const title = jr.ok ? jr.title || args.url : args.url;
+  const fullMd = jr.ok ? jr.markdown.trim() : '';
+  const source_slug = args.source_slug || slugify(title) || slugify(args.url) || args.source_uuid.slice(0, 8);
+  const dir = join(CLIENTS_ROOT, args.client_slug, 'corpus', domainFolder(args.domain_type), args.domain_slug, 'sources');
+  await mkdir(dir, { recursive: true });
+  const target = join(dir, `${source_slug}.md`);
+  const corpus_path = target.replace(`${CLIENTS_ROOT}/`, '');
+
+  // PDF sibling (same basename) if the URL is a PDF
+  let binary_filename: string | null = null;
+  const bin = await downloadBinaryAsset(args.url);
+  if (bin.ok && (bin.content_type || '').includes('pdf')) {
+    const ext = extensionFromContentType(bin.content_type) ?? '.pdf';
+    binary_filename = `${source_slug}${ext}`;
+    await writeFile(join(dir, binary_filename), bin.buffer);
+  }
+
+  // preserve any existing # Extracts section + analyst tags across the rewrite
+  let extractsSection = EXTRACTS_SKELETON;
+  let existingTags: string[] = [];
+  try {
+    const existing = await readFile(target, 'utf8');
+    const idx = existing.indexOf('# Extracts');
+    if (idx >= 0) extractsSection = existing.slice(idx);
+    existingTags = parseTagsFromFrontmatter(existing);
+  } catch {
+    // fresh — use the skeleton
+  }
+
+  const fm = buildSourceFrontmatter({
+    source_uuid: args.source_uuid,
+    url: args.url,
+    title,
+    domain_type: args.domain_type,
+    domain_slug: args.domain_slug,
+    status: 'fetched',
+    content_pulled: jr.ok,
+    binary_filename,
+    tags: existingTags,
+  });
+  await writeFile(target, `${fm}\n\n# ${title}\n\n${fullMd}\n\n${extractsSection.trimStart()}`, 'utf8');
+  return { corpus_path, source_slug, title, content_pulled: jr.ok, via: jr.ok ? 'jina' : 'none', binary_filename };
+}
+
+// source.remove — delete a source's per-source file (+ any binary sibling).
+export type SourceFileRef = { client_slug: string; domain_type: string; domain_slug: string; source_slug: string };
+
+export async function removeSourceFile(args: SourceFileRef): Promise<{ corpus_path: string; removed: boolean }> {
+  const dir = join(CLIENTS_ROOT, args.client_slug, 'corpus', domainFolder(args.domain_type), args.domain_slug, 'sources');
+  const target = join(dir, `${args.source_slug}.md`);
+  const corpus_path = target.replace(`${CLIENTS_ROOT}/`, '');
+  let removed = false;
+  try {
+    await rm(target);
+    removed = true;
+  } catch {
+    // already gone
+  }
+  for (const ext of ['.pdf', '.docx', '.pptx', '.xlsx']) {
+    try {
+      await rm(join(dir, `${args.source_slug}${ext}`));
+    } catch {
+      // no sibling of this type
+    }
+  }
+  return { corpus_path, removed };
+}
+
+// source.update — patch frontmatter fields (title / publisher / published_date) on
+// a source file. The filename (source_slug) is NOT renamed on a title edit — the
+// slug is the stable id, the title is display. Scoped to the frontmatter block.
+export type UpdateSourceArgs = SourceFileRef & { fields: Record<string, string>; tags?: string[] };
+
+// Render a frontmatter `tags:` block (Train-Case list, or `tags: []` when empty).
+function renderTagsBlock(tags: string[]): string {
+  if (!tags.length) return 'tags: []';
+  return ['tags:', ...tags.map((t) => `  - ${yamlString(t)}`)].join('\n');
+}
+
+// Pull the tags list out of a frontmatter string (handles both `tags: []` inline
+// and the indented `- item` block form). Used to preserve analyst tags across a
+// re-fetch that would otherwise rewrite the file from scratch.
+function parseTagsFromFrontmatter(content: string): string[] {
+  const fm = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!fm) return [];
+  const block = fm[1].match(/^tags:(.*)((?:\n[ \t]+-.*)*)/m);
+  if (!block) return [];
+  if (block[1].trim().startsWith('[')) {
+    const inner = block[1].trim().replace(/^\[|\]$/g, '').trim();
+    return inner ? inner.split(',').map((s) => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean) : [];
+  }
+  return (block[2].match(/-\s*(.+)/g) ?? []).map((l) => l.replace(/^-\s*/, '').trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+}
+
+export async function updateSourceFile(args: UpdateSourceArgs): Promise<{ corpus_path: string; updated: boolean; source_slug: string }> {
+  const dir = join(CLIENTS_ROOT, args.client_slug, 'corpus', domainFolder(args.domain_type), args.domain_slug, 'sources');
+  const oldSlug = args.source_slug;
+  const oldTarget = join(dir, `${oldSlug}.md`);
+  let content = '';
+  try {
+    content = await readFile(oldTarget, 'utf8');
+  } catch {
+    return { corpus_path: oldTarget.replace(`${CLIENTS_ROOT}/`, ''), updated: false, source_slug: oldSlug };
+  }
+  const m = content.match(/^(---\n)([\s\S]*?)(\n---\n)([\s\S]*)$/);
+  if (!m) return { corpus_path: oldTarget.replace(`${CLIENTS_ROOT}/`, ''), updated: false, source_slug: oldSlug };
+
+  // `slug` is a rename directive, not a frontmatter field — split it out.
+  const { slug: explicitSlug, ...fields } = args.fields;
+
+  // Renaming: an explicit slug wins; otherwise a title edit re-slugs the file
+  // so it stops being stuck on a junk interstitial name (e.g. "just-a-moment"
+  // from a Cloudflare challenge, "preparing-to-download" from a PMC anti-bot
+  // page). Either way the filename follows the operator's intent.
+  let newSlug = oldSlug;
+  if (typeof explicitSlug === 'string' && explicitSlug.trim()) {
+    const candidate = slugify(explicitSlug);
+    if (candidate) newSlug = candidate;
+  } else if (typeof fields.title === 'string' && fields.title.trim()) {
+    const candidate = slugify(fields.title);
+    if (candidate && candidate !== oldSlug) newSlug = candidate;
+  }
+
+  let fm = m[2];
+  for (const [k, v] of Object.entries(fields)) {
+    const line = `${k}: ${yamlString(v)}`;
+    const re = new RegExp(`^${k}:.*$`, 'm');
+    fm = re.test(fm) ? fm.replace(re, line) : `${fm}\n${line}`;
+  }
+  // tags arrive as a whole array (not a scalar field) — rewrite the tags block
+  if (Array.isArray(args.tags)) {
+    const block = renderTagsBlock(args.tags);
+    const re = /^tags:.*(?:\n[ \t]+-.*)*/m;
+    fm = re.test(fm) ? fm.replace(re, block) : `${fm}\n${block}`;
+  }
+  // keep the binary_asset filename pointer aligned with the renamed slug
+  if (newSlug !== oldSlug) fm = fm.replaceAll(`${oldSlug}.`, `${newSlug}.`);
+
+  const newTarget = join(dir, `${newSlug}.md`);
+  await writeFile(newTarget, `${m[1]}${fm}${m[3]}${m[4]}`, 'utf8');
+  if (newTarget !== oldTarget) {
+    await rm(oldTarget).catch(() => {});
+    for (const ext of ['.pdf', '.docx', '.pptx', '.xlsx']) {
+      try {
+        await rename(join(dir, `${oldSlug}${ext}`), join(dir, `${newSlug}${ext}`));
+      } catch {
+        // no sibling of this type
+      }
+    }
+  }
+  return { corpus_path: newTarget.replace(`${CLIENTS_ROOT}/`, ''), updated: true, source_slug: newSlug };
+}
+
+// Attach a locally-downloaded file (the operator pulled it themselves because
+// the report's PDF is paywalled / anti-bot, or lives at a URL different from the
+// source's citation page). The source's identity stays its profile URL; this
+// just hangs the bytes underneath it as sources/<source_slug>.<ext> and marks
+// the source fetched. The file rides in base64 over the same WS→NATS path the
+// app already uses for CSV uploads (subject to NATS max_payload).
+export type AttachFileArgs = SourceFileRef & {
+  filename: string;
+  content_base64: string;
+  content_type?: string;
+};
+
+export async function attachSourceFile(args: AttachFileArgs): Promise<{ corpus_path: string; binary_filename: string; bytes: number; original_bytes: number; compressed: boolean; updated: boolean }> {
+  const dir = join(CLIENTS_ROOT, args.client_slug, 'corpus', domainFolder(args.domain_type), args.domain_slug, 'sources');
+  const mdTarget = join(dir, `${args.source_slug}.md`);
+  const corpus_path = mdTarget.replace(`${CLIENTS_ROOT}/`, '');
+  const buffer = Buffer.from(args.content_base64, 'base64');
+
+  // Match the binary basename to the source slug (so it renames with the source).
+  const dot = args.filename.lastIndexOf('.');
+  const ext = dot > 0 ? args.filename.slice(dot).toLowerCase() : (args.content_type ? extensionFromContentType(args.content_type) ?? '.pdf' : '.pdf');
+  const binary_filename = `${args.source_slug}${ext}`;
+  const finalPath = join(dir, binary_filename);
+  await mkdir(dir, { recursive: true });
+
+  // PDFs over 3MB get Ghostscript-compressed on the way to disk; everything else
+  // is stored verbatim.
+  let stored_bytes = buffer.length;
+  let original_bytes = buffer.length;
+  let compressed = false;
+  if (ext === '.pdf' && buffer.length > 3_000_000) {
+    const res = await storePdfCompressed(buffer, finalPath);
+    stored_bytes = res.stored_bytes;
+    original_bytes = res.original_bytes;
+    compressed = res.compressed;
+  } else {
+    await writeFile(finalPath, buffer);
+  }
+  const sha256 = createHash('sha256').update(await readFile(finalPath)).digest('hex');
+
+  // Patch the .md frontmatter to fetched + a fresh binary_asset block, preserving
+  // the body and any # Extracts the analyst already wrote.
+  let content = '';
+  try {
+    content = await readFile(mdTarget, 'utf8');
+  } catch {
+    return { corpus_path, binary_filename, bytes: stored_bytes, original_bytes, compressed, updated: false };
+  }
+  const m = content.match(/^(---\n)([\s\S]*?)(\n---\n)([\s\S]*)$/);
+  if (!m) return { corpus_path, binary_filename, bytes: stored_bytes, original_bytes, compressed, updated: false };
+
+  let fm = m[2];
+  // Drop any prior binary_asset block + the scalars we're about to reset.
+  fm = fm.replace(/^binary_asset:\n(?:[ \t]+.*\n?)*/m, '');
+  fm = fm.replace(/^status:.*$\n?/m, '').replace(/^content_pulled:.*$\n?/m, '');
+  fm = fm.replace(/\n{2,}/g, '\n').replace(/\n+$/, '');
+  const block = [
+    `status: ${yamlString('fetched')}`,
+    'content_pulled: true',
+    'binary_asset:',
+    `  filename: ${yamlString(binary_filename)}`,
+    `  content_type: ${yamlString(args.content_type || 'application/octet-stream')}`,
+    `  bytes: ${stored_bytes}`,
+    `  original_bytes: ${original_bytes}`,
+    `  compressed: ${compressed}`,
+    `  sha256: ${yamlString(sha256)}`,
+    `  source: ${yamlString('upload')}`,
+  ].join('\n');
+  await writeFile(mdTarget, `${m[1]}${fm}\n${block}${m[3]}${m[4]}`, 'utf8');
+  return { corpus_path, binary_filename, bytes: stored_bytes, original_bytes, compressed, updated: true };
+}
+
+// extract.add — append a pasted extract under the right ## heading in a source file.
+export type AppendExtractArgs = {
+  client_slug: string;
+  domain_type: string;
+  domain_slug: string;
+  source_slug: string;
+  kind: string; // Quotes | Stats | References | Mentions
+  text: string;
+};
+
+export async function appendExtract(args: AppendExtractArgs): Promise<{ corpus_path: string }> {
+  const dir = join(CLIENTS_ROOT, args.client_slug, 'corpus', domainFolder(args.domain_type), args.domain_slug, 'sources');
+  const target = join(dir, `${args.source_slug}.md`);
+  const corpus_path = target.replace(`${CLIENTS_ROOT}/`, '');
+  let content = '';
+  try {
+    content = await readFile(target, 'utf8');
+  } catch {
+    throw new Error('source file not found — add or fetch the source first');
+  }
+  const text = args.text.trim();
+  if (!text) return { corpus_path };
+  const heading = `## ${args.kind}`;
+  const lines = content.split('\n');
+  const i = lines.findIndex((l) => l.trim() === heading);
+  if (i < 0) {
+    content = content.trimEnd() + `\n\n${heading}\n\n${text}\n`;
+  } else {
+    lines.splice(i + 1, 0, '', text);
+    content = lines.join('\n');
+  }
+  await writeFile(target, content, 'utf8');
+  return { corpus_path };
 }
 
 function buildFrontmatter(args: AddCorpusArgs): string {
