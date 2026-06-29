@@ -154,7 +154,21 @@ export const PERSON_ENRICHMENT_REMOTE: RemoteEntry = {
 // augment-it:navigate, but excluded from the peek-flow rotation in REMOTES.
 // Same shape as CHAT_REMOTE; aggregated here so remoteById() can fall back
 // to look them up without each caller having to know about each extra.
-const EXTRA_REMOTES: RemoteEntry[] = [CHAT_REMOTE, PACK_RUNNER_REMOTE, SORT_FILTER_LENS_REMOTE, PERSON_ENRICHMENT_REMOTE];
+
+// STRATEGY_CURATOR_REMOTE — the entry-point surface for gathering sources
+// against a strategy (metadata-first → Jina/PDF fetch → extracts), writing
+// only through workspace capabilities. Registered + reachable now; promote it
+// to the head of ROTATION once the resolver / content-ingest handlers land.
+// See context-v/specs/Strategy-Curator-Entry-Point-for-Augment-It.md.
+export const STRATEGY_CURATOR_REMOTE: RemoteEntry = {
+  id: 'strategyCurator',
+  label: 'Strategy Curator',
+  description: 'Pick a strategy, gather sources (metadata-first → fetch → extracts), tag and cross-reference',
+  // @ts-expect-error — federation remote, type comes from the MF runtime
+  importMount: () => import('strategyCurator/mount'),
+};
+
+const EXTRA_REMOTES: RemoteEntry[] = [CHAT_REMOTE, PACK_RUNNER_REMOTE, SORT_FILTER_LENS_REMOTE, PERSON_ENRICHMENT_REMOTE, STRATEGY_CURATOR_REMOTE];
 
 // Co-existence pairings — which two remotes share the viewport in Mode B,
 // and the default left-panel width %. Different pairs want different

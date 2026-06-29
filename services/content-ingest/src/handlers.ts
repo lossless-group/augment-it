@@ -36,7 +36,7 @@
 import { JSONCodec, type NatsConnection } from 'nats';
 import { fetchViaJina } from './jina';
 import * as cache from './cache';
-import { addToCorpus, addToInbox, listForRecord, type CorpusEntry } from './corpus';
+import { addToCorpus, addToInbox, addDomainIndex, listForRecord, type CorpusEntry, type DomainIndexArgs } from './corpus';
 import { isNavigationUrl, isSameDomain } from './filters';
 import { downloadBinaryAsset, type BinaryAssetResult } from './binary-asset';
 import { promoteSnapshot } from './promote';
@@ -68,6 +68,25 @@ type PreviewResult = {
 };
 
 export function registerHandlers(nc: NatsConnection): void {
+  // corpus.domain.write_index — internal (resolver → here): write a domain's
+  // folder + index.md definition file (<type-plural>/<slug>/index.md). Not a
+  // browser capability; the resolver's domain.create handler requests it so the
+  // create is filesystem-authoritative.
+  (async () => {
+    const sub = nc.subscribe('corpus.domain.write_index.requested');
+    for await (const msg of sub) {
+      const args = jc.decode(msg.data) as DomainIndexArgs;
+      try {
+        if (!args?.client_slug || !args?.type || !args?.slug) throw new Error('client_slug, type and slug are required');
+        const result = await addDomainIndex(args);
+        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      }
+    }
+  })();
+
   // content_ingest.preview
   (async () => {
     const sub = nc.subscribe('content_ingest.preview.requested');

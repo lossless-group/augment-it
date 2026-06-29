@@ -346,6 +346,77 @@ export async function listForRecord(args: {
   return entries;
 }
 
+// --- domain index.md (a typed grouping's definition file) ------------------
+// A "domain" is a typed grouping (type ∈ strategy | topic | thesis | …). Its
+// index.md lands at clients/<client_slug>/corpus/<type-plural>/<slug>/index.md.
+// Idempotent: an existing authored body is preserved (never clobbered). The
+// folder is created here — the filesystem home of the domain.
+// See context-v/specs/Strategy-Curator-Entry-Point-for-Augment-It.md.
+
+// type → corpus folder (plural). Irregular plurals handled explicitly; fallback +s.
+const DOMAIN_FOLDERS: Record<string, string> = {
+  strategy: 'strategies',
+  topic: 'topics',
+  thesis: 'theses',
+  category: 'categories',
+  'market-segment': 'market-segments',
+};
+function domainFolder(type: string): string {
+  return DOMAIN_FOLDERS[type] ?? `${type}s`;
+}
+
+export type DomainIndexArgs = {
+  client_slug: string;
+  type: string;
+  slug: string;
+  title: string;
+  client_slugs: string[];
+  tags: string[];
+  created_at: string; // YYYY-MM-DD
+};
+
+export async function addDomainIndex(args: DomainIndexArgs): Promise<{ corpus_path: string; created: boolean }> {
+  const dir = join(CLIENTS_ROOT, args.client_slug, 'corpus', domainFolder(args.type), args.slug);
+  await mkdir(dir, { recursive: true });
+  const target = join(dir, 'index.md');
+  const corpus_path = target.replace(`${CLIENTS_ROOT}/`, '');
+
+  // idempotent — don't clobber an authored definition if the file exists
+  try {
+    await readFile(target, 'utf8');
+    return { corpus_path, created: false };
+  } catch {
+    // not present — write it
+  }
+
+  const fm = buildDomainFrontmatter(args);
+  const body = `# ${args.title}\n\n<!-- Definition / statement of the case for this ${args.type}. -->\n`;
+  await writeFile(target, `${fm}\n\n${body}`, 'utf8');
+  return { corpus_path, created: true };
+}
+
+function buildDomainFrontmatter(args: DomainIndexArgs): string {
+  const lines: string[] = ['---'];
+  lines.push(`type: ${yamlString(args.type)}`);
+  lines.push(`slug: ${yamlString(args.slug)}`);
+  lines.push(`title: ${yamlString(args.title)}`);
+  if (args.client_slugs.length === 0) {
+    lines.push('client_slugs: []');
+  } else {
+    lines.push('client_slugs:');
+    for (const c of args.client_slugs) lines.push(`  - ${yamlString(c)}`);
+  }
+  if (args.tags.length === 0) {
+    lines.push('tags: []');
+  } else {
+    lines.push('tags:');
+    for (const t of args.tags) lines.push(`  - ${yamlString(t)}`);
+  }
+  lines.push(`created_at: ${yamlString(args.created_at)}`);
+  lines.push('---');
+  return lines.join('\n');
+}
+
 function buildFrontmatter(args: AddCorpusArgs): string {
   const lines: string[] = [];
   // published_at is lifted from extra_metadata when present (see jina.ts

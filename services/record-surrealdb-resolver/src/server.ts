@@ -1,5 +1,6 @@
 import { connect } from 'nats';
 import { registerHandlers } from './handlers';
+import { registerDomainHandlers } from './domains';
 
 // record-surrealdb-resolver — the SurrealDB-specific backend behind the
 // generic record-db-resolver UI. It is the FIRST augment-it service to talk
@@ -21,6 +22,7 @@ async function main(): Promise<void> {
   const nc = await connect({ servers: NATS_URL, name: 'record-surrealdb-resolver-service' });
   console.log(JSON.stringify({ level: 'info', msg: 'nats connected', url: NATS_URL }));
   registerHandlers(nc);
+  registerDomainHandlers(nc);
   console.log(JSON.stringify({ level: 'info', msg: 'record-surrealdb-resolver-service ready' }));
 }
 

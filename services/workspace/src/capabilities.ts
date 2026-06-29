@@ -145,6 +145,17 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'resolver.opportunities_for_org': 'resolver.opportunities_for_org.requested',
   // v0.0.0.4 — edit an opportunity's name (distinct from the org name).
   'resolver.update_opportunity': 'resolver.update_opportunity.requested',
+
+  // Domain catalog — the canonical typed-grouping graph behind apps/strategy-curator
+  // (which is the type='strategy' view). Served by record-surrealdb-resolver
+  // (domains.ts). Per context-v/specs/Strategy-Curator-Entry-Point-for-Augment-It.md.
+  // (source.fetch / extract.add — the corpus file writes — land in content-ingest next.)
+  'domain.create': 'domain.create.requested',
+  'domain.list': 'domain.list.requested',
+  'domain.assemble': 'domain.assemble.requested',
+  'source.add': 'source.add.requested',
+  'tag.suggest': 'tag.suggest.requested',
+  'tag.apply': 'tag.apply.requested',
 };
 
 const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
@@ -206,6 +217,13 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'resolver.update_org': 30_000,
   'resolver.opportunities_for_org': 30_000,
   'resolver.update_opportunity': 30_000,
+  // Domain catalog — SurrealDB graph reads/writes; same Cloud round-trip budget.
+  'domain.create': 30_000,
+  'domain.list': 30_000,
+  'domain.assemble': 30_000,
+  'source.add': 30_000,
+  'tag.suggest': 30_000,
+  'tag.apply': 30_000,
 };
 
 export async function dispatch(capability: string, args: unknown): Promise<unknown> {
