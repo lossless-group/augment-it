@@ -35,7 +35,7 @@ export async function fetchViaJina(url: string, opts: { noCache?: boolean } = {}
 async function jinaFetchOnce(url: string, noCache = false): Promise<JinaResult> {
   const fetched_at = new Date().toISOString();
   const apiKey = process.env.JINA_API_KEY;
-  const headers: Record<string, string> = { Accept: 'text/markdown' };
+  const headers: Record<string, string> = { Accept: 'application/json' };
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
   if (noCache) headers['X-No-Cache'] = 'true'; // bypass Jina's cached snapshot (retry)
 
@@ -48,37 +48,90 @@ async function jinaFetchOnce(url: string, noCache = false): Promise<JinaResult> 
   if (!res.ok) {
     return { ok: false, error: `HTTP ${res.status} ${res.statusText}`, status: res.status };
   }
-  const markdown = await res.text();
-  if (!markdown.trim()) {
+  const body = await res.text();
+  if (!body.trim()) {
     return { ok: false, error: 'Jina returned empty body' };
   }
-  const title = extractTitle(markdown, url);
-  const extra: Record<string, unknown> = {
-    jina_status: res.status,
-    content_length_bytes: markdown.length,
-  };
-  for (const h of ['x-canonical-url', 'x-title', 'x-description', 'x-language']) {
-    const v = res.headers.get(h);
-    if (v) extra[h.replace(/^x-/, '').replace(/-/g, '_')] = v;
+
+  let parsed: { data?: Record<string, unknown> } | null = null;
+  try {
+    parsed = JSON.parse(body) as { data?: Record<string, unknown> };
+  } catch {
+    parsed = null;
   }
-  // Jina emits a key:value preamble before the body (Title, URL Source,
-  // Published Time, sometimes Description / Language). These never
-  // appeared in our extra — they sat unread in the markdown body. Lift
-  // the useful ones now. Published Time is the headline value (an
-  // operator triaging a foundation press release needs to know "when").
+
+  // JSON path (the normal case) — rich metadata available.
+  if (parsed?.data) {
+    const data = parsed.data;
+    const meta = (data.metadata && typeof data.metadata === 'object' ? data.metadata : {}) as Record<string, unknown>;
+    const markdown = typeof data.content === 'string' ? data.content : '';
+    if (!markdown.trim()) return { ok: false, error: 'Jina returned empty content' };
+    const title = firstStr(data.title) ?? extractTitle(markdown, url);
+    const extra: Record<string, unknown> = { jina_status: res.status, content_length_bytes: markdown.length };
+
+    const publishedRaw = firstStr(data.publishedTime, meta['article:published_time'], meta['article:modified_time'], meta.date);
+    if (publishedRaw) {
+      const iso = normalizeToISO(publishedRaw);
+      if (iso) extra.published_at = iso;
+    }
+    const authors = normalizeAuthors(meta.author, meta['article:author'], meta['dc.creator'], data.author);
+    if (authors.length) extra.authors = authors;
+    const publisher = firstStr(meta['og:site_name'], data.publisher) ?? hostnameOf(url);
+    if (publisher) extra.publisher = publisher;
+    const description = firstStr(data.description, meta.description);
+    if (description) extra.description = description;
+    const language = firstStr(meta.lang, meta.language, data.lang);
+    if (language) extra.language = language;
+
+    return { ok: true, markdown, title, fetched_at, extra };
+  }
+
+  // Fallback: non-JSON body (some upstreams / error shapes) — parse the legacy
+  // key:value preamble so we still degrade gracefully.
+  const markdown = body;
+  const title = extractTitle(markdown, url);
+  const extra: Record<string, unknown> = { jina_status: res.status, content_length_bytes: markdown.length };
   const preamble = parsePreamble(markdown);
   const publishedTime = preamble['Published Time'] ?? preamble['published_time'];
   if (publishedTime) {
     const iso = normalizeToISO(publishedTime);
     if (iso) extra.published_at = iso;
   }
-  if (preamble['Description'] && extra.description == null) {
-    extra.description = preamble['Description'];
-  }
-  if (preamble['Language'] && extra.language == null) {
-    extra.language = preamble['Language'];
-  }
+  if (preamble['Author']) extra.authors = normalizeAuthors(preamble['Author']);
+  const fbPublisher = preamble['Published By'] ?? preamble['Publisher'];
+  if (fbPublisher) extra.publisher = fbPublisher;
+  if (preamble['Description']) extra.description = preamble['Description'];
+  if (preamble['Language']) extra.language = preamble['Language'];
   return { ok: true, markdown, title, fetched_at, extra };
+}
+
+function firstStr(...vals: unknown[]): string | undefined {
+  for (const v of vals) {
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return undefined;
+}
+
+// Jina returns author as a STRING for one author but an ARRAY for several.
+// Normalize to a string[] (one author → one-element array), taking the first
+// key that yields anything and stripping a leading "By ".
+function normalizeAuthors(...vals: unknown[]): string[] {
+  for (const v of vals) {
+    let list: string[] = [];
+    if (typeof v === 'string' && v.trim()) list = [v.trim()];
+    else if (Array.isArray(v)) list = v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0).map((x) => x.trim());
+    list = list.map((a) => a.replace(/^by\s+/i, '').trim()).filter(Boolean);
+    if (list.length) return Array.from(new Set(list));
+  }
+  return [];
+}
+
+function hostnameOf(url: string): string | undefined {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return undefined;
+  }
 }
 
 // Reads the leading `Key: Value` lines until the `Markdown Content:`

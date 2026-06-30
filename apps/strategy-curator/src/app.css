@@ -102,6 +102,22 @@
 .sc-app input:focus,
 .sc-app textarea:focus,
 .sc-app select:focus { outline: none; border-color: var(--color-field-focus); box-shadow: var(--fx-accent-glow); }
+
+/* Saved-confirmation pulse: border glows green on commit, then fades back. */
+@keyframes sc-save-flash {
+  0% {
+    border-color: var(--color-confidence-high);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-confidence-high) 45%, transparent);
+  }
+  100% {
+    border-color: var(--color-border);
+    box-shadow: none;
+  }
+}
+.sc-app input.sc-saved { animation: sc-save-flash 1.6s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .sc-app input.sc-saved { animation-duration: 1ms; }
+}
 .sc-app textarea { resize: vertical; min-height: 3.5em; }
 
 .sc-app button {

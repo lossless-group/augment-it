@@ -72,6 +72,29 @@ async function ensureDomainSchema(db: Surreal): Promise<void> {
   domainSchemaReady = true;
 }
 
+// Update the canonical registry's bibliographic fields from a content-ingest
+// response — only the fields Jina actually returned (never blank out a value).
+async function applyBibToRegistry(
+  db: Surreal,
+  source_uuid: string,
+  f: { title?: string; authors?: string[]; publisher?: string; published_date?: string },
+): Promise<void> {
+  const set: string[] = [];
+  const vars: Record<string, unknown> = { u: source_uuid };
+  for (const k of ['title', 'publisher', 'published_date'] as const) {
+    const v = f[k];
+    if (typeof v === 'string' && v.trim()) {
+      set.push(`${k} = $${k}`);
+      vars[k] = v;
+    }
+  }
+  if (Array.isArray(f.authors) && f.authors.length) {
+    set.push('authors = $authors');
+    vars.authors = f.authors;
+  }
+  if (set.length) await db.query(`UPDATE sources SET ${set.join(', ')} WHERE source_uuid = $u;`, vars);
+}
+
 async function ensureTagInVocab(db: Surreal, client_slug: string, tag: string): Promise<void> {
   if (!tag) return;
   const seen = first<{ tag: string }>(
@@ -92,6 +115,7 @@ export type SourceRow = {
   normalized_url: string;
   url: string;
   title: string;
+  authors: string[];
   publisher: string;
   published_date: string;
   content_type: string;
@@ -183,7 +207,7 @@ async function upsertSource(db: Surreal, args: { url: string }): Promise<SourceR
   const normalized_url = normalizeUrl(args.url);
   const existing = first<SourceRow>(
     await db.query(
-      'SELECT source_uuid, normalized_url, url, title, publisher, published_date, content_type FROM sources WHERE normalized_url = $n LIMIT 1',
+      'SELECT source_uuid, normalized_url, url, title, authors, publisher, published_date, content_type FROM sources WHERE normalized_url = $n LIMIT 1',
       { n: normalized_url },
     ),
   );
@@ -193,9 +217,9 @@ async function upsertSource(db: Surreal, args: { url: string }): Promise<SourceR
       `CREATE sources SET
           id = rand::uuid::v7(), source_uuid = type::string(rand::uuid::v7()),
           normalized_url = $n, url = $url,
-          title = '', publisher = '', published_date = '', content_type = '',
+          title = '', authors = [], publisher = '', published_date = '', content_type = '',
           first_seen_at = time::now()
-       RETURN source_uuid, normalized_url, url, title, publisher, published_date, content_type;`,
+       RETURN source_uuid, normalized_url, url, title, authors, publisher, published_date, content_type;`,
       { n: normalized_url, url: args.url },
     ),
   );
@@ -238,7 +262,7 @@ export async function assembleDomain(
   for (const u of usages ?? []) {
     const s = first<SourceRow>(
       await db.query(
-        'SELECT source_uuid, normalized_url, url, title, publisher, published_date, content_type FROM sources WHERE source_uuid = $u LIMIT 1',
+        'SELECT source_uuid, normalized_url, url, title, authors, publisher, published_date, content_type FROM sources WHERE source_uuid = $u LIMIT 1',
         { u: u.source_uuid },
       ),
     );
@@ -353,18 +377,16 @@ export function registerDomainHandlers(nc: NatsConnection): void {
           }),
           { timeout: 60_000 }, // Jina can be slow
         );
-        const f = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; source_slug?: string; title?: string; error?: string };
+        const f = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; source_slug?: string; title?: string; authors?: string[]; publisher?: string; published_date?: string; error?: string };
         if (!f.ok) throw new Error(`source file write failed: ${f.error ?? 'unknown'}`);
-        if (f.title) {
-          await db.query('UPDATE sources SET title = $title WHERE source_uuid = $u;', { title: f.title, u: source.source_uuid });
-        }
+        await applyBibToRegistry(db, source.source_uuid, f);
         await db.query(
           `UPDATE source_usages SET corpus_path = $p, source_slug = $sl
              WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s;`,
           { p: f.corpus_path ?? null, sl: f.source_slug ?? null, u: source.source_uuid, c: args.client_slug, t: args.domain_type, s: args.domain_slug },
         );
         if (msg.reply) {
-          msg.respond(jc.encode({ ok: true, source: { ...source, title: f.title ?? source.title, status: 'metadata-only', corpus_path: f.corpus_path } }));
+          msg.respond(jc.encode({ ok: true, source: { ...source, title: f.title ?? source.title, authors: f.authors, publisher: f.publisher, published_date: f.published_date, status: 'metadata-only', source_slug: f.source_slug, corpus_path: f.corpus_path } }));
         }
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
@@ -397,15 +419,15 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         jc.encode({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_uuid: a.source_uuid, url: src.url, source_slug: usage?.source_slug ?? undefined, no_cache: noCache }),
         { timeout: 90_000 },
       );
-      const f = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; source_slug?: string; title?: string; content_pulled?: boolean; error?: string };
+      const f = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; source_slug?: string; title?: string; authors?: string[]; publisher?: string; published_date?: string; content_pulled?: boolean; error?: string };
       if (!f.ok) throw new Error(`fetch failed: ${f.error ?? 'unknown'}`);
-      if (f.title) await db.query('UPDATE sources SET title = $title WHERE source_uuid = $u;', { title: f.title, u: a.source_uuid });
+      await applyBibToRegistry(db, a.source_uuid, f);
       await db.query(
         `UPDATE source_usages SET status = 'fetched', source_slug = $sl, corpus_path = $p
            WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s;`,
         { sl: f.source_slug ?? usage?.source_slug ?? null, p: f.corpus_path ?? null, u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
       );
-      return { ok: true, source: { source_uuid: a.source_uuid, url: src.url, title: f.title, status: 'fetched', content_pulled: f.content_pulled ?? true, corpus_path: f.corpus_path } };
+      return { ok: true, source: { source_uuid: a.source_uuid, url: src.url, title: f.title, authors: f.authors, publisher: f.publisher, published_date: f.published_date, status: 'fetched', content_pulled: f.content_pulled ?? true, source_slug: f.source_slug ?? usage?.source_slug, corpus_path: f.corpus_path } };
     } catch (err: unknown) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
@@ -451,7 +473,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('source.update.requested');
     for await (const msg of sub) {
-      const a = jc.decode(msg.data) as SourceRef & { fields: Record<string, string> };
+      const a = jc.decode(msg.data) as SourceRef & { fields: Record<string, string>; authors?: string[] };
       try {
         const db = await getDb();
         await ensureDomainSchema(db);
@@ -464,11 +486,15 @@ export function registerDomainHandlers(nc: NatsConnection): void {
             vars[k] = fields[k];
           }
         }
+        if (Array.isArray(a.authors)) {
+          setParts.push('authors = $authors');
+          vars.authors = a.authors;
+        }
         if (setParts.length) await db.query(`UPDATE sources SET ${setParts.join(', ')} WHERE source_uuid = $u;`, vars);
         const usage = await usageOf(db, a);
         let source_slug = usage?.source_slug;
         if (usage?.source_slug) {
-          const reply = await nc.request('corpus.source.update.requested', jc.encode({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: usage.source_slug, fields }), { timeout: 15_000 });
+          const reply = await nc.request('corpus.source.update.requested', jc.encode({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: usage.source_slug, fields, authors: a.authors }), { timeout: 15_000 });
           const r = jc.decode(reply.data) as { ok?: boolean; source_slug?: string; corpus_path?: string };
           // a title edit re-slugs (and renames) the file — keep the usage row pointed at it
           if (r?.source_slug && r.source_slug !== usage.source_slug) {

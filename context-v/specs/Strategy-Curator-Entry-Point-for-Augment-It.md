@@ -7,7 +7,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.8 (1M context)
-semantic_version: 0.0.0.5
+semantic_version: 0.0.0.6
 status: Implementing
 tags:
   - Spec
@@ -526,6 +526,31 @@ base64 over NATS, so `nats.conf` `max_payload` gates it: bumped **8MB → 48MB**
 (≈38MB base64) fits; the UI guards at 32MB. content-ingest's image now installs `ghostscript`.
 If the backend ever moves off-box (no shared filesystem), the right evolution is a direct HTTP
 upload endpoint that bypasses NATS entirely — noted, not built.
+
+### Increment 4 — bibliographic capture (Jina JSON) + save UX
+- **Jina JSON, not markdown.** content-ingest now requests `Accept: application/json` from
+  `r.jina.ai`. The markdown preamble only carries title + published time; the JSON `data.metadata`
+  block carries `author`, `og:site_name` (→ publisher), and `article:published_time` (→ date). We
+  extract all three on `source.add` and `source.fetch` and write them to the file frontmatter
+  **and** the SurrealDB `sources` registry. A re-fetch preserves analyst-corrected values when
+  Jina omits a field. (Gotcha: a stale `Accept: 'text/markdown'` header silently routed every
+  fetch through the markdown fallback for a while — all the JSON-metadata code was dead behind a
+  failing `JSON.parse`. The header is the load-bearing line.)
+- **`authors` is an array.** Jina returns author as a *string* for one author and an *array* for
+  several; we normalize to `string[]` (one author → a one-element array). Stored as a YAML list
+  in frontmatter, an array column in the registry, edited in the form as a comma-separated field.
+- **Editable bib fields.** `SourceDetail` exposes Title / Filename / **Author(s)** / Publisher /
+  Published date — all auto-filled on fetch, all hand-editable, each writing through to registry
+  + file.
+- **Paid Jina key** is read from `JINA_API_KEY` (compose env ← `augment-it/.env`); absent → free
+  tier, which honors `Accept: application/json` less consistently.
+- **Save-confirmation pulse.** A `commitOnEdit` Svelte action commits each field on Enter (blur)
+  or change and pulses the border green (`--color-confidence-high`) on success, fading back over
+  ~1.6s — "saved ✓" on the field itself. No green on error.
+- **source_slug echo + fallback.** `source.add` / `fetch` / `retry` now echo `source_slug` so an
+  in-session source connects to its on-disk file immediately (the Filename field + rename had been
+  blank until a reload). The UI also derives the slug from `corpus_path` as a fallback, so the
+  field never goes blank for a file that exists.
 
 ### Gotchas the live stack taught us (checklist for the next SurrealDB-over-NATS service)
 1. **Strict mode → `DEFINE TABLE/INDEX IF NOT EXISTS` before any use** (run once via an

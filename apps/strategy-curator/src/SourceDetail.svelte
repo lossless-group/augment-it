@@ -11,6 +11,40 @@
     extractText = '';
     void curation.addExtract(extractKind, t);
   }
+
+  // Pulse the border green to confirm a save, then fade back (see .sc-saved).
+  function flash(node: HTMLElement): void {
+    node.classList.remove('sc-saved');
+    void node.offsetWidth; // reflow → restart the animation on rapid repeats
+    node.classList.add('sc-saved');
+    window.setTimeout(() => node.classList.remove('sc-saved'), 1600);
+  }
+
+  // Action: commit on Enter (blur) or change, then flash on success.
+  function commitOnEdit(node: HTMLInputElement, run: (value: string) => unknown) {
+    let current = run;
+    const onChange = async (): Promise<void> => {
+      await current(node.value);
+      if (!curation.lastError) flash(node);
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        node.blur(); // triggers change → save + flash
+      }
+    };
+    node.addEventListener('change', onChange);
+    node.addEventListener('keydown', onKey);
+    return {
+      update(next: (value: string) => unknown) {
+        current = next;
+      },
+      destroy() {
+        node.removeEventListener('change', onChange);
+        node.removeEventListener('keydown', onKey);
+      },
+    };
+  }
 </script>
 
 {#if curation.focused}
@@ -23,7 +57,7 @@
       <input
         value={s.title ?? ''}
         placeholder="(no title — fetch, retry, or just type one)"
-        onchange={(e) => curation.updateSource('title', e.currentTarget.value)}
+        use:commitOnEdit={(v) => curation.updateSource('title', v)}
       />
     </div>
     <div class="sc-field">
@@ -33,17 +67,21 @@
         value={s.source_slug ?? ''}
         placeholder="(filename appears after first save/fetch)"
         disabled={!s.source_slug}
-        onchange={(e) => curation.renameSource(e.currentTarget.value)}
+        use:commitOnEdit={(v) => curation.renameSource(v)}
       />
+    </div>
+    <div class="sc-field">
+      <span class="sc-label">Author(s) <span class="sc-muted sc-mini">— comma-separated</span></span>
+      <input value={(s.authors ?? []).join(', ')} placeholder="(auto-filled on fetch)" use:commitOnEdit={(v) => curation.updateAuthors(v)} />
     </div>
     <div class="grid2">
       <div class="sc-field">
         <span class="sc-label">Publisher</span>
-        <input value={s.publisher ?? ''} onchange={(e) => curation.updateSource('publisher', e.currentTarget.value)} />
+        <input value={s.publisher ?? ''} placeholder="(auto-filled on fetch)" use:commitOnEdit={(v) => curation.updateSource('publisher', v)} />
       </div>
       <div class="sc-field">
         <span class="sc-label">Published date</span>
-        <input value={s.published_date ?? ''} placeholder="YYYY-MM-DD" onchange={(e) => curation.updateSource('published_date', e.currentTarget.value)} />
+        <input value={s.published_date ?? ''} placeholder="YYYY-MM-DD" use:commitOnEdit={(v) => curation.updateSource('published_date', v)} />
       </div>
     </div>
     <div class="sc-field">

@@ -23,6 +23,7 @@ export type Source = {
   normalized_url?: string;
   url: string;
   title?: string;
+  authors?: string[];
   publisher?: string;
   published_date?: string;
   strategy_slugs?: string[];

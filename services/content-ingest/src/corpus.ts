@@ -488,15 +488,18 @@ const EXTRACTS_SKELETON = '# Extracts\n\n## Quotes\n\n## Stats\n\n## References\
 
 export async function addSourceFile(
   args: AddSourceFileArgs,
-): Promise<{ corpus_path: string; source_slug: string; title: string; excerpt: string; status: string; created: boolean }> {
-  // Jina metadata fetch — title + a short excerpt. We store metadata-only here;
-  // the full body lands on source.fetch.
+): Promise<{ corpus_path: string; source_slug: string; title: string; excerpt: string; status: string; created: boolean; publisher?: string; published_date?: string; authors?: string[] }> {
+  // Jina metadata fetch — title + bibliographic fields (authors / publisher /
+  // date) + a short excerpt. We store metadata-only here; the full body lands
+  // on source.fetch.
   let title = args.url;
   let excerpt = '';
+  let bib: { publisher?: string; published_date?: string; authors?: string[] } = {};
   const jr = await fetchViaJina(args.url);
   if (jr.ok) {
     title = jr.title || args.url;
     excerpt = sourceExcerpt(jr.markdown);
+    bib = bibFromExtra(jr.extra);
   }
   const source_slug = slugify(title) || slugify(args.url) || args.source_uuid.slice(0, 8);
   const dir = join(CLIENTS_ROOT, args.client_slug, 'corpus', domainFolder(args.domain_type), args.domain_slug, 'sources');
@@ -506,15 +509,28 @@ export async function addSourceFile(
 
   try {
     await readFile(target, 'utf8');
-    return { corpus_path, source_slug, title, excerpt, status: 'metadata-only', created: false };
+    return { corpus_path, source_slug, title, excerpt, status: 'metadata-only', created: false, ...bib };
   } catch {
     // not present — write it
   }
 
-  const fm = buildSourceFrontmatter({ ...args, title, status: 'metadata-only', content_pulled: false });
+  const fm = buildSourceFrontmatter({ ...args, title, status: 'metadata-only', content_pulled: false, ...bib });
   const body = excerpt ? `${excerpt}\n\n` : '';
   await writeFile(target, `${fm}\n\n${body}${EXTRACTS_SKELETON}`, 'utf8');
-  return { corpus_path, source_slug, title, excerpt, status: 'metadata-only', created: true };
+  return { corpus_path, source_slug, title, excerpt, status: 'metadata-only', created: true, ...bib };
+}
+
+// Lift the bibliographic fields out of Jina's `extra` block into the shape we
+// store. `published_at` is a full ISO timestamp; `published_date` keeps the date.
+function bibFromExtra(extra: Record<string, unknown>): { publisher?: string; published_date?: string; authors?: string[] } {
+  const str = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
+  const publishedAt = str(extra.published_at);
+  const authors = Array.isArray(extra.authors) ? (extra.authors as unknown[]).filter((x): x is string => typeof x === 'string' && !!x.trim()) : [];
+  return {
+    publisher: str(extra.publisher),
+    published_date: publishedAt ? publishedAt.slice(0, 10) : undefined,
+    authors: authors.length ? authors : undefined,
+  };
 }
 
 function buildSourceFrontmatter(args: {
@@ -528,12 +544,18 @@ function buildSourceFrontmatter(args: {
   content_pulled: boolean;
   binary_filename?: string | null;
   tags?: string[];
+  publisher?: string;
+  published_date?: string;
+  authors?: string[];
 }): string {
   const lines: string[] = ['---'];
   lines.push(`source_uuid: ${yamlString(args.source_uuid)}`);
   lines.push(`url: ${yamlString(args.url)}`);
   if (args.normalized_url) lines.push(`normalized_url: ${yamlString(args.normalized_url)}`);
   lines.push(`title: ${yamlString(args.title)}`);
+  if (args.authors?.length) lines.push(renderListBlock('authors', args.authors));
+  if (args.publisher) lines.push(`publisher: ${yamlString(args.publisher)}`);
+  if (args.published_date) lines.push(`published_date: ${yamlString(args.published_date)}`);
   lines.push('domains:');
   lines.push(`  - ${yamlString(`${args.domain_type}:${args.domain_slug}`)}`);
   lines.push(`status: ${yamlString(args.status)}`);
@@ -564,10 +586,11 @@ export type FetchSourceArgs = {
 
 export async function fetchSourceContent(
   args: FetchSourceArgs,
-): Promise<{ corpus_path: string; source_slug: string; title: string; content_pulled: boolean; via: string; binary_filename: string | null }> {
+): Promise<{ corpus_path: string; source_slug: string; title: string; content_pulled: boolean; via: string; binary_filename: string | null; publisher?: string; published_date?: string; authors?: string[] }> {
   const jr = await fetchViaJina(args.url, { noCache: args.no_cache });
   const title = jr.ok ? jr.title || args.url : args.url;
   const fullMd = jr.ok ? jr.markdown.trim() : '';
+  const bib = jr.ok ? bibFromExtra(jr.extra) : {};
   const source_slug = args.source_slug || slugify(title) || slugify(args.url) || args.source_uuid.slice(0, 8);
   const dir = join(CLIENTS_ROOT, args.client_slug, 'corpus', domainFolder(args.domain_type), args.domain_slug, 'sources');
   await mkdir(dir, { recursive: true });
@@ -583,17 +606,30 @@ export async function fetchSourceContent(
     await writeFile(join(dir, binary_filename), bin.buffer);
   }
 
-  // preserve any existing # Extracts section + analyst tags across the rewrite
+  // preserve any existing # Extracts section, analyst tags, and bib fields the
+  // analyst may have hand-corrected, across the rewrite
   let extractsSection = EXTRACTS_SKELETON;
   let existingTags: string[] = [];
+  const existingBib: { publisher?: string; published_date?: string; authors?: string[] } = {};
   try {
     const existing = await readFile(target, 'utf8');
     const idx = existing.indexOf('# Extracts');
     if (idx >= 0) extractsSection = existing.slice(idx);
     existingTags = parseTagsFromFrontmatter(existing);
+    existingBib.publisher = parseFmScalar(existing, 'publisher');
+    existingBib.published_date = parseFmScalar(existing, 'published_date');
+    const ea = parseListFromFrontmatter(existing, 'authors');
+    if (ea.length) existingBib.authors = ea;
   } catch {
     // fresh — use the skeleton
   }
+
+  // Jina's fresh metadata wins; fall back to whatever was already on the file.
+  const merged = {
+    publisher: bib.publisher ?? existingBib.publisher,
+    published_date: bib.published_date ?? existingBib.published_date,
+    authors: bib.authors ?? existingBib.authors,
+  };
 
   const fm = buildSourceFrontmatter({
     source_uuid: args.source_uuid,
@@ -605,9 +641,20 @@ export async function fetchSourceContent(
     content_pulled: jr.ok,
     binary_filename,
     tags: existingTags,
+    ...merged,
   });
   await writeFile(target, `${fm}\n\n# ${title}\n\n${fullMd}\n\n${extractsSection.trimStart()}`, 'utf8');
-  return { corpus_path, source_slug, title, content_pulled: jr.ok, via: jr.ok ? 'jina' : 'none', binary_filename };
+  return { corpus_path, source_slug, title, content_pulled: jr.ok, via: jr.ok ? 'jina' : 'none', binary_filename, ...merged };
+}
+
+// Read a single scalar frontmatter value (quoted or bare) from a file's body.
+function parseFmScalar(content: string, key: string): string | undefined {
+  const fm = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!fm) return undefined;
+  const m = fm[1].match(new RegExp(`^${key}:\\s*(.+)$`, 'm'));
+  if (!m) return undefined;
+  const v = m[1].trim().replace(/^["']|["']$/g, '').trim();
+  return v || undefined;
 }
 
 // source.remove — delete a source's per-source file (+ any binary sibling).
@@ -637,27 +684,33 @@ export async function removeSourceFile(args: SourceFileRef): Promise<{ corpus_pa
 // source.update — patch frontmatter fields (title / publisher / published_date) on
 // a source file. The filename (source_slug) is NOT renamed on a title edit — the
 // slug is the stable id, the title is display. Scoped to the frontmatter block.
-export type UpdateSourceArgs = SourceFileRef & { fields: Record<string, string>; tags?: string[] };
+export type UpdateSourceArgs = SourceFileRef & { fields: Record<string, string>; tags?: string[]; authors?: string[] };
 
-// Render a frontmatter `tags:` block (Train-Case list, or `tags: []` when empty).
+// Render a frontmatter list block (`key:` + indented items, or `key: []` empty).
+function renderListBlock(key: string, items: string[]): string {
+  if (!items.length) return `${key}: []`;
+  return [`${key}:`, ...items.map((i) => `  - ${yamlString(i)}`)].join('\n');
+}
 function renderTagsBlock(tags: string[]): string {
-  if (!tags.length) return 'tags: []';
-  return ['tags:', ...tags.map((t) => `  - ${yamlString(t)}`)].join('\n');
+  return renderListBlock('tags', tags);
 }
 
-// Pull the tags list out of a frontmatter string (handles both `tags: []` inline
-// and the indented `- item` block form). Used to preserve analyst tags across a
-// re-fetch that would otherwise rewrite the file from scratch.
-function parseTagsFromFrontmatter(content: string): string[] {
+// Pull a frontmatter list out of a file (handles both `key: []` inline and the
+// indented `- item` block form). Used to preserve analyst-entered lists (tags,
+// authors) across a re-fetch that would otherwise rewrite the file from scratch.
+function parseListFromFrontmatter(content: string, key: string): string[] {
   const fm = content.match(/^---\n([\s\S]*?)\n---/);
   if (!fm) return [];
-  const block = fm[1].match(/^tags:(.*)((?:\n[ \t]+-.*)*)/m);
+  const block = fm[1].match(new RegExp(`^${key}:(.*)((?:\\n[ \\t]+-.*)*)`, 'm'));
   if (!block) return [];
   if (block[1].trim().startsWith('[')) {
     const inner = block[1].trim().replace(/^\[|\]$/g, '').trim();
     return inner ? inner.split(',').map((s) => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean) : [];
   }
   return (block[2].match(/-\s*(.+)/g) ?? []).map((l) => l.replace(/^-\s*/, '').trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+}
+function parseTagsFromFrontmatter(content: string): string[] {
+  return parseListFromFrontmatter(content, 'tags');
 }
 
 export async function updateSourceFile(args: UpdateSourceArgs): Promise<{ corpus_path: string; updated: boolean; source_slug: string }> {
@@ -695,10 +748,11 @@ export async function updateSourceFile(args: UpdateSourceArgs): Promise<{ corpus
     const re = new RegExp(`^${k}:.*$`, 'm');
     fm = re.test(fm) ? fm.replace(re, line) : `${fm}\n${line}`;
   }
-  // tags arrive as a whole array (not a scalar field) — rewrite the tags block
-  if (Array.isArray(args.tags)) {
-    const block = renderTagsBlock(args.tags);
-    const re = /^tags:.*(?:\n[ \t]+-.*)*/m;
+  // tags / authors arrive as whole arrays (not scalar fields) — rewrite the block
+  for (const [key, arr] of [['tags', args.tags], ['authors', args.authors]] as const) {
+    if (!Array.isArray(arr)) continue;
+    const block = renderListBlock(key, arr);
+    const re = new RegExp(`^${key}:.*(?:\\n[ \\t]+-.*)*`, 'm');
     fm = re.test(fm) ? fm.replace(re, block) : `${fm}\n${block}`;
   }
   // keep the binary_asset filename pointer aligned with the renamed slug

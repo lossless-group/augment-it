@@ -178,7 +178,7 @@ class CurationState {
     this.focusIdx = 0;
     if (typeof localStorage !== 'undefined') localStorage.setItem(ACTIVE_STRATEGY_KEY, slug);
     const r = await this.call<{ sources: Source[] }>('domain.assemble', { type: DOMAIN_TYPE, slug, client_slug: this.clientSlug });
-    this.sources = r?.sources ?? [];
+    this.sources = (r?.sources ?? []).map(withSlug);
     const tv = await this.call<{ tags: string[] }>('tag.suggest', { prefix: '', client_slug: this.clientSlug });
     this.tagVocab = tv?.tags ?? [];
   }
@@ -193,7 +193,7 @@ class CurationState {
       this.saveStatus = this.lastError ?? 'add failed';
       return;
     }
-    this.sources = [...this.sources, r.source];
+    this.sources = [...this.sources, withSlug(r.source)];
     this.focusIdx = this.sources.length - 1;
     this.saveStatus = `added — ${this.sources.length} sources`;
   }
@@ -234,6 +234,25 @@ class CurationState {
   }
 
   // edit a bibliographic field (registry + file frontmatter). Filename is unchanged.
+  // authors is an array (one author → one-element array); the form edits it as a
+  // comma-separated string. Splits, trims, writes to registry + file frontmatter.
+  async updateAuthors(value: string): Promise<void> {
+    const f = this.focused;
+    if (!f || !this.activeSlug) return;
+    const authors = value.split(',').map((s) => s.trim()).filter(Boolean);
+    if ((f.authors ?? []).join('|') === authors.join('|')) return; // no-op
+    this.replaceSource({ ...f, authors });
+    await this.call('source.update', {
+      source_uuid: f.source_uuid,
+      domain_type: DOMAIN_TYPE,
+      domain_slug: this.activeSlug,
+      client_slug: this.clientSlug,
+      fields: {},
+      authors,
+    });
+    this.saveStatus = this.lastError ? 'authors update failed' : '✓ authors saved';
+  }
+
   async updateSource(field: 'title' | 'publisher' | 'published_date', value: string): Promise<void> {
     const f = this.focused;
     if (!f || !this.activeSlug) return;
@@ -377,8 +396,18 @@ class CurationState {
 
   private replaceSource(s: Source): void {
     const i = this.sources.findIndex((x) => x.source_uuid === s.source_uuid);
-    if (i >= 0) this.sources[i] = s;
+    if (i >= 0) this.sources[i] = withSlug(s);
   }
+}
+
+// Belt-and-suspenders: if a source arrives without source_slug but with a
+// corpus_path, derive the on-disk filename from the path so the Filename field
+// (and rename) always connect to a file that exists.
+function withSlug(s: Source): Source {
+  if (s.source_slug || !s.corpus_path) return s;
+  const base = s.corpus_path.split('/').pop() ?? '';
+  const slug = base.replace(/\.md$/, '');
+  return slug ? { ...s, source_slug: slug } : s;
 }
 
 export const curation = new CurationState();
