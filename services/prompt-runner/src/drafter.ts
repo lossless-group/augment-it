@@ -15,11 +15,9 @@
 // uses. Persistence happens via NATS calls into prompt-store. This file
 // never touches the store directly.
 
-import { JSONCodec, type NatsConnection } from 'nats';
+import { type NatsConnection } from '@nats-io/transport-node';
 import { runPrompt } from './anthropic';
 import { buildRequest } from './request';
-
-const jc = JSONCodec();
 
 export type DraftArgs = {
   goal: string;
@@ -98,10 +96,10 @@ async function getColumnSample(
   record_set_id: string,
   sampleSize = 3,
 ): Promise<{ columns: string[]; rows: Record<string, unknown>[] }> {
-  const reply = await nc.request('record_set.get.requested', jc.encode({ record_set_id }), {
+  const reply = await nc.request('record_set.get.requested', JSON.stringify({ record_set_id }), {
     timeout: 5_000,
   });
-  const decoded = jc.decode(reply.data) as RecordSetReply;
+  const decoded = reply.json() as RecordSetReply;
   if (!decoded.record_set) throw new Error(`record set not found: ${record_set_id}`);
   const columns = decoded.record_set.schema.fields.map((f) => f.name);
   const rows = (decoded.rows ?? []).slice(0, sampleSize).map((r) => r.fields);
@@ -125,7 +123,7 @@ export async function draftPrompt(
 
   const saveReply = await nc.request(
     'prompt.draft.save.requested',
-    jc.encode({
+    JSON.stringify({
       goal: args.goal,
       content,
       output_column: args.output_column,
@@ -138,7 +136,7 @@ export async function draftPrompt(
     }),
     { timeout: 5_000 },
   );
-  const saved = jc.decode(saveReply.data) as
+  const saved = saveReply.json() as
     | { prompt: { prompt_id: string; output_column: string } }
     | { ok: false; error: string };
   if ('error' in saved) throw new Error(saved.error);
@@ -152,10 +150,10 @@ export async function improvePrompt(
 ): Promise<DraftResult> {
   const parentReply = await nc.request(
     'prompt.get.requested',
-    jc.encode({ prompt_id: args.parent_id }),
+    JSON.stringify({ prompt_id: args.parent_id }),
     { timeout: 5_000 },
   );
-  const parentDecoded = jc.decode(parentReply.data) as {
+  const parentDecoded = parentReply.json() as {
     prompt: { content: string; output_column: string } | null;
   };
   if (!parentDecoded.prompt) throw new Error(`parent prompt not found: ${args.parent_id}`);
@@ -168,14 +166,14 @@ export async function improvePrompt(
 
   const saveReply = await nc.request(
     'prompt.draft.improve.save.requested',
-    jc.encode({
+    JSON.stringify({
       parent_id: args.parent_id,
       refined_content,
       feedback: args.feedback,
     }),
     { timeout: 5_000 },
   );
-  const saved = jc.decode(saveReply.data) as
+  const saved = saveReply.json() as
     | { prompt: { prompt_id: string; output_column: string } }
     | { ok: false; error: string };
   if ('error' in saved) throw new Error(saved.error);

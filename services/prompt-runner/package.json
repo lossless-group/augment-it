@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.109.1",
-    "nats": "^2.28.0"
+    "@nats-io/transport-node": "^3.4.0"
   },
   "devDependencies": {
     "@types/node": "^26.1.0",

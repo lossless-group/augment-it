@@ -4,11 +4,9 @@
 //
 // Spec: context-v/specs/Request-Reviewer-Pre-Flight-Surface.md
 
-import { JSONCodec, type NatsConnection } from 'nats';
+import { type NatsConnection } from '@nats-io/transport-node';
 import { buildRequest } from './request';
 import { extractTokens, fillTemplate } from './template';
-
-const jc = JSONCodec();
 
 type PromptTemplate = {
   prompt_id: string;
@@ -46,8 +44,8 @@ async function request<T>(
   body: unknown,
   timeout = 10_000,
 ): Promise<T> {
-  const reply = await nc.request(subject, jc.encode(body), { timeout });
-  return jc.decode(reply.data) as T;
+  const reply = await nc.request(subject, JSON.stringify(body), { timeout });
+  return reply.json() as T;
 }
 
 export async function previewRequest(

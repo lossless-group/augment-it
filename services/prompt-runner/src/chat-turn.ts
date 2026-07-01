@@ -9,11 +9,8 @@
 // file is the one that hits the SDK.
 
 import Anthropic from '@anthropic-ai/sdk';
-import type { NatsConnection } from 'nats';
-import { JSONCodec } from 'nats';
+import type { NatsConnection } from '@nats-io/transport-node';
 import { DEFAULT_MAX_TOKENS } from './request';
-
-const jc = JSONCodec();
 
 // Sonnet is the right model for v0.0.1 chat — fast enough for the
 // drafting-loop UX, cheap enough to be defensible per-turn. Opus is
@@ -57,9 +54,9 @@ export function registerChatTurnHandler(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('chat.turn.requested');
     for await (const msg of sub) {
-      const payload = jc.decode(msg.data) as ChatTurnRequestPayload;
+      const payload = msg.json() as ChatTurnRequestPayload;
       const result = await handleChatTurn(payload);
-      if (msg.reply) msg.respond(jc.encode(result));
+      if (msg.reply) msg.respond(JSON.stringify(result));
       if (!result.ok) {
         console.error(JSON.stringify({ level: 'error', msg: 'chat turn failed', error: result.error }));
       } else {

@@ -17,10 +17,8 @@
 //      iterate the prompt and try again without leaving a misleading
 //      "applied" marker on a broken prompt.
 
-import { JSONCodec, type NatsConnection } from 'nats';
+import { type NatsConnection } from '@nats-io/transport-node';
 import { runPromptAgainstRecordSet, type RunResult } from './run';
-
-const jc = JSONCodec();
 
 export type ApplyArgs = {
   prompt_id: string;
@@ -87,7 +85,7 @@ export async function applyPrompt(
     try {
       await nc.request(
         'prompt.mark_applied.requested',
-        jc.encode({ prompt_id: args.prompt_id }),
+        JSON.stringify({ prompt_id: args.prompt_id }),
         { timeout: 5_000 },
       );
     } catch (err: unknown) {

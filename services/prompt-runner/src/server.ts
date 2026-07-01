@@ -5,7 +5,7 @@
 //   prompt.run.cancel.requested — abort an in-flight run (key: record_set_id)
 //   prompt.preview.requested    — build the request for one row WITHOUT sending
 
-import { connect, JSONCodec } from 'nats';
+import { connect } from '@nats-io/transport-node';
 import { modelName } from './anthropic';
 import { applyPrompt } from './apply';
 import { registerChatTurnHandler } from './chat-turn';
@@ -14,8 +14,6 @@ import { previewRequest } from './preview';
 import { runPromptAgainstRecordSet } from './run';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
-
-const jc = JSONCodec();
 
 // One AbortController per active run, keyed by record_set_id. Cancellation
 // over the wire arrives as `prompt.run.cancel.requested { record_set_id }`.
@@ -38,7 +36,7 @@ async function main(): Promise<void> {
   (async () => {
     const sub = nc.subscribe('prompt.run.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as {
+      const args = msg.json() as {
         prompt_id: string;
         record_set_id: string;
         row_limit?: number;
@@ -57,11 +55,11 @@ async function main(): Promise<void> {
 
       try {
         const result = await runPromptAgainstRecordSet(nc, args, { runSignal: controller.signal });
-        if (msg.reply) msg.respond(jc.encode(result));
+        if (msg.reply) msg.respond(JSON.stringify(result));
         if (result.ok) {
           nc.publish(
             'prompt.run.completed',
-            jc.encode({
+            JSON.stringify({
               prompt_id: args.prompt_id,
               parent_record_set_id: args.record_set_id,
               record_set_id: result.record_set.record_set_id,
@@ -81,7 +79,7 @@ async function main(): Promise<void> {
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
         console.error(JSON.stringify({ level: 'error', msg: 'run failed', error }));
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       } finally {
         // Only clear if still pointing at our controller — a superseding run
         // may have replaced us already.
@@ -98,14 +96,14 @@ async function main(): Promise<void> {
   (async () => {
     const sub = nc.subscribe('prompt.run.cancel.requested');
     for await (const msg of sub) {
-      const { record_set_id } = jc.decode(msg.data) as { record_set_id: string };
+      const { record_set_id } = msg.json() as { record_set_id: string };
       const controller = activeRuns.get(record_set_id);
       if (controller) {
         controller.abort(new Error('cancelled by user'));
         console.log(JSON.stringify({ level: 'info', msg: 'run cancel requested', record_set_id }));
-        if (msg.reply) msg.respond(jc.encode({ ok: true, cancelled: true }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, cancelled: true }));
       } else {
-        if (msg.reply) msg.respond(jc.encode({ ok: true, cancelled: false }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, cancelled: false }));
       }
     }
   })();
@@ -114,7 +112,7 @@ async function main(): Promise<void> {
   (async () => {
     const sub = nc.subscribe('prompt.preview.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as {
+      const args = msg.json() as {
         prompt_id: string;
         record_set_id: string;
         row_id: string;
@@ -123,11 +121,11 @@ async function main(): Promise<void> {
       };
       try {
         const result = await previewRequest(nc, args);
-        if (msg.reply) msg.respond(jc.encode(result));
+        if (msg.reply) msg.respond(JSON.stringify(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
         console.error(JSON.stringify({ level: 'error', msg: 'preview failed', error }));
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -138,7 +136,7 @@ async function main(): Promise<void> {
   (async () => {
     const sub = nc.subscribe('prompt.draft.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as {
+      const args = msg.json() as {
         goal: string;
         record_set_id: string;
         output_column: string;
@@ -147,12 +145,12 @@ async function main(): Promise<void> {
       console.log(JSON.stringify({ level: 'info', msg: 'draft started', ...args }));
       try {
         const result = await draftPrompt(nc, args);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...result }));
         console.log(JSON.stringify({ level: 'info', msg: 'draft completed', prompt_id: result.prompt_id }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
         console.error(JSON.stringify({ level: 'error', msg: 'draft failed', error }));
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -163,16 +161,16 @@ async function main(): Promise<void> {
   (async () => {
     const sub = nc.subscribe('prompt.improve.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as { parent_id: string; feedback: string };
+      const args = msg.json() as { parent_id: string; feedback: string };
       console.log(JSON.stringify({ level: 'info', msg: 'improve started', ...args }));
       try {
         const result = await improvePrompt(nc, args);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...result }));
         console.log(JSON.stringify({ level: 'info', msg: 'improve completed', prompt_id: result.prompt_id }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
         console.error(JSON.stringify({ level: 'error', msg: 'improve failed', error }));
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -183,7 +181,7 @@ async function main(): Promise<void> {
   (async () => {
     const sub = nc.subscribe('prompt.apply.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as {
+      const args = msg.json() as {
         prompt_id: string;
         record_set_id: string;
         row_limit?: number;
@@ -198,11 +196,11 @@ async function main(): Promise<void> {
       activeRuns.set(args.record_set_id, controller);
       try {
         const result = await applyPrompt(nc, args, { runSignal: controller.signal });
-        if (msg.reply) msg.respond(jc.encode(result));
+        if (msg.reply) msg.respond(JSON.stringify(result));
         if (result.ok) {
           nc.publish(
             'prompt.apply.completed',
-            jc.encode({
+            JSON.stringify({
               prompt_id: args.prompt_id,
               parent_record_set_id: args.record_set_id,
               record_set_id: result.derived_record_set_id,
@@ -219,7 +217,7 @@ async function main(): Promise<void> {
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
         console.error(JSON.stringify({ level: 'error', msg: 'apply failed', error }));
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       } finally {
         if (activeRuns.get(args.record_set_id) === controller) {
           activeRuns.delete(args.record_set_id);

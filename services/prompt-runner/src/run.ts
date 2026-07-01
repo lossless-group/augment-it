@@ -15,12 +15,10 @@
 // Per-row failures don't abort the run: the failed cell gets "[error: ...]",
 // the response is still recorded, and the run completes with partial results.
 
-import { JSONCodec, type NatsConnection } from 'nats';
+import { type NatsConnection } from '@nats-io/transport-node';
 import { runPrompt, describeError } from './anthropic';
 import { buildRequest } from './request';
 import { extractTokens, fillTemplate } from './template';
-
-const jc = JSONCodec();
 
 const DEFAULT_ROW_LIMIT = 25;
 const PER_ROW_TIMEOUT_MS = 90_000;
@@ -50,8 +48,8 @@ export type RunResult =
   | { ok: false; error: string; unbound_tokens?: string[] };
 
 async function request<T>(nc: NatsConnection, subject: string, body: unknown, timeout = 10_000): Promise<T> {
-  const reply = await nc.request(subject, jc.encode(body), { timeout });
-  return jc.decode(reply.data) as T;
+  const reply = await nc.request(subject, JSON.stringify(body), { timeout });
+  return reply.json() as T;
 }
 
 export async function runPromptAgainstRecordSet(
@@ -176,7 +174,7 @@ export async function runPromptAgainstRecordSet(
     // unaffected (the spec's additive guarantee).
     nc.publish(
       'response.create.requested',
-      jc.encode({
+      JSON.stringify({
         run_id,
         prompt_id: prompt.prompt_id,
         row_id: row.row_id,
@@ -190,7 +188,7 @@ export async function runPromptAgainstRecordSet(
 
     nc.publish(
       'prompt.run.progress',
-      jc.encode({ prompt_id: prompt.prompt_id, record_set_id: args.record_set_id, done: i + 1, total }),
+      JSON.stringify({ prompt_id: prompt.prompt_id, record_set_id: args.record_set_id, done: i + 1, total }),
     );
   }
 
