@@ -593,9 +593,9 @@ importers:
 
   services/social-search:
     dependencies:
-      nats:
-        specifier: ^2.28.0
-        version: 2.29.3
+      '@nats-io/transport-node':
+        specifier: ^3.4.0
+        version: 3.4.0
     devDependencies:
       '@types/node':
         specifier: ^26.1.0

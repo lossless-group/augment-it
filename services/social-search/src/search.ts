@@ -8,13 +8,11 @@
 // per-row iteration loop re-fire a pack through a different provider without
 // touching the pack definition.
 
-import { JSONCodec, type NatsConnection } from 'nats';
+import { type NatsConnection } from '@nats-io/transport-node';
 import { getPack, buildQuery, type PackConfig } from './packs';
 import { getConnector, type ProviderId } from './connectors';
 import { verifyUrl } from './verification';
 import { pickCandidate, scoreCandidate } from './scoring';
-
-const jc = JSONCodec();
 const MAX_RESULTS = 3;
 
 export type SearchInput = {
@@ -56,8 +54,8 @@ async function fetchEntityName(
   row_id: string,
   entity_name_field: string,
 ): Promise<string> {
-  const reply = await nc.request('row.get.requested', jc.encode({ row_id }), { timeout: 5_000 });
-  const decoded = jc.decode(reply.data) as RowGetReply;
+  const reply = await nc.request('row.get.requested', JSON.stringify({ row_id }), { timeout: 5_000 });
+  const decoded = reply.json() as RowGetReply;
   if (!decoded.row) throw new Error(`row not found: ${row_id}`);
   const value = decoded.row.fields[entity_name_field];
   if (typeof value !== 'string' || value.trim().length === 0) {
@@ -194,7 +192,7 @@ function publishResponse(
 ): void {
   nc.publish(
     'response.create.requested',
-    jc.encode({
+    JSON.stringify({
       run_id: `pack_run_${Date.now().toString(36)}`,
       prompt_id: args.prompt_id ?? `synthetic_pack_${args.pack_id}`,
       row_id: args.row_id,

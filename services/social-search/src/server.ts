@@ -25,7 +25,7 @@
 // Spec: context-v/prompts/Common-Six-Social-Packs.md
 //       context-v/issues/Search-Providers-as-First-Class-SearXNG-Default.md
 
-import { connect, JSONCodec } from 'nats';
+import { connect } from '@nats-io/transport-node';
 import { PACK_IDS } from './packs';
 import { runOnePackSearch, type SearchInput } from './search';
 import type { ProviderId } from './connectors';
@@ -58,8 +58,6 @@ import type { Capability } from './registry/capabilities';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 const MAX_CONCURRENT = Number.parseInt(process.env.SOCIAL_SEARCH_CONCURRENCY ?? '4', 10);
-
-const jc = JSONCodec();
 
 // Bounded-concurrency runner. The Tavily free tier is rate-limited; bursting
 // 30 calls at once gets us 429s. Four concurrent is a reasonable default.
@@ -122,7 +120,7 @@ async function main(): Promise<void> {
   (async () => {
     const sub = nc.subscribe('pack.search.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as SearchInput;
+      const args = msg.json() as SearchInput;
       try {
         if (isEntityPulsePack(args.pack_id)) {
           const fire_id = `fire_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -134,7 +132,7 @@ async function main(): Promise<void> {
             bundle_id: args.bundle_id,
             fire_id,
           });
-          if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+          if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...result }));
           console.log(JSON.stringify({
             level: 'info',
             msg: 'pack.search.entity_pulse',
@@ -146,7 +144,7 @@ async function main(): Promise<void> {
           continue;
         }
         const result = await runOnePackSearch(nc, args);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...result }));
         console.log(JSON.stringify({
           level: 'info',
           msg: 'pack.search',
@@ -158,7 +156,7 @@ async function main(): Promise<void> {
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
         console.error(JSON.stringify({ level: 'error', msg: 'pack.search failed', error }));
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -167,7 +165,7 @@ async function main(): Promise<void> {
   (async () => {
     const sub = nc.subscribe('pack.fan_out.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as {
+      const args = msg.json() as {
         pack_ids: string[];
         row_ids: string[];
         record_set_id: string;
@@ -236,12 +234,12 @@ async function main(): Promise<void> {
         await withLimit(MAX_CONCURRENT, tasks);
         if (msg.reply) {
           msg.respond(
-            jc.encode({ ok: true, cells_fired: tasks.length, record_set_id: args.record_set_id }),
+            JSON.stringify({ ok: true, cells_fired: tasks.length, record_set_id: args.record_set_id }),
           );
         }
         nc.publish(
           'pack.fan_out.completed',
-          jc.encode({
+          JSON.stringify({
             record_set_id: args.record_set_id,
             cells_fired: tasks.length,
             packs: args.pack_ids.length,
@@ -256,7 +254,7 @@ async function main(): Promise<void> {
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
         console.error(JSON.stringify({ level: 'error', msg: 'fan_out failed', error }));
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -272,7 +270,7 @@ async function main(): Promise<void> {
   (async () => {
     const sub = nc.subscribe('pack.entity_pulse.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as {
+      const args = msg.json() as {
         pack_id: string;
       } & Partial<
         OfficialBlogPackInput &
@@ -327,7 +325,7 @@ async function main(): Promise<void> {
           items_found: response.items.length,
         }));
         if (msg.reply) {
-          msg.respond(jc.encode({ ok: true, outcome: 'found', response }));
+          msg.respond(JSON.stringify({ ok: true, outcome: 'found', response }));
         }
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
@@ -338,7 +336,7 @@ async function main(): Promise<void> {
           row_id: args.row_id,
           error,
         }));
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -349,7 +347,7 @@ async function main(): Promise<void> {
   (async () => {
     const sub = nc.subscribe('connector.fire.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as {
+      const args = msg.json() as {
         row_id: string;
         row_url: string;
         connector_id: RecordsSurfaceConnectorId;
@@ -357,7 +355,7 @@ async function main(): Promise<void> {
       try {
         const candidates = await runRecordsSurfaceConnector(args.connector_id, args.row_url);
         if (msg.reply) {
-          msg.respond(jc.encode({
+          msg.respond(JSON.stringify({
             ok: true,
             result: {
               connector_id: args.connector_id,
@@ -383,7 +381,7 @@ async function main(): Promise<void> {
           error,
         }));
         if (msg.reply) {
-          msg.respond(jc.encode({
+          msg.respond(JSON.stringify({
             ok: true,
             result: {
               connector_id: args.connector_id,
@@ -406,14 +404,14 @@ async function main(): Promise<void> {
     const sub = nc.subscribe('connectors.inventory.requested');
     for await (const msg of sub) {
       const args = (msg.data.length > 0
-        ? (jc.decode(msg.data) as { intent?: Capability })
+        ? (msg.json() as { intent?: Capability })
         : {}) as { intent?: Capability };
       const all = args.intent
         ? registry.availableFor(args.intent)
         : registry.all();
       const sanitized = all.map(({ fire: _omit, ...rest }) => rest);
       if (msg.reply) {
-        msg.respond(jc.encode({ ok: true, connectors: sanitized }));
+        msg.respond(JSON.stringify({ ok: true, connectors: sanitized }));
       }
     }
   })();

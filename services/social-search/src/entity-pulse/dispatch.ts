@@ -9,7 +9,7 @@
 // content_type in source_metadata so the Pulse Curation Layer (when it
 // lands) can re-group them by category.
 
-import { JSONCodec, type NatsConnection } from 'nats';
+import { type NatsConnection } from '@nats-io/transport-node';
 import {
   runOfficialBlogPack,
   OFFICIAL_BLOG_PACK_ID,
@@ -23,8 +23,6 @@ import {
   OFFICIAL_SOCIAL_POSTS_PACK_ID,
 } from './packs/official-social-posts-pack';
 import type { OfficialUpdateItem } from './types';
-
-const jc = JSONCodec();
 
 export const ENTITY_PULSE_PACK_IDS = new Set<string>([
   OFFICIAL_BLOG_PACK_ID,
@@ -46,10 +44,10 @@ async function fetchRow(
   nc: NatsConnection,
   row_id: string,
 ): Promise<{ row_id: string; fields: Record<string, unknown> } | null> {
-  const reply = await nc.request('row.get.requested', jc.encode({ row_id }), {
+  const reply = await nc.request('row.get.requested', JSON.stringify({ row_id }), {
     timeout: 5_000,
   });
-  return (jc.decode(reply.data) as RowGetReply).row;
+  return (reply.json() as RowGetReply).row;
 }
 
 // Best-effort column lookup for the entity's website URL. The Entity Pulse
@@ -125,7 +123,7 @@ function publishItem(
   const confidence = typeof item.confidence === 'number' ? item.confidence : 80;
   nc.publish(
     'response.create.requested',
-    jc.encode({
+    JSON.stringify({
       run_id: `entity_pulse_${Date.now().toString(36)}_${itemIndex}`,
       prompt_id: `synthetic_pack_${args.pack_id}`,
       row_id: args.row_id,
@@ -182,7 +180,7 @@ function publishNotFound(
 ): void {
   nc.publish(
     'response.create.requested',
-    jc.encode({
+    JSON.stringify({
       run_id: `entity_pulse_${Date.now().toString(36)}`,
       prompt_id: `synthetic_pack_${args.pack_id}`,
       row_id: args.row_id,
@@ -215,7 +213,7 @@ function publishError(
 ): void {
   nc.publish(
     'response.create.requested',
-    jc.encode({
+    JSON.stringify({
       run_id: `entity_pulse_${Date.now().toString(36)}`,
       prompt_id: `synthetic_pack_${args.pack_id}`,
       row_id: args.row_id,
