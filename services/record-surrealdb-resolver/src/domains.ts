@@ -138,6 +138,8 @@ export type UsageRow = {
   tags: string[];
   source_slug?: string;
   corpus_path?: string;
+  binary_filename?: string;
+  binary_bytes?: number;
 };
 
 // --- domains ---------------------------------------------------------------
@@ -253,12 +255,12 @@ export async function addSource(
 export async function assembleDomain(
   db: Surreal,
   args: { type: string; slug: string; client_slug: string },
-): Promise<{ sources: (SourceRow & { status: string; tags: string[]; source_slug?: string; corpus_path?: string })[] }> {
+): Promise<{ sources: (SourceRow & { status: string; tags: string[]; source_slug?: string; corpus_path?: string; binary_filename?: string; binary_bytes?: number })[] }> {
   const usages = ((await db.query(
-    'SELECT source_uuid, status, tags, source_slug, corpus_path, created_at FROM source_usages WHERE domain_type = $t AND domain_slug = $s AND client_slug = $c ORDER BY created_at ASC',
+    'SELECT source_uuid, status, tags, source_slug, corpus_path, binary_filename, binary_bytes, created_at FROM source_usages WHERE domain_type = $t AND domain_slug = $s AND client_slug = $c ORDER BY created_at ASC',
     { t: args.type, s: args.slug, c: args.client_slug },
   )) as unknown[])?.[0] as UsageRow[] | undefined;
-  const sources: (SourceRow & { status: string; tags: string[]; source_slug?: string; corpus_path?: string })[] = [];
+  const sources: (SourceRow & { status: string; tags: string[]; source_slug?: string; corpus_path?: string; binary_filename?: string; binary_bytes?: number })[] = [];
   for (const u of usages ?? []) {
     const s = first<SourceRow>(
       await db.query(
@@ -266,7 +268,7 @@ export async function assembleDomain(
         { u: u.source_uuid },
       ),
     );
-    if (s) sources.push({ ...s, status: u.status ?? 'metadata-only', tags: u.tags ?? [], source_slug: u.source_slug, corpus_path: u.corpus_path });
+    if (s) sources.push({ ...s, status: u.status ?? 'metadata-only', tags: u.tags ?? [], source_slug: u.source_slug, corpus_path: u.corpus_path, binary_filename: u.binary_filename, binary_bytes: u.binary_bytes });
   }
   return { sources };
 }
@@ -419,15 +421,19 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         jc.encode({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_uuid: a.source_uuid, url: src.url, source_slug: usage?.source_slug ?? undefined, no_cache: noCache }),
         { timeout: 90_000 },
       );
-      const f = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; source_slug?: string; title?: string; authors?: string[]; publisher?: string; published_date?: string; content_pulled?: boolean; error?: string };
+      const f = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; source_slug?: string; title?: string; authors?: string[]; publisher?: string; published_date?: string; binary_filename?: string | null; content_pulled?: boolean; error?: string };
       if (!f.ok) throw new Error(`fetch failed: ${f.error ?? 'unknown'}`);
       await applyBibToRegistry(db, a.source_uuid, f);
+      // A PDF URL downloads a sibling; coalesce so a non-PDF fetch doesn't wipe an
+      // already-attached file.
       await db.query(
-        `UPDATE source_usages SET status = 'fetched', source_slug = $sl, corpus_path = $p
+        `UPDATE source_usages SET status = 'fetched', source_slug = $sl, corpus_path = $p, binary_filename = $bf ?? binary_filename
            WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s;`,
-        { sl: f.source_slug ?? usage?.source_slug ?? null, p: f.corpus_path ?? null, u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
+        { sl: f.source_slug ?? usage?.source_slug ?? null, p: f.corpus_path ?? null, bf: f.binary_filename ?? null, u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
       );
-      return { ok: true, source: { source_uuid: a.source_uuid, url: src.url, title: f.title, authors: f.authors, publisher: f.publisher, published_date: f.published_date, status: 'fetched', content_pulled: f.content_pulled ?? true, source_slug: f.source_slug ?? usage?.source_slug, corpus_path: f.corpus_path } };
+      const out: Record<string, unknown> = { source_uuid: a.source_uuid, url: src.url, title: f.title, authors: f.authors, publisher: f.publisher, published_date: f.published_date, status: 'fetched', content_pulled: f.content_pulled ?? true, source_slug: f.source_slug ?? usage?.source_slug, corpus_path: f.corpus_path };
+      if (f.binary_filename) out.binary_filename = f.binary_filename; // only when present → UI merge keeps an existing attachment
+      return { ok: true, source: out };
     } catch (err: unknown) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
@@ -534,12 +540,12 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         const r = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; binary_filename?: string; bytes?: number; original_bytes?: number; compressed?: boolean; error?: string };
         if (!r.ok) throw new Error(`attach failed: ${r.error ?? 'unknown'}`);
         await db.query(
-          `UPDATE source_usages SET status = 'fetched', corpus_path = $p
+          `UPDATE source_usages SET status = 'fetched', corpus_path = $p, binary_filename = $bf, binary_bytes = $bb
              WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s;`,
-          { p: r.corpus_path ?? null, u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
+          { p: r.corpus_path ?? null, bf: r.binary_filename ?? null, bb: r.bytes ?? null, u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
         );
         if (msg.reply) {
-          msg.respond(jc.encode({ ok: true, source: { source_uuid: a.source_uuid, status: 'fetched', content_pulled: true, corpus_path: r.corpus_path, binary_filename: r.binary_filename, bytes: r.bytes, original_bytes: r.original_bytes, compressed: r.compressed } }));
+          msg.respond(jc.encode({ ok: true, source: { source_uuid: a.source_uuid, status: 'fetched', content_pulled: true, corpus_path: r.corpus_path, binary_filename: r.binary_filename, binary_bytes: r.bytes, bytes: r.bytes, original_bytes: r.original_bytes, compressed: r.compressed } }));
         }
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);

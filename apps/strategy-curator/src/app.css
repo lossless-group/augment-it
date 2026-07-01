@@ -133,6 +133,18 @@
 .sc-app .sc-primary { background: var(--color-accent); color: var(--color-on-accent); border-color: var(--color-accent); font-weight: 600; }
 .sc-app .sc-link { background: none; border: none; color: var(--color-accent); padding: 0.2rem; }
 .sc-app .sc-fetch { margin-top: 0.5rem; }
+.sc-app .sc-attached {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.5rem;
+  margin-bottom: 0.3rem;
+  border: 1px solid color-mix(in srgb, var(--color-confidence-high) 40%, var(--color-border));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-confidence-high) 10%, transparent);
+}
+.sc-app .sc-attached-dot { color: var(--color-confidence-high); font-weight: 700; }
+.sc-app .sc-attached-name { word-break: break-all; }
 .sc-app .sc-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.6rem; }
 .sc-app .sc-danger { color: var(--color-error-text); }
 .sc-app .sc-danger:hover { border-color: var(--color-error-text); }

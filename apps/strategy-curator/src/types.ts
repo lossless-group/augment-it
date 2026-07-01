@@ -34,4 +34,6 @@ export type Source = {
   verdict_error?: boolean;
   source_slug?: string; // the on-disk filename stem (sources/<source_slug>.md)
   corpus_path?: string;
+  binary_filename?: string; // an attached/downloaded file sibling (e.g. the report PDF)
+  binary_bytes?: number;
 };

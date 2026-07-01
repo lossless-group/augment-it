@@ -97,6 +97,13 @@
       <span class="sc-label">
         Report file <span class="sc-muted sc-mini">— attach a PDF you downloaded (when the URL is the profile page, not the PDF)</span>
       </span>
+      {#if s.binary_filename}
+        <div class="sc-attached" title="A file is attached to this source">
+          <span class="sc-attached-dot">✓</span>
+          <span class="sc-attached-name sc-mono">{s.binary_filename}</span>
+          {#if s.binary_bytes}<span class="sc-muted sc-mini">({(s.binary_bytes / 1e6).toFixed(1)} MB)</span>{/if}
+        </div>
+      {/if}
       <input
         type="file"
         accept=".pdf,.docx,.doc,.pptx,.xlsx,application/pdf"
@@ -107,6 +114,7 @@
           e.currentTarget.value = '';
         }}
       />
+      {#if s.binary_filename}<span class="sc-muted sc-mini">Choosing a file replaces the attached one.</span>{/if}
     </div>
 
     <div class="sc-actions">
