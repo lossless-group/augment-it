@@ -11,12 +11,10 @@
 //   → publishes record_set.create.requested { name, schema, rows }
 //   → replies (if msg.reply set) { record_set, rows } as returned by row-store
 
-import { connect, JSONCodec } from 'nats';
+import { connect } from '@nats-io/transport-node';
 import { parseCsv } from './parse';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
-
-const jc = JSONCodec();
 
 async function main(): Promise<void> {
   const nc = await connect({ servers: NATS_URL, name: 'ingest-service' });
@@ -27,7 +25,7 @@ async function main(): Promise<void> {
 
   for await (const msg of sub) {
     try {
-      const { filename, csv, name, predecessor_record_set_id } = jc.decode(msg.data) as {
+      const { filename, csv, name, predecessor_record_set_id } = msg.json() as {
         filename: string;
         csv: string;
         name?: string;
@@ -36,7 +34,7 @@ async function main(): Promise<void> {
       const parsed = parseCsv(csv, filename);
       const createReply = await nc.request(
         'record_set.create.requested',
-        jc.encode({
+        JSON.stringify({
           name: name ?? filename,
           schema: parsed.schema,
           rows: parsed.rows,
@@ -48,7 +46,7 @@ async function main(): Promise<void> {
     } catch (err: unknown) {
       const error = err instanceof Error ? err.message : String(err);
       console.error(JSON.stringify({ level: 'error', msg: 'ingest failed', error }));
-      if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
     }
   }
 }
