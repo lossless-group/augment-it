@@ -3,12 +3,10 @@
 // record_set.create.requested with the same shape the CSV ingest uses.
 // Adding this service required ZERO changes to row-store; that's the demo.
 
-import { connect, JSONCodec } from 'nats';
+import { connect } from '@nats-io/transport-node';
 import { parseXlsx } from './parse';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
-
-const jc = JSONCodec();
 
 async function main(): Promise<void> {
   const nc = await connect({ servers: NATS_URL, name: 'xlsx-ingest-service' });
@@ -19,7 +17,7 @@ async function main(): Promise<void> {
 
   for await (const msg of sub) {
     try {
-      const { filename, xlsx_b64, name } = jc.decode(msg.data) as {
+      const { filename, xlsx_b64, name } = msg.json() as {
         filename: string;
         xlsx_b64: string;
         name?: string;
@@ -28,7 +26,7 @@ async function main(): Promise<void> {
       const parsed = await parseXlsx(buffer, filename);
       const createReply = await nc.request(
         'record_set.create.requested',
-        jc.encode({
+        JSON.stringify({
           name: name ?? filename,
           schema: parsed.schema,
           rows: parsed.rows,
@@ -39,7 +37,7 @@ async function main(): Promise<void> {
     } catch (err: unknown) {
       const error = err instanceof Error ? err.message : String(err);
       console.error(JSON.stringify({ level: 'error', msg: 'xlsx ingest failed', error }));
-      if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+      if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
     }
   }
 }
