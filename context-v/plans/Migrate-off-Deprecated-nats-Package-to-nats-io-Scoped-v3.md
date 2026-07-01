@@ -7,9 +7,10 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.8 (1M context)
-semantic_version: 0.0.0.1
+semantic_version: 0.0.1.0
 revisions:
   - 2026-07-01 — Initial draft. Written at the tail of a workspace-wide dependency-upgrade campaign (Zod 4, Rsbuild 2 + Module Federation 2.6, TypeScript 6, csv-parse 7). `nats` was the one item deliberately parked because it's a deprecation-migration, not a version bump — the inter-service bus across ~10 services, needing real import-path and codec changes plus a live round-trip test, not a blind `pnpm update`. Authored to be handed to a fresh session whose agents execute it.
+  - 2026-07-01 — Executed, same day, on `feature/resolve-db`. All four phases ran as written: pilot proven on the live broker (resolver.search round-trip, ok:true, 8 candidates), nine-service fan-out in the planned order (one atomic commit each), hygiene sweep clean (deprecation warning gone, no nats@2 in the lockfile, tree-wide typecheck green), and a scripted full-stack sweep through the rebuilt Docker images — one real round-trip per service incl. CSV + XLSX create-then-delete ingest cycles, 12/12 passed, zero decode errors in the logs. Types re-exported from `@nats-io/transport-node` cleanly (the `@nats-io/nats-core` fallback flagged in Open Questions was never needed). Shipped as changelog/2026-07-01_01.
 tags:
   - Plan
   - Augment-It
@@ -18,7 +19,7 @@ tags:
   - Dependency-Migration
   - Services
   - Deprecation
-status: Draft
+status: Implemented
 ---
 
 # Migrate off the deprecated `nats` package to `@nats-io/*` v3
