@@ -1,4 +1,4 @@
-import { connect } from 'nats';
+import { connect } from '@nats-io/transport-node';
 import { registerHandlers } from './handlers';
 import { registerDomainHandlers } from './domains';
 

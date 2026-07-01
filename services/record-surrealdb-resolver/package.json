@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "nats": "^2.28.0",
+    "@nats-io/transport-node": "^3.4.0",
     "surrealdb": "^2.0.4"
   },
   "devDependencies": {

@@ -15,11 +15,9 @@
 // Filesystem-authoritative: domain.create writes <type-plural>/<slug>/index.md via
 // content-ingest; these tables are the rebuildable index.
 
-import { JSONCodec, type NatsConnection } from 'nats';
+import { type NatsConnection } from '@nats-io/transport-node';
 import type { Surreal } from 'surrealdb';
 import { getDb } from './surreal';
-
-const jc = JSONCodec();
 
 // --- helpers ---------------------------------------------------------------
 
@@ -306,15 +304,15 @@ export function registerDomainHandlers(nc: NatsConnection): void {
     void (async () => {
       const sub = nc.subscribe(subject);
       for await (const msg of sub) {
-        const args = jc.decode(msg.data) as T;
+        const args = msg.json() as T;
         try {
           const db = await getDb();
           await ensureDomainSchema(db);
           const result = await fn(db, args);
-          if (msg.reply) msg.respond(jc.encode({ ok: true, ...(result as object) }));
+          if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...(result as object) }));
         } catch (err: unknown) {
           const error = err instanceof Error ? err.message : String(err);
-          if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+          if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
         }
       }
     })();
@@ -325,7 +323,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('domain.create.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as { type: string; slug: string; title: string; client_slug: string; tags?: string[] };
+      const args = msg.json() as { type: string; slug: string; title: string; client_slug: string; tags?: string[] };
       try {
         const db = await getDb();
         await ensureDomainSchema(db);
@@ -333,7 +331,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         const created_at = new Date().toISOString().slice(0, 10);
         const reply = await nc.request(
           'corpus.domain.write_index.requested',
-          jc.encode({
+          JSON.stringify({
             client_slug: args.client_slug,
             type: domain.type,
             slug: domain.slug,
@@ -344,12 +342,12 @@ export function registerDomainHandlers(nc: NatsConnection): void {
           }),
           { timeout: 15_000 },
         );
-        const fileRes = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; error?: string };
+        const fileRes = reply.json() as { ok: boolean; corpus_path?: string; error?: string };
         if (!fileRes.ok) throw new Error(`index.md write failed: ${fileRes.error ?? 'unknown'}`);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, domain, corpus_path: fileRes.corpus_path }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, domain, corpus_path: fileRes.corpus_path }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -362,14 +360,14 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('source.add.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as { url: string; domain_type: string; domain_slug: string; client_slug: string };
+      const args = msg.json() as { url: string; domain_type: string; domain_slug: string; client_slug: string };
       try {
         const db = await getDb();
         await ensureDomainSchema(db);
         const { source } = await addSource(db, args);
         const reply = await nc.request(
           'corpus.source.add.requested',
-          jc.encode({
+          JSON.stringify({
             client_slug: args.client_slug,
             domain_type: args.domain_type,
             domain_slug: args.domain_slug,
@@ -379,7 +377,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
           }),
           { timeout: 60_000 }, // Jina can be slow
         );
-        const f = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; source_slug?: string; title?: string; authors?: string[]; publisher?: string; published_date?: string; error?: string };
+        const f = reply.json() as { ok: boolean; corpus_path?: string; source_slug?: string; title?: string; authors?: string[]; publisher?: string; published_date?: string; error?: string };
         if (!f.ok) throw new Error(`source file write failed: ${f.error ?? 'unknown'}`);
         await applyBibToRegistry(db, source.source_uuid, f);
         await db.query(
@@ -388,11 +386,11 @@ export function registerDomainHandlers(nc: NatsConnection): void {
           { p: f.corpus_path ?? null, sl: f.source_slug ?? null, u: source.source_uuid, c: args.client_slug, t: args.domain_type, s: args.domain_slug },
         );
         if (msg.reply) {
-          msg.respond(jc.encode({ ok: true, source: { ...source, title: f.title ?? source.title, authors: f.authors, publisher: f.publisher, published_date: f.published_date, status: 'metadata-only', source_slug: f.source_slug, corpus_path: f.corpus_path } }));
+          msg.respond(JSON.stringify({ ok: true, source: { ...source, title: f.title ?? source.title, authors: f.authors, publisher: f.publisher, published_date: f.published_date, status: 'metadata-only', source_slug: f.source_slug, corpus_path: f.corpus_path } }));
         }
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -418,10 +416,10 @@ export function registerDomainHandlers(nc: NatsConnection): void {
       const usage = await usageOf(db, a);
       const reply = await nc.request(
         'corpus.source.fetch.requested',
-        jc.encode({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_uuid: a.source_uuid, url: src.url, source_slug: usage?.source_slug ?? undefined, no_cache: noCache }),
+        JSON.stringify({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_uuid: a.source_uuid, url: src.url, source_slug: usage?.source_slug ?? undefined, no_cache: noCache }),
         { timeout: 90_000 },
       );
-      const f = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; source_slug?: string; title?: string; authors?: string[]; publisher?: string; published_date?: string; binary_filename?: string | null; content_pulled?: boolean; error?: string };
+      const f = reply.json() as { ok: boolean; corpus_path?: string; source_slug?: string; title?: string; authors?: string[]; publisher?: string; published_date?: string; binary_filename?: string | null; content_pulled?: boolean; error?: string };
       if (!f.ok) throw new Error(`fetch failed: ${f.error ?? 'unknown'}`);
       await applyBibToRegistry(db, a.source_uuid, f);
       // A PDF URL downloads a sibling; coalesce so a non-PDF fetch doesn't wipe an
@@ -442,8 +440,8 @@ export function registerDomainHandlers(nc: NatsConnection): void {
     void (async () => {
       const sub = nc.subscribe(subject);
       for await (const msg of sub) {
-        const res = await runSourceFetch(jc.decode(msg.data) as SourceRef, noCache);
-        if (msg.reply) msg.respond(jc.encode(res));
+        const res = await runSourceFetch(msg.json() as SourceRef, noCache);
+        if (msg.reply) msg.respond(JSON.stringify(res));
       }
     })();
   };
@@ -455,7 +453,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('source.remove.requested');
     for await (const msg of sub) {
-      const a = jc.decode(msg.data) as SourceRef;
+      const a = msg.json() as SourceRef;
       try {
         const db = await getDb();
         await ensureDomainSchema(db);
@@ -465,12 +463,12 @@ export function registerDomainHandlers(nc: NatsConnection): void {
           { u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
         );
         if (usage?.source_slug) {
-          await nc.request('corpus.source.remove.requested', jc.encode({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: usage.source_slug }), { timeout: 15_000 });
+          await nc.request('corpus.source.remove.requested', JSON.stringify({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: usage.source_slug }), { timeout: 15_000 });
         }
-        if (msg.reply) msg.respond(jc.encode({ ok: true, source_uuid: a.source_uuid }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, source_uuid: a.source_uuid }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -479,7 +477,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('source.update.requested');
     for await (const msg of sub) {
-      const a = jc.decode(msg.data) as SourceRef & { fields: Record<string, string>; authors?: string[] };
+      const a = msg.json() as SourceRef & { fields: Record<string, string>; authors?: string[] };
       try {
         const db = await getDb();
         await ensureDomainSchema(db);
@@ -500,8 +498,8 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         const usage = await usageOf(db, a);
         let source_slug = usage?.source_slug;
         if (usage?.source_slug) {
-          const reply = await nc.request('corpus.source.update.requested', jc.encode({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: usage.source_slug, fields, authors: a.authors }), { timeout: 15_000 });
-          const r = jc.decode(reply.data) as { ok?: boolean; source_slug?: string; corpus_path?: string };
+          const reply = await nc.request('corpus.source.update.requested', JSON.stringify({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: usage.source_slug, fields, authors: a.authors }), { timeout: 15_000 });
+          const r = reply.json() as { ok?: boolean; source_slug?: string; corpus_path?: string };
           // a title edit re-slugs (and renames) the file — keep the usage row pointed at it
           if (r?.source_slug && r.source_slug !== usage.source_slug) {
             source_slug = r.source_slug;
@@ -512,10 +510,10 @@ export function registerDomainHandlers(nc: NatsConnection): void {
             );
           }
         }
-        if (msg.reply) msg.respond(jc.encode({ ok: true, fields, source_slug }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, fields, source_slug }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -526,7 +524,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('source.attach.requested');
     for await (const msg of sub) {
-      const a = jc.decode(msg.data) as SourceRef & { filename: string; content_base64: string; content_type?: string };
+      const a = msg.json() as SourceRef & { filename: string; content_base64: string; content_type?: string };
       try {
         const db = await getDb();
         await ensureDomainSchema(db);
@@ -534,10 +532,10 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         if (!usage?.source_slug) throw new Error('source has no file yet — add it first');
         const reply = await nc.request(
           'corpus.source.attach.requested',
-          jc.encode({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: usage.source_slug, filename: a.filename, content_base64: a.content_base64, content_type: a.content_type }),
+          JSON.stringify({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: usage.source_slug, filename: a.filename, content_base64: a.content_base64, content_type: a.content_type }),
           { timeout: 60_000 },
         );
-        const r = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; binary_filename?: string; bytes?: number; original_bytes?: number; compressed?: boolean; error?: string };
+        const r = reply.json() as { ok: boolean; corpus_path?: string; binary_filename?: string; bytes?: number; original_bytes?: number; compressed?: boolean; error?: string };
         if (!r.ok) throw new Error(`attach failed: ${r.error ?? 'unknown'}`);
         await db.query(
           `UPDATE source_usages SET status = 'fetched', corpus_path = $p, binary_filename = $bf, binary_bytes = $bb
@@ -545,11 +543,11 @@ export function registerDomainHandlers(nc: NatsConnection): void {
           { p: r.corpus_path ?? null, bf: r.binary_filename ?? null, bb: r.bytes ?? null, u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
         );
         if (msg.reply) {
-          msg.respond(jc.encode({ ok: true, source: { source_uuid: a.source_uuid, status: 'fetched', content_pulled: true, corpus_path: r.corpus_path, binary_filename: r.binary_filename, binary_bytes: r.bytes, bytes: r.bytes, original_bytes: r.original_bytes, compressed: r.compressed } }));
+          msg.respond(JSON.stringify({ ok: true, source: { source_uuid: a.source_uuid, status: 'fetched', content_pulled: true, corpus_path: r.corpus_path, binary_filename: r.binary_filename, binary_bytes: r.bytes, bytes: r.bytes, original_bytes: r.original_bytes, compressed: r.compressed } }));
         }
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -558,7 +556,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('extract.add.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; kind: string; text: string };
+      const args = msg.json() as { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; kind: string; text: string };
       try {
         const db = await getDb();
         await ensureDomainSchema(db);
@@ -571,7 +569,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         if (!usage?.source_slug) throw new Error('source has no file yet — fetch the source first');
         const reply = await nc.request(
           'corpus.source.extract.requested',
-          jc.encode({
+          JSON.stringify({
             client_slug: args.client_slug,
             domain_type: args.domain_type,
             domain_slug: args.domain_slug,
@@ -581,12 +579,12 @@ export function registerDomainHandlers(nc: NatsConnection): void {
           }),
           { timeout: 15_000 },
         );
-        const f = jc.decode(reply.data) as { ok: boolean; corpus_path?: string; error?: string };
+        const f = reply.json() as { ok: boolean; corpus_path?: string; error?: string };
         if (!f.ok) throw new Error(`extract write failed: ${f.error ?? 'unknown'}`);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, corpus_path: f.corpus_path }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, corpus_path: f.corpus_path }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -598,7 +596,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('tag.apply.requested');
     for await (const msg of sub) {
-      const a = jc.decode(msg.data) as { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; tag: string; op?: 'add' | 'remove' };
+      const a = msg.json() as { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; tag: string; op?: 'add' | 'remove' };
       try {
         const db = await getDb();
         await ensureDomainSchema(db);
@@ -613,14 +611,14 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         if (row?.source_slug) {
           await nc.request(
             'corpus.source.update.requested',
-            jc.encode({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: row.source_slug, fields: {}, tags }),
+            JSON.stringify({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: row.source_slug, fields: {}, tags }),
             { timeout: 15_000 },
           );
         }
-        if (msg.reply) msg.respond(jc.encode({ ok: true, tag: res.tag, tags }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, tag: res.tag, tags }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();

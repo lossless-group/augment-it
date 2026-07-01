@@ -8,7 +8,7 @@
 // Contract is DB-agnostic (see context-v/specs/Record-DB-Resolver.md); this
 // implementation is SurrealDB-specific.
 
-import { JSONCodec, type NatsConnection } from 'nats';
+import { type NatsConnection } from '@nats-io/transport-node';
 import { getDb } from './surreal';
 import {
   findCandidates,
@@ -23,21 +23,19 @@ import {
   type UpdateOpportunityInput,
 } from './resolver';
 
-const jc = JSONCodec();
-
 export function registerHandlers(nc: NatsConnection): void {
   // resolver.candidates
   (async () => {
     const sub = nc.subscribe('resolver.candidates.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as { record: NormRecord; client: string };
+      const args = msg.json() as { record: NormRecord; client: string };
       try {
         const db = await getDb();
         const { candidates } = await findCandidates(db, args.record, args.client);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, candidates }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, candidates }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -46,14 +44,14 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('resolver.search.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as { q: string; client: string };
+      const args = msg.json() as { q: string; client: string };
       try {
         const db = await getDb();
         const { candidates } = await searchOrgs(db, args.q, args.client);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, candidates }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, candidates }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -62,14 +60,14 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('resolver.apply.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as ApplyInput;
+      const args = msg.json() as ApplyInput;
       try {
         const db = await getDb();
         const result = await applyResolution(db, args);
-        if (msg.reply) msg.respond(jc.encode(result));
+        if (msg.reply) msg.respond(JSON.stringify(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -78,14 +76,14 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('resolver.update_org.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as UpdateOrgInput;
+      const args = msg.json() as UpdateOrgInput;
       try {
         const db = await getDb();
         const result = await updateOrg(db, args);
-        if (msg.reply) msg.respond(jc.encode(result));
+        if (msg.reply) msg.respond(JSON.stringify(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -94,14 +92,14 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('resolver.update_opportunity.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as UpdateOpportunityInput;
+      const args = msg.json() as UpdateOpportunityInput;
       try {
         const db = await getDb();
         const result = await updateOpportunity(db, args);
-        if (msg.reply) msg.respond(jc.encode(result));
+        if (msg.reply) msg.respond(JSON.stringify(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -110,14 +108,14 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('resolver.opportunities_for_org.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as { org_slug: string; client: string };
+      const args = msg.json() as { org_slug: string; client: string };
       try {
         const db = await getDb();
         const result = await opportunitiesForOrg(db, args.org_slug, args.client);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...result }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
