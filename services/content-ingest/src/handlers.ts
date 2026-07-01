@@ -33,7 +33,7 @@
 //   corpus.list_for_record       { client_id, record_id }
 //                                returns { entries: CorpusEntry[] }
 
-import { JSONCodec, type NatsConnection } from 'nats';
+import { type NatsConnection } from '@nats-io/transport-node';
 import { fetchViaJina } from './jina';
 import * as cache from './cache';
 import {
@@ -61,8 +61,6 @@ import { downloadBinaryAsset, type BinaryAssetResult } from './binary-asset';
 import { promoteSnapshot } from './promote';
 import { readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
-
-const jc = JSONCodec();
 
 const CONTENT_PACK_IDS = new Set(['official-blog-pack']);
 
@@ -94,14 +92,14 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('corpus.domain.write_index.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as DomainIndexArgs;
+      const args = msg.json() as DomainIndexArgs;
       try {
         if (!args?.client_slug || !args?.type || !args?.slug) throw new Error('client_slug, type and slug are required');
         const result = await addDomainIndex(args);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...result }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -111,14 +109,14 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('corpus.source.add.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as AddSourceFileArgs;
+      const args = msg.json() as AddSourceFileArgs;
       try {
         if (!args?.client_slug || !args?.domain_slug || !args?.url) throw new Error('client_slug, domain_slug and url are required');
         const result = await addSourceFile(args);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...result }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -127,14 +125,14 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('corpus.source.fetch.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as FetchSourceArgs;
+      const args = msg.json() as FetchSourceArgs;
       try {
         if (!args?.client_slug || !args?.domain_slug || !args?.url) throw new Error('client_slug, domain_slug and url are required');
         const result = await fetchSourceContent(args);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...result }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -143,14 +141,14 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('corpus.source.remove.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as SourceFileRef;
+      const args = msg.json() as SourceFileRef;
       try {
         if (!args?.client_slug || !args?.domain_slug || !args?.source_slug) throw new Error('client_slug, domain_slug and source_slug are required');
         const result = await removeSourceFile(args);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...result }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -159,14 +157,14 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('corpus.source.update.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as UpdateSourceArgs;
+      const args = msg.json() as UpdateSourceArgs;
       try {
         if (!args?.client_slug || !args?.domain_slug || !args?.source_slug) throw new Error('client_slug, domain_slug and source_slug are required');
         const result = await updateSourceFile(args);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...result }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -176,15 +174,15 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('corpus.source.attach.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as AttachFileArgs;
+      const args = msg.json() as AttachFileArgs;
       try {
         if (!args?.client_slug || !args?.domain_slug || !args?.source_slug) throw new Error('client_slug, domain_slug and source_slug are required');
         if (!args?.content_base64) throw new Error('content_base64 is required');
         const result = await attachSourceFile(args);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...result }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -193,14 +191,14 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('corpus.source.extract.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as AppendExtractArgs;
+      const args = msg.json() as AppendExtractArgs;
       try {
         if (!args?.client_slug || !args?.domain_slug || !args?.source_slug) throw new Error('client_slug, domain_slug and source_slug are required');
         const result = await appendExtract(args);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, ...result }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...result }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -209,7 +207,7 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('content_ingest.preview.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as {
+      const args = msg.json() as {
         record_id: string;
         force_refetch?: boolean;
       };
@@ -291,10 +289,10 @@ export function registerHandlers(nc: NatsConnection): void {
           }
         }
         await Promise.all([...byHost.values()].map(processHost));
-        if (msg.reply) msg.respond(jc.encode({ previews }));
+        if (msg.reply) msg.respond(JSON.stringify({ previews }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -303,7 +301,7 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('content_ingest.preview_url.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as {
+      const args = msg.json() as {
         record_id: string;
         url: string;
         force_refetch?: boolean;
@@ -376,10 +374,10 @@ export function registerHandlers(nc: NatsConnection): void {
             extra_metadata: { same_host: sameHost, source: 'manual', is_pdf },
           };
         }
-        if (msg.reply) msg.respond(jc.encode({ preview }));
+        if (msg.reply) msg.respond(JSON.stringify({ preview }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -388,7 +386,7 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('corpus.add.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as {
+      const args = msg.json() as {
         client_id: string;
         record_id: string;
         response_id: string;
@@ -425,10 +423,10 @@ export function registerHandlers(nc: NatsConnection): void {
           markdown_body: result.markdown,
           extra_metadata: result.extra,
         });
-        if (msg.reply) msg.respond(jc.encode(written));
+        if (msg.reply) msg.respond(JSON.stringify(written));
         nc.publish(
           'corpus.added',
-          jc.encode({
+          JSON.stringify({
             client_id: args.client_id,
             record_id: args.record_id,
             response_id: args.response_id,
@@ -437,7 +435,7 @@ export function registerHandlers(nc: NatsConnection): void {
         );
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -448,7 +446,7 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('corpus.inbox.add.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as {
+      const args = msg.json() as {
         client_id: string;
         url: string;
         note?: string;
@@ -543,10 +541,10 @@ export function registerHandlers(nc: NatsConnection): void {
           captured_session_id: args.captured_session_id ?? '',
           binary_asset,
         });
-        if (msg.reply) msg.respond(jc.encode(written));
+        if (msg.reply) msg.respond(JSON.stringify(written));
         nc.publish(
           'corpus.inbox.added',
-          jc.encode({
+          JSON.stringify({
             client_id: args.client_id,
             url,
             corpus_path: written.corpus_path,
@@ -556,7 +554,7 @@ export function registerHandlers(nc: NatsConnection): void {
         );
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -565,7 +563,7 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('corpus.list_for_record.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as { client_id: string; record_id: string };
+      const args = msg.json() as { client_id: string; record_id: string };
       try {
         // Fetch the row_id → {uuid, slug} maps (cached for ~60s).
         // listForRecord uses the slug for the primary "scan-one-dir"
@@ -576,10 +574,10 @@ export function registerHandlers(nc: NatsConnection): void {
           record_uuid_by_row_id: meta.uuids,
           corpus_funder_slug: meta.slugs.get(args.record_id),
         });
-        if (msg.reply) msg.respond(jc.encode({ entries }));
+        if (msg.reply) msg.respond(JSON.stringify({ entries }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -592,7 +590,7 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('pipeline.promote_snapshot.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as { client_id: string };
+      const args = msg.json() as { client_id: string };
       try {
         if (!args?.client_id) throw new Error('client_id is required');
         // Build row_id → record_uuid map from row-store. The CSV's
@@ -634,7 +632,7 @@ export function registerHandlers(nc: NatsConnection): void {
           const sourceInfo = await fetchSourceRecordSetInfo(nc, result.source_filename);
           const ingestReply = await nc.request(
             'record_set.ingest.requested',
-            jc.encode({
+            JSON.stringify({
               filename,
               csv: csvText,
               name: filename.replace(/\.csv$/i, ''),
@@ -644,7 +642,7 @@ export function registerHandlers(nc: NatsConnection): void {
             }),
             { timeout: 30_000 },
           );
-          const ingestOut = jc.decode(ingestReply.data) as {
+          const ingestOut = ingestReply.json() as {
             ok?: false;
             error?: string;
             record_set?: { record_set_id?: string; name?: string };
@@ -658,7 +656,7 @@ export function registerHandlers(nc: NatsConnection): void {
               try {
                 await nc.request(
                   'variant_family.add.requested',
-                  jc.encode({
+                  JSON.stringify({
                     variant_family_id: sourceInfo.variant_family_id,
                     record_set_id: newRecordSetId,
                   }),
@@ -676,10 +674,10 @@ export function registerHandlers(nc: NatsConnection): void {
           // file on disk; auto-load is a quality-of-life rider.
         }
         const finalResult = { ...result, ...ingested };
-        if (msg.reply) msg.respond(jc.encode(finalResult));
+        if (msg.reply) msg.respond(JSON.stringify(finalResult));
         nc.publish(
           'pipeline.promote_snapshot.completed',
-          jc.encode({
+          JSON.stringify({
             client_id: args.client_id,
             snapshot_path: result.snapshot_path,
             source_version: result.source_version,
@@ -689,7 +687,7 @@ export function registerHandlers(nc: NatsConnection): void {
         );
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -708,10 +706,10 @@ async function fetchSourceRecordSetInfo(
   try {
     const reply = await nc.request(
       'record_set.list.requested',
-      jc.encode({}),
+      JSON.stringify({}),
       { timeout: 10_000 },
     );
-    const out = jc.decode(reply.data) as {
+    const out = reply.json() as {
       record_sets?: {
         record_set_id?: string;
         name?: string;
@@ -763,10 +761,10 @@ async function fetchRowMetaByRowId(nc: NatsConnection): Promise<RowMeta> {
   try {
     const reply = await nc.request(
       'row.list.requested',
-      jc.encode({}),
+      JSON.stringify({}),
       { timeout: 30_000 },
     );
-    const out = jc.decode(reply.data) as {
+    const out = reply.json() as {
       rows?: {
         row_id: string;
         fields?: { record_uuid?: unknown; corpus_funder_slug?: unknown };
@@ -845,10 +843,10 @@ async function fetchRowUrl(nc: NatsConnection, row_id: string): Promise<string |
   try {
     const reply = await nc.request(
       'row.get.requested',
-      jc.encode({ row_id }),
+      JSON.stringify({ row_id }),
       { timeout: 5_000 },
     );
-    const out = jc.decode(reply.data) as { row?: { fields?: { url?: unknown } } };
+    const out = reply.json() as { row?: { fields?: { url?: unknown } } };
     const url = out.row?.fields?.url;
     return typeof url === 'string' ? url : null;
   } catch {
@@ -862,10 +860,10 @@ async function fetchResponsesForRecord(
 ): Promise<ResponseLite[]> {
   const reply = await nc.request(
     'response.list.requested',
-    jc.encode({ row_id: record_id }),
+    JSON.stringify({ row_id: record_id }),
     { timeout: 10_000 },
   );
-  const out = jc.decode(reply.data) as { responses: ResponseLite[] };
+  const out = reply.json() as { responses: ResponseLite[] };
   return out.responses ?? [];
 }
 

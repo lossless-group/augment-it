@@ -1,4 +1,4 @@
-import { connect } from 'nats';
+import { connect } from '@nats-io/transport-node';
 import { registerHandlers } from './handlers';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
