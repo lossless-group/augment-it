@@ -4,7 +4,7 @@
 //
 // Spec: context-v/specs/Response-Reviewer-and-Response-Store.md
 
-import { connect } from 'nats';
+import { connect } from '@nats-io/transport-node';
 import { load } from './store';
 import { registerHandlers } from './handlers';
 

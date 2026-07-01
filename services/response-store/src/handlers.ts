@@ -12,7 +12,7 @@
 //
 // Spec: context-v/specs/Response-Reviewer-and-Response-Store.md
 
-import { JSONCodec, type NatsConnection } from 'nats';
+import { type NatsConnection } from '@nats-io/transport-node';
 import {
   acceptResponse,
   createResponse,
@@ -29,20 +29,18 @@ import {
   type ResponseFlag,
 } from './store';
 
-const jc = JSONCodec();
-
 export function registerHandlers(nc: NatsConnection): void {
   // response.create.requested — fire-and-forget from prompt-runner
   (async () => {
     const sub = nc.subscribe('response.create.requested');
     for await (const msg of sub) {
-      const params = jc.decode(msg.data) as Parameters<typeof createResponse>[0];
+      const params = msg.json() as Parameters<typeof createResponse>[0];
       try {
         const response = await createResponse(params);
-        if (msg.reply) msg.respond(jc.encode({ response }));
+        if (msg.reply) msg.respond(JSON.stringify({ response }));
         nc.publish(
           'response.created',
-          jc.encode({
+          JSON.stringify({
             response_id: response.response_id,
             run_id: response.run_id,
             record_set_id: response.record_set_id,
@@ -52,7 +50,7 @@ export function registerHandlers(nc: NatsConnection): void {
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
         console.error(JSON.stringify({ level: 'error', msg: 'response.create failed', error }));
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -61,8 +59,8 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('response.list.requested');
     for await (const msg of sub) {
-      const filter = (msg.data.length > 0 ? jc.decode(msg.data) : {}) as ResponseFilter;
-      if (msg.reply) msg.respond(jc.encode({ responses: listResponses(filter) }));
+      const filter = (msg.data.length > 0 ? msg.json() : {}) as ResponseFilter;
+      if (msg.reply) msg.respond(JSON.stringify({ responses: listResponses(filter) }));
     }
   })();
 
@@ -70,8 +68,8 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('response.get.requested');
     for await (const msg of sub) {
-      const { response_id } = jc.decode(msg.data) as { response_id: string };
-      if (msg.reply) msg.respond(jc.encode({ response: getResponse(response_id) ?? null }));
+      const { response_id } = msg.json() as { response_id: string };
+      if (msg.reply) msg.respond(JSON.stringify({ response: getResponse(response_id) ?? null }));
     }
   })();
 
@@ -81,17 +79,17 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('response.set_text.requested');
     for await (const msg of sub) {
-      const { response_id, edited_text } = jc.decode(msg.data) as {
+      const { response_id, edited_text } = msg.json() as {
         response_id: string;
         edited_text: string;
       };
       try {
         const response = await setResponseEditedText(response_id, edited_text);
-        if (msg.reply) msg.respond(jc.encode({ response }));
-        nc.publish('response.edited', jc.encode({ response_id, edited_at: response.edited_at }));
+        if (msg.reply) msg.respond(JSON.stringify({ response }));
+        nc.publish('response.edited', JSON.stringify({ response_id, edited_at: response.edited_at }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -105,17 +103,17 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('response.set_structured.requested');
     for await (const msg of sub) {
-      const { response_id, patch } = jc.decode(msg.data) as {
+      const { response_id, patch } = msg.json() as {
         response_id: string;
         patch: Partial<Candidate>;
       };
       try {
         const response = await setResponseStructured(response_id, patch);
-        if (msg.reply) msg.respond(jc.encode({ response }));
-        nc.publish('response.edited', jc.encode({ response_id, edited_at: response.edited_at }));
+        if (msg.reply) msg.respond(JSON.stringify({ response }));
+        nc.publish('response.edited', JSON.stringify({ response_id, edited_at: response.edited_at }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -124,17 +122,17 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('response.flag.requested');
     for await (const msg of sub) {
-      const { response_id, flag } = jc.decode(msg.data) as {
+      const { response_id, flag } = msg.json() as {
         response_id: string;
         flag: ResponseFlag;
       };
       try {
         const response = await flagResponse(response_id, flag);
-        if (msg.reply) msg.respond(jc.encode({ response }));
-        nc.publish('response.flagged', jc.encode({ response_id, flag }));
+        if (msg.reply) msg.respond(JSON.stringify({ response }));
+        nc.publish('response.flagged', JSON.stringify({ response_id, flag }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -145,11 +143,11 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('response.coverage.requested');
     for await (const msg of sub) {
-      const { prompt_id, record_set_id } = jc.decode(msg.data) as {
+      const { prompt_id, record_set_id } = msg.json() as {
         prompt_id: string;
         record_set_id: string;
       };
-      if (msg.reply) msg.respond(jc.encode(getCoverage(prompt_id, record_set_id)));
+      if (msg.reply) msg.respond(JSON.stringify(getCoverage(prompt_id, record_set_id)));
     }
   })();
 
@@ -158,16 +156,16 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('response.delete.requested');
     for await (const msg of sub) {
-      const { response_id } = jc.decode(msg.data) as { response_id: string };
+      const { response_id } = msg.json() as { response_id: string };
       try {
         const existed = await deleteResponse(response_id);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, deleted: existed }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, deleted: existed }));
         if (existed) {
-          nc.publish('response.deleted', jc.encode({ response_id }));
+          nc.publish('response.deleted', JSON.stringify({ response_id }));
         }
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -177,16 +175,16 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('response.delete_all.requested');
     for await (const msg of sub) {
-      const filter = (msg.data.length > 0 ? jc.decode(msg.data) : {}) as ResponseFilter;
+      const filter = (msg.data.length > 0 ? msg.json() : {}) as ResponseFilter;
       try {
         const count = await deleteResponses(filter);
-        if (msg.reply) msg.respond(jc.encode({ ok: true, deleted: count }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, deleted: count }));
         if (count > 0) {
-          nc.publish('response.deleted', jc.encode({ bulk: true, count, filter }));
+          nc.publish('response.deleted', JSON.stringify({ bulk: true, count, filter }));
         }
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -202,7 +200,7 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('response.accept.requested');
     for await (const msg of sub) {
-      const { response_id, value } = jc.decode(msg.data) as {
+      const { response_id, value } = msg.json() as {
         response_id: string;
         value?: string;
       };
@@ -213,7 +211,7 @@ export function registerHandlers(nc: NatsConnection): void {
           // Pack write-back: upsert into row.fields.socials
           await nc.request(
             'row.socials.add.requested',
-            jc.encode({
+            JSON.stringify({
               row_id: response.row_id,
               pack_id: response.pack_id,
               url: response.structured.url,
@@ -230,7 +228,7 @@ export function registerHandlers(nc: NatsConnection): void {
           // output column.
           await nc.request(
             'row.update.requested',
-            jc.encode({
+            JSON.stringify({
               row_id: response.row_id,
               fields: { [response.output_column]: cell_value },
             }),
@@ -238,15 +236,15 @@ export function registerHandlers(nc: NatsConnection): void {
           );
         }
 
-        if (msg.reply) msg.respond(jc.encode({ response }));
+        if (msg.reply) msg.respond(JSON.stringify({ response }));
         nc.publish(
           'response.flagged',
-          jc.encode({ response_id, flag: 'good', accepted: true }),
+          JSON.stringify({ response_id, flag: 'good', accepted: true }),
         );
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
         console.error(JSON.stringify({ level: 'error', msg: 'response.accept failed', error }));
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
