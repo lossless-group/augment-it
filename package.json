@@ -21,15 +21,15 @@
     "@module-federation/rsbuild-plugin": "^0.18.0",
     "@rsbuild/core": "^1.4.3",
     "@rsbuild/plugin-svelte": "^1.0.7",
-    "svelte": "^5.0.0",
-    "svelte-check": "^4.0.0",
+    "svelte": "^5.56.4",
+    "svelte-check": "^4.7.1",
     "typescript": "^5.8.3"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.198",
     "@composio/claude-agent-sdk": "^0.10.0",
     "@composio/core": "^0.13.1",
-    "surrealdb": "^2.0.3",
+    "surrealdb": "^2.0.4",
     "zod": "^4.4.3"
   }
 }
