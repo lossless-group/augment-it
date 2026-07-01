@@ -1,4 +1,4 @@
-import { connect, type NatsConnection } from 'nats';
+import { connect, type NatsConnection } from '@nats-io/transport-node';
 
 let conn: NatsConnection | null = null;
 

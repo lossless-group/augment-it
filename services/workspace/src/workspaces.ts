@@ -23,10 +23,7 @@
 
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { JSONCodec } from 'nats';
 import { getNats } from './nats';
-
-const jc = JSONCodec();
 
 // Subject for cross-service workspace-switch broadcast. Domain services
 // (row-store, prompt-store, response-store, content-ingest) subscribe and
@@ -135,7 +132,7 @@ export function registerActiveQueryResponder(): void {
     const sub = nc.subscribe(WORKSPACE_ACTIVE_REQUESTED_SUBJECT);
     for await (const msg of sub) {
       if (msg.reply) {
-        msg.respond(jc.encode({ active_client_id: activeClientId }));
+        msg.respond(JSON.stringify({ active_client_id: activeClientId }));
       }
     }
   })().catch((err) => {
@@ -191,7 +188,7 @@ export function setActiveClientId(client_id: string): WorkspaceSummary {
     try {
       getNats().publish(
         WORKSPACE_ACTIVE_CHANGED_SUBJECT,
-        jc.encode({ client_id, previous: prev }),
+        JSON.stringify({ client_id, previous: prev }),
       );
     } catch (err) {
       console.warn('[workspaces] could not publish workspace.active.changed', err);

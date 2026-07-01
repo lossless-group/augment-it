@@ -13,11 +13,8 @@
 // the five patterns this implements: capability adapters, lifecycle events,
 // anticipation, three response modes, four cache-eligible slabs.
 
-import { JSONCodec } from 'nats';
 import { getNats } from './nats';
 import { getActiveClientId } from './workspaces';
-
-const jc = JSONCodec();
 
 // --- Pattern 5: the four cache-eligible slabs. ---
 //
@@ -233,12 +230,12 @@ function assembleMessages(input: ChatTurnInput): { role: 'user' | 'assistant'; c
 export async function dispatchChatTurn(input: ChatTurnInput): Promise<ChatTurnResult> {
   const reply = await getNats().request(
     'chat.turn.requested',
-    jc.encode({
+    JSON.stringify({
       system: assembleSystemSlabs(input),
       messages: assembleMessages(input),
       tools: CHAT_TOOLS,
     }),
     { timeout: 60_000 },
   );
-  return jc.decode(reply.data) as ChatTurnResult;
+  return reply.json() as ChatTurnResult;
 }

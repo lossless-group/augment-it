@@ -2,7 +2,6 @@
 // The Workspace Service owns no domain data; it routes capabilities to
 // whichever microservice subscribes to the relevant subject.
 
-import { JSONCodec } from 'nats';
 import { getNats } from './nats';
 import {
   getActiveClientId,
@@ -10,8 +9,6 @@ import {
   setActiveClientId,
   type WorkspaceSummary,
 } from './workspaces';
-
-const jc = JSONCodec();
 
 // workspace.* capabilities are served locally by the workspace-service —
 // no NATS round-trip, no domain microservice owns them. The shape mirrors
@@ -245,6 +242,6 @@ export async function dispatch(capability: string, args: unknown): Promise<unkno
   const subject = CAPABILITY_TO_SUBJECT[capability];
   if (!subject) throw new Error(`unknown capability: ${capability}`);
   const timeout = CAPABILITY_TIMEOUTS_MS[capability] ?? 5_000;
-  const reply = await getNats().request(subject, jc.encode(args), { timeout });
-  return jc.decode(reply.data);
+  const reply = await getNats().request(subject, JSON.stringify(args), { timeout });
+  return reply.json();
 }

@@ -12,13 +12,11 @@
 
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { WebSocket } from '@fastify/websocket';
-import { JSONCodec, type Subscription } from 'nats';
+import { type Subscription } from '@nats-io/transport-node';
 import { isValid, mint } from './auth';
 import { dispatch } from './capabilities';
 import { dispatchChatTurn } from './chat';
 import { getNats } from './nats';
-
-const jc = JSONCodec();
 
 const BROADCAST_SUBJECTS = [
   'record_set.created',
@@ -58,7 +56,7 @@ function startBroadcastForwarder(): void {
     natsSubs.push(sub);
     (async () => {
       for await (const msg of sub) {
-        const payload = jc.decode(msg.data);
+        const payload = msg.json();
         for (const session of sessions) {
           session.seq += 1;
           const frame = {
