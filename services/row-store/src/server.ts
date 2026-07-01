@@ -15,11 +15,9 @@
 
 import { copyFile, mkdir, stat } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { connect, JSONCodec, type NatsConnection } from 'nats';
+import { connect, type NatsConnection } from '@nats-io/transport-node';
 import { load, swap } from './store';
 import { registerHandlers } from './handlers';
-
-const jc = JSONCodec();
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 // /clients in docker, ../../clients for local dev. Same convention as
@@ -78,10 +76,10 @@ async function queryActiveClientId(nc: NatsConnection): Promise<string | null> {
   const PER_ATTEMPT_TIMEOUT_MS = 3_000;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     try {
-      const reply = await nc.request('workspace.active.requested', jc.encode({}), {
+      const reply = await nc.request('workspace.active.requested', JSON.stringify({}), {
         timeout: PER_ATTEMPT_TIMEOUT_MS,
       });
-      const decoded = jc.decode(reply.data) as { active_client_id: string | null };
+      const decoded = reply.json() as { active_client_id: string | null };
       if (decoded.active_client_id) return decoded.active_client_id;
       // Responder is up but reports no active workspace yet — keep trying.
       console.log(
@@ -110,7 +108,7 @@ function subscribeToWorkspaceChanges(nc: NatsConnection): void {
     const sub = nc.subscribe('workspace.active.changed');
     for await (const msg of sub) {
       try {
-        const { client_id } = jc.decode(msg.data) as { client_id: string; previous?: string };
+        const { client_id } = msg.json() as { client_id: string; previous?: string };
         const next = pathForClient(client_id);
         console.log(JSON.stringify({ level: 'info', msg: 'workspace switch', to: client_id, path: next }));
         await swap(next);

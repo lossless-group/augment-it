@@ -5,7 +5,7 @@
 //   - row.list.requested         → reply with rows (optionally filtered by record_set_id)
 //   - row.update.requested       → mutate, reply, broadcast row.updated
 
-import { JSONCodec, type NatsConnection } from 'nats';
+import { type NatsConnection } from '@nats-io/transport-node';
 import {
   addHelpfulLink,
   addSocial,
@@ -32,14 +32,12 @@ import {
   type RecordSet,
 } from './store';
 
-const jc = JSONCodec();
-
 export function registerHandlers(nc: NatsConnection): void {
   // record_set.list.requested
   (async () => {
     const sub = nc.subscribe('record_set.list.requested');
     for await (const msg of sub) {
-      if (msg.reply) msg.respond(jc.encode({ record_sets: listRecordSets() }));
+      if (msg.reply) msg.respond(JSON.stringify({ record_sets: listRecordSets() }));
     }
   })();
 
@@ -47,10 +45,10 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('record_set.get.requested');
     for await (const msg of sub) {
-      const { record_set_id } = jc.decode(msg.data) as { record_set_id: string };
+      const { record_set_id } = msg.json() as { record_set_id: string };
       const rs = getRecordSet(record_set_id);
       const rows = rs ? listRows(record_set_id) : [];
-      if (msg.reply) msg.respond(jc.encode({ record_set: rs ?? null, rows }));
+      if (msg.reply) msg.respond(JSON.stringify({ record_set: rs ?? null, rows }));
     }
   })();
 
@@ -58,7 +56,7 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('record_set.create.requested');
     for await (const msg of sub) {
-      const payload = jc.decode(msg.data) as {
+      const payload = msg.json() as {
         name: string;
         schema: ColumnSchema;
         rows: { fields: Record<string, unknown> }[];
@@ -72,16 +70,16 @@ export function registerHandlers(nc: NatsConnection): void {
       if (result.record_set.promoted_from?.record_set_ids?.[0]) {
         nc.publish(
           'record_set.updated',
-          jc.encode({
+          JSON.stringify({
             record_set_id: result.record_set.promoted_from.record_set_ids[0],
             archived: true,
           }),
         );
       }
-      if (msg.reply) msg.respond(jc.encode(result));
+      if (msg.reply) msg.respond(JSON.stringify(result));
       nc.publish(
         'record_set.created',
-        jc.encode({
+        JSON.stringify({
           record_set_id: result.record_set.record_set_id,
           name: result.record_set.name,
           schema: result.record_set.schema,
@@ -95,10 +93,10 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('row.list.requested');
     for await (const msg of sub) {
-      const args = (msg.data.length > 0 ? jc.decode(msg.data) : {}) as {
+      const args = (msg.data.length > 0 ? msg.json() : {}) as {
         record_set_id?: string;
       };
-      if (msg.reply) msg.respond(jc.encode({ rows: listRows(args.record_set_id) }));
+      if (msg.reply) msg.respond(JSON.stringify({ rows: listRows(args.record_set_id) }));
     }
   })();
 
@@ -108,13 +106,13 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('record_set.delete.requested');
     for await (const msg of sub) {
-      const { record_set_id } = jc.decode(msg.data) as { record_set_id: string };
+      const { record_set_id } = msg.json() as { record_set_id: string };
       const result = await deleteRecordSet(record_set_id);
-      if (msg.reply) msg.respond(jc.encode(result));
+      if (msg.reply) msg.respond(JSON.stringify(result));
       if (result.deleted) {
         nc.publish(
           'record_set.deleted',
-          jc.encode({ record_set_id, row_count: result.row_count }),
+          JSON.stringify({ record_set_id, row_count: result.row_count }),
         );
       }
     }
@@ -124,15 +122,15 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('row.update.requested');
     for await (const msg of sub) {
-      const { row_id, fields } = jc.decode(msg.data) as {
+      const { row_id, fields } = msg.json() as {
         row_id: string;
         fields: Record<string, unknown>;
       };
       const row = await updateRow(row_id, fields);
-      if (msg.reply) msg.respond(jc.encode({ row }));
+      if (msg.reply) msg.respond(JSON.stringify({ row }));
       nc.publish(
         'row.updated',
-        jc.encode({
+        JSON.stringify({
           row_id: row.row_id,
           record_set_id: row.record_set_id,
           fields: row.fields,
@@ -145,8 +143,8 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('row.get.requested');
     for await (const msg of sub) {
-      const { row_id } = jc.decode(msg.data) as { row_id: string };
-      if (msg.reply) msg.respond(jc.encode({ row: getRow(row_id) ?? null }));
+      const { row_id } = msg.json() as { row_id: string };
+      if (msg.reply) msg.respond(JSON.stringify({ row: getRow(row_id) ?? null }));
     }
   })();
 
@@ -155,7 +153,7 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('row.helpful_links.add.requested');
     for await (const msg of sub) {
-      const params = jc.decode(msg.data) as {
+      const params = msg.json() as {
         row_id: string;
         url: string;
         label?: string;
@@ -164,10 +162,10 @@ export function registerHandlers(nc: NatsConnection): void {
       };
       try {
         const row = await addHelpfulLink(params);
-        if (msg.reply) msg.respond(jc.encode({ row }));
+        if (msg.reply) msg.respond(JSON.stringify({ row }));
         nc.publish(
           'row.updated',
-          jc.encode({
+          JSON.stringify({
             row_id: row.row_id,
             record_set_id: row.record_set_id,
             fields: row.fields,
@@ -175,7 +173,7 @@ export function registerHandlers(nc: NatsConnection): void {
         );
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -184,16 +182,16 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('row.helpful_links.remove.requested');
     for await (const msg of sub) {
-      const { row_id, link_id } = jc.decode(msg.data) as {
+      const { row_id, link_id } = msg.json() as {
         row_id: string;
         link_id: string;
       };
       try {
         const row = await removeHelpfulLink(row_id, link_id);
-        if (msg.reply) msg.respond(jc.encode({ row }));
+        if (msg.reply) msg.respond(JSON.stringify({ row }));
         nc.publish(
           'row.updated',
-          jc.encode({
+          JSON.stringify({
             row_id: row.row_id,
             record_set_id: row.record_set_id,
             fields: row.fields,
@@ -201,7 +199,7 @@ export function registerHandlers(nc: NatsConnection): void {
         );
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -212,7 +210,7 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('row.socials.add.requested');
     for await (const msg of sub) {
-      const params = jc.decode(msg.data) as {
+      const params = msg.json() as {
         row_id: string;
         pack_id: string;
         url: string;
@@ -224,10 +222,10 @@ export function registerHandlers(nc: NatsConnection): void {
       };
       try {
         const row = await addSocial(params);
-        if (msg.reply) msg.respond(jc.encode({ row }));
+        if (msg.reply) msg.respond(JSON.stringify({ row }));
         nc.publish(
           'row.updated',
-          jc.encode({
+          JSON.stringify({
             row_id: row.row_id,
             record_set_id: row.record_set_id,
             fields: row.fields,
@@ -235,7 +233,7 @@ export function registerHandlers(nc: NatsConnection): void {
         );
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -244,16 +242,16 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('row.socials.remove.requested');
     for await (const msg of sub) {
-      const { row_id, socials_id } = jc.decode(msg.data) as {
+      const { row_id, socials_id } = msg.json() as {
         row_id: string;
         socials_id: string;
       };
       try {
         const row = await removeSocial(row_id, socials_id);
-        if (msg.reply) msg.respond(jc.encode({ row }));
+        if (msg.reply) msg.respond(JSON.stringify({ row }));
         nc.publish(
           'row.updated',
-          jc.encode({
+          JSON.stringify({
             row_id: row.row_id,
             record_set_id: row.record_set_id,
             fields: row.fields,
@@ -261,7 +259,7 @@ export function registerHandlers(nc: NatsConnection): void {
         );
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -272,17 +270,17 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('record_set.promote.requested');
     for await (const msg of sub) {
-      const { source_record_set_id, name } = jc.decode(msg.data) as {
+      const { source_record_set_id, name } = msg.json() as {
         source_record_set_id: string;
         name?: string;
       };
       try {
         const result = await promoteRecordSet({ source_record_set_id, name });
-        if (msg.reply) msg.respond(jc.encode(result));
+        if (msg.reply) msg.respond(JSON.stringify(result));
         // Broadcast both the create and the archive so subscribers can react.
         nc.publish(
           'record_set.created',
-          jc.encode({
+          JSON.stringify({
             record_set_id: result.record_set.record_set_id,
             name: result.record_set.name,
             row_count: result.rows.length,
@@ -291,11 +289,11 @@ export function registerHandlers(nc: NatsConnection): void {
         );
         nc.publish(
           'record_set.archived',
-          jc.encode({ record_set_id: source_record_set_id }),
+          JSON.stringify({ record_set_id: source_record_set_id }),
         );
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -305,14 +303,14 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('record_set.archive.requested');
     for await (const msg of sub) {
-      const { record_set_id } = jc.decode(msg.data) as { record_set_id: string };
+      const { record_set_id } = msg.json() as { record_set_id: string };
       try {
         const rs = await archiveRecordSet(record_set_id);
-        if (msg.reply) msg.respond(jc.encode({ record_set: rs }));
-        nc.publish('record_set.archived', jc.encode({ record_set_id }));
+        if (msg.reply) msg.respond(JSON.stringify({ record_set: rs }));
+        nc.publish('record_set.archived', JSON.stringify({ record_set_id }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -323,13 +321,13 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('row.archive.requested');
     for await (const msg of sub) {
-      const { row_id } = jc.decode(msg.data) as { row_id: string };
+      const { row_id } = msg.json() as { row_id: string };
       try {
         const row = await archiveRow(row_id);
-        if (msg.reply) msg.respond(jc.encode({ row }));
+        if (msg.reply) msg.respond(JSON.stringify({ row }));
         nc.publish(
           'row.updated',
-          jc.encode({
+          JSON.stringify({
             row_id: row.row_id,
             record_set_id: row.record_set_id,
             fields: row.fields,
@@ -337,7 +335,7 @@ export function registerHandlers(nc: NatsConnection): void {
         );
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -352,7 +350,7 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('variant_family.list.requested');
     for await (const msg of sub) {
-      if (msg.reply) msg.respond(jc.encode({ variant_families: listVariantFamilies() }));
+      if (msg.reply) msg.respond(JSON.stringify({ variant_families: listVariantFamilies() }));
     }
   })();
 
@@ -360,17 +358,17 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('variant_family.create.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as {
+      const args = msg.json() as {
         label: string;
         record_set_ids: string[];
         stem?: string | null;
       };
       try {
         const result = await createVariantFamily(args);
-        if (msg.reply) msg.respond(jc.encode(result));
+        if (msg.reply) msg.respond(JSON.stringify(result));
         nc.publish(
           'variant_family.created',
-          jc.encode({
+          JSON.stringify({
             variant_family_id: result.family.variant_family_id,
             label: result.family.label,
             record_set_ids: result.record_sets.map((r) => r.record_set_id),
@@ -379,7 +377,7 @@ export function registerHandlers(nc: NatsConnection): void {
         for (const rs of result.record_sets) {
           nc.publish(
             'record_set.updated',
-            jc.encode({
+            JSON.stringify({
               record_set_id: rs.record_set_id,
               variant_family_id: rs.variant_family_id,
               variant_family_label: rs.variant_family_label,
@@ -388,7 +386,7 @@ export function registerHandlers(nc: NatsConnection): void {
         }
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -397,13 +395,13 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('variant_family.update.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as { variant_family_id: string; label: string };
+      const args = msg.json() as { variant_family_id: string; label: string };
       try {
         const result = await updateVariantFamily(args);
-        if (msg.reply) msg.respond(jc.encode(result));
+        if (msg.reply) msg.respond(JSON.stringify(result));
         nc.publish(
           'variant_family.updated',
-          jc.encode({
+          JSON.stringify({
             variant_family_id: result.family.variant_family_id,
             label: result.family.label,
           }),
@@ -411,7 +409,7 @@ export function registerHandlers(nc: NatsConnection): void {
         for (const rs of result.record_sets) {
           nc.publish(
             'record_set.updated',
-            jc.encode({
+            JSON.stringify({
               record_set_id: rs.record_set_id,
               variant_family_id: rs.variant_family_id,
               variant_family_label: rs.variant_family_label,
@@ -420,7 +418,7 @@ export function registerHandlers(nc: NatsConnection): void {
         }
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -429,13 +427,13 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('variant_family.add.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as { variant_family_id: string; record_set_id: string };
+      const args = msg.json() as { variant_family_id: string; record_set_id: string };
       try {
         const result = await addToVariantFamily(args);
-        if (msg.reply) msg.respond(jc.encode(result));
+        if (msg.reply) msg.respond(JSON.stringify(result));
         nc.publish(
           'record_set.updated',
-          jc.encode({
+          JSON.stringify({
             record_set_id: result.record_set.record_set_id,
             variant_family_id: result.record_set.variant_family_id,
             variant_family_label: result.record_set.variant_family_label,
@@ -443,7 +441,7 @@ export function registerHandlers(nc: NatsConnection): void {
         );
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -452,13 +450,13 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('variant_family.remove.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as { record_set_id: string };
+      const args = msg.json() as { record_set_id: string };
       try {
         const result = await removeFromVariantFamily(args);
-        if (msg.reply) msg.respond(jc.encode(result));
+        if (msg.reply) msg.respond(JSON.stringify(result));
         nc.publish(
           'record_set.updated',
-          jc.encode({
+          JSON.stringify({
             record_set_id: result.record_set.record_set_id,
             variant_family_id: result.record_set.variant_family_id ?? null,
             variant_family_label: result.record_set.variant_family_label ?? null,
@@ -466,7 +464,7 @@ export function registerHandlers(nc: NatsConnection): void {
         );
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -475,25 +473,25 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('variant_family.dissolve.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as { variant_family_id: string };
+      const args = msg.json() as { variant_family_id: string };
       try {
         const result = await dissolveVariantFamily(args);
-        if (msg.reply) msg.respond(jc.encode(result));
+        if (msg.reply) msg.respond(JSON.stringify(result));
         if (result.dissolved) {
           nc.publish(
             'variant_family.deleted',
-            jc.encode({ variant_family_id: args.variant_family_id }),
+            JSON.stringify({ variant_family_id: args.variant_family_id }),
           );
           for (const id of result.record_set_ids) {
             nc.publish(
               'record_set.updated',
-              jc.encode({ record_set_id: id, variant_family_id: null, variant_family_label: null }),
+              JSON.stringify({ record_set_id: id, variant_family_id: null, variant_family_label: null }),
             );
           }
         }
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -502,13 +500,13 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('record_set.suggest_variant_family.requested');
     for await (const msg of sub) {
-      const args = jc.decode(msg.data) as { record_set_id: string };
+      const args = msg.json() as { record_set_id: string };
       try {
         const result = suggestVariantFamily(args);
-        if (msg.reply) msg.respond(jc.encode(result));
+        if (msg.reply) msg.respond(JSON.stringify(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
