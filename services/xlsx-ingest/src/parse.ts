@@ -14,9 +14,13 @@ export type ParsedXlsx = {
   rows: { fields: Record<string, unknown> }[];
 };
 
+// @types/node 26 made Buffer generic; the caller passes Buffer.from() (a real
+// Node Buffer). exceljs's load() is typed against a non-generic Buffer that the
+// generic one won't unify with in either direction, so cast at that one
+// boundary — the runtime value is exactly the Buffer exceljs expects.
 export async function parseXlsx(buffer: Buffer, filename: string): Promise<ParsedXlsx> {
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(buffer);
+  await wb.xlsx.load(buffer as unknown as Parameters<typeof wb.xlsx.load>[0]);
 
   const ws = wb.worksheets[0];
   if (!ws) throw new Error('xlsx has no worksheets');

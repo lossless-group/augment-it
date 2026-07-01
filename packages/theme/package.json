@@ -8,6 +8,6 @@
     "./mode-switcher": "./mode-switcher.ts"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "typescript": "^6.0.3"
   }
 }
