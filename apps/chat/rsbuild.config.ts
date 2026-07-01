@@ -38,6 +38,7 @@ export default defineConfig({
     // 3006 — next after 3005 (response-reviewer). Avoiding :3000 per
     // the user's port discipline (Open WebUI lives there).
     port: 3006,
+    cors: { origin: ['http://localhost:3100'] }, // the federation shell
   },
   dev: {
     assetPrefix: 'http://localhost:3006',

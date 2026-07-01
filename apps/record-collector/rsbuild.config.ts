@@ -57,6 +57,7 @@ export default defineConfig({
   },
   server: {
     port: 3002,
+    cors: { origin: ['http://localhost:3100'] }, // the federation shell
   },
   dev: {
     assetPrefix: 'http://localhost:3002',
