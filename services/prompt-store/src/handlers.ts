@@ -11,7 +11,7 @@
 //   prompt.draft.improve.save.requested → reply { prompt }; broadcast prompt.created
 //   prompt.mark_applied.requested     → reply { prompt }; broadcast prompt.updated
 
-import { JSONCodec, type NatsConnection } from 'nats';
+import { type NatsConnection } from '@nats-io/transport-node';
 import {
   cloneAsDraft,
   createDraft,
@@ -25,14 +25,12 @@ import {
   type RecordSetContext,
 } from './store';
 
-const jc = JSONCodec();
-
 export function registerHandlers(nc: NatsConnection): void {
   // prompt.list.requested
   (async () => {
     const sub = nc.subscribe('prompt.list.requested');
     for await (const msg of sub) {
-      if (msg.reply) msg.respond(jc.encode({ prompts: listPrompts() }));
+      if (msg.reply) msg.respond(JSON.stringify({ prompts: listPrompts() }));
     }
   })();
 
@@ -40,8 +38,8 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('prompt.get.requested');
     for await (const msg of sub) {
-      const { prompt_id } = jc.decode(msg.data) as { prompt_id: string };
-      if (msg.reply) msg.respond(jc.encode({ prompt: getPrompt(prompt_id) ?? null }));
+      const { prompt_id } = msg.json() as { prompt_id: string };
+      if (msg.reply) msg.respond(JSON.stringify({ prompt: getPrompt(prompt_id) ?? null }));
     }
   })();
 
@@ -49,7 +47,7 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('prompt.create.requested');
     for await (const msg of sub) {
-      const params = jc.decode(msg.data) as {
+      const params = msg.json() as {
         name: string;
         description?: string;
         content: string;
@@ -57,8 +55,8 @@ export function registerHandlers(nc: NatsConnection): void {
         tools?: PromptTemplate['tools'];
       };
       const prompt = await createPrompt(params);
-      if (msg.reply) msg.respond(jc.encode({ prompt }));
-      nc.publish('prompt.created', jc.encode({ prompt_id: prompt.prompt_id, name: prompt.name }));
+      if (msg.reply) msg.respond(JSON.stringify({ prompt }));
+      nc.publish('prompt.created', JSON.stringify({ prompt_id: prompt.prompt_id, name: prompt.name }));
     }
   })();
 
@@ -66,17 +64,17 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('prompt.update.requested');
     for await (const msg of sub) {
-      const { prompt_id, patch } = jc.decode(msg.data) as {
+      const { prompt_id, patch } = msg.json() as {
         prompt_id: string;
         patch: Partial<Pick<PromptTemplate, 'name' | 'description' | 'content' | 'output_column' | 'tools'>>;
       };
       try {
         const prompt = await updatePrompt(prompt_id, patch);
-        if (msg.reply) msg.respond(jc.encode({ prompt }));
-        nc.publish('prompt.updated', jc.encode({ prompt_id, name: prompt.name }));
+        if (msg.reply) msg.respond(JSON.stringify({ prompt }));
+        nc.publish('prompt.updated', JSON.stringify({ prompt_id, name: prompt.name }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -85,11 +83,11 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('prompt.delete.requested');
     for await (const msg of sub) {
-      const { prompt_id } = jc.decode(msg.data) as { prompt_id: string };
+      const { prompt_id } = msg.json() as { prompt_id: string };
       const result = await deletePrompt(prompt_id);
-      if (msg.reply) msg.respond(jc.encode(result));
+      if (msg.reply) msg.respond(JSON.stringify(result));
       if (result.deleted) {
-        nc.publish('prompt.deleted', jc.encode({ prompt_id }));
+        nc.publish('prompt.deleted', JSON.stringify({ prompt_id }));
       }
     }
   })();
@@ -100,7 +98,7 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('prompt.draft.save.requested');
     for await (const msg of sub) {
-      const params = jc.decode(msg.data) as {
+      const params = msg.json() as {
         goal: string;
         content: string;
         output_column: string;
@@ -111,11 +109,11 @@ export function registerHandlers(nc: NatsConnection): void {
       };
       try {
         const prompt = await createDraft(params);
-        if (msg.reply) msg.respond(jc.encode({ prompt }));
-        nc.publish('prompt.created', jc.encode({ prompt_id: prompt.prompt_id, name: prompt.name }));
+        if (msg.reply) msg.respond(JSON.stringify({ prompt }));
+        nc.publish('prompt.created', JSON.stringify({ prompt_id: prompt.prompt_id, name: prompt.name }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -125,18 +123,18 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('prompt.draft.improve.save.requested');
     for await (const msg of sub) {
-      const params = jc.decode(msg.data) as {
+      const params = msg.json() as {
         parent_id: string;
         refined_content: string;
         feedback: string;
       };
       try {
         const prompt = await cloneAsDraft(params);
-        if (msg.reply) msg.respond(jc.encode({ prompt }));
-        nc.publish('prompt.created', jc.encode({ prompt_id: prompt.prompt_id, name: prompt.name }));
+        if (msg.reply) msg.respond(JSON.stringify({ prompt }));
+        nc.publish('prompt.created', JSON.stringify({ prompt_id: prompt.prompt_id, name: prompt.name }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();
@@ -147,14 +145,14 @@ export function registerHandlers(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('prompt.mark_applied.requested');
     for await (const msg of sub) {
-      const { prompt_id } = jc.decode(msg.data) as { prompt_id: string };
+      const { prompt_id } = msg.json() as { prompt_id: string };
       try {
         const prompt = await markApplied(prompt_id);
-        if (msg.reply) msg.respond(jc.encode({ prompt }));
-        nc.publish('prompt.updated', jc.encode({ prompt_id, name: prompt.name }));
+        if (msg.reply) msg.respond(JSON.stringify({ prompt }));
+        nc.publish('prompt.updated', JSON.stringify({ prompt_id, name: prompt.name }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(jc.encode({ ok: false, error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();

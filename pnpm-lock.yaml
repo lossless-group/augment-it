@@ -450,15 +450,15 @@ importers:
 
   services/content-ingest:
     dependencies:
+      '@nats-io/transport-node':
+        specifier: ^3.4.0
+        version: 3.4.0
       csv-parse:
         specifier: ^7.0.0
         version: 7.0.0
       csv-stringify:
         specifier: ^6.8.0
         version: 6.8.0
-      nats:
-        specifier: ^2.28.0
-        version: 2.29.3
     devDependencies:
       '@types/node':
         specifier: ^26.1.0
@@ -526,9 +526,9 @@ importers:
 
   services/prompt-store:
     dependencies:
-      nats:
-        specifier: ^2.28.0
-        version: 2.29.3
+      '@nats-io/transport-node':
+        specifier: ^3.4.0
+        version: 3.4.0
     devDependencies:
       '@types/node':
         specifier: ^26.1.0
@@ -561,9 +561,9 @@ importers:
 
   services/response-store:
     dependencies:
-      nats:
-        specifier: ^2.28.0
-        version: 2.29.3
+      '@nats-io/transport-node':
+        specifier: ^3.4.0
+        version: 3.4.0
     devDependencies:
       '@types/node':
         specifier: ^26.1.0
@@ -577,9 +577,9 @@ importers:
 
   services/row-store:
     dependencies:
-      nats:
-        specifier: ^2.28.0
-        version: 2.29.3
+      '@nats-io/transport-node':
+        specifier: ^3.4.0
+        version: 3.4.0
     devDependencies:
       '@types/node':
         specifier: ^26.1.0
