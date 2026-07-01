@@ -80,7 +80,7 @@ server.tool(
     phone: z.string().optional(),
     linkedin: z.string().optional(),
     tag_list: z.string().optional().describe('comma-separated tags to add'),
-    custom_data_points: z.record(z.any()).optional(),
+    custom_data_points: z.record(z.string(), z.any()).optional(),
     organizations: z.array(z.object({ name: z.string(), title: z.string().optional() })).optional(),
   },
   (person) => run(() => client.post('person', { person })),
@@ -121,7 +121,7 @@ server.tool(
     website: z.string().optional(),
     description: z.string().optional(),
     tag_list: z.string().optional(),
-    custom_data_points: z.record(z.any()).optional(),
+    custom_data_points: z.record(z.string(), z.any()).optional(),
   },
   (organization) => run(() => client.post('organization', { organization })),
 );
@@ -169,7 +169,7 @@ server.tool(
     probability: z.number().optional(),
     rating: z.number().optional(),
     tag_list: z.string().optional(),
-    custom_data_points: z.record(z.any()).optional(),
+    custom_data_points: z.record(z.string(), z.any()).optional(),
   },
   ({ pipeline_id, stage_id, apply_stage_id_to_existing, person, organization, ...rest }) =>
     run(() =>

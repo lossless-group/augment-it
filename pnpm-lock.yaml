@@ -10,16 +10,19 @@ importers:
     dependencies:
       '@anthropic-ai/claude-agent-sdk':
         specifier: ^0.3.198
-        version: 0.3.198(@anthropic-ai/sdk@0.69.0(zod@3.25.76))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(zod@3.25.76)
+        version: 0.3.198(@anthropic-ai/sdk@0.69.0(zod@4.4.3))(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(zod@4.4.3)
       '@composio/claude-agent-sdk':
         specifier: ^0.10.0
-        version: 0.10.0(@anthropic-ai/claude-agent-sdk@0.3.198(@anthropic-ai/sdk@0.69.0(zod@3.25.76))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(zod@3.25.76))(@composio/core@0.13.1(ws@8.18.0)(zod@3.25.76))
+        version: 0.10.0(@anthropic-ai/claude-agent-sdk@0.3.198(@anthropic-ai/sdk@0.69.0(zod@4.4.3))(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(zod@4.4.3))(@composio/core@0.13.1(ws@8.18.0)(zod@4.4.3))
       '@composio/core':
         specifier: ^0.13.1
-        version: 0.13.1(ws@8.18.0)(zod@3.25.76)
+        version: 0.13.1(ws@8.18.0)(zod@4.4.3)
       surrealdb:
         specifier: ^2.0.3
         version: 2.0.3(tslib@2.8.1)(typescript@5.9.3)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@module-federation/enhanced':
         specifier: ^0.18.0
@@ -470,11 +473,11 @@ importers:
   services/decile-mcp:
     dependencies:
       '@modelcontextprotocol/sdk':
-        specifier: ^1.0.0
-        version: 1.29.0(zod@3.25.76)
+        specifier: ^1.29.0
+        version: 1.29.0(zod@4.4.3)
       zod:
-        specifier: ^3.23.0
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -506,7 +509,7 @@ importers:
     dependencies:
       '@anthropic-ai/sdk':
         specifier: ^0.69.0
-        version: 0.69.0(zod@3.25.76)
+        version: 0.69.0(zod@4.4.3)
       nats:
         specifier: ^2.28.0
         version: 2.29.3
@@ -2982,6 +2985,9 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+
 snapshots:
 
   '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.198':
@@ -3008,11 +3014,11 @@ snapshots:
   '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.198':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk@0.3.198(@anthropic-ai/sdk@0.69.0(zod@3.25.76))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(zod@3.25.76)':
+  '@anthropic-ai/claude-agent-sdk@0.3.198(@anthropic-ai/sdk@0.69.0(zod@4.4.3))(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(zod@4.4.3)':
     dependencies:
-      '@anthropic-ai/sdk': 0.69.0(zod@3.25.76)
-      '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
-      zod: 3.25.76
+      '@anthropic-ai/sdk': 0.69.0(zod@4.4.3)
+      '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.3)
+      zod: 4.4.3
     optionalDependencies:
       '@anthropic-ai/claude-agent-sdk-darwin-arm64': 0.3.198
       '@anthropic-ai/claude-agent-sdk-darwin-x64': 0.3.198
@@ -3023,39 +3029,39 @@ snapshots:
       '@anthropic-ai/claude-agent-sdk-win32-arm64': 0.3.198
       '@anthropic-ai/claude-agent-sdk-win32-x64': 0.3.198
 
-  '@anthropic-ai/sdk@0.69.0(zod@3.25.76)':
+  '@anthropic-ai/sdk@0.69.0(zod@4.4.3)':
     dependencies:
       json-schema-to-ts: 3.1.1
     optionalDependencies:
-      zod: 3.25.76
+      zod: 4.4.3
 
   '@babel/runtime@7.29.2': {}
 
-  '@composio/claude-agent-sdk@0.10.0(@anthropic-ai/claude-agent-sdk@0.3.198(@anthropic-ai/sdk@0.69.0(zod@3.25.76))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(zod@3.25.76))(@composio/core@0.13.1(ws@8.18.0)(zod@3.25.76))':
+  '@composio/claude-agent-sdk@0.10.0(@anthropic-ai/claude-agent-sdk@0.3.198(@anthropic-ai/sdk@0.69.0(zod@4.4.3))(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(zod@4.4.3))(@composio/core@0.13.1(ws@8.18.0)(zod@4.4.3))':
     dependencies:
-      '@anthropic-ai/claude-agent-sdk': 0.3.198(@anthropic-ai/sdk@0.69.0(zod@3.25.76))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(zod@3.25.76)
-      '@composio/core': 0.13.1(ws@8.18.0)(zod@3.25.76)
+      '@anthropic-ai/claude-agent-sdk': 0.3.198(@anthropic-ai/sdk@0.69.0(zod@4.4.3))(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(zod@4.4.3)
+      '@composio/core': 0.13.1(ws@8.18.0)(zod@4.4.3)
       zod: 3.25.76
 
   '@composio/client@0.1.0-alpha.74': {}
 
-  '@composio/core@0.13.1(ws@8.18.0)(zod@3.25.76)':
+  '@composio/core@0.13.1(ws@8.18.0)(zod@4.4.3)':
     dependencies:
       '@composio/client': 0.1.0-alpha.74
-      '@composio/json-schema-to-zod': 0.2.0(zod@3.25.76)
+      '@composio/json-schema-to-zod': 0.2.0(zod@4.4.3)
       '@types/json-schema': 7.0.15
-      openai: 6.44.0(ws@8.18.0)(zod@3.25.76)
+      openai: 6.44.0(ws@8.18.0)(zod@4.4.3)
       picocolors: 1.1.1
       pusher-js: 8.5.0
       semver: 7.8.5
-      zod: 3.25.76
-      zod-to-json-schema: 3.25.2(zod@3.25.76)
+      zod: 4.4.3
+      zod-to-json-schema: 3.25.2(zod@4.4.3)
     transitivePeerDependencies:
       - ws
 
-  '@composio/json-schema-to-zod@0.2.0(zod@3.25.76)':
+  '@composio/json-schema-to-zod@0.2.0(zod@4.4.3)':
     dependencies:
-      zod: 3.25.76
+      zod: 4.4.3
 
   '@emnapi/core@1.10.0':
     dependencies:
@@ -3305,7 +3311,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@modelcontextprotocol/sdk@1.29.0(zod@3.25.76)':
+  '@modelcontextprotocol/sdk@1.29.0(zod@4.4.3)':
     dependencies:
       '@hono/node-server': 1.19.14(hono@4.12.26)
       ajv: 8.20.0
@@ -3322,8 +3328,8 @@ snapshots:
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
-      zod: 3.25.76
-      zod-to-json-schema: 3.25.2(zod@3.25.76)
+      zod: 4.4.3
+      zod-to-json-schema: 3.25.2(zod@4.4.3)
     transitivePeerDependencies:
       - supports-color
 
@@ -4769,10 +4775,10 @@ snapshots:
     dependencies:
       wrappy: 1.0.2
 
-  openai@6.44.0(ws@8.18.0)(zod@3.25.76):
+  openai@6.44.0(ws@8.18.0)(zod@4.4.3):
     optionalDependencies:
       ws: 8.18.0
-      zod: 3.25.76
+      zod: 4.4.3
 
   pako@1.0.11: {}
 
@@ -5297,8 +5303,10 @@ snapshots:
       compress-commons: 4.1.2
       readable-stream: 3.6.2
 
-  zod-to-json-schema@3.25.2(zod@3.25.76):
+  zod-to-json-schema@3.25.2(zod@4.4.3):
     dependencies:
-      zod: 3.25.76
+      zod: 4.4.3
 
   zod@3.25.76: {}
+
+  zod@4.4.3: {}
