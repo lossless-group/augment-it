@@ -12,8 +12,8 @@ The codebase is a federated set of small Svelte 5 microfrontends mounted into a 
 ### Build & runtime
 
 - **pnpm** workspaces + **Turborepo**
-- **Rsbuild** with `@module-federation/rsbuild-plugin` — every app is an independently-served federated remote
-- **TypeScript** end-to-end
+- **Rsbuild 2** with `@module-federation/rsbuild-plugin` 2.x — every app is an independently-served federated remote
+- **TypeScript 6** end-to-end
 - **Docker Compose** for the backend stack (NATS + services)
 
 ### UI
@@ -24,7 +24,7 @@ The codebase is a federated set of small Svelte 5 microfrontends mounted into a 
 
 ### Backend
 
-- **NATS** as the message bus — every service subscribes to a subject; the browser talks to the backend via the workspace capabilities router
+- **NATS** as the message bus — every service subscribes to a subject via the `@nats-io/transport-node` v3 client (migrated off the legacy `nats@2` package); the browser talks to the backend via the workspace capabilities router
 - **libSQL** / **JSON-stored row + response data** behind small TS services
 - **Anthropic** for free-form prompt enrichment (via `prompt-runner`)
 - **Search providers are pluggable** (via `social-search`): a `connectors/` seam with a common `Connector` interface, dispatched per-fire with an optional `provider_override`. **SearXNG** (self-hosted, no API key) is the default for the social packs; **Tavily** stays wired in as a peer for content-RAG packs. Response Reviewer's by-record view exposes both — each record has a SearXNG row and a Tavily row of per-pack run icons, so any source can be re-fired on any record through either provider (additive; never overrides accepted data)
@@ -75,6 +75,7 @@ augment-it/
 │   └── issues/                        # Filed-but-not-yet-executed decisions
 │
 ├── clients/                           # Per-tenant corpus trees (git submodules); funder dirs hold .md + binary PDFs
+├── splash/                            # GitHub Pages splash site (Astro 7 + Pagefind)
 ├── changelog/                         # Ship log — every coherent build session writes one
 ├── scripts/                           # dev.sh, backup-stores.sh, backfill-corpus-{record-uuid,published-at}.mjs
 ├── docker-compose.yml                 # NATS + services
