@@ -126,10 +126,16 @@ class AugmentItWorkspace {
       const resolved = persistedExists
         ? persisted
         : result.active_client_id ?? result.workspaces[0]?.client_id ?? null;
+      // Re-assert whenever the SERVER disagrees, not just when the browser's
+      // own pick changed. The server's active is in-memory per process, so
+      // every stack restart silently resets it to the alphabetical default
+      // while the browser keeps its persisted pick — without this, the two
+      // split-brain (browser shows one tenant, domain services scope to
+      // another) until the operator manually re-picks in the switcher.
+      if (resolved && resolved !== result.active_client_id) {
+        await this.invoke('workspace.activate', { client_id: resolved });
+      }
       if (resolved !== persisted) {
-        // Tell the server about our pick so its process-wide fallback
-        // matches what the browser will send on chat turns.
-        if (resolved) await this.invoke('workspace.activate', { client_id: resolved });
         this.setActiveClientId(resolved);
       }
       this.workspaces_status = 'ready';
