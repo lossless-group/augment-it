@@ -14,6 +14,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { WebSocket } from '@fastify/websocket';
 import { type Subscription } from '@nats-io/transport-node';
 import { isValid, mint } from './auth';
+import { verifyDidiCookie, didiMode, type DidiIdentity } from './didi';
 import { dispatch } from './capabilities';
 import { dispatchChatTurn } from './chat';
 import { getNats } from './nats';
@@ -43,6 +44,8 @@ type Session = {
   token: string;
   socket: WebSocket;
   seq: number;
+  /** didi.sh identity, when a valid didi_session cookie rode the upgrade. */
+  didi?: DidiIdentity;
 };
 
 const sessions = new Set<Session>();
@@ -83,11 +86,31 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
     const token =
       presented && isValid(presented) ? presented : await mint();
 
-    const session: Session = { token, socket, seq: 0 };
+    // didi.sh identity — verified locally (JWKS + EdDSA), per the spec's
+    // increment 2. In 'required' mode an upgrade without a valid cookie is
+    // rejected; in 'optional' mode the legacy continuity token still works
+    // and identity rides along when present.
+    const didi = (await verifyDidiCookie(req.headers.cookie)) ?? undefined;
+    if (didiMode() === 'required' && !didi) {
+      app.log.warn('ws reject: didi auth required, no valid didi_session');
+      socket.close(4401, 'didi auth required');
+      return;
+    }
+
+    const session: Session = { token, socket, seq: 0, didi };
     sessions.add(session);
 
-    socket.send(JSON.stringify({ kind: 'session', token }));
-    app.log.info({ token: token.slice(0, 8) + '…', sessions: sessions.size }, 'ws connect');
+    socket.send(
+      JSON.stringify({ kind: 'session', token, didi_id: didi?.didi_id ?? null }),
+    );
+    app.log.info(
+      {
+        token: token.slice(0, 8) + '…',
+        didi_id: didi?.didi_id ?? null,
+        sessions: sessions.size,
+      },
+      'ws connect',
+    );
 
     socket.on('message', async (raw: Buffer) => {
       let frame: unknown;

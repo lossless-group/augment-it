@@ -27,6 +27,15 @@ services:
       # absent → first slug alphabetically (humain-vc today).
       CLIENTS_ROOT: /clients
       ACTIVE_CLIENT_ID: ${ACTIVE_CLIENT_ID:-}
+      # didi.sh identity (spec increment 2) — verify the didi_session
+      # cookie on WS upgrade against the id service's JWKS. Local dev runs
+      # the id service on the HOST at :4000 (mix phx.server in id-didi-sh),
+      # reached from this container via host.docker.internal. 'optional'
+      # keeps the legacy continuity-token flow working; flip to 'required'
+      # once operators are didi users. Prod swaps the URLs to id.didi.sh.
+      ID_JWKS_URL: ${ID_JWKS_URL:-http://host.docker.internal:4000/.well-known/jwks.json}
+      ID_ISSUER: ${ID_ISSUER:-http://localhost:4000}
+      DIDI_AUTH: ${DIDI_AUTH:-optional}
     volumes:
       - workspace-data:/data
       - ./clients:/clients:ro
