@@ -190,6 +190,9 @@ export type JobEvent = {
 export type UserContext = {
   session_token: string;
   user_id?: string;
+  /** didi.sh stable person id — present when the WS upgrade carried a
+   *  verified didi_session cookie (server-verified, not client-asserted). */
+  didi_id?: string | null;
 };
 
 export type InvokeFrame = {
@@ -218,6 +221,8 @@ export type EventFrame = {
 export type SessionFrame = {
   kind: 'session';
   token: string;
+  /** Verified didi.sh identity, or null when the upgrade had no valid cookie. */
+  didi_id?: string | null;
 };
 
 // --- Chat surface frames ---

@@ -243,7 +243,11 @@ class AugmentItWorkspace {
 
   private handleFrame(frame: ServerFrame): void {
     if (frame.kind === 'session') {
-      this.user = { session_token: frame.token, user_id: this.user?.user_id };
+      this.user = {
+        session_token: frame.token,
+        user_id: this.user?.user_id,
+        didi_id: frame.didi_id ?? null,
+      };
     } else if (frame.kind === 'event') {
       this.ingestEvent({
         seq: frame.seq,

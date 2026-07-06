@@ -4,6 +4,7 @@
   import MountHost from './MountHost.svelte';
   import FlowWidget from './FlowWidget.svelte';
   import WorkspaceSwitcher from './WorkspaceSwitcher.svelte';
+  import DidiBadge from './DidiBadge.svelte';
   import ToggleHeader from '@augment-it/shared-ui/ToggleHeader__PromptOrPackage--Icons.svelte';
   import { workspace } from '@augment-it/workspace';
   import {
@@ -437,6 +438,7 @@
       💬 chat
     </button>
     <span class="muted">tiling host · :3100</span>
+    <DidiBadge />
     <ModeToggle />
     <WorkspaceSwitcher />
   </div>
