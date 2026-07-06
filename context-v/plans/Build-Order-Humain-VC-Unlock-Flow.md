@@ -159,13 +159,27 @@ theses; glitch assistance):
 - **Verify:** "didi, file this link under consumer-immunology" ends with a
   source in the right thesis, attributed correctly.
 
-## Step 9 ⚑ — Deploy augment-it, single-tenant (infra decision)
+## Step 9 — Deploy augment-it, single-tenant on DigitalOcean
 
-**Decision first — where compose runs.** The stack is compose-shaped
-(11 services + NATS); Fly runs one container per machine. Lean for THIS
-flow: **one small VPS (Hetzner/DO) running docker compose + Caddy** for
-TLS at `augment.didi.sh` — zero rearchitecture. (Fly-per-service is the
-platform-shaped alternative; it's more moving parts than two users need.)
+**Decided 2026-07-06: the repurposed DigitalOcean droplet**
+`ubuntu-s-1vcpu-1gb-amd-ams3-01` at **167.172.42.247** (already paid
+for; whatever's on it is disposable — code lives on GitHub). Caddy for
+TLS at `augment.didi.sh`.
+
+**Box prepped 2026-07-06:** Coolify (the prior tenant) removed, ports
+80/443 freed, 2 GB swapfile active + persisted, Docker 28 present,
+~556 MB RAM available, 18 GB disk free. SSH: root@ with the
+`id_rsa_nopass` key.
+
+**The 1 GB constraint:** the full 11-service compose won't fit. Flow 1
+needs only the curator path — run a **flow-minimal compose profile**:
+`nats + workspace-service + record-surrealdb-resolver + content-ingest`
+(+ Caddy, + the shell as static files). ~400–500 MB resident; add a
+**2 GB swapfile** for fetch/compression spikes and build churn (pnpm
+install on 1 GB wants swap; bring services up sequentially on first
+build). Other microfrontends stay mounted in the shell and error if
+poked — consistent with the "no extra work, no isolation" rule.
+Escape hatch: DO resize to 2 GB ($12/mo) is two clicks if it strains.
 
 - Box provisioning; clone; `.env` with: `ACTIVE_CLIENT_ID=humain-vc`,
   `DIDI_AUTH=required`, `REQUIRED_ORG_ID=humain.vc`,
