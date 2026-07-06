@@ -2,12 +2,13 @@
 title: "Strategy Curator — An Entry-Point App for augment-it"
 lede: "Pick or create a strategy, gather sources for it (metadata first, full content on demand, PDFs preserved), and pull extracts — without the strategy↔source↔funder↔person graph ever decoupling. The trick: a canonical source registry in SurrealDB owns identity; the client's filesystem owns usage; a shared UUID is the only bond."
 date_created: 2026-06-29
-date_modified: 2026-06-29
+date_modified: 2026-07-06
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.8 (1M context)
-semantic_version: 0.0.0.6
+  - Claude Code on Claude Fable 5
+semantic_version: 0.0.0.7
 status: Implementing
 tags:
   - Spec
@@ -577,8 +578,19 @@ upload endpoint that bypasses NATS entirely — noted, not built.
 - **Auto text-extraction from attached PDFs** — `source.attach` stores + marks fetched, but
   doesn't yet pull the PDF text into the body (local PDF→text needs a parser; Jina only does
   URLs). Extracts are added manually via the panel until then.
-- **`content_url`** — an optional second URL for "the PDF is fetchable but lives elsewhere"
-  (fetch from it instead of `url`), for the cases that don't need a manual download.
+- **`content_url`** — an optional second URL for "the document is fetchable but lives
+  elsewhere": `source.fetch` pulls from `content_url` instead of `url`, and **still downloads
+  and stores the bytes locally** (same `binary_asset` sibling convention). Download URLs rot
+  over months/years, so the local copy is the durable artifact — `content_url` removes the
+  manual-download step, never the download itself. (Semantics corrected 2026-07-06.)
+- **Domain-type selection in the UI** — the backend is fully generic (typed `domains` table;
+  `DOMAIN_FOLDERS` already maps `thesis → theses` etc.), but the UI pins
+  `DOMAIN_TYPE = 'strategy'` (`curation.svelte.ts`). Needed now that humain-vc curates by
+  **thesis**: a type selector/creator in the picker, a per-workspace default type + noun
+  (reach-edu → "Strategy", humain-vc → "Thesis") rendered through all copy, and a small
+  `domain.retype` capability (humain-vc's `consumer-immunology` is already mis-filed under
+  `strategies/`). See the ai-labs exploration
+  [[../../../context-v/explorations/Two-Clients-One-Flow-Corpora-Auth-and-Deployment-Converge|Two-Clients-One-Flow-Corpora-Auth-and-Deployment-Converge]].
 - `corpus/people/` bucket; promotion into `ROTATION`.
 
 ## Acceptance criteria
