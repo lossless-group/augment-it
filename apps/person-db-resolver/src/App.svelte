@@ -24,6 +24,7 @@
   } from './lib/resolver-client';
   import type {
     FieldMapping,
+    PersonNormRecord,
     PersonCandidate,
     PersonApplyResult,
     OrgCandidate,
@@ -54,6 +55,7 @@
   let personError = $state<string | null>(null);
   let personResult = $state<PersonApplyResult | null>(null);
   let personBusy = $state(false);
+  let personNameInput = $state('');
   let personSearchQuery = $state('');
   let personSearchResults = $state<PersonCandidate[]>([]);
   let personSearching = $state(false);
@@ -84,6 +86,13 @@
     current && mapping ? normalizePersonRecord(current.fields as Record<string, unknown>, mapping) : null,
   );
   const source = $derived(selectedSet ? `record-set:${selectedSet.name}` : 'person-db-resolver');
+  // The person actions (candidates/create/match) use the OPERATOR-EDITED
+  // name, not the raw mapped column — record.name stays visible in
+  // RecordCard as "here's what the CSV said," personNameInput is what
+  // actually gets written. Falls back to the mapped name if cleared.
+  const personRecord = $derived(
+    record ? { ...record, name: personNameInput.trim() || record.name } : null,
+  );
 
   function onActiveRecordSetChange(e: Event) {
     const detail = (e as CustomEvent).detail as { record_set_id?: string } | undefined;
@@ -199,7 +208,16 @@
     obsSaved = false;
   }
 
-  // Load person candidates whenever the current record changes.
+  // Load person candidates whenever the current record changes. Also resets
+  // the editable name input to the mapped column's value for the new row.
+  //
+  // IMPORTANT: this effect must only read `record`/`current` — NOT
+  // `personRecord`/`personNameInput`, even transitively. An earlier version
+  // called loadPersonCandidates() here, which synchronously read the
+  // personRecord derived (itself reading personNameInput) before its first
+  // await — that read got tracked as a dependency of THIS effect, so every
+  // keystroke in the name field re-triggered the row-change effect, which
+  // immediately reset the field back to the mapped value. Un-editable input.
   $effect(() => {
     const rid = current?.row_id;
     const rec = record;
@@ -207,15 +225,16 @@
       personCandidates = [];
       return;
     }
-    void loadPersonCandidates();
+    personNameInput = rec.name;
+    void loadPersonCandidatesFor(rec);
   });
 
-  async function loadPersonCandidates() {
-    if (!record || !record.name) return;
+  async function loadPersonCandidatesFor(rec: PersonNormRecord) {
+    if (!rec.name) return;
     loadingPerson = true;
     personError = null;
     try {
-      personCandidates = await fetchPersonCandidates(record, client);
+      personCandidates = await fetchPersonCandidates(rec, client);
     } catch (err) {
       personError = err instanceof Error ? err.message : String(err);
       personCandidates = [];
@@ -224,9 +243,17 @@
     }
   }
 
+  // Called from the name input's onchange (a DOM event handler, not a
+  // reactive effect) — safe to read personRecord here.
+  async function loadPersonCandidates() {
+    if (!personRecord) return;
+    await loadPersonCandidatesFor(personRecord);
+  }
+
   // Independent of person state — per the "independent decisions" design
   // (person and org are mutually independent OR interdependent, operator's
   // choice), the org section is always live, not gated behind personResult.
+  // Same "don't transitively read the input you just wrote" rule as above.
   $effect(() => {
     const rec = record;
     if (!rec) {
@@ -234,19 +261,19 @@
       return;
     }
     orgNameInput = rec.org_name ?? '';
-    void loadOrgCandidates();
+    void loadOrgCandidatesFor(rec.org_name ?? '');
   });
 
-  async function loadOrgCandidates() {
-    const name = orgNameInput.trim();
-    if (!name) {
+  async function loadOrgCandidatesFor(name: string) {
+    const trimmed = name.trim();
+    if (!trimmed) {
       orgCandidates = [];
       return;
     }
     loadingOrg = true;
     orgError = null;
     try {
-      orgCandidates = await fetchOrgCandidates(name, client);
+      orgCandidates = await fetchOrgCandidates(trimmed, client);
     } catch (err) {
       orgError = err instanceof Error ? err.message : String(err);
       orgCandidates = [];
@@ -255,12 +282,17 @@
     }
   }
 
+  // Called from the org-name input's onchange — safe to read orgNameInput here.
+  async function loadOrgCandidates() {
+    await loadOrgCandidatesFor(orgNameInput);
+  }
+
   async function doMatchPerson(c: PersonCandidate) {
-    if (!record) return;
+    if (!personRecord) return;
     personBusy = true;
     personError = null;
     try {
-      personResult = await applyPerson({ action: 'match', person_uuid: c.person_uuid, record, client, source });
+      personResult = await applyPerson({ action: 'match', person_uuid: c.person_uuid, record: personRecord, client, source });
     } catch (err) {
       personError = err instanceof Error ? err.message : String(err);
     } finally {
@@ -269,11 +301,11 @@
   }
 
   async function doCreatePerson() {
-    if (!record) return;
+    if (!personRecord || !personRecord.name) return;
     personBusy = true;
     personError = null;
     try {
-      personResult = await applyPerson({ action: 'create', record, client, source });
+      personResult = await applyPerson({ action: 'create', record: personRecord, client, source });
     } catch (err) {
       personError = err instanceof Error ? err.message : String(err);
     } finally {
@@ -378,9 +410,11 @@
 
   async function doAddObservation() {
     if (!personResult) return;
-    const predicate = obsPredicate.trim();
+    // Only the value is required — predicate defaults to a generic 'note'
+    // so the button isn't dead just because the operator only typed a value.
+    const predicate = obsPredicate.trim() || 'note';
     const value = obsValue.trim();
-    if (!predicate || !value) return;
+    if (!value) return;
     obsBusy = true;
     obsError = null;
     obsSaved = false;
@@ -458,9 +492,13 @@
           {#if personError}<div class="pdr-error">candidates: {personError}</div>{/if}
 
           {#if !personResult && !personSkipped}
+            <label class="pdr-org-name-row">
+              <span>person name</span>
+              <input type="text" bind:value={personNameInput} onchange={() => void loadPersonCandidates()} placeholder="Person name" />
+            </label>
             <PersonCandidateList candidates={personCandidates} busy={personBusy} onMatch={doMatchPerson} />
             <div class="pdr-create">
-              <button type="button" class="pdr-btn pdr-btn-create" disabled={personBusy || !record.name} onclick={doCreatePerson}>
+              <button type="button" class="pdr-btn pdr-btn-create" disabled={personBusy || !personRecord?.name} onclick={doCreatePerson}>
                 + create new person from this record
               </button>
               <button type="button" class="pdr-btn" disabled={personBusy} onclick={doSkipPerson}>
@@ -500,9 +538,9 @@
                 {personResult.created ? '✓ created' : '✓ matched'} <strong>{personResult.name}</strong>
               </div>
               <div class="pdr-add-obs">
-                <label><span>predicate</span><input type="text" bind:value={obsPredicate} placeholder="e.g. confirmed_via_email" /></label>
+                <label><span>predicate (optional)</span><input type="text" bind:value={obsPredicate} placeholder="defaults to 'note'" /></label>
                 <label><span>value</span><input type="text" bind:value={obsValue} placeholder="e.g. confirmed 2026-07-07" /></label>
-                <button type="button" class="pdr-btn" disabled={obsBusy || !obsPredicate.trim() || !obsValue.trim()} onclick={doAddObservation}>
+                <button type="button" class="pdr-btn" disabled={obsBusy || !obsValue.trim()} onclick={doAddObservation}>
                   + add observation
                 </button>
                 {#if obsSaved}<span class="pdr-stamp-ok">✓ saved</span>{/if}
