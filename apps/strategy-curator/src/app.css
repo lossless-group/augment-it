@@ -35,6 +35,16 @@
   background: var(--color-surface-raised);
 }
 .sc-app .sc-ws { width: auto; padding: 0.15rem 0.4rem; font-size: 12px; }
+.sc-app .sc-back {
+  font-size: 12px;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  cursor: pointer;
+}
+.sc-app .sc-back:hover { border-color: var(--color-accent); color: var(--color-accent); }
 .sc-app .sc-conn { font-size: 11px; padding: 1px 7px; border-radius: 3px; background: var(--color-border); }
 .sc-app .sc-conn.status-open { background: var(--color-ok-bg); color: var(--color-ok-text); }
 .sc-app .sc-conn.status-error,

@@ -38,6 +38,9 @@ export type WorkspaceSummary = {
   client_id: string;
   display_name: string;
   has_env: boolean;
+  /** DEFAULT_DOMAIN_TYPE from this workspace's .env, or 'strategy' if unset.
+   *  Per Build-Order step 5 — humain-vc reads 'thesis', reach-edu 'strategy'. */
+  default_domain_type: string;
 };
 
 export type WorkspaceConfig = {
@@ -168,6 +171,7 @@ export async function listWorkspaces(): Promise<WorkspaceSummary[]> {
     client_id,
     display_name: titleCase(client_id),
     has_env: (configs.get(client_id)?.env && Object.keys(configs.get(client_id)!.env).length > 0) || false,
+    default_domain_type: configs.get(client_id)?.env.DEFAULT_DOMAIN_TYPE || 'strategy',
   }));
 }
 
@@ -198,6 +202,7 @@ export function setActiveClientId(client_id: string): WorkspaceSummary {
     client_id,
     display_name: titleCase(client_id),
     has_env: Object.keys(configs.get(client_id)!.env).length > 0,
+    default_domain_type: configs.get(client_id)!.env.DEFAULT_DOMAIN_TYPE || 'strategy',
   };
 }
 

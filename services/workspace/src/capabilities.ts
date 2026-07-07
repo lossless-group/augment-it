@@ -150,6 +150,11 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'domain.create': 'domain.create.requested',
   'domain.list': 'domain.list.requested',
   'domain.assemble': 'domain.assemble.requested',
+  // Move a domain from one type to another (e.g. strategy → thesis) —
+  // DB + filesystem, all clients on the row at once. Admin-ish action, no
+  // dedicated UI yet; invoked directly (see scripts/prove-didi-auth.mjs's
+  // RETYPE mode).
+  'domain.retype': 'domain.retype.requested',
   'source.add': 'source.add.requested',
   'source.fetch': 'source.fetch.requested',
   'source.retry': 'source.retry.requested',
@@ -221,6 +226,9 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'resolver.opportunities_for_org': 30_000,
   'resolver.update_opportunity': 30_000,
   // Domain catalog — SurrealDB graph reads/writes; same Cloud round-trip budget.
+  // retype fans out one content-ingest file-move round-trip per client_slug
+  // on the row (usually one) — 45s covers a multi-client domain comfortably.
+  'domain.retype': 45_000,
   'domain.create': 30_000,
   'domain.list': 30_000,
   'domain.assemble': 30_000,

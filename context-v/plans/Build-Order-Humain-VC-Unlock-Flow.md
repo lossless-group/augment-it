@@ -32,21 +32,29 @@ tags:
   magic-link loop operator-clicked in production; Resend domain-verified,
   sender `no-reply@didi.sh`), `https://didi.sh` + `www` (the `site/`
   conversion surface on Vercel), the GitHub splash.
-- **Steps 1–4 DONE** (see their sections): real email, orgs + memberships
+- **Steps 1–5 DONE** (see their sections): real email, orgs + memberships
   seeded local AND prod (Michael = superuser, 3 addresses; Aniel pends his
-  address), the membership gate proven (4401 / admitted / 4403), and the
+  address), the membership gate proven (4401 / admitted / 4403), the
   actor attribution envelope proven live (created_by/updated_by on
-  domains/sources/source_usages + corpus frontmatter).
+  domains/sources/source_usages + corpus frontmatter), and thesis
+  vocabulary (Corpora Curator rename, operator-defined + per-workspace-
+  default domain type, `domain.retype` migration — `consumer-immunology`
+  is now `thesis:consumer-immunology`).
 - augment-it workspace-service verifies `didi_session` on WS upgrade
-  (`services/workspace/src/didi.ts`); shell has the DidiBadge sign-in;
-  strategy-curator promoted to the head of ROTATION; the
-  active-workspace split-brain fixed (browser pick authoritative).
-- Local compose runs `DIDI_AUTH=optional` (nothing gated in dev);
-  `required` + `REQUIRED_ORG_ID` is the deploy posture, proven via the
-  prove script's GATE mode.
+  (`services/workspace/src/didi.ts`); shell has the DidiBadge sign-in AND
+  a "Flows" jumbo popdown ("Build Corpora" → strategyCurator, full-screen);
+  strategy-curator (now "Corpora Curator") promoted to the head of
+  ROTATION; the active-workspace split-brain fixed at the shell level
+  AND, separately, inside the curator itself (each federation remote's own
+  `@augment-it/workspace` singleton needed its own reconciliation listener
+  — see Step 5 / the 2026-07-07 changelog entry).
+- Local compose currently running `DIDI_AUTH=required REQUIRED_ORG_ID=humain.vc`
+  (flipped from the `optional` dev default for live testing this session —
+  flip back in `.env` when done); the prove script's GATE mode is the
+  repeatable check either way.
 - The DO droplet (167.172.42.247) is prepped: Coolify removed, 2GB swap,
   Docker 28, ports 80/443 free, SSH via the id_rsa_nopass key.
-- **NEXT: step 5** (thesis vocabulary), then 6–8, then the deploy tail.
+- **NEXT: step 6** (curator liveness), then 7–8, then the deploy tail.
 
 Steps 1–8 are local, each verifiable on the laptop; 9–12 are the deploy
 tail. Steps marked ⚑ need an operator decision or action first.
@@ -141,27 +149,53 @@ Original scope follows.
   the didi_id. Test rows/files cleaned up after (shared SurrealDB Cloud +
   local corpus filesystem).
 
-## Step 5 — Thesis vocabulary, minimal (augment-it)
+## Step 5 — Thesis vocabulary, minimal (augment-it) ✅ DONE 2026-07-07 (shipped differently than sketched)
 
-> Proceeds independently of [[../explorations/Augment-It-Has-Outgrown-One-Flow-The-Choose-A-Flow-Front-Door]] —
+> Proceeded independently of [[../explorations/Augment-It-Has-Outgrown-One-Flow-The-Choose-A-Flow-Front-Door]] —
 > that exploration questions whether `strategyCurator`'s place at the head
 > of shell `ROTATION` is the right long-term shape (it argues for a
 > "choose a flow" front door instead), but this step's per-workspace
-> `domain_type` swap is correct either way and shouldn't wait on that
+> `domain_type` swap was correct either way and didn't wait on that
 > question resolving.
 
-- `clients/humain-vc/.env` gains `DEFAULT_DOMAIN_TYPE=thesis` (the
-  per-workspace env map already loads it); expose via a small
-  `workspace.config` capability (or extend `workspace.list`'s payload).
-- `apps/strategy-curator`: replace the `DOMAIN_TYPE = 'strategy'` constant
-  (`curation.svelte.ts:19`) with the workspace default (fallback
-  'strategy'); render the noun through headers/copy (singular + plural —
-  mirror content-ingest's `DOMAIN_FOLDERS`).
-- Add `domain.retype` handler (resolver + content-ingest file move) and
-  retype `consumer-immunology` strategy→thesis.
-- **Verify:** with humain-vc active, the curator reads "Thesis"; creating
-  one writes `corpus/theses/<slug>/index.md`; reach-edu still reads
-  "Strategy".
+Done across two sessions (2026-07-06 UI rename + operator-defined type;
+2026-07-07 the per-workspace default + the retype migration), ending up
+more general than the original sketch:
+
+- `apps/strategy-curator` UI now reads **"Corpora Curator"** everywhere
+  (display copy only — package/folder/remote id unchanged). `DOMAIN_TYPE`
+  the hardcoded constant is gone; `curation.svelte.ts` carries a reactive
+  `domainType` field, operator-editable via a **Type** field on the "New
+  corpus" form (free text — any value, not a fixed enum).
+- **Per-workspace default, done**: `WorkspaceSummary` gained
+  `default_domain_type` (`services/workspace/src/workspaces.ts`, read from
+  each client's `DEFAULT_DOMAIN_TYPE` .env var — `clients/humain-vc/.env`
+  now has `DEFAULT_DOMAIN_TYPE=thesis`; reach-edu has none, falls back to
+  `'strategy'`). The curator resolves this on bootstrap AND on every
+  workspace switch, so a fresh humain-vc session (or switching into it
+  mid-session) starts on "thesis" without the operator typing it.
+- **`domain.retype` handler, done**: `services/record-surrealdb-resolver/src/domains.ts`'s
+  `retypeDomain()` (DB: `domains.type` + every `source_usages.domain_type`
+  for the slug, idempotent — safe to re-run after a partial failure) +
+  `services/content-ingest/src/corpus.ts`'s `retypeDomainFiles()`
+  (moves `<old-type-plural>/<slug>/` → `<new-type-plural>/<slug>/`, patches
+  `index.md`'s `type:` line and every source file's `domains:` list entry).
+  Wired as the `domain.retype` capability. Ran it once via
+  `scripts/prove-didi-auth.mjs`'s new `RETYPE=1` mode: `consumer-immunology`
+  is now `thesis:consumer-immunology`, DB + filesystem both confirmed.
+  Along the way, found and fixed a real bug in `retypeDomainFiles`'s first
+  draft — it reused content-ingest's file-only `exists()` helper (which is
+  `readFile`-based and throws `EISDIR` on a directory, silently reading as
+  "not found") to check directory existence; replaced with a proper
+  `stat().isDirectory()` check.
+- **Still open, genuinely deferred**: singular/plural noun rendering
+  through the rest of the UI copy (it says "corpus"/"corpora" generically
+  rather than "Thesis"/"Theses" when that type is active) — cosmetic, no
+  functional gap.
+- **Verify:** confirmed live — humain-vc now resolves `domainType: 'thesis'`
+  on load; `consumer-immunology` is retyped end-to-end (DB rows + on-disk
+  frontmatter, verified by direct SurrealDB query and `cat`); reach-edu
+  untouched, still resolves `'strategy'`.
 
 ## Step 6 — Curator liveness (augment-it)
 

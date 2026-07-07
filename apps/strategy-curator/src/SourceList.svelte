@@ -11,7 +11,7 @@
 </script>
 
 <div class="sc-list-head">
-  <button class="sc-link" onclick={() => (curation.activeSlug = null)}>‹ strategies</button>
+  <button class="sc-link" onclick={() => (curation.activeSlug = null)}>‹ corpora</button>
   <input class="sc-filter" placeholder="filter sources… (coverage check)" bind:value={curation.listFilter} />
 </div>
 

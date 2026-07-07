@@ -46,6 +46,7 @@ import {
   removeSourceFile,
   updateSourceFile,
   attachSourceFile,
+  retypeDomainFiles,
   listForRecord,
   type CorpusEntry,
   type DomainIndexArgs,
@@ -96,6 +97,26 @@ export function registerHandlers(nc: NatsConnection): void {
       try {
         if (!args?.client_slug || !args?.type || !args?.slug) throw new Error('client_slug, type and slug are required');
         const result = await addDomainIndex(args);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...result }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
+
+  // corpus.domain.retype — internal (resolver → here, once per client_slug on
+  // the domain): move <old-type-plural>/<slug>/ → <new-type-plural>/<slug>/
+  // and patch every frontmatter reference to the type.
+  (async () => {
+    const sub = nc.subscribe('corpus.domain.retype.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as { client_slug: string; old_type: string; new_type: string; slug: string };
+      try {
+        if (!args?.client_slug || !args?.old_type || !args?.new_type || !args?.slug) {
+          throw new Error('client_slug, old_type, new_type and slug are required');
+        }
+        const result = await retypeDomainFiles(args);
         if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...result }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);

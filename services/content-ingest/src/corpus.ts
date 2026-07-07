@@ -463,6 +463,74 @@ function buildDomainFrontmatter(args: DomainIndexArgs): string {
   return lines.join('\n');
 }
 
+// Move a domain's whole folder (index.md + sources/*.md) from its old
+// type's plural folder to the new one, patching every frontmatter
+// reference to the type along the way. Idempotent-ish: if the old
+// directory is already gone and the new one already exists, treats it as
+// already-done rather than erroring (safe to re-run domain.retype after a
+// partial multi-client failure).
+export async function retypeDomainFiles(args: {
+  client_slug: string;
+  old_type: string;
+  new_type: string;
+  slug: string;
+}): Promise<{ corpus_path: string; moved: boolean }> {
+  const newParent = join(CLIENTS_ROOT, args.client_slug, 'corpus', domainFolder(args.new_type));
+  const oldDir = join(CLIENTS_ROOT, args.client_slug, 'corpus', domainFolder(args.old_type), args.slug);
+  const newDir = join(newParent, args.slug);
+  const corpus_path = newDir.replace(`${CLIENTS_ROOT}/`, '');
+
+  // dirExists, not exists() — that helper is readFile-based (file-only) and
+  // throws EISDIR on a directory, which would silently read as "not found"
+  // here and make every retype fail with "neither old nor new exists" even
+  // when the old directory is right there.
+  const dirExists = async (p: string): Promise<boolean> => {
+    try {
+      return (await stat(p)).isDirectory();
+    } catch {
+      return false;
+    }
+  };
+  if (!(await dirExists(oldDir))) {
+    if (await dirExists(newDir)) return { corpus_path, moved: false }; // already retyped — re-run is a no-op
+    throw new Error(`neither old (${oldDir}) nor new (${newDir}) directory exists`);
+  }
+  await mkdir(newParent, { recursive: true });
+  await rename(oldDir, newDir);
+
+  // Patch index.md's `type:` scalar line.
+  const indexPath = join(newDir, 'index.md');
+  try {
+    const raw = await readFile(indexPath, 'utf8');
+    const patched = raw.replace(/^type:.*$/m, `type: ${yamlString(args.new_type)}`);
+    if (patched !== raw) await writeFile(indexPath, patched, 'utf8');
+  } catch {
+    // index.md missing is unusual but not fatal to the move itself
+  }
+
+  // Patch every source file's `domains:` list entry for this domain
+  // ("old_type:slug" → "new_type:slug") — an exact-string replace, not a
+  // frontmatter field rewrite, since a source can list domains a source
+  // wasn't retyped in (rare today, but the format supports it).
+  const sourcesDir = join(newDir, 'sources');
+  let sourceFiles: string[] = [];
+  try {
+    sourceFiles = (await readdir(sourcesDir)).filter((f) => f.endsWith('.md'));
+  } catch {
+    // no sources/ subdir — a brand-new domain with no sources yet
+  }
+  const oldRef = `${args.old_type}:${args.slug}`;
+  const newRef = `${args.new_type}:${args.slug}`;
+  for (const f of sourceFiles) {
+    const p = join(sourcesDir, f);
+    const raw = await readFile(p, 'utf8');
+    const patched = raw.replaceAll(`"${oldRef}"`, `"${newRef}"`).replaceAll(`'${oldRef}'`, `'${newRef}'`);
+    if (patched !== raw) await writeFile(p, patched, 'utf8');
+  }
+
+  return { corpus_path, moved: true };
+}
+
 // --- per-source files (the sources a domain gathers) ----------------------
 // Land at clients/<client>/corpus/<type-plural>/<domain-slug>/sources/<source-slug>.md.
 // source.add writes a METADATA-ONLY file (Jina title + excerpt, # Extracts skeleton);

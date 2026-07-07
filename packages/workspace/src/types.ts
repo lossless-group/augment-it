@@ -272,6 +272,8 @@ export type WorkspaceSummary = {
   client_id: string;
   display_name: string;
   has_env: boolean;
+  /** DEFAULT_DOMAIN_TYPE from this workspace's .env, or 'strategy' if unset. */
+  default_domain_type: string;
 };
 
 export type ChatResponseMode = 'answer' | 'propose' | 'invoke';

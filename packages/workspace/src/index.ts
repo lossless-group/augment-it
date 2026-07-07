@@ -1,4 +1,4 @@
-export { workspace } from './state.svelte';
+export { workspace, WORKSPACE_CHANGED_EVENT } from './state.svelte';
 export { createAdapter } from './adapter';
 export { createTransport } from './transport';
 export { suggest } from './anticipation';

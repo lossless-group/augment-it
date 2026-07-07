@@ -33,6 +33,38 @@ const fail = (msg) => {
 };
 const step = (msg) => console.log(`\n\x1b[1m== ${msg}\x1b[0m`);
 
+// ── RETYPE MODE — one-off domain.retype invocation ─────────────────────────
+// Moves a domain from one type to another (DB + filesystem, all clients on
+// the row). Usage:
+//   RETYPE=1 RETYPE_SLUG=consumer-immunology RETYPE_FROM=strategy \
+//     RETYPE_TO=thesis node scripts/prove-didi-auth.mjs mpstaton@gmail.com
+if (process.env.RETYPE === '1') {
+  const slug = process.env.RETYPE_SLUG;
+  const from_type = process.env.RETYPE_FROM;
+  const to_type = process.env.RETYPE_TO;
+  if (!slug || !from_type || !to_type) fail('RETYPE_SLUG, RETYPE_FROM, RETYPE_TO are all required');
+
+  step(`RETYPE 1. sign in`);
+  const jwt = await signInAs(EMAIL);
+
+  step(`RETYPE 2. domain.retype ${from_type}:${slug} → ${to_type}`);
+  const frame = await wsInvoke(
+    WS_URL,
+    { Cookie: `didi_session=${jwt}` },
+    'domain.retype',
+    { type: from_type, slug, new_type: to_type },
+  );
+  console.log('result:', JSON.stringify(frame, null, 2));
+  if (!frame.ok) fail(`dispatch failed: ${frame.error}`);
+  const payload = frame.result ?? {};
+  if (!payload.ok) fail(`domain.retype failed: ${payload.error}`);
+  const fileErrors = payload.file_errors ?? [];
+  if (fileErrors.length) fail(`file move failed for: ${JSON.stringify(fileErrors)}`);
+
+  console.log(`\n\x1b[32mRETYPED ${from_type}:${slug} → ${to_type}:${slug}\x1b[0m`);
+  process.exit(0);
+}
+
 // ── ATTRIBUTION MODE (build-order step 4) — actor envelope proof ───────────
 // Signs in, invokes domain.create + source.add over the authenticated WS
 // connection, and confirms each result's created_by matches the signed-in

@@ -31,6 +31,24 @@ tags:
 
 # Strategy Curator — An Entry-Point App for augment-it
 
+> **Drift note (2026-07-06/07):** the UI now displays as **"Corpora
+> Curator"** — the app stopped being strategy-specific once humain-vc
+> needed the identical shape for "theses." The package/folder/remote id
+> (`apps/strategy-curator`, `strategyCurator`) are unchanged; this is a
+> display-copy rename only. More load-bearing: `DOMAIN_TYPE` is no longer
+> a hardcoded `'strategy'` constant anywhere in this spec's code — it's
+> operator-defined per domain via a "Type" field on the create form
+> (`curation.svelte.ts`'s reactive `domainType`, free text), defaulting per
+> *workspace* (`WorkspaceSummary.default_domain_type`, from each client's
+> `DEFAULT_DOMAIN_TYPE` .env — humain-vc: `thesis`, reach-edu: `strategy`).
+> Everywhere this doc says "the strategy" or assumes a single fixed type,
+> read it as "the active domain type" instead. A `domain.retype` capability
+> now exists too (DB + filesystem migration between types) —
+> `consumer-immunology` has already been moved `strategy` → `thesis` with
+> it. See [[../plans/Build-Order-Humain-VC-Unlock-Flow]] Step 5 (now done)
+> for the full account; only singular/plural noun rendering through the
+> rest of the UI copy remains open.
+
 An operator working a client (today: reach-edu) starts from a **strategy** — a case
 they're building — and gathers the *sources* that support it: web pages and PDFs, first
 captured as just metadata, then downloaded in full on demand, then mined for **extracts**

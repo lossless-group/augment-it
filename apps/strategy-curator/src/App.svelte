@@ -14,20 +14,28 @@
 
 <div class="sc-app">
   <header class="sc-header">
-    <span class="sc-brand">Strategy Curator</span>
+    <span class="sc-brand">Corpora Curator</span>
     {#if curation.workspaces.length}
       <select
         class="sc-ws"
         value={curation.clientSlug ?? ''}
         onchange={(e) => curation.switchWorkspace(e.currentTarget.value)}
-        title="Active workspace — the client whose corpus strategies are written into"
+        title="Active workspace — the client whose corpus is written into"
       >
         {#each curation.workspaces as w (w.client_id)}<option value={w.client_id}>{w.client_id}</option>{/each}
       </select>
+    {:else if curation.connection !== 'open'}
+      <span class="sc-pill" title="Connecting to workspace-service">connecting…</span>
     {:else}
       <span class="sc-pill" title="Active workspace">{curation.clientSlug ?? '— no workspace —'}</span>
     {/if}
+    <span class="sc-pill" title="Active domain type">{curation.domainType}</span>
     {#if curation.active}
+      <button
+        class="sc-back"
+        onclick={() => (curation.activeSlug = null)}
+        title="Back to the corpora list / create form"
+      >‹ All corpora</button>
       <span class="sc-strategy">{curation.active.title}</span>
       <span class="sc-pill">{curation.sources.length} sources</span>
     {/if}

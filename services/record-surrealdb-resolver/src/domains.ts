@@ -214,6 +214,45 @@ export async function createDomain(
   return { domain: createdRow ?? { type, slug, title, client_slugs: [client_slug], tags } };
 }
 
+// Move a domain from one type to another (e.g. strategy → thesis). A domain
+// is keyed by (type, slug) globally — client_slugs is one array field on
+// that single row — so a retype moves it for every client that references
+// it, all at once; there's no such thing as a per-client partial retype.
+// DB-only: the caller (the domain.retype handler below) cross-calls
+// content-ingest to move the filesystem folder(s) + patch frontmatter for
+// each client_slug on the row.
+export async function retypeDomain(
+  db: Surreal,
+  args: { type: string; slug: string; new_type: string; actor?: Actor },
+): Promise<{ domain: DomainRow }> {
+  const { type, slug, new_type, actor } = args;
+  if (type === new_type) throw new Error('new_type is the same as the current type');
+  const existing = first<DomainRow>(
+    await db.query('SELECT type, slug, title, client_slugs, tags FROM domains WHERE type = $type AND slug = $slug LIMIT 1', { type, slug }),
+  );
+  const already = first<DomainRow>(
+    await db.query('SELECT type, slug, title, client_slugs, tags FROM domains WHERE type = $nt AND slug = $slug LIMIT 1', { nt: new_type, slug }),
+  );
+  if (!existing) {
+    // Re-run after a partial failure (DB moved, file move didn't): if the
+    // domain is already sitting at new_type, treat the DB half as done and
+    // let the caller retry the file move.
+    if (already) return { domain: already };
+    throw new Error(`domain not found at either ${type}:${slug} or ${new_type}:${slug}`);
+  }
+  if (already) throw new Error(`a domain already exists at ${new_type}:${slug} — retype would collide`);
+  const upd = actorSetClause(actor, 'updated');
+  await db.query(
+    `UPDATE domains SET type = $nt${upd.clause.length ? ', ' + upd.clause.join(', ') : ''} WHERE type = $type AND slug = $slug;`,
+    { nt: new_type, type, slug, ...upd.vars },
+  );
+  await db.query(
+    `UPDATE source_usages SET domain_type = $nt${upd.clause.length ? ', ' + upd.clause.join(', ') : ''} WHERE domain_type = $type AND domain_slug = $slug;`,
+    { nt: new_type, type, slug, ...upd.vars },
+  );
+  return { domain: { ...existing, type: new_type } };
+}
+
 export async function listDomains(db: Surreal, args: { type?: string; client_slug?: string }): Promise<{ domains: DomainRow[] }> {
   const conds: string[] = [];
   const vars: Record<string, unknown> = {};
@@ -397,6 +436,45 @@ export function registerDomainHandlers(nc: NatsConnection): void {
 
   handle('domain.list.requested', listDomains);
   handle('domain.assemble.requested', assembleDomain);
+
+  // domain.retype — move a domain (and everything under it) from one type
+  // to another. DB first (so a filesystem hiccup doesn't leave the DB
+  // pointing at a type whose folder doesn't exist); then cross-call
+  // content-ingest once per client_slug on the row to move that client's
+  // folder + patch frontmatter. Partial-failure note: if a later client's
+  // file move fails, the DB is already retyped and earlier clients' files
+  // already moved — surfaced via `file_errors` in the reply rather than
+  // silently swallowed; re-running is safe (content-ingest's move is a
+  // no-op if the destination already exists and the source is gone).
+  void (async () => {
+    const sub = nc.subscribe('domain.retype.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as { type: string; slug: string; new_type: string; actor?: Actor };
+      try {
+        const db = await getDb();
+        await ensureDomainSchema(db);
+        const { domain } = await retypeDomain(db, args);
+        const file_errors: { client_slug: string; error: string }[] = [];
+        for (const client_slug of domain.client_slugs ?? []) {
+          try {
+            const reply = await nc.request(
+              'corpus.domain.retype.requested',
+              JSON.stringify({ client_slug, old_type: args.type, new_type: args.new_type, slug: args.slug }),
+              { timeout: 30_000 },
+            );
+            const r = reply.json() as { ok: boolean; error?: string };
+            if (!r.ok) file_errors.push({ client_slug, error: r.error ?? 'unknown' });
+          } catch (err: unknown) {
+            file_errors.push({ client_slug, error: err instanceof Error ? err.message : String(err) });
+          }
+        }
+        if (msg.reply) msg.respond(JSON.stringify({ ok: true, domain, file_errors }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
 
   // source.add — DB registry + usage, then cross-call content-ingest to Jina-fetch
   // metadata and write the per-source file. Update the registry title + usage path.
