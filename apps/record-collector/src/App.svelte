@@ -177,7 +177,7 @@
   //      id; shell.setCompositeMember switches the in-slot active member
   //      before focusing the slot. No "default and toggle later" needed.
   const ACTIVE_RECORD_SET_KEY = 'augment-it:active-record-set';
-  type AugmentTarget = 'promptTemplateManager' | 'packRunner';
+  type AugmentTarget = 'promptTemplateManager' | 'packRunner' | 'recordDbResolver' | 'personDbResolver';
   function augmentThisSet(rs: RecordSet, target: AugmentTarget) {
     try {
       localStorage.setItem(ACTIVE_RECORD_SET_KEY, rs.record_set_id);
@@ -419,6 +419,16 @@
               title="Send the whole set to Pack Runner — run a bundle / packs against every row"
               onclick={() => augmentThisSet(selectedRs, 'packRunner')}
             >Run a Bundle / Packs →</button>
+            <button
+              class="augment-this-set"
+              title="Send the whole set to DB Resolver — match or create canonical organizations for every row (use for orgs — sponsors, exhibitors, funders)"
+              onclick={() => augmentThisSet(selectedRs, 'recordDbResolver')}
+            >Resolve Orgs to Canonical DB →</button>
+            <button
+              class="augment-this-set"
+              title="Send the whole set to Person DB Resolver — match or create canonical persons + their org/role for every row (use for people — speakers, attendees)"
+              onclick={() => augmentThisSet(selectedRs, 'personDbResolver')}
+            >Resolve People to Canonical DB →</button>
           </div>
         </div>
       </div>

@@ -37,7 +37,7 @@ type ShapedStream = {
   added_at: string;
 };
 
-type OrgRow = {
+export type OrgRow = {
   id: unknown;
   slug: string;
   complete_name?: string | null;
@@ -580,39 +580,54 @@ export async function opportunitiesForOrg(
   return { opportunities: rows };
 }
 
+// Match-or-create the canonical org row, no other side effects (no org_links
+// append, no opportunity). Factored out of applyResolution so person-resolver.ts
+// can reuse the exact same org identity logic instead of re-implementing it —
+// per the 2026-07-07 decision that a person row's org half deserves the same
+// match/create path an org-shaped record gets, not a parallel reimplementation.
+export async function resolveOrgRow(
+  db: Surreal,
+  input: { action: 'match' | 'create'; org_slug?: string; name: string; client: string; source: string },
+): Promise<{ org: OrgRow; created: boolean }> {
+  if (input.action === 'match') {
+    if (!input.org_slug) throw new Error('resolveOrgRow (match) requires org_slug');
+    const org = await fetchOrgBySlug(db, input.org_slug);
+    if (!org) throw new Error(`org not found for slug: ${input.org_slug}`);
+    return { org, created: false };
+  }
+  // create — but defend against a race / pre-existing slug (treat as match).
+  const slug = slugify(input.name);
+  if (!slug) throw new Error('resolveOrgRow (create) requires a non-empty name');
+  const existing = await fetchOrgBySlug(db, slug);
+  if (existing) return { org: existing, created: false };
+  const completeName = input.name.trim();
+  const createdRes = await db.query(
+    `CREATE organizations SET
+        id = rand::uuid::v7(), slug = $slug,
+        complete_name = $complete_name, conventional_name = $conventional_name,
+        source = $source, client_access = [$client],
+        first_touched_by = $client, last_touched_by = $client,
+        last_touched_at = time::now(), first_seen_at = time::now(), last_seen_at = time::now()
+     RETURN ${ORG_FIELDS};`,
+    { slug, complete_name: completeName, conventional_name: completeName, source: input.source, client: input.client },
+  );
+  const org = ((createdRes?.[0] as OrgRow[]) ?? [])[0] ?? null;
+  if (!org) throw new Error('org create returned no row');
+  return { org, created: true };
+}
+
 export async function applyResolution(db: Surreal, input: ApplyInput): Promise<ApplyResult> {
   const { record, client } = input;
   const source = input.source || 'record-db-resolver';
 
-  let org: OrgRow | null = null;
-  let created = false;
-
-  if (input.action === 'match') {
-    if (!input.org_slug) throw new Error('resolver.apply (match) requires org_slug');
-    org = await fetchOrgBySlug(db, input.org_slug);
-    if (!org) throw new Error(`org not found for slug: ${input.org_slug}`);
-  } else {
-    // create — but defend against a race / pre-existing slug (treat as match).
-    const slug = (record.slug_hint && record.slug_hint.trim()) || slugify(record.name);
-    if (!slug) throw new Error('resolver.apply (create) requires a non-empty name/slug');
-    org = await fetchOrgBySlug(db, slug);
-    if (!org) {
-      const completeName = record.name.trim();
-      const createdRes = await db.query(
-        `CREATE organizations SET
-            id = rand::uuid::v7(), slug = $slug,
-            complete_name = $complete_name, conventional_name = $conventional_name,
-            source = $source, client_access = [$client],
-            first_touched_by = $client, last_touched_by = $client,
-            last_touched_at = time::now(), first_seen_at = time::now(), last_seen_at = time::now()
-         RETURN ${ORG_FIELDS};`,
-        { slug, complete_name: completeName, conventional_name: completeName, source, client },
-      );
-      org = ((createdRes?.[0] as OrgRow[]) ?? [])[0] ?? null;
-      created = true;
-      if (!org) throw new Error('org create returned no row');
-    }
-  }
+  const slugHintOrName = (record.slug_hint && record.slug_hint.trim()) || record.name;
+  const { org, created } = await resolveOrgRow(db, {
+    action: input.action,
+    org_slug: input.org_slug,
+    name: slugHintOrName,
+    client,
+    source,
+  });
 
   const append = buildAppend(record, org);
 

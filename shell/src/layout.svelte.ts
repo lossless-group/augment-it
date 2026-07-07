@@ -10,7 +10,8 @@
 // are the one adapter; swapping the storage is swapping this file's two
 // private functions, nothing else.
 
-import { ROTATION, PAIRINGS } from './remotes';
+import { PAIRINGS } from './remotes';
+import { activeFlow } from './flows.svelte';
 
 export type LayoutMode = 'peek-flow' | 'co-existence' | 'full';
 
@@ -83,7 +84,7 @@ class ShellLayout {
   constructor() {
     const p = readStored();
     this.mode = $state<LayoutMode>(p.mode);
-    this.focusIndex = $state<number>(clamp(p.focusIndex, 0, ROTATION.length - 1));
+    this.focusIndex = $state<number>(clamp(p.focusIndex, 0, activeFlow.rotation.length - 1));
     this.focusedWidthPct = $state<number>(clamp(p.focusedWidthPct, FOCUSED_WIDTH_MIN, FOCUSED_WIDTH_MAX));
     this.coExistenceRatios = $state<Record<string, number>>(p.coExistenceRatios);
     this.defaultMode = $state<LayoutMode>(p.defaultMode);
@@ -118,9 +119,9 @@ class ShellLayout {
     this.persist();
   }
 
-  /** No wrap — clamped to the sequence ends. */
+  /** No wrap — clamped to the active flow's rotation ends. */
   setFocusIndex(index: number): void {
-    this.focusIndex = clamp(index, 0, ROTATION.length - 1);
+    this.focusIndex = clamp(index, 0, activeFlow.rotation.length - 1);
     this.persist();
   }
 

@@ -85,6 +85,21 @@
     void loadRecordSets();
   }
 
+  // Same pattern as apps/pack-runner/src/App.svelte's onActiveRecordSetChange —
+  // an "Augment this Set" / "Resolve to Canonical DB" click from Record
+  // Collector must re-target us even when we're already mounted (composite
+  // panes don't remount on refocus). Re-running loadRecordSets() (not just
+  // selectRecordSet()) also covers the case where the target set was
+  // uploaded/ingested AFTER this component's initial mount and so isn't in
+  // the stale `recordSets` array yet — without the refresh it wouldn't show
+  // up as a <select> option at all.
+  function onActiveRecordSetChange(e: Event) {
+    const detail = (e as CustomEvent).detail as { record_set_id?: string } | undefined;
+    if (!detail?.record_set_id) return;
+    selectedRecordSetId = detail.record_set_id;
+    void loadRecordSets();
+  }
+
   onMount(() => {
     workspace.connect({
       url: WS_URL,
@@ -95,7 +110,11 @@
     void loadActiveClient();
     void loadRecordSets();
     window.addEventListener('augment-it:workspace-changed', onWorkspaceChanged);
-    return () => window.removeEventListener('augment-it:workspace-changed', onWorkspaceChanged);
+    window.addEventListener('augment-it:active-record-set-changed', onActiveRecordSetChange);
+    return () => {
+      window.removeEventListener('augment-it:workspace-changed', onWorkspaceChanged);
+      window.removeEventListener('augment-it:active-record-set-changed', onActiveRecordSetChange);
+    };
   });
 
   async function loadActiveClient() {
@@ -364,7 +383,7 @@
       </div>
     {:else if record}
       <div class="rdr-grid">
-        <RecordCard {record} />
+        <RecordCard {record} fields={current.fields as Record<string, unknown>} />
 
         <section class="rdr-resolve">
           <div class="rdr-resolve-head">

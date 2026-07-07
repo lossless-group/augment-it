@@ -6,7 +6,27 @@
 
   import type { NormRecord } from '../lib/types';
 
-  let { record }: { record: NormRecord } = $props();
+  let { record, fields }: { record: NormRecord; fields?: Record<string, unknown> } = $props();
+
+  // Bookkeeping keys the resolver itself writes back onto the row (not part
+  // of whatever the operator uploaded) — noisy to show alongside the CSV's
+  // own columns.
+  const HIDDEN_KEYS = new Set([
+    'resolved_org_id', 'resolved_org_slug', 'resolved_org_name', 'resolved_at',
+    'archived', 'record_uuid',
+  ]);
+
+  const rawEntries = $derived(
+    Object.entries(fields ?? {}).filter(
+      ([k, v]) => !HIDDEN_KEYS.has(k) && v !== null && v !== undefined && String(v).trim() !== '',
+    ),
+  );
+
+  function displayValue(v: unknown): string {
+    if (Array.isArray(v)) return v.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ');
+    if (typeof v === 'object') return JSON.stringify(v);
+    return String(v);
+  }
 </script>
 
 <div class="rdr-record">
@@ -17,6 +37,18 @@
       <code class="rdr-slug">slug hint: {record.slug_hint}</code>
     {/if}
   </div>
+
+  {#if rawEntries.length}
+    <div class="rdr-field rdr-raw-fields">
+      <span class="rdr-label">every column from the uploaded record set</span>
+      <dl class="rdr-raw-list">
+        {#each rawEntries as [k, v] (k)}
+          <dt>{k}</dt>
+          <dd>{displayValue(v)}</dd>
+        {/each}
+      </dl>
+    </div>
+  {/if}
 
   {#if record.url}
     <div class="rdr-field">

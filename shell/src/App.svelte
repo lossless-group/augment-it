@@ -9,7 +9,6 @@
   import ToggleHeader from '@augment-it/shared-ui/ToggleHeader__PromptOrPackage--Icons.svelte';
   import { workspace } from '@augment-it/workspace';
   import {
-    ROTATION,
     PAIRINGS,
     CHAT_REMOTE,
     remoteById,
@@ -25,6 +24,7 @@
     type CompositeEntry,
   } from './composites';
   import { layout, type LayoutMode } from './layout.svelte';
+  import { activeFlow, FLOWS } from './flows.svelte';
 
   // Chat rail visibility — persistent left-side companion to the focused
   // Window. Toggleable from the header; persisted to localStorage so a
@@ -67,7 +67,7 @@
 
   type StageRole = 'focused' | 'prev' | 'next' | 'pair-left' | 'pair-right' | 'full';
   type StageItem = {
-    id: string;                  // ROTATION slot id (remote id or composite id); stable across composite toggles
+    id: string;                  // rotation slot id (remote id or composite id); stable across composite toggles
     remote: RemoteEntry;         // the active remote for this slot (resolved composite member, or the remote itself)
     label: string;               // user-facing label — composite.label for composites, remote.label otherwise
     widthPct: number;
@@ -109,14 +109,16 @@
   let splitting = $state<boolean>(false);
 
   // ---- the stage geometry — derived from layout + interaction -------------
-  // All three modes walk ROTATION (a list of slot ids) and resolve each id
-  // via slotById() — a slot can be a federated remote or a composite. The
+  // All three modes walk activeFlow.rotation (the ACTIVE flow's list of
+  // slot ids — shell/src/flows.svelte.ts) and resolve each id via
+  // slotById() — a slot can be a federated remote or a composite. The
   // composite case keeps a ToggleHeader in the slot in every layout mode,
   // so the in-slot toggle (e.g. enrichment's PTM⇄Pack-Runner pair) works
   // in Flow, Split, and Full alike (Phase 2d).
   const stage = $derived.by<StageItem[]>(() => {
+    const rotation = activeFlow.rotation;
     if (layout.mode === 'full') {
-      const slot = slotById(ROTATION[layout.focusIndex]);
+      const slot = slotById(rotation[layout.focusIndex]);
       if (!slot) return [];
       const item = materializeSlot(slot, 100, 'full');
       return item ? [item] : [];
@@ -139,10 +141,10 @@
 
     // peek-flow
     const i = layout.focusIndex;
-    const focusedSlot = slotById(ROTATION[i]);
+    const focusedSlot = slotById(rotation[i]);
     if (!focusedSlot) return [];
-    const prevSlot = i > 0 ? slotById(ROTATION[i - 1]) : undefined;
-    const nextSlot = i < ROTATION.length - 1 ? slotById(ROTATION[i + 1]) : undefined;
+    const prevSlot = i > 0 ? slotById(rotation[i - 1]) : undefined;
+    const nextSlot = i < rotation.length - 1 ? slotById(rotation[i + 1]) : undefined;
     const neighbourCount = (prevSlot ? 1 : 0) + (nextSlot ? 1 : 0);
     const remainder = 100 - layout.focusedWidthPct;
     const peekEach = neighbourCount ? Math.max(MIN_PEEK, remainder / neighbourCount) : 0;
@@ -180,7 +182,7 @@
 
   // ---- peek-flow: commit a neighbour as the new focus ---------------------
   function commitFocus(slotId: string): void {
-    const idx = ROTATION.findIndex((id) => id === slotId);
+    const idx = activeFlow.rotation.findIndex((id) => id === slotId);
     if (idx >= 0) {
       hoveredNeighborId = null;
       layout.setFocusIndex(idx);
@@ -291,9 +293,10 @@
         | { remoteId?: string; mode?: LayoutMode }
         | undefined;
       if (!detail?.remoteId) return;
-      // Direct rotation hit — the requested id is a slot in the rotation
-      // (a remote or a composite). Set focus + mode and we're done.
-      const rotIdx = ROTATION.findIndex((id) => id === detail.remoteId);
+      // Direct rotation hit — the requested id is a slot in the ACTIVE
+      // flow's rotation (a remote or a composite). Set focus + mode and
+      // we're done.
+      const rotIdx = activeFlow.rotation.findIndex((id) => id === detail.remoteId);
       if (rotIdx >= 0) {
         layout.setFocusIndex(rotIdx);
         layout.setMode(detail.mode ?? 'full');
@@ -301,12 +304,12 @@
       }
       // The id might be a composite member (e.g. `packRunner` inside the
       // enrichment composite). Set the composite's active member; then
-      // either focus its rotation slot (if the composite is in ROTATION)
-      // or open its co-existence pairing.
+      // either focus its rotation slot (if the composite is in the active
+      // flow's rotation) or open its co-existence pairing.
       const composite = compositeFor(detail.remoteId);
       if (composite) {
         setCompositeMember(composite, detail.remoteId);
-        const compIdx = ROTATION.findIndex((id) => id === composite.id);
+        const compIdx = activeFlow.rotation.findIndex((id) => id === composite.id);
         if (compIdx >= 0) {
           layout.setFocusIndex(compIdx);
           layout.setMode(detail.mode ?? 'full');
@@ -364,7 +367,7 @@
   // pairing). Matches the augment-it:navigate handler's behaviour when the
   // caller doesn't request a specific mode.
   function selectStep(slotId: string): void {
-    const idx = ROTATION.findIndex((id) => id === slotId);
+    const idx = activeFlow.rotation.findIndex((id) => id === slotId);
     if (idx < 0) return;
     layout.setFocusIndex(idx);
     if (layout.mode !== 'peek-flow') layout.setMode('peek-flow');
@@ -377,28 +380,29 @@
   const showSplitter = $derived(layout.mode === 'co-existence' && stage.length === 2);
 
   // ---- flows popdown — "what are you trying to do?" ----------------------
-  // See context-v/explorations/Augment-It-Has-Outgrown-One-Flow-The-Choose-A-Flow-Front-Door.md.
-  // ROTATION models the CSV-row-augmentation flow specifically; a domain/
-  // thesis-curation session (strategyCurator) isn't a step in that flow —
-  // it shares no data spine with the steps after it. This popdown is the
-  // deliberately-small on-ramp to it: a plain navigate action (the same
-  // `augment-it:navigate` event any remote can dispatch), no new persisted
-  // state, no auth interaction. Grows to a second item only when a second
-  // flow-entry is actually needed.
-  const FLOW_ITEMS: PopdownItem[] = [
-    {
-      id: 'strategyCurator',
-      title: 'Build Corpora',
-      description: 'Pick a strategy or thesis and gather sources for it — the domain-first corpus workflow (feeds dididecks-ai downstream).',
-    },
-  ];
+  // See context-v/explorations/Augment-It-Has-Outgrown-One-Flow-The-Choose-A-Flow-Front-Door.md
+  // and shell/src/flows.svelte.ts. Each FLOWS entry owns its own rotation;
+  // picking one here switches activeFlow, which FlowWidget and the stage
+  // derivation both read reactively — the bubble strip resizes to however
+  // many steps the picked flow actually has.
+  const FLOW_ITEMS: PopdownItem[] = FLOWS.map((f) => ({
+    id: f.id,
+    title: f.label,
+    description: f.description,
+  }));
 
-  function onFlowSelect(remoteId: string): void {
-    // mode: 'full' — the fix for the flow's own request: no CSV-augmentation
-    // steps trailing behind the curator when reached this way.
-    window.dispatchEvent(
-      new CustomEvent('augment-it:navigate', { detail: { remoteId, mode: 'full' } }),
-    );
+  function onFlowSelect(flowId: string): void {
+    if (flowId === activeFlow.activeFlowId) return;
+    activeFlow.setActiveFlow(flowId);
+    // Reset to the new flow's first step — a stale focusIndex from the
+    // previous flow is meaningless once the rotation length changes.
+    // Layout MODE is deliberately preserved (peek-flow / full carry over)
+    // EXCEPT co-existence: PAIRINGS are tied to specific slot ids from
+    // CSV_AUGMENTATION_ROTATION, not scoped per-flow, so an old pairing
+    // could reference slots that make no sense in the new flow. Fall back
+    // to peek-flow rather than show a stale/broken split.
+    if (layout.mode === 'co-existence') layout.setMode('peek-flow');
+    layout.setFocusIndex(0);
   }
 </script>
 
@@ -408,8 +412,10 @@
       <strong>augment-it</strong>
       <span class="muted">· shell</span>
     </div>
+    <JumboPopdown triggerLabel="Flows" items={FLOW_ITEMS} onSelect={onFlowSelect} />
     {#if layout.flowWidgetPosition === 'top'}
       <FlowWidget
+        rotation={activeFlow.rotation}
         activeIndex={layout.focusIndex}
         mode={layout.mode}
         orientation="top"
@@ -464,7 +470,6 @@
       💬 chat
     </button>
     <span class="muted">tiling host · :3100</span>
-    <JumboPopdown triggerLabel="Flows" items={FLOW_ITEMS} onSelect={onFlowSelect} />
     <DidiBadge />
     <ModeToggle />
     <WorkspaceSwitcher />
@@ -475,6 +480,7 @@
   {#if layout.flowWidgetPosition === 'left'}
     <aside class="flow-rail" aria-label="Workflow rail">
       <FlowWidget
+        rotation={activeFlow.rotation}
         activeIndex={layout.focusIndex}
         mode={layout.mode}
         orientation="left"

@@ -24,6 +24,7 @@ export default defineConfig({
         sortFilterLens: 'sortFilterLens@http://localhost:3013/remoteEntry.js',
         personEnrichment: 'personEnrichment@http://localhost:3015/remoteEntry.js',
         recordDbResolver: 'recordDbResolver@http://localhost:3008/remoteEntry.js',
+        personDbResolver: 'personDbResolver@http://localhost:3010/remoteEntry.js',
         strategyCurator: 'strategyCurator@http://localhost:3017/remoteEntry.js',
       },
       // No `shared` block — sharing Svelte 5's reactive runtime and a

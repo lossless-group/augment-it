@@ -142,6 +142,15 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'resolver.opportunities_for_org': 'resolver.opportunities_for_org.requested',
   // v0.0.0.4 — edit an opportunity's name (distinct from the org name).
   'resolver.update_opportunity': 'resolver.update_opportunity.requested',
+  // Record ↔ DB Resolver, person side — separate remote (person-db-resolver),
+  // separate write target (persons + affiliations + observations, no
+  // organizations, no opportunity concept). Per
+  // context-v/plans/Person-Aware-Canonical-Resolver-Extension.md.
+  'person.candidates': 'person.candidates.requested',
+  'person.search': 'person.search.requested',
+  'person.apply': 'person.apply.requested',
+  'person.affiliate': 'person.affiliate.requested',
+  'person.add_observation': 'person.add_observation.requested',
 
   // Domain catalog — the canonical typed-grouping graph behind apps/strategy-curator
   // (which is the type='strategy' view). Served by record-surrealdb-resolver
@@ -225,6 +234,12 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'resolver.update_org': 30_000,
   'resolver.opportunities_for_org': 30_000,
   'resolver.update_opportunity': 30_000,
+  // Person resolver — same Cloud round-trip budget as the org side.
+  'person.candidates': 30_000,
+  'person.search': 30_000,
+  'person.apply': 30_000,
+  'person.affiliate': 30_000,
+  'person.add_observation': 30_000,
   // Domain catalog — SurrealDB graph reads/writes; same Cloud round-trip budget.
   // retype fans out one content-ingest file-move round-trip per client_slug
   // on the row (usually one) — 45s covers a multi-client domain comfortably.

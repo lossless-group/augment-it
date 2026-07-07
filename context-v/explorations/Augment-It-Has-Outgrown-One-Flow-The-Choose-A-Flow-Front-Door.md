@@ -2,13 +2,13 @@
 title: "augment-it has outgrown one flow — ROTATION is the CSV-augmentation pipeline's shape wearing a general-purpose name, and strategy-curator's promotion to its head is a splice, not a fit"
 lede: "augment-it started as one thing — augment a CSV, row by row — and ROTATION (shell/src/remotes.ts) is that flow's shape, hardcoded as THE numbered nav. Every use case since (DB-canonicalization for reach-edu's CRM exit, per-org/person corpus curation, now domain/thesis curation for humain-vc) has been reconciled onto that one array instead of recognized as its own flow. Strategy Curator's 2026-07-06 'promotion to the head of ROTATION' is the symptom: a domain-curation session doesn't hand off into recordCollector, but ROTATION was the only navigation primitive that existed, so that's where it landed. The fix isn't a bigger ROTATION array — it's a 'what are you trying to do?' front door that picks which flow mounts, so a use case that isn't CSV-row augmentation stops being forced to pretend it is."
 date_created: 2026-07-06
-date_modified: 2026-07-06
+date_modified: 2026-07-07
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Sonnet 5
-semantic_version: 0.0.0.3
-status: Draft
+semantic_version: 0.0.0.4
+status: Implementing
 tags:
   - Exploration
   - Augment-It
@@ -236,10 +236,13 @@ diverge from Flow A's, which they don't yet.
 
 ## Key considerations
 
-- **`recordDbResolver` (Flow B) is genuinely dual-use** — it's both step 3
-  of Flow A AND, once reach-edu is fully off their CRM, plausibly its own
-  standalone reconciliation flow. Don't force a premature decision; the
-  front door can grow a third button later without disturbing the first two.
+- **`recordDbResolver` (Flow B) is genuinely dual-use, confirmed live** —
+  it's step 2 of `CSV_AUGMENTATION_ROTATION` AND the whole point of
+  `EVENT_ATTENDEES_ROTATION` (shipped 2026-07-07 as its own flow, "Augment
+  a CSV of Event Attendees"). No collision: the same remote id in two
+  different flows' rotations resolves independently each time via
+  `slotById()` — nothing shares state between the flows beyond the remote
+  itself.
 - **Workspace ≠ Flow.** `active_workspace_slug` (which client — reach-edu vs
   humain-vc) is a persisted piece of state; which flow-entry the operator
   just clicked in the jumbo popdown is not (it's a one-shot navigate, not a
@@ -265,32 +268,49 @@ diverge from Flow A's, which they don't yet.
 
 ## Recommendation — sequence
 
-1. **Name the flows explicitly in code, even before the popdown ships.**
-   Keep `ROTATION`, but add a one-line comment (or a `FLOW_A_ROTATION`
-   alias) marking it as CSV-row-augmentation's sequence specifically, not
-   "the" rotation. Cheap, immediately reduces the "strategyCurator doesn't
-   belong here" confusion for the next reader.
-2. ✅ **DONE 2026-07-06 — shipped the jumbo popdown (Option 2).**
-   `shell/src/JumboPopdown.svelte` (new, ported from the astro-knots
-   blueprint's interaction contract) + one line in `shell/src/App.svelte`
-   wiring a "Flows" trigger with one item, "Build Corpora," dispatching
-   `augment-it:navigate` to `strategyCurator` in `mode: 'full'`. No new
-   persisted state, no auth interaction, `ROTATION` untouched. Verified:
-   `svelte-check` clean (zero new errors/warnings vs. baseline), the
-   compiled dev bundle at `:3100` confirmed serving the new component, and
-   the didi-auth GATE prove-script mode still passes. Auth access for the
-   curator itself needed no new wiring — its own WS connection to
-   `workspace-service` already carries the same `didi_session` cookie, so
-   Step 4's attribution envelope already applies. Changelog:
-   `2026-07-06_04_Build-Corpora-Jumbo-Popdown-Gives-The-Curator-A-Real-Front-Door.md`.
-3. **Leave Flow B (DB reconciliation) embedded in Flow A** until reach-edu's
-   CRM exit is far enough along that a standalone reconciliation session is
-   an actual asked-for workflow, not a hypothetical one.
-4. **Don't build a general flow-editor, a config-driven flow registry, or
-   a pre-auth landing experience.** Same "climb only as needed" ethos as
-   the sibling exploration — one popdown, one item, hardcoded. Grow the
-   panel (more items, the "helpful marketing" vertical-carousel framing)
-   only when a second or third flow-entry is actually needed.
+1. ✅ **DONE 2026-07-07 (superseded the "cheap comment" framing below with
+   the real thing).** `ROTATION` is now `CSV_AUGMENTATION_ROTATION` +
+   `BUILD_CORPORA_ROTATION` (`shell/src/remotes.ts`), each owned by a
+   `FlowDef` in the new `shell/src/flows.svelte.ts` (`FLOWS` registry +
+   an `activeFlow` singleton, same constructor-`$state` pattern as
+   `layout.svelte.ts`). `strategyCurator` came back OUT of the
+   CSV-augmentation rotation entirely — the 2026-07-06 splice is undone,
+   not just relabeled.
+2. ✅ **DONE 2026-07-06, then extended 2026-07-07 — the popdown is now a
+   real flow switcher, not a one-item navigate action.** Original scope
+   (below) shipped 2026-07-06: `shell/src/JumboPopdown.svelte` + a single
+   "Build Corpora" item. The next session pushed it to what this doc
+   always pointed at: the popdown moved from the header's right-side
+   metrics into `header-left`, sitting where `FlowWidget` lives; its items
+   are now generated from the `FLOWS` registry (both "Improve a CSV" and
+   "Build Corpora"); `FlowWidget.svelte` takes `rotation: string[]` as a
+   **prop** instead of importing a constant, so its bubble strip resizes
+   to however many steps the active flow actually has (`$derived`, not a
+   plain `const`); `layout.svelte.ts`'s focus-index clamping reads
+   `activeFlow.rotation.length` instead of a fixed `ROTATION.length`.
+   Picking a flow persists (`localStorage`, mirroring `layout`/`workspace`)
+   and resets focus to step 1 while preserving layout mode — EXCEPT
+   co-existence, which falls back to peek-flow, since `PAIRINGS` are tied
+   to specific CSV-augmentation slot ids and don't carry meaning across
+   flows. Verified: `svelte-check` clean, compiled bundle confirmed serving
+   `activeFlowId`/`Improve a CSV`/`Build Corpora`/`CSV_AUGMENTATION_ROTATION`,
+   backend GATE re-checked (unaffected, shell-only change).
+3. ✅ **DONE 2026-07-07 — Flow B got its own entry sooner than expected.**
+   The operator asked for it directly: **"Augment a CSV of Event
+   Attendees"** — `EVENT_ATTENDEES_ROTATION` (`recordCollector` →
+   `recordDbResolver`, 2 steps), one new `FLOWS` entry. Proved the "one
+   array + one entry" cost claim in real time — shipped in minutes, no
+   architecture change. `recordDbResolver` is now genuinely dual-use
+   across two live flows (step 2 of "Improve a CSV," and the whole point
+   of this one), not embedded-and-dormant as this recommendation
+   originally assumed.
+4. **Still don't build a general flow-editor, a config-driven flow registry
+   loaded from disk, or a pre-auth landing experience.** Two hardcoded
+   `FLOWS` entries is exactly the "climb only as needed" ethos holding —
+   adding a third flow is one array entry + one rotation array, not new
+   architecture. Grow the popdown's panel (the "helpful marketing"
+   vertical-carousel framing) only when a third flow-entry actually shows
+   up.
 
 ## Open questions
 

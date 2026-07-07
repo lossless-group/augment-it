@@ -1,0 +1,584 @@
+<script lang="ts">
+  // PULSE-SURFACE for the person-db-resolver remote. Sibling to
+  // record-db-resolver, for PEOPLE rows. Per row: map columns once per
+  // record set, then match-or-create the person (skip is first-class), then
+  // — independently — match-or-create their org and RELATE the affiliation
+  // with a role. No opportunity concept. See
+  // context-v/plans/Person-Aware-Canonical-Resolver-Extension.md.
+
+  import { onMount } from 'svelte';
+  import { workspace, type RecordSet, type Row } from '@augment-it/workspace';
+  import RecordCard from './components/RecordCard.svelte';
+  import ColumnMapper from './components/ColumnMapper.svelte';
+  import PersonCandidateList from './components/PersonCandidateList.svelte';
+  import OrgCandidateList from './components/OrgCandidateList.svelte';
+  import { normalizePersonRecord, guessMapping, MAPPING_NONE } from './lib/normalize';
+  import {
+    fetchPersonCandidates,
+    searchPersons,
+    applyPerson,
+    affiliatePerson,
+    addPersonObservation,
+    fetchOrgCandidates,
+    searchOrgs,
+  } from './lib/resolver-client';
+  import type {
+    FieldMapping,
+    PersonCandidate,
+    PersonApplyResult,
+    OrgCandidate,
+    OrgSuggestion,
+    PersonAffiliateResult,
+  } from './lib/types';
+
+  const TOKEN_KEY = 'augment-it:session-token';
+  const WS_URL = 'ws://localhost:3001/ws';
+  const ACTIVE_RECORD_SET_KEY = 'augment-it:active-record-set';
+  const MAPPING_KEY_PREFIX = 'augment-it:person-db-resolver:mapping:';
+
+  let status = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
+  let client = $state<string>('reach-edu');
+
+  let recordSets = $state<RecordSet[]>([]);
+  let selectedRecordSetId = $state<string | null>(
+    typeof localStorage !== 'undefined' ? localStorage.getItem(ACTIVE_RECORD_SET_KEY) : null,
+  );
+  let rows = $state<Row[]>([]);
+  let idx = $state<number>(0);
+
+  let mapping = $state<FieldMapping | null>(null);
+  let showMapper = $state(false);
+
+  let personCandidates = $state<PersonCandidate[]>([]);
+  let loadingPerson = $state(false);
+  let personError = $state<string | null>(null);
+  let personResult = $state<PersonApplyResult | null>(null);
+  let personBusy = $state(false);
+  let personSearchQuery = $state('');
+  let personSearchResults = $state<PersonCandidate[]>([]);
+  let personSearching = $state(false);
+  let personSkipped = $state(false);
+
+  let orgCandidates = $state<OrgCandidate[]>([]);
+  let loadingOrg = $state(false);
+  let orgError = $state<string | null>(null);
+  let orgResult = $state<PersonAffiliateResult | null>(null);
+  let orgBusy = $state(false);
+  let orgNameInput = $state('');
+  let orgSearchQuery = $state('');
+  let orgSearchResults = $state<OrgSuggestion[]>([]);
+  let orgSearching = $state(false);
+
+  let obsPredicate = $state('');
+  let obsValue = $state('');
+  let obsBusy = $state(false);
+  let obsError = $state<string | null>(null);
+  let obsSaved = $state(false);
+
+  const selectedSet = $derived(
+    selectedRecordSetId ? recordSets.find((rs) => rs.record_set_id === selectedRecordSetId) ?? null : null,
+  );
+  const columns = $derived(selectedSet?.schema.fields.map((f) => f.name) ?? []);
+  const current = $derived(idx >= 0 && idx < rows.length ? rows[idx] : null);
+  const record = $derived(
+    current && mapping ? normalizePersonRecord(current.fields as Record<string, unknown>, mapping) : null,
+  );
+  const source = $derived(selectedSet ? `record-set:${selectedSet.name}` : 'person-db-resolver');
+
+  function onActiveRecordSetChange(e: Event) {
+    const detail = (e as CustomEvent).detail as { record_set_id?: string } | undefined;
+    if (!detail?.record_set_id) return;
+    selectedRecordSetId = detail.record_set_id;
+    void loadRecordSets();
+  }
+
+  function onWorkspaceChanged(e: Event) {
+    const detail = (e as CustomEvent).detail as { client_id?: string } | undefined;
+    if (detail?.client_id) client = detail.client_id;
+    else void loadActiveClient();
+    rows = [];
+    idx = 0;
+    resetRowState();
+    void loadRecordSets();
+  }
+
+  onMount(() => {
+    workspace.connect({
+      url: WS_URL,
+      getToken: () => localStorage.getItem(TOKEN_KEY),
+      saveToken: (t) => localStorage.setItem(TOKEN_KEY, t),
+      onStatus: (s) => (status = s),
+    });
+    void loadActiveClient();
+    void loadRecordSets();
+    window.addEventListener('augment-it:workspace-changed', onWorkspaceChanged);
+    window.addEventListener('augment-it:active-record-set-changed', onActiveRecordSetChange);
+    return () => {
+      window.removeEventListener('augment-it:workspace-changed', onWorkspaceChanged);
+      window.removeEventListener('augment-it:active-record-set-changed', onActiveRecordSetChange);
+    };
+  });
+
+  async function loadActiveClient() {
+    try {
+      const r = (await workspace.invoke('workspace.active', {})) as { active_client_id?: string };
+      if (r?.active_client_id) client = r.active_client_id;
+    } catch {
+      /* keep default */
+    }
+  }
+
+  async function loadRecordSets() {
+    try {
+      const r = (await workspace.invoke('record_set.list', {})) as { record_sets: RecordSet[] };
+      recordSets = r.record_sets.filter((rs) => !rs.archived);
+      if (selectedRecordSetId && recordSets.some((rs) => rs.record_set_id === selectedRecordSetId)) {
+        await selectRecordSet(selectedRecordSetId);
+      } else if (recordSets.length === 1) {
+        await selectRecordSet(recordSets[0].record_set_id);
+      }
+    } catch (err) {
+      console.error('record_set.list', err);
+    }
+  }
+
+  async function selectRecordSet(record_set_id: string) {
+    selectedRecordSetId = record_set_id;
+    if (typeof localStorage !== 'undefined') localStorage.setItem(ACTIVE_RECORD_SET_KEY, record_set_id);
+    rows = [];
+    idx = 0;
+    resetRowState();
+    loadMapping(record_set_id);
+    try {
+      const r = (await workspace.invoke('row.list', { record_set_id })) as { rows: Row[] };
+      rows = r.rows.filter((row) => !(row.fields as Record<string, unknown>).archived);
+    } catch (err) {
+      console.error('row.list', err);
+    }
+  }
+
+  function loadMapping(record_set_id: string) {
+    const key = `${MAPPING_KEY_PREFIX}${record_set_id}`;
+    const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
+    if (stored) {
+      try {
+        mapping = JSON.parse(stored) as FieldMapping;
+        showMapper = false;
+        return;
+      } catch {
+        /* fall through to re-guess */
+      }
+    }
+    mapping = guessMapping(columns);
+    showMapper = true;
+  }
+
+  function saveMapping(m: FieldMapping) {
+    mapping = m;
+    showMapper = false;
+    if (selectedRecordSetId && typeof localStorage !== 'undefined') {
+      localStorage.setItem(`${MAPPING_KEY_PREFIX}${selectedRecordSetId}`, JSON.stringify(m));
+    }
+  }
+
+  function resetRowState() {
+    personCandidates = [];
+    personError = null;
+    personResult = null;
+    personSkipped = false;
+    personSearchQuery = '';
+    personSearchResults = [];
+    orgCandidates = [];
+    orgError = null;
+    orgResult = null;
+    orgSearchQuery = '';
+    orgSearchResults = [];
+    obsPredicate = '';
+    obsValue = '';
+    obsError = null;
+    obsSaved = false;
+  }
+
+  // Load person candidates whenever the current record changes.
+  $effect(() => {
+    const rid = current?.row_id;
+    const rec = record;
+    if (!rid || !rec || !rec.name) {
+      personCandidates = [];
+      return;
+    }
+    void loadPersonCandidates();
+  });
+
+  async function loadPersonCandidates() {
+    if (!record || !record.name) return;
+    loadingPerson = true;
+    personError = null;
+    try {
+      personCandidates = await fetchPersonCandidates(record, client);
+    } catch (err) {
+      personError = err instanceof Error ? err.message : String(err);
+      personCandidates = [];
+    } finally {
+      loadingPerson = false;
+    }
+  }
+
+  // Independent of person state — per the "independent decisions" design
+  // (person and org are mutually independent OR interdependent, operator's
+  // choice), the org section is always live, not gated behind personResult.
+  $effect(() => {
+    const rec = record;
+    if (!rec) {
+      orgCandidates = [];
+      return;
+    }
+    orgNameInput = rec.org_name ?? '';
+    void loadOrgCandidates();
+  });
+
+  async function loadOrgCandidates() {
+    const name = orgNameInput.trim();
+    if (!name) {
+      orgCandidates = [];
+      return;
+    }
+    loadingOrg = true;
+    orgError = null;
+    try {
+      orgCandidates = await fetchOrgCandidates(name, client);
+    } catch (err) {
+      orgError = err instanceof Error ? err.message : String(err);
+      orgCandidates = [];
+    } finally {
+      loadingOrg = false;
+    }
+  }
+
+  async function doMatchPerson(c: PersonCandidate) {
+    if (!record) return;
+    personBusy = true;
+    personError = null;
+    try {
+      personResult = await applyPerson({ action: 'match', person_uuid: c.person_uuid, record, client, source });
+    } catch (err) {
+      personError = err instanceof Error ? err.message : String(err);
+    } finally {
+      personBusy = false;
+    }
+  }
+
+  async function doCreatePerson() {
+    if (!record) return;
+    personBusy = true;
+    personError = null;
+    try {
+      personResult = await applyPerson({ action: 'create', record, client, source });
+    } catch (err) {
+      personError = err instanceof Error ? err.message : String(err);
+    } finally {
+      personBusy = false;
+    }
+  }
+
+  function doSkipPerson() {
+    personSkipped = true;
+  }
+
+  async function doPersonSearch() {
+    const q = personSearchQuery.trim();
+    if (q.length < 2) {
+      personSearchResults = [];
+      return;
+    }
+    personSearching = true;
+    try {
+      personSearchResults = await searchPersons(q, client);
+    } catch {
+      personSearchResults = [];
+    } finally {
+      personSearching = false;
+    }
+  }
+
+  async function doMatchOrg(c: OrgCandidate) {
+    orgBusy = true;
+    orgError = null;
+    try {
+      orgResult = await affiliatePerson({
+        person_uuid: personResult?.person_uuid,
+        org_action: 'match',
+        org_slug: c.slug,
+        role: record?.role ?? null,
+        client,
+        source,
+      });
+    } catch (err) {
+      orgError = err instanceof Error ? err.message : String(err);
+    } finally {
+      orgBusy = false;
+    }
+  }
+
+  async function doCreateOrg() {
+    const name = orgNameInput.trim();
+    if (!name) return;
+    orgBusy = true;
+    orgError = null;
+    try {
+      orgResult = await affiliatePerson({
+        person_uuid: personResult?.person_uuid,
+        org_action: 'create',
+        org_name: name,
+        role: record?.role ?? null,
+        client,
+        source,
+      });
+    } catch (err) {
+      orgError = err instanceof Error ? err.message : String(err);
+    } finally {
+      orgBusy = false;
+    }
+  }
+
+  async function doOrgSearch() {
+    const q = orgSearchQuery.trim();
+    if (q.length < 2) {
+      orgSearchResults = [];
+      return;
+    }
+    orgSearching = true;
+    try {
+      orgSearchResults = await searchOrgs(q, client);
+    } catch {
+      orgSearchResults = [];
+    } finally {
+      orgSearching = false;
+    }
+  }
+
+  async function doMatchOrgSlug(slug: string) {
+    orgBusy = true;
+    orgError = null;
+    try {
+      orgResult = await affiliatePerson({
+        person_uuid: personResult?.person_uuid,
+        org_action: 'match',
+        org_slug: slug,
+        role: record?.role ?? null,
+        client,
+        source,
+      });
+    } catch (err) {
+      orgError = err instanceof Error ? err.message : String(err);
+    } finally {
+      orgBusy = false;
+    }
+  }
+
+  async function doAddObservation() {
+    if (!personResult) return;
+    const predicate = obsPredicate.trim();
+    const value = obsValue.trim();
+    if (!predicate || !value) return;
+    obsBusy = true;
+    obsError = null;
+    obsSaved = false;
+    try {
+      await addPersonObservation({ person_uuid: personResult.person_uuid, predicate, value, client, source });
+      obsSaved = true;
+      obsPredicate = '';
+      obsValue = '';
+    } catch (err) {
+      obsError = err instanceof Error ? err.message : String(err);
+    } finally {
+      obsBusy = false;
+    }
+  }
+
+  function advance() {
+    idx = Math.min(idx + 1, rows.length);
+    resetRowState();
+  }
+  function back() {
+    idx = Math.max(0, idx - 1);
+    resetRowState();
+  }
+  function skipRow() {
+    advance();
+  }
+</script>
+
+<div class="pdr-app">
+  <header class="pdr-header">
+    <div class="pdr-title-row">
+      <h1 class="pdr-title">Person · DB Resolver</h1>
+      <span class="pdr-client">client: <strong>{client}</strong></span>
+      <span class="pdr-ws status-{status}">{status}</span>
+    </div>
+    <div class="pdr-setpick">
+      <label for="pdr-set">record set</label>
+      <select
+        id="pdr-set"
+        bind:value={selectedRecordSetId}
+        onchange={() => selectedRecordSetId && void selectRecordSet(selectedRecordSetId)}
+      >
+        <option value={null}>— pick a record set —</option>
+        {#each recordSets as rs (rs.record_set_id)}
+          <option value={rs.record_set_id}>{rs.name} ({rs.row_ids.length} rows)</option>
+        {/each}
+      </select>
+      {#if rows.length}
+        <span class="pdr-progress">{Math.min(idx + 1, rows.length)} / {rows.length}</span>
+        <button type="button" class="pdr-btn" onclick={() => (showMapper = true)}>edit column mapping</button>
+      {/if}
+    </div>
+  </header>
+
+  <main class="pdr-body">
+    {#if !selectedSet}
+      <div class="pdr-card pdr-muted">Pick a record set to begin resolving its records against the canonical persons + organizations store.</div>
+    {:else if showMapper && mapping}
+      <ColumnMapper recordSetName={selectedSet.name} {columns} {mapping} onSave={saveMapping} onCancel={() => (showMapper = false)} />
+    {:else if !current}
+      <div class="pdr-card">
+        <h3>All done</h3>
+        <p class="pdr-muted">No more records in this set. ← back to revisit.</p>
+        <button type="button" class="pdr-btn" onclick={back} disabled={idx === 0}>← back</button>
+      </div>
+    {:else if record}
+      <div class="pdr-grid">
+        <RecordCard fields={current.fields as Record<string, unknown>} {record} />
+
+        <section class="pdr-resolve">
+          <div class="pdr-resolve-head">
+            <span class="pdr-eyebrow">person</span>
+            {#if loadingPerson}<span class="pdr-muted">finding candidates…</span>{/if}
+          </div>
+          {#if personError}<div class="pdr-error">candidates: {personError}</div>{/if}
+
+          {#if !personResult && !personSkipped}
+            <PersonCandidateList candidates={personCandidates} busy={personBusy} onMatch={doMatchPerson} />
+            <div class="pdr-create">
+              <button type="button" class="pdr-btn pdr-btn-create" disabled={personBusy || !record.name} onclick={doCreatePerson}>
+                + create new person from this record
+              </button>
+              <button type="button" class="pdr-btn" disabled={personBusy} onclick={doSkipPerson}>
+                skip — not worth tracking as a person
+              </button>
+            </div>
+            <details class="pdr-search">
+              <summary>search persons manually</summary>
+              <div class="pdr-search-row">
+                <input
+                  type="text"
+                  bind:value={personSearchQuery}
+                  placeholder="type ≥2 chars, Enter to search"
+                  onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void doPersonSearch(); } }}
+                />
+                <button type="button" class="pdr-btn" disabled={personSearching} onclick={() => void doPersonSearch()}>search</button>
+              </div>
+              {#if personSearchResults.length}
+                <ul class="pdr-search-results">
+                  {#each personSearchResults as s (s.person_uuid)}
+                    <li>
+                      <span>{s.name || '(no name)'} {#if s.headline}<span class="pdr-muted">— {s.headline}</span>{/if}</span>
+                      <button type="button" class="pdr-btn pdr-btn-primary" disabled={personBusy} onclick={() => doMatchPerson(s)}>match</button>
+                    </li>
+                  {/each}
+                </ul>
+              {/if}
+            </details>
+          {:else if personSkipped}
+            <div class="pdr-result pdr-skipped">
+              <p>Person skipped for this row.</p>
+              <button type="button" class="pdr-btn" onclick={() => (personSkipped = false)}>undo skip</button>
+            </div>
+          {:else if personResult}
+            <div class="pdr-result">
+              <div class="pdr-result-head">
+                {personResult.created ? '✓ created' : '✓ matched'} <strong>{personResult.name}</strong>
+              </div>
+              <div class="pdr-add-obs">
+                <label><span>predicate</span><input type="text" bind:value={obsPredicate} placeholder="e.g. confirmed_via_email" /></label>
+                <label><span>value</span><input type="text" bind:value={obsValue} placeholder="e.g. confirmed 2026-07-07" /></label>
+                <button type="button" class="pdr-btn" disabled={obsBusy || !obsPredicate.trim() || !obsValue.trim()} onclick={doAddObservation}>
+                  + add observation
+                </button>
+                {#if obsSaved}<span class="pdr-stamp-ok">✓ saved</span>{/if}
+                {#if obsError}<div class="pdr-error">{obsError}</div>{/if}
+              </div>
+            </div>
+          {/if}
+        </section>
+
+        <section class="pdr-resolve pdr-org-section">
+            <div class="pdr-resolve-head">
+              <span class="pdr-eyebrow">organization</span>
+              {#if loadingOrg}<span class="pdr-muted">finding candidates…</span>{/if}
+            </div>
+            {#if orgError}<div class="pdr-error">candidates: {orgError}</div>{/if}
+
+            {#if !orgResult}
+              <label class="pdr-org-name-row">
+                <span>org name</span>
+                <input type="text" bind:value={orgNameInput} onchange={() => void loadOrgCandidates()} placeholder="Organization name" />
+              </label>
+              <OrgCandidateList candidates={orgCandidates} busy={orgBusy} onMatch={doMatchOrg} />
+              <div class="pdr-create">
+                <button type="button" class="pdr-btn pdr-btn-create" disabled={orgBusy || !orgNameInput.trim()} onclick={doCreateOrg}>
+                  + create new org from this name
+                </button>
+                <span class="pdr-muted">skip — just don't act on the org for this row</span>
+              </div>
+              <details class="pdr-search">
+                <summary>search orgs manually</summary>
+                <div class="pdr-search-row">
+                  <input
+                    type="text"
+                    bind:value={orgSearchQuery}
+                    placeholder="type ≥2 chars, Enter to search"
+                    onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void doOrgSearch(); } }}
+                  />
+                  <button type="button" class="pdr-btn" disabled={orgSearching} onclick={() => void doOrgSearch()}>search</button>
+                </div>
+                {#if orgSearchResults.length}
+                  <ul class="pdr-search-results">
+                    {#each orgSearchResults as s (s.slug)}
+                      <li>
+                        <span>{s.complete_name || s.slug} <code class="pdr-candidate-slug">{s.slug}</code></span>
+                        <button type="button" class="pdr-btn pdr-btn-primary" disabled={orgBusy} onclick={() => void doMatchOrgSlug(s.slug)}>match</button>
+                      </li>
+                    {/each}
+                  </ul>
+                {/if}
+              </details>
+            {:else}
+              <div class="pdr-result">
+                <div class="pdr-result-head">
+                  {orgResult.org_created ? '✓ created' : '✓ matched'} <code>{orgResult.org_slug}</code>
+                  {#if orgResult.affiliation_created}
+                    <span class="pdr-stamp-ok">↩ affiliation recorded{record.role ? ` (${record.role})` : ''}</span>
+                  {:else if personResult}
+                    <span class="pdr-muted">affiliation already existed</span>
+                  {:else}
+                    <span class="pdr-muted">no person resolved yet on this row — org saved standalone</span>
+                  {/if}
+                </div>
+              </div>
+            {/if}
+        </section>
+      </div>
+
+      <div class="pdr-actions">
+        <button type="button" class="pdr-btn" onclick={back} disabled={idx === 0}>← back</button>
+        <span class="pdr-spacer"></span>
+        {#if personResult || personSkipped}
+          <button type="button" class="pdr-btn pdr-btn-primary" onclick={advance}>next →</button>
+        {:else}
+          <button type="button" class="pdr-btn" onclick={skipRow}>skip →</button>
+        {/if}
+      </div>
+    {/if}
+  </main>
+</div>

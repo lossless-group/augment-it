@@ -24,15 +24,23 @@ export type RemoteEntry = {
 
 /**
  * Ordered list of slot ids that walk the peek-flow rotation (and the
- * full-mode focus sequence). Each id resolves via slotById() to either
+ * full-mode focus sequence) for the "Improve a CSV" flow — the original
+ * CSV-row-augmentation pipeline. Each id resolves via slotById() to either
  * a federated remote or a composite. Composites are peers in the
  * rotation, so the in-slot toggle (e.g. enrichment's PTM⇄Pack-Runner
  * pair) works in every layout mode, not just co-existence.
  *
+ * Renamed from the bare `ROTATION` (2026-07-07) — augment-it now has more
+ * than one flow (see ./flows.svelte.ts and context-v/explorations/
+ * Augment-It-Has-Outgrown-One-Flow-The-Choose-A-Flow-Front-Door.md), so
+ * "the rotation" needed to become "this flow's rotation." `strategyCurator`
+ * — briefly spliced onto the head of this array on 2026-07-06 to give it
+ * SOME entry point — moved out to its own flow below; it never belonged
+ * here (it shares no data spine with the CSV-row steps that follow it).
+ *
  * Phase 2d of the refactor — see context-v/plans/Shell-and-Micro-Frontend-UX-Coherence-Refactor.md
  */
-export const ROTATION: string[] = [
-  'strategyCurator',     // the entry point — pick a strategy/thesis, gather + curate sources (promoted per the curator spec; Flow 1 makes it the primary surface)
+export const CSV_AUGMENTATION_ROTATION: string[] = [
   'recordCollector',
   'recordDbResolver',    // bridge — reconcile records to canonical orgs (match/create) before enrichment passes
   'augment',             // composite — PTM ⇄ Pack Runner via in-slot toggle (renamed from 'enrichment' per Decision §11)
@@ -40,6 +48,37 @@ export const ROTATION: string[] = [
   'responseReviewer',
   'enhancedRecordsList',
 ];
+
+/**
+ * The "Build Corpora" flow's rotation — one step today. Kept as its own
+ * named array (not just inlined in flows.svelte.ts) so it reads
+ * symmetrically next to CSV_AUGMENTATION_ROTATION above.
+ */
+export const BUILD_CORPORA_ROTATION: string[] = ['strategyCurator'];
+
+/**
+ * The "Augment a CSV of Event Attendees" flow's rotation — Flow B from
+ * context-v/explorations/Augment-It-Has-Outgrown-One-Flow-The-Choose-A-Flow-Front-Door.md:
+ * ingest an event-attendee CSV, then reconcile each row to a canonical
+ * organization in SurrealDB. `recordDbResolver` is org-only (dual-use: step
+ * 2 of "Improve a CSV" AND, on its own with just an ingest step ahead of it,
+ * this flow) — for a PEOPLE-shaped CSV (speakers, attendees), use
+ * PEOPLE_ROTATION below instead. Splitting these was a 2026-07-07 correction
+ * after live-testing recordDbResolver against a people CSV wrote a person
+ * into the organizations table — see
+ * context-v/plans/Person-Aware-Canonical-Resolver-Extension.md.
+ */
+export const EVENT_ATTENDEES_ROTATION: string[] = ['recordCollector', 'recordDbResolver'];
+
+/**
+ * The "Augment a CSV of People" flow's rotation — the person-shaped sibling
+ * to EVENT_ATTENDEES_ROTATION. `personDbResolver` match-or-creates a person,
+ * then independently match-or-creates their org and RELATEs the affiliation
+ * with a role — no opportunity concept, no organizations-table writes for
+ * the person itself. See
+ * context-v/plans/Person-Aware-Canonical-Resolver-Extension.md.
+ */
+export const PEOPLE_ROTATION: string[] = ['recordCollector', 'personDbResolver'];
 
 export const REMOTES: RemoteEntry[] = [
   {
@@ -90,6 +129,13 @@ export const REMOTES: RemoteEntry[] = [
     description: 'Match each record to a canonical org (or create one) — additive enrich, one by one',
     // @ts-expect-error — federation remote, type comes from the MF runtime
     importMount: () => import('recordDbResolver/mount'),
+  },
+  {
+    id: 'personDbResolver',
+    label: 'Person DB Resolver',
+    description: 'Match each record to a canonical person (or create one), then their org + role — one by one',
+    // @ts-expect-error — federation remote, type comes from the MF runtime
+    importMount: () => import('personDbResolver/mount'),
   },
 ];
 
@@ -156,16 +202,19 @@ export const PERSON_ENRICHMENT_REMOTE: RemoteEntry = {
 // Same shape as CHAT_REMOTE; aggregated here so remoteById() can fall back
 // to look them up without each caller having to know about each extra.
 
-// STRATEGY_CURATOR_REMOTE — the entry-point surface for gathering sources
-// against a strategy (metadata-first → Jina/PDF fetch → extracts), writing
-// only through workspace capabilities. PROMOTED to the head of ROTATION
-// 2026-07-06 (the handlers landed 06-29; Flow 1 makes this the primary
-// surface). Kept in EXTRA_REMOTES too — remoteById checks both, harmless.
+// STRATEGY_CURATOR_REMOTE — "Corpora Curator" on-screen (display rename;
+// id/package/remote name unchanged) — the entry-point surface for
+// gathering sources against a domain (metadata-first → Jina/PDF fetch →
+// extracts), writing only through workspace capabilities. Briefly
+// PROMOTED to the head of CSV_AUGMENTATION_ROTATION on 2026-07-06; moved
+// out to its own single-step "Build Corpora" flow (./flows.svelte.ts) on
+// 2026-07-07 — it never belonged in the CSV-augmentation sequence. Kept
+// in EXTRA_REMOTES too — remoteById checks both, harmless.
 // See context-v/specs/Strategy-Curator-Entry-Point-for-Augment-It.md.
 export const STRATEGY_CURATOR_REMOTE: RemoteEntry = {
   id: 'strategyCurator',
-  label: 'Strategy Curator',
-  description: 'Pick a strategy, gather sources (metadata-first → fetch → extracts), tag and cross-reference',
+  label: 'Corpora Curator',
+  description: 'Pick a strategy or thesis, gather sources (metadata-first → fetch → extracts), tag and cross-reference',
   // @ts-expect-error — federation remote, type comes from the MF runtime
   importMount: () => import('strategyCurator/mount'),
 };

@@ -4,7 +4,7 @@
    *
    * Three tiers:
    *  1. Parent label "Flow" — raised above the rest.
-   *  2. Numbered bubble progress strip — one bubble per ROTATION step,
+   *  2. Numbered bubble progress strip — one bubble per active-flow step,
    *     active bubble highlighted, click navigates, hover shows tooltip
    *     with the step's label + description.
    *  3. Layout sub-options — Split / Full as small icon-with-tooltip
@@ -21,16 +21,17 @@
    * `orientation`, and callbacks. Owns no state.
    */
 
-  import { ROTATION, slotById, type Slot } from './remotes';
+  import { slotById, type Slot } from './remotes';
   import type { LayoutMode, FlowWidgetPosition } from './layout.svelte';
 
   type Step = {
-    id: string;          // ROTATION slot id
+    id: string;          // rotation slot id
     label: string;       // slot.label (composite.label or remote.label)
     description: string; // slot.description
   };
 
   let {
+    rotation,
     activeIndex,
     mode,
     orientation,
@@ -38,6 +39,7 @@
     onSelectMode,
     onTogglePosition,
   }: {
+    rotation: string[]; // the ACTIVE flow's rotation (shell/src/flows.svelte.ts) — not a fixed constant
     activeIndex: number;
     mode: LayoutMode;
     orientation: FlowWidgetPosition;
@@ -46,16 +48,21 @@
     onTogglePosition: () => void;
   } = $props();
 
-  // Derive steps from ROTATION via slotById. composites expose label and
-  // description directly; remotes expose them through remote.
-  const steps: Step[] = ROTATION.map((id) => {
-    const slot = slotById(id);
-    if (!slot) return { id, label: id, description: '' };
-    if (slot.kind === 'remote') {
-      return { id, label: slot.remote.label, description: slot.remote.description };
-    }
-    return { id, label: slot.composite.label, description: slot.composite.description };
-  });
+  // Derive steps from the active flow's rotation via slotById. $derived,
+  // not a plain const — `rotation` changes when the operator switches
+  // flows, and the bubble strip needs to re-render with the new step
+  // count. composites expose label and description directly; remotes
+  // expose them through remote.
+  const steps: Step[] = $derived(
+    rotation.map((id) => {
+      const slot = slotById(id);
+      if (!slot) return { id, label: id, description: '' };
+      if (slot.kind === 'remote') {
+        return { id, label: slot.remote.label, description: slot.remote.description };
+      }
+      return { id, label: slot.composite.label, description: slot.composite.description };
+    }),
+  );
 </script>
 
 <div class="flow-widget" class:orientation-top={orientation === 'top'} class:orientation-left={orientation === 'left'}>
