@@ -36,6 +36,10 @@ services:
       ID_JWKS_URL: ${ID_JWKS_URL:-http://host.docker.internal:4000/.well-known/jwks.json}
       ID_ISSUER: ${ID_ISSUER:-http://localhost:4000}
       DIDI_AUTH: ${DIDI_AUTH:-optional}
+      # Step 3's membership gate: in required mode, identity must also hold
+      # a membership in this org (or superuser anywhere). Unset → identity
+      # alone suffices. The single-tenant deploy sets humain.vc.
+      REQUIRED_ORG_ID: ${REQUIRED_ORG_ID:-}
     volumes:
       - workspace-data:/data
       - ./clients:/clients:ro

@@ -64,6 +64,68 @@ export async function verifyDidiCookie(
   }
 }
 
+// ── Membership gate (build-order step 3) ────────────────────────────────
+// In 'required' mode, verified identity is necessary but not sufficient:
+// the didi_id must hold a membership in the instance's org
+// (REQUIRED_ORG_ID env — e.g. humain.vc for the single-tenant deploy) or
+// the superuser role anywhere. Checked once per WS upgrade via /api/me
+// with the cookie forwarded; cached briefly so reconnect storms don't
+// hammer the id service.
+
+const ID_BASE = process.env.ID_BASE ?? deriveIdBase();
+const REQUIRED_ORG_ID = process.env.REQUIRED_ORG_ID;
+
+function deriveIdBase(): string | undefined {
+  // Convenience: ID_JWKS_URL is .../.well-known/jwks.json on the same host.
+  if (!JWKS_URL) return undefined;
+  try {
+    return new URL(JWKS_URL).origin;
+  } catch {
+    return undefined;
+  }
+}
+
+type Membership = { org_id: string; role: string };
+const membershipCache = new Map<string, { at: number; ok: boolean }>();
+const MEMBERSHIP_CACHE_MS = 60_000;
+
+/**
+ * Does this identity clear the instance's org requirement?
+ * - No REQUIRED_ORG_ID configured → gate is open (identity alone suffices).
+ * - Membership in REQUIRED_ORG_ID, any role → admitted.
+ * - Role 'superuser' in ANY org → admitted (the operating-team fast path).
+ */
+export async function checkMembership(
+  identity: DidiIdentity,
+  cookieHeader: string | string[] | undefined,
+): Promise<boolean> {
+  if (!REQUIRED_ORG_ID) return true;
+  if (!ID_BASE) return false;
+
+  const cached = membershipCache.get(identity.session_id);
+  if (cached && Date.now() - cached.at < MEMBERSHIP_CACHE_MS) return cached.ok;
+
+  try {
+    const raw = Array.isArray(cookieHeader) ? cookieHeader.join('; ') : (cookieHeader ?? '');
+    const res = await fetch(`${ID_BASE}/api/me`, { headers: { cookie: raw } });
+    if (!res.ok) {
+      membershipCache.set(identity.session_id, { at: Date.now(), ok: false });
+      return false;
+    }
+    const me = (await res.json()) as { memberships?: Membership[] };
+    const memberships = me.memberships ?? [];
+    const ok =
+      memberships.some((m) => m.org_id === REQUIRED_ORG_ID) ||
+      memberships.some((m) => m.role === 'superuser');
+    membershipCache.set(identity.session_id, { at: Date.now(), ok });
+    return ok;
+  } catch {
+    // id service unreachable: fail CLOSED in required mode — an identity
+    // instance outage should not silently open the tenant's door.
+    return false;
+  }
+}
+
 function readCookie(
   header: string | string[] | undefined,
   name: string,

@@ -14,7 +14,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { WebSocket } from '@fastify/websocket';
 import { type Subscription } from '@nats-io/transport-node';
 import { isValid, mint } from './auth';
-import { verifyDidiCookie, didiMode, type DidiIdentity } from './didi';
+import { verifyDidiCookie, didiMode, checkMembership, type DidiIdentity } from './didi';
 import { dispatch } from './capabilities';
 import { dispatchChatTurn } from './chat';
 import { getNats } from './nats';
@@ -91,10 +91,19 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
     // rejected; in 'optional' mode the legacy continuity token still works
     // and identity rides along when present.
     const didi = (await verifyDidiCookie(req.headers.cookie)) ?? undefined;
-    if (didiMode() === 'required' && !didi) {
-      app.log.warn('ws reject: didi auth required, no valid didi_session');
-      socket.close(4401, 'didi auth required');
-      return;
+    if (didiMode() === 'required') {
+      if (!didi) {
+        app.log.warn('ws reject: didi auth required, no valid didi_session');
+        socket.close(4401, 'didi auth required');
+        return;
+      }
+      // Step 3's gate: identity must also clear the instance's org
+      // requirement (membership in REQUIRED_ORG_ID, or superuser anywhere).
+      if (!(await checkMembership(didi, req.headers.cookie))) {
+        app.log.warn({ didi_id: didi.didi_id }, 'ws reject: membership required');
+        socket.close(4403, 'membership required');
+        return;
+      }
     }
 
     const session: Session = { token, socket, seq: 0, didi };

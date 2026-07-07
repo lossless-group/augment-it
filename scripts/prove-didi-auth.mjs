@@ -33,6 +33,30 @@ const fail = (msg) => {
 };
 const step = (msg) => console.log(`\n\x1b[1m== ${msg}\x1b[0m`);
 
+// ── GATE MODE (build-order step 3) — runs ONLY the gate tests ──────────────
+// The base steps below assume DIDI_AUTH=optional; gate mode assumes the
+// container is running with:
+//   DIDI_AUTH=required REQUIRED_ORG_ID=humain.vc docker compose up -d workspace-service
+if (process.env.GATE === '1') {
+  step('GATE 1. no cookie → rejected 4401');
+  await expectClose(WS_URL, {}, 4401);
+  console.log('anonymous rejected ✓');
+
+  step('GATE 2. superuser (michael, lossless.group) → admitted');
+  const su = await signInAs('mpstaton@gmail.com');
+  const suFrame = await firstFrame(WS_URL, { Cookie: `didi_session=${su}` });
+  if (!suFrame.didi_id) fail('superuser should be admitted with identity');
+  console.log('superuser admitted ✓');
+
+  step('GATE 3. signed-in NON-member (alice) → rejected 4403');
+  const alice = await signInAs('alice@example.com');
+  await expectClose(WS_URL, { Cookie: `didi_session=${alice}` }, 4403);
+  console.log('non-member rejected ✓');
+
+  console.log('\n\x1b[32mMEMBERSHIP GATE PROVEN\x1b[0m');
+  process.exit(0);
+}
+
 // ── 1. magic link → didi_session cookie ────────────────────────────────────
 step('1. issue + redeem magic link against local id service');
 const issue = await fetch(`${ID_BASE}/api/magic-links`, {
@@ -85,6 +109,43 @@ console.log('tampered token rejected ✓');
 
 console.log('\n\x1b[32mDIDI AUTH PROVEN AGAINST LOCAL DEV\x1b[0m');
 process.exit(0);
+
+async function signInAs(addr) {
+  const issue = await fetch(`${ID_BASE}/api/magic-links`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: addr, app: 'gate-test' }),
+  }).then((r) => r.json());
+  if (!issue.dev_token) fail(`no dev_token for ${addr} — seeded?`);
+  const redeem = await fetch(`${ID_BASE}/api/magic-links/redeem`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ token: issue.dev_token }),
+  });
+  const cookie = /didi_session=([^;]+)/.exec(redeem.headers.get('set-cookie') ?? '')?.[1];
+  if (!cookie) fail(`no cookie for ${addr}`);
+  return cookie;
+}
+
+function expectClose(url, headers, wantCode) {
+  return new Promise((resolve) => {
+    const ws = new WebSocket(url, { headers });
+    const timer = setTimeout(() => {
+      ws.terminate();
+      fail(`expected close ${wantCode}, got timeout`);
+    }, 8000);
+    ws.on('message', () => {
+      clearTimeout(timer);
+      fail(`expected close ${wantCode}, but got a frame (admitted)`);
+    });
+    ws.on('close', (code) => {
+      clearTimeout(timer);
+      if (code !== wantCode) fail(`expected close ${wantCode}, got ${code}`);
+      resolve(undefined);
+    });
+    ws.on('error', () => {});
+  });
+}
 
 function firstFrame(url, headers) {
   return new Promise((resolve, reject) => {
