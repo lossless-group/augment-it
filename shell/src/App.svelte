@@ -5,6 +5,7 @@
   import FlowWidget from './FlowWidget.svelte';
   import WorkspaceSwitcher from './WorkspaceSwitcher.svelte';
   import DidiBadge from './DidiBadge.svelte';
+  import JumboPopdown, { type PopdownItem } from './JumboPopdown.svelte';
   import ToggleHeader from '@augment-it/shared-ui/ToggleHeader__PromptOrPackage--Icons.svelte';
   import { workspace } from '@augment-it/workspace';
   import {
@@ -374,6 +375,31 @@
   }
 
   const showSplitter = $derived(layout.mode === 'co-existence' && stage.length === 2);
+
+  // ---- flows popdown — "what are you trying to do?" ----------------------
+  // See context-v/explorations/Augment-It-Has-Outgrown-One-Flow-The-Choose-A-Flow-Front-Door.md.
+  // ROTATION models the CSV-row-augmentation flow specifically; a domain/
+  // thesis-curation session (strategyCurator) isn't a step in that flow —
+  // it shares no data spine with the steps after it. This popdown is the
+  // deliberately-small on-ramp to it: a plain navigate action (the same
+  // `augment-it:navigate` event any remote can dispatch), no new persisted
+  // state, no auth interaction. Grows to a second item only when a second
+  // flow-entry is actually needed.
+  const FLOW_ITEMS: PopdownItem[] = [
+    {
+      id: 'strategyCurator',
+      title: 'Build Corpora',
+      description: 'Pick a strategy or thesis and gather sources for it — the domain-first corpus workflow (feeds dididecks-ai downstream).',
+    },
+  ];
+
+  function onFlowSelect(remoteId: string): void {
+    // mode: 'full' — the fix for the flow's own request: no CSV-augmentation
+    // steps trailing behind the curator when reached this way.
+    window.dispatchEvent(
+      new CustomEvent('augment-it:navigate', { detail: { remoteId, mode: 'full' } }),
+    );
+  }
 </script>
 
 <header>
@@ -438,6 +464,7 @@
       💬 chat
     </button>
     <span class="muted">tiling host · :3100</span>
+    <JumboPopdown triggerLabel="Flows" items={FLOW_ITEMS} onSelect={onFlowSelect} />
     <DidiBadge />
     <ModeToggle />
     <WorkspaceSwitcher />

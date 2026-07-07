@@ -200,6 +200,10 @@ export type InvokeFrame = {
   id: string;
   capability: string;
   args: unknown;
+  /** How this invoke was triggered — e.g. 'didi-agent' when replaying a
+   *  chat-accepted tool call, omitted for a direct UI action. Server-side
+   *  attribution provenance only; never used for gating. */
+  via?: string;
 };
 
 export type ResultFrame = {

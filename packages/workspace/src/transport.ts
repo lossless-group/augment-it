@@ -45,7 +45,7 @@ export type ChatTurnReply = {
 export type ChatTurnRequest = Omit<ChatTurnFrame, 'kind' | 'id'>;
 
 export type Transport = {
-  invoke: (capability: string, args: unknown) => Promise<unknown>;
+  invoke: (capability: string, args: unknown, via?: string) => Promise<unknown>;
   chatTurn: (req: ChatTurnRequest) => Promise<ChatTurnReply>;
   close: () => void;
 };
@@ -164,9 +164,9 @@ export function createTransport(config: TransportConfig): Transport {
     }, backoff);
   }
 
-  async function invoke(capability: string, args: unknown): Promise<unknown> {
+  async function invoke(capability: string, args: unknown, via?: string): Promise<unknown> {
     const id = genId();
-    const frame: InvokeFrame = { kind: 'invoke', id, capability, args };
+    const frame: InvokeFrame = { kind: 'invoke', id, capability, args, ...(via ? { via } : {}) };
     const promise = new Promise<unknown>((resolve, reject) => {
       pending.set(id, { resolve, reject });
     });

@@ -415,6 +415,9 @@ export type DomainIndexArgs = {
   client_slugs: string[];
   tags: string[];
   created_at: string; // YYYY-MM-DD
+  // didi.sh identity of the actor who created this domain (build-order
+  // step 4). Absent when no verified session rode the request.
+  created_by?: string | null;
 };
 
 export async function addDomainIndex(args: DomainIndexArgs): Promise<{ corpus_path: string; created: boolean }> {
@@ -455,6 +458,7 @@ function buildDomainFrontmatter(args: DomainIndexArgs): string {
     for (const t of args.tags) lines.push(`  - ${yamlString(t)}`);
   }
   lines.push(`created_at: ${yamlString(args.created_at)}`);
+  if (args.created_by) lines.push(`created_by: ${yamlString(args.created_by)}`);
   lines.push('---');
   return lines.join('\n');
 }
@@ -471,6 +475,9 @@ export type AddSourceFileArgs = {
   source_uuid: string;
   url: string;
   normalized_url?: string;
+  // didi.sh identity of the actor who added this source (build-order step 4).
+  // Absent when no verified session rode the request.
+  created_by?: string | null;
 };
 
 function sourceExcerpt(markdown: string): string {
@@ -547,12 +554,14 @@ function buildSourceFrontmatter(args: {
   publisher?: string;
   published_date?: string;
   authors?: string[];
+  created_by?: string | null;
 }): string {
   const lines: string[] = ['---'];
   lines.push(`source_uuid: ${yamlString(args.source_uuid)}`);
   lines.push(`url: ${yamlString(args.url)}`);
   if (args.normalized_url) lines.push(`normalized_url: ${yamlString(args.normalized_url)}`);
   lines.push(`title: ${yamlString(args.title)}`);
+  if (args.created_by) lines.push(`created_by: ${yamlString(args.created_by)}`);
   if (args.authors?.length) lines.push(renderListBlock('authors', args.authors));
   if (args.publisher) lines.push(`publisher: ${yamlString(args.publisher)}`);
   if (args.published_date) lines.push(`published_date: ${yamlString(args.published_date)}`);

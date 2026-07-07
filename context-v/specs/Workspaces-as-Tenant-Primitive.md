@@ -172,6 +172,18 @@ The shell holds `active_workspace_slug` in localStorage. On boot, the shell:
 Following the pattern from [[dffaac6 — Sort & Filter Lens auto-falls-back]] —
 when localStorage points at a now-gone target, fall back gracefully.
 
+**Workspace vs. Flow — orthogonal axes.** `active_workspace_slug` answers
+*which client*. It is deliberately independent of *which use-case* (augment
+records vs. curate a domain/thesis vs. reconcile to canonical DB) — see
+[[../explorations/Augment-It-Has-Outgrown-One-Flow-The-Choose-A-Flow-Front-Door]],
+which proposes a header-level "jumbo popdown" navigate-action for the
+domain/thesis-curation use-case (no persisted state of its own, unlike this
+spec's workspace slug — keep the two conceptually separate regardless).
+Note also: this spec's "Flow 1" language
+elsewhere in the docs (the humain-vc user-journey plan) and the shell's
+`ROTATION` numbered nav are two more senses of the word "flow" — that
+exploration's §"three senses of Flow" disambiguates all three.
+
 ### 3. Toggle UI
 
 A workspace switcher lives in the shell chrome — not inside any single

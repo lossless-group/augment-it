@@ -32,9 +32,11 @@ tags:
   magic-link loop operator-clicked in production; Resend domain-verified,
   sender `no-reply@didi.sh`), `https://didi.sh` + `www` (the `site/`
   conversion surface on Vercel), the GitHub splash.
-- **Steps 1–3 DONE** (see their sections): real email, orgs + memberships
+- **Steps 1–4 DONE** (see their sections): real email, orgs + memberships
   seeded local AND prod (Michael = superuser, 3 addresses; Aniel pends his
-  address), and the membership gate proven (4401 / admitted / 4403).
+  address), the membership gate proven (4401 / admitted / 4403), and the
+  actor attribution envelope proven live (created_by/updated_by on
+  domains/sources/source_usages + corpus frontmatter).
 - augment-it workspace-service verifies `didi_session` on WS upgrade
   (`services/workspace/src/didi.ts`); shell has the DidiBadge sign-in;
   strategy-curator promoted to the head of ROTATION; the
@@ -44,7 +46,7 @@ tags:
   prove script's GATE mode.
 - The DO droplet (167.172.42.247) is prepped: Coolify removed, 2GB swap,
   Docker 28, ports 80/443 free, SSH via the id_rsa_nopass key.
-- **NEXT: step 4** (attribution envelope), then 5–8, then the deploy tail.
+- **NEXT: step 5** (thesis vocabulary), then 6–8, then the deploy tail.
 
 Steps 1–8 are local, each verifiable on the laptop; 9–12 are the deploy
 tail. Steps marked ⚑ need an operator decision or action first.
@@ -108,7 +110,16 @@ compose stays optional. Original scope follows.
 - **Verify:** extend `scripts/prove-didi-auth.mjs`: member admitted,
   non-member (seed a stranger) rejected with 4403, superuser admitted.
 
-## Step 4 — Actor attribution envelope (augment-it)
+## Step 4 — Actor attribution envelope (augment-it) ✅ DONE 2026-07-06
+
+Done and proven live against local dev: `dispatch()`'s NATS envelope
+carries `{ didi_id, via? }`, the resolver stamps `created_by`/`updated_by`
+(+`_via`) on domains/sources/source_usages without clobbering unattributed
+writes, and content-ingest writes `created_by` into both the domain
+index.md and the source file's frontmatter. Chat-replayed invokes carry
+`via: 'didi-agent'` through `workspace.invoke(capability, args, via)`.
+Changelog: `2026-07-06_03_Actor-Attribution-Envelope-Every-Mutation-Knows-Who-Did-It.md`.
+Original scope follows.
 
 - `services/workspace/src/ws.ts`: the invoke path passes
   `actor: { didi_id }` (from the session) into `dispatch()`;
@@ -121,9 +132,23 @@ compose stays optional. Original scope follows.
   fields). Chat turns stamp acting user + `via: didi-agent`.
 - **No consumers** — no filtering, no views (the flow plan's rule).
 - **Verify:** run a `source.add` through the prove script with a cookie;
-  confirm frontmatter + DB row carry the didi_id.
+  confirm frontmatter + DB row carry the didi_id. Extended
+  `scripts/prove-didi-auth.mjs` with an `ATTRIBUTION=1` mode
+  (`domain.create` + `source.add` over an authenticated WS session,
+  asserts the response's `created_by` matches the signed-in `didi_id`);
+  ran it against local docker compose + `id-didi-sh` on :4000 — passed,
+  and the on-disk frontmatter for both the domain and source file carried
+  the didi_id. Test rows/files cleaned up after (shared SurrealDB Cloud +
+  local corpus filesystem).
 
 ## Step 5 — Thesis vocabulary, minimal (augment-it)
+
+> Proceeds independently of [[../explorations/Augment-It-Has-Outgrown-One-Flow-The-Choose-A-Flow-Front-Door]] —
+> that exploration questions whether `strategyCurator`'s place at the head
+> of shell `ROTATION` is the right long-term shape (it argues for a
+> "choose a flow" front door instead), but this step's per-workspace
+> `domain_type` swap is correct either way and shouldn't wait on that
+> question resolving.
 
 - `clients/humain-vc/.env` gains `DEFAULT_DOMAIN_TYPE=thesis` (the
   per-workspace env map already loads it); expose via a small
@@ -154,6 +179,12 @@ compose stays optional. Original scope follows.
   acceptance, locally.
 
 ## Step 7 — Instance posture + sign-in wall (augment-it, shell)
+
+> No dependency on
+> [[../explorations/Augment-It-Has-Outgrown-One-Flow-The-Choose-A-Flow-Front-Door]]'s
+> proposed header-level "Build Corpora" jumbo popdown — that's a plain
+> navigate action with no auth interaction, unlike the front-door shape
+> originally sketched there. Independent work either order.
 
 - Shell: when the workspace-service reports `DIDI_AUTH=required` (expose
   the mode via the session frame or `workspace.config`) and the session

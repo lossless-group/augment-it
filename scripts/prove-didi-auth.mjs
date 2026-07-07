@@ -33,6 +33,50 @@ const fail = (msg) => {
 };
 const step = (msg) => console.log(`\n\x1b[1m== ${msg}\x1b[0m`);
 
+// ── ATTRIBUTION MODE (build-order step 4) — actor envelope proof ───────────
+// Signs in, invokes domain.create + source.add over the authenticated WS
+// connection, and confirms each result's created_by matches the signed-in
+// didi_id — proving the actor rode from the WS session through dispatch()
+// into the resolver's domains/source_usages rows.
+if (process.env.ATTRIBUTION === '1') {
+  const client_slug = process.env.ATTR_CLIENT ?? 'humain-vc';
+  step('ATTRIBUTION 1. sign in');
+  const jwt = await signInAs(EMAIL);
+  const { didi_id: signedInId } = await fetch(`${ID_BASE}/api/me`, {
+    headers: { cookie: `didi_session=${jwt}` },
+  }).then((r) => r.json());
+  console.log(`signed in as didi_id=${signedInId}`);
+
+  step('ATTRIBUTION 2. domain.create over the authenticated WS session');
+  const domainSlug = `attribution-proof-${Date.now().toString(36)}`;
+  const domainResult = await wsInvoke(
+    WS_URL,
+    { Cookie: `didi_session=${jwt}` },
+    'domain.create',
+    { type: 'thesis', slug: domainSlug, title: 'Attribution proof', client_slug, tags: [] },
+  );
+  if (!domainResult.ok) fail(`domain.create failed: ${domainResult.error}`);
+  console.log('domain created ✓ (created_by/updated_by stamped in domains row — not read back here)');
+
+  step('ATTRIBUTION 3. source.add on the fresh domain — verify created_by round-trips');
+  const sourceResult = await wsInvoke(
+    WS_URL,
+    { Cookie: `didi_session=${jwt}` },
+    'source.add',
+    { url: `https://example.com/attribution-proof-${Date.now()}`, domain_type: 'thesis', domain_slug: domainSlug, client_slug },
+  );
+  if (!sourceResult.ok) fail(`source.add failed: ${sourceResult.error}`);
+  const created_by = sourceResult.result?.source?.created_by;
+  console.log(`source_usages.created_by = ${created_by}`);
+  if (created_by !== signedInId) {
+    fail(`expected created_by=${signedInId}, got ${created_by} — actor envelope did not reach the resolver`);
+  }
+  console.log('actor attribution round-tripped ✓');
+
+  console.log('\n\x1b[32mACTOR ATTRIBUTION PROVEN (domain.create + source.add stamp created_by)\x1b[0m');
+  process.exit(0);
+}
+
 // ── GATE MODE (build-order step 3) — runs ONLY the gate tests ──────────────
 // The base steps below assume DIDI_AUTH=optional; gate mode assumes the
 // container is running with:
@@ -145,6 +189,41 @@ function expectClose(url, headers, wantCode) {
     });
     ws.on('error', () => {});
   });
+}
+
+// Opens a WS connection, waits for the session frame, sends one invoke
+// frame, and resolves with its matching result frame. Closes on settle.
+function wsInvoke(url, headers, capability, args) {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url, { headers });
+    const id = `attr_${Date.now().toString(36)}`;
+    const timer = setTimeout(() => {
+      ws.terminate();
+      reject(new Error(`timeout waiting for result of ${capability}`));
+    }, 15000);
+    let sessionSeen = false;
+    ws.on('message', (raw) => {
+      const frame = JSON.parse(raw.toString('utf8'));
+      if (!sessionSeen && frame.kind === 'session') {
+        sessionSeen = true;
+        ws.send(JSON.stringify({ kind: 'invoke', id, capability, args }));
+        return;
+      }
+      if (frame.kind === 'result' && frame.id === id) {
+        clearTimeout(timer);
+        ws.close();
+        resolve(frame);
+      }
+    });
+    ws.on('close', (code, reason) => {
+      clearTimeout(timer);
+      if (!sessionSeen) reject(new Error(`ws closed before session frame: ${code} ${reason}`));
+    });
+    ws.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+  }).catch((err) => fail(err.message));
 }
 
 function firstFrame(url, headers) {

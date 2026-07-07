@@ -104,7 +104,7 @@ class ChatState {
   private async runToolCall(tool_call: { capability: string; args: unknown }): Promise<void> {
     const cap_id = `cap_${Date.now().toString(36)}`;
     try {
-      const result = await workspace.invoke(tool_call.capability, tool_call.args);
+      const result = await workspace.invoke(tool_call.capability, tool_call.args, 'didi-agent');
       this.push({
         kind: 'capability_result',
         id: cap_id,

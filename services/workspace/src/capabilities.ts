@@ -236,12 +236,21 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'tag.apply': 30_000,
 };
 
-export async function dispatch(capability: string, args: unknown): Promise<unknown> {
+// Actor attribution envelope (build-order step 4) — the verified didi.sh
+// identity, when the session has one. Rides beside args on every
+// NATS-dispatched capability so domain services can stamp created_by /
+// updated_by. workspace.* local capabilities have no domain data to stamp
+// and ignore it. See [[Workspaces-as-Tenant-Primitive]] § "Tenant-aware
+// envelope" for the sibling client_id pattern this mirrors.
+export type Actor = { didi_id: string; via?: string };
+
+export async function dispatch(capability: string, args: unknown, actor?: Actor): Promise<unknown> {
   const local = LOCAL_CAPABILITIES[capability];
   if (local) return local(args);
   const subject = CAPABILITY_TO_SUBJECT[capability];
   if (!subject) throw new Error(`unknown capability: ${capability}`);
   const timeout = CAPABILITY_TIMEOUTS_MS[capability] ?? 5_000;
-  const reply = await getNats().request(subject, JSON.stringify(args), { timeout });
+  const body = actor ? { ...(args && typeof args === 'object' ? args : {}), actor } : args;
+  const reply = await getNats().request(subject, JSON.stringify(body), { timeout });
   return reply.json();
 }

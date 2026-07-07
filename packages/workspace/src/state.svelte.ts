@@ -220,14 +220,14 @@ class AugmentItWorkspace {
       .filter((r): r is Row => r !== undefined);
   }
 
-  async invoke(capability: string, args: unknown): Promise<unknown> {
+  async invoke(capability: string, args: unknown, via?: string): Promise<unknown> {
     if (!this.transport) throw new Error('workspace not connected — call workspace.connect() first');
     // Track the most recent capability so the anticipation map can key
     // suggestions on (activeView, last_capability). Update before the
     // dispatch resolves — the suggestion lookup in the chat surface fires
     // as soon as the new capability lands in the transcript.
     this.last_capability = capability;
-    return this.transport.invoke(capability, args);
+    return this.transport.invoke(capability, args, via);
   }
 
   /**

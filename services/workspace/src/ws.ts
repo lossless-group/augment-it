@@ -134,6 +134,11 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
         id?: string;
         capability?: string;
         args?: unknown;
+        // Set by the shell when replaying a capability the chat surface
+        // proposed/invoked, so attribution can tell "didi did this on the
+        // operator's behalf" apart from a direct UI click. Client-supplied,
+        // low-stakes provenance — never used for gating.
+        via?: string;
         message?: string;
         thread_id?: string;
         context?: { focused_prompt_id?: string; record_set_id?: string; client_id?: string };
@@ -144,7 +149,14 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
       // --- invoke frame: existing capability dispatch path. ---
       if (f.kind === 'invoke' && f.id && f.capability) {
         try {
-          const result = await dispatch(f.capability, f.args ?? {});
+          // Actor attribution envelope (build-order step 4) — the verified
+          // didi.sh identity rides beside the args into dispatch(), never
+          // client-asserted. See [[Workspaces-as-Tenant-Primitive]] §
+          // "Tenant-aware envelope" for the sibling client_id pattern.
+          const actor = session.didi
+            ? { didi_id: session.didi.didi_id, ...(f.via ? { via: f.via } : {}) }
+            : undefined;
+          const result = await dispatch(f.capability, f.args ?? {}, actor);
           socket.send(JSON.stringify({ kind: 'result', id: f.id, ok: true, result }));
         } catch (err: unknown) {
           const error = err instanceof Error ? err.message : String(err);

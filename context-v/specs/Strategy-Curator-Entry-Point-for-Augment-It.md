@@ -628,3 +628,4 @@ upload endpoint that bypasses NATS entirely — noted, not built.
 - [[Funder-Content-Corpus-Workflow]] · [[Download-PDFs-into-Corpus-Inbox]] — the Jina + PDF + git-lfs machinery to reuse.
 - [[Canonical-Entity-Registry-on-SurrealDB-Cloud]] — the SurrealDB resolver this extends with a `sources` table.
 - `memopop-orchestrator/tools/curate_sources.py` — the behavioral oracle for source-list interactions.
+- [[../explorations/Augment-It-Has-Outgrown-One-Flow-The-Choose-A-Flow-Front-Door]] — questions whether this app's 2026-07-06 promotion to the head of shell `ROTATION` is the right long-term home, given it shares no data spine with the CSV-augmentation steps that follow it in that array; proposes a header-level "Build Corpora" jumbo popdown entry as the on-ramp instead.

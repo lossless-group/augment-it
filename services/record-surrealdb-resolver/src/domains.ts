@@ -46,6 +46,29 @@ function first<T>(res: unknown, idx = 0): T | null {
   return (rows ?? [])[0] ?? null;
 }
 
+// --- actor attribution (build-order step 4) --------------------------------
+// The verified didi.sh identity, forwarded from workspace-service's dispatch
+// envelope. Absent when the deploy runs DIDI_AUTH=off/optional with no
+// session identity — attribution is best-effort, never a write blocker.
+export type Actor = { didi_id: string; via?: string };
+
+// Builds a `created_by = $created_by[, created_via = $created_via]`-shaped
+// SET fragment (or the `updated_*` sibling) plus its query vars. Returns
+// empty when there's no actor, so callers never clobber a stamped value
+// with NULL on an unattributed request (e.g. a Jina-driven background fetch).
+function actorSetClause(actor: Actor | undefined, prefix: 'created' | 'updated'): { clause: string[]; vars: Record<string, unknown> } {
+  if (!actor?.didi_id) return { clause: [], vars: {} };
+  const idKey = `${prefix}_by`;
+  const clause = [`${idKey} = $${idKey}`];
+  const vars: Record<string, unknown> = { [idKey]: actor.didi_id };
+  if (actor.via) {
+    const viaKey = `${prefix}_via`;
+    clause.push(`${viaKey} = $${viaKey}`);
+    vars[viaKey] = actor.via;
+  }
+  return { clause, vars };
+}
+
 let domainSchemaReady = false;
 async function ensureDomainSchema(db: Surreal): Promise<void> {
   if (domainSchemaReady) return;
@@ -144,9 +167,9 @@ export type UsageRow = {
 
 export async function createDomain(
   db: Surreal,
-  args: { type: string; slug: string; title: string; client_slug: string; tags?: string[] },
+  args: { type: string; slug: string; title: string; client_slug: string; tags?: string[]; actor?: Actor },
 ): Promise<{ domain: DomainRow }> {
-  const { type, slug, title, client_slug } = args;
+  const { type, slug, title, client_slug, actor } = args;
   const tags = (args.tags ?? []).map(toDashed);
   for (const t of tags) await ensureTagInVocab(db, client_slug, t);
   const existing = first<DomainRow>(
@@ -156,13 +179,14 @@ export async function createDomain(
     }),
   );
   if (existing) {
+    const upd = actorSetClause(actor, 'updated');
     await db.query(
       `UPDATE domains SET
           client_slugs = array::union(client_slugs ?? [], [$client]),
           tags = array::union(tags ?? [], $tags),
-          last_touched_at = time::now()
+          last_touched_at = time::now()${upd.clause.length ? ',\n          ' + upd.clause.join(',\n          ') : ''}
          WHERE type = $type AND slug = $slug;`,
-      { type, slug, client: client_slug, tags },
+      { type, slug, client: client_slug, tags, ...upd.vars },
     );
     return {
       domain: {
@@ -172,16 +196,22 @@ export async function createDomain(
       },
     };
   }
-  const created = first<DomainRow>(
+  // On creation, updated_by/updated_via mirror created_by/created_via —
+  // there's been exactly one touch so far, by the same actor.
+  const created = actorSetClause(actor, 'created');
+  const stamp = created.clause.length
+    ? [...created.clause, 'updated_by = $created_by', ...(actor?.via ? ['updated_via = $created_via'] : [])]
+    : [];
+  const createdRow = first<DomainRow>(
     await db.query(
       `CREATE domains SET
           id = rand::uuid::v7(), type = $type, slug = $slug, title = $title,
-          client_slugs = [$client], tags = $tags, created_at = time::now()
+          client_slugs = [$client], tags = $tags, created_at = time::now()${stamp.length ? ',\n          ' + stamp.join(',\n          ') : ''}
        RETURN type, slug, title, client_slugs, tags;`,
-      { type, slug, title, client: client_slug, tags },
+      { type, slug, title, client: client_slug, tags, ...created.vars },
     ),
   );
-  return { domain: created ?? { type, slug, title, client_slugs: [client_slug], tags } };
+  return { domain: createdRow ?? { type, slug, title, client_slugs: [client_slug], tags } };
 }
 
 export async function listDomains(db: Surreal, args: { type?: string; client_slug?: string }): Promise<{ domains: DomainRow[] }> {
@@ -203,7 +233,7 @@ export async function listDomains(db: Surreal, args: { type?: string; client_slu
 
 // --- sources registry (canonical, by normalized_url) -----------------------
 
-async function upsertSource(db: Surreal, args: { url: string }): Promise<SourceRow> {
+async function upsertSource(db: Surreal, args: { url: string; actor?: Actor }): Promise<SourceRow> {
   const normalized_url = normalizeUrl(args.url);
   const existing = first<SourceRow>(
     await db.query(
@@ -212,15 +242,17 @@ async function upsertSource(db: Surreal, args: { url: string }): Promise<SourceR
     ),
   );
   if (existing) return existing;
+  const stamped = actorSetClause(args.actor, 'created');
+  const stamp = stamped.clause.length ? [...stamped.clause, 'updated_by = $created_by'] : [];
   const created = first<SourceRow>(
     await db.query(
       `CREATE sources SET
           id = rand::uuid::v7(), source_uuid = type::string(rand::uuid::v7()),
           normalized_url = $n, url = $url,
           title = '', authors = [], publisher = '', published_date = '', content_type = '',
-          first_seen_at = time::now()
+          first_seen_at = time::now()${stamp.length ? ',\n          ' + stamp.join(',\n          ') : ''}
        RETURN source_uuid, normalized_url, url, title, authors, publisher, published_date, content_type;`,
-      { n: normalized_url, url: args.url },
+      { n: normalized_url, url: args.url, ...stamped.vars },
     ),
   );
   if (!created) throw new Error('sources registry upsert returned no row');
@@ -229,9 +261,9 @@ async function upsertSource(db: Surreal, args: { url: string }): Promise<SourceR
 
 export async function addSource(
   db: Surreal,
-  args: { url: string; domain_type: string; domain_slug: string; client_slug: string },
-): Promise<{ source: SourceRow & { status: string; domain_refs: string[] } }> {
-  const source = await upsertSource(db, { url: args.url });
+  args: { url: string; domain_type: string; domain_slug: string; client_slug: string; actor?: Actor },
+): Promise<{ source: SourceRow & { status: string; domain_refs: string[]; created_by?: string | null } }> {
+  const source = await upsertSource(db, { url: args.url, actor: args.actor });
   const dupe = first<UsageRow>(
     await db.query(
       'SELECT source_uuid FROM source_usages WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s LIMIT 1',
@@ -239,15 +271,24 @@ export async function addSource(
     ),
   );
   if (!dupe) {
+    const stamped = actorSetClause(args.actor, 'created');
+    const stamp = stamped.clause.length ? [...stamped.clause, 'updated_by = $created_by'] : [];
     await db.query(
       `CREATE source_usages SET
           id = rand::uuid::v7(), source_uuid = $u, client_slug = $c,
           domain_type = $t, domain_slug = $s,
-          corpus_path = NONE, status = 'metadata-only', tags = [], created_at = time::now();`,
-      { u: source.source_uuid, c: args.client_slug, t: args.domain_type, s: args.domain_slug },
+          corpus_path = NONE, status = 'metadata-only', tags = [], created_at = time::now()${stamp.length ? ',\n          ' + stamp.join(',\n          ') : ''};`,
+      { u: source.source_uuid, c: args.client_slug, t: args.domain_type, s: args.domain_slug, ...stamped.vars },
     );
   }
-  return { source: { ...source, status: 'metadata-only', domain_refs: [`${args.domain_type}:${args.domain_slug}`] } };
+  return {
+    source: {
+      ...source,
+      status: 'metadata-only',
+      domain_refs: [`${args.domain_type}:${args.domain_slug}`],
+      created_by: args.actor?.didi_id ?? null,
+    },
+  };
 }
 
 export async function assembleDomain(
@@ -283,15 +324,16 @@ export async function suggestTags(db: Surreal, args: { client_slug: string; pref
 
 export async function applyTag(
   db: Surreal,
-  args: { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; tag: string; op?: 'add' | 'remove' },
+  args: { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; tag: string; op?: 'add' | 'remove'; actor?: Actor },
 ): Promise<{ ok: true; tag: string }> {
   const tag = toDashed(args.tag);
   const op = args.op ?? 'add';
   const fn = op === 'remove' ? 'array::complement' : 'array::union';
+  const upd = actorSetClause(args.actor, 'updated');
   await db.query(
-    `UPDATE source_usages SET tags = ${fn}(tags ?? [], [$tag])
+    `UPDATE source_usages SET tags = ${fn}(tags ?? [], [$tag])${upd.clause.length ? ', ' + upd.clause.join(', ') : ''}
        WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s;`,
-    { tag, u: args.source_uuid, c: args.client_slug, t: args.domain_type, s: args.domain_slug },
+    { tag, u: args.source_uuid, c: args.client_slug, t: args.domain_type, s: args.domain_slug, ...upd.vars },
   );
   if (op === 'add') await ensureTagInVocab(db, args.client_slug, tag);
   return { ok: true, tag };
@@ -323,7 +365,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('domain.create.requested');
     for await (const msg of sub) {
-      const args = msg.json() as { type: string; slug: string; title: string; client_slug: string; tags?: string[] };
+      const args = msg.json() as { type: string; slug: string; title: string; client_slug: string; tags?: string[]; actor?: Actor };
       try {
         const db = await getDb();
         await ensureDomainSchema(db);
@@ -339,6 +381,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
             client_slugs: domain.client_slugs,
             tags: domain.tags,
             created_at,
+            created_by: args.actor?.didi_id ?? null,
           }),
           { timeout: 15_000 },
         );
@@ -360,7 +403,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('source.add.requested');
     for await (const msg of sub) {
-      const args = msg.json() as { url: string; domain_type: string; domain_slug: string; client_slug: string };
+      const args = msg.json() as { url: string; domain_type: string; domain_slug: string; client_slug: string; actor?: Actor };
       try {
         const db = await getDb();
         await ensureDomainSchema(db);
@@ -374,6 +417,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
             source_uuid: source.source_uuid,
             url: source.url,
             normalized_url: source.normalized_url,
+            created_by: args.actor?.didi_id ?? null,
           }),
           { timeout: 60_000 }, // Jina can be slow
         );
@@ -395,7 +439,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
     }
   })();
 
-  type SourceRef = { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string };
+  type SourceRef = { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; actor?: Actor };
   const usageOf = async (db: Surreal, a: SourceRef) =>
     first<{ source_slug?: string }>(
       await db.query(
@@ -424,10 +468,11 @@ export function registerDomainHandlers(nc: NatsConnection): void {
       await applyBibToRegistry(db, a.source_uuid, f);
       // A PDF URL downloads a sibling; coalesce so a non-PDF fetch doesn't wipe an
       // already-attached file.
+      const fetchUpd = actorSetClause(a.actor, 'updated');
       await db.query(
-        `UPDATE source_usages SET status = 'fetched', source_slug = $sl, corpus_path = $p, binary_filename = $bf ?? binary_filename
+        `UPDATE source_usages SET status = 'fetched', source_slug = $sl, corpus_path = $p, binary_filename = $bf ?? binary_filename${fetchUpd.clause.length ? ', ' + fetchUpd.clause.join(', ') : ''}
            WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s;`,
-        { sl: f.source_slug ?? usage?.source_slug ?? null, p: f.corpus_path ?? null, bf: f.binary_filename ?? null, u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
+        { sl: f.source_slug ?? usage?.source_slug ?? null, p: f.corpus_path ?? null, bf: f.binary_filename ?? null, u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug, ...fetchUpd.vars },
       );
       const out: Record<string, unknown> = { source_uuid: a.source_uuid, url: src.url, title: f.title, authors: f.authors, publisher: f.publisher, published_date: f.published_date, status: 'fetched', content_pulled: f.content_pulled ?? true, source_slug: f.source_slug ?? usage?.source_slug, corpus_path: f.corpus_path };
       if (f.binary_filename) out.binary_filename = f.binary_filename; // only when present → UI merge keeps an existing attachment
@@ -494,19 +539,29 @@ export function registerDomainHandlers(nc: NatsConnection): void {
           setParts.push('authors = $authors');
           vars.authors = a.authors;
         }
-        if (setParts.length) await db.query(`UPDATE sources SET ${setParts.join(', ')} WHERE source_uuid = $u;`, vars);
+        if (setParts.length) {
+          const srcUpd = actorSetClause(a.actor, 'updated');
+          await db.query(`UPDATE sources SET ${[...setParts, ...srcUpd.clause].join(', ')} WHERE source_uuid = $u;`, { ...vars, ...srcUpd.vars });
+        }
         const usage = await usageOf(db, a);
         let source_slug = usage?.source_slug;
         if (usage?.source_slug) {
           const reply = await nc.request('corpus.source.update.requested', JSON.stringify({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: usage.source_slug, fields, authors: a.authors }), { timeout: 15_000 });
           const r = reply.json() as { ok?: boolean; source_slug?: string; corpus_path?: string };
+          const usageUpd = actorSetClause(a.actor, 'updated');
           // a title edit re-slugs (and renames) the file — keep the usage row pointed at it
           if (r?.source_slug && r.source_slug !== usage.source_slug) {
             source_slug = r.source_slug;
             await db.query(
-              `UPDATE source_usages SET source_slug = $sl, corpus_path = $p
+              `UPDATE source_usages SET source_slug = $sl, corpus_path = $p${usageUpd.clause.length ? ', ' + usageUpd.clause.join(', ') : ''}
                  WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s;`,
-              { sl: r.source_slug, p: r.corpus_path ?? null, u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
+              { sl: r.source_slug, p: r.corpus_path ?? null, u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug, ...usageUpd.vars },
+            );
+          } else if (usageUpd.clause.length) {
+            await db.query(
+              `UPDATE source_usages SET ${usageUpd.clause.join(', ')}
+                 WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s;`,
+              { u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug, ...usageUpd.vars },
             );
           }
         }
@@ -537,10 +592,11 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         );
         const r = reply.json() as { ok: boolean; corpus_path?: string; binary_filename?: string; bytes?: number; original_bytes?: number; compressed?: boolean; error?: string };
         if (!r.ok) throw new Error(`attach failed: ${r.error ?? 'unknown'}`);
+        const attachUpd = actorSetClause(a.actor, 'updated');
         await db.query(
-          `UPDATE source_usages SET status = 'fetched', corpus_path = $p, binary_filename = $bf, binary_bytes = $bb
+          `UPDATE source_usages SET status = 'fetched', corpus_path = $p, binary_filename = $bf, binary_bytes = $bb${attachUpd.clause.length ? ', ' + attachUpd.clause.join(', ') : ''}
              WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s;`,
-          { p: r.corpus_path ?? null, bf: r.binary_filename ?? null, bb: r.bytes ?? null, u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug },
+          { p: r.corpus_path ?? null, bf: r.binary_filename ?? null, bb: r.bytes ?? null, u: a.source_uuid, c: a.client_slug, t: a.domain_type, s: a.domain_slug, ...attachUpd.vars },
         );
         if (msg.reply) {
           msg.respond(JSON.stringify({ ok: true, source: { source_uuid: a.source_uuid, status: 'fetched', content_pulled: true, corpus_path: r.corpus_path, binary_filename: r.binary_filename, binary_bytes: r.bytes, bytes: r.bytes, original_bytes: r.original_bytes, compressed: r.compressed } }));
@@ -596,7 +652,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('tag.apply.requested');
     for await (const msg of sub) {
-      const a = msg.json() as { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; tag: string; op?: 'add' | 'remove' };
+      const a = msg.json() as { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; tag: string; op?: 'add' | 'remove'; actor?: Actor };
       try {
         const db = await getDb();
         await ensureDomainSchema(db);
