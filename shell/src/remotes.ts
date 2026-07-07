@@ -32,6 +32,7 @@ export type RemoteEntry = {
  * Phase 2d of the refactor — see context-v/plans/Shell-and-Micro-Frontend-UX-Coherence-Refactor.md
  */
 export const ROTATION: string[] = [
+  'strategyCurator',     // the entry point — pick a strategy/thesis, gather + curate sources (promoted per the curator spec; Flow 1 makes it the primary surface)
   'recordCollector',
   'recordDbResolver',    // bridge — reconcile records to canonical orgs (match/create) before enrichment passes
   'augment',             // composite — PTM ⇄ Pack Runner via in-slot toggle (renamed from 'enrichment' per Decision §11)
@@ -157,8 +158,9 @@ export const PERSON_ENRICHMENT_REMOTE: RemoteEntry = {
 
 // STRATEGY_CURATOR_REMOTE — the entry-point surface for gathering sources
 // against a strategy (metadata-first → Jina/PDF fetch → extracts), writing
-// only through workspace capabilities. Registered + reachable now; promote it
-// to the head of ROTATION once the resolver / content-ingest handlers land.
+// only through workspace capabilities. PROMOTED to the head of ROTATION
+// 2026-07-06 (the handlers landed 06-29; Flow 1 makes this the primary
+// surface). Kept in EXTRA_REMOTES too — remoteById checks both, harmless.
 // See context-v/specs/Strategy-Curator-Entry-Point-for-Augment-It.md.
 export const STRATEGY_CURATOR_REMOTE: RemoteEntry = {
   id: 'strategyCurator',
