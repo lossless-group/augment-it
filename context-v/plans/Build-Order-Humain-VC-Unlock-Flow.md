@@ -26,20 +26,25 @@ tags:
 > deliberately-NOT-built list. Read it first; this doc only sequences.
 > Identity spec of record: `ai-labs/context-v/specs/Id-Didi-Sh-Identity-Service.md`.
 
-## State as of writing (2026-07-06 — verify, don't assume)
+## State as of writing (2026-07-06, end of day — verify, don't assume)
 
-- id-didi-sh **live at `https://id.didi.sh`** (2026-07-06 late: DNS + TLS
-  validated; domain-verified Resend sender `no-reply@didi.sh`; the
-  `/access` landing deployed — the emailed links are working doors)
-- augment-it workspace-service **verifies `didi_session` on WS upgrade**
-  (`services/workspace/src/didi.ts`, `DIDI_AUTH=optional`), shell has the
-  **DidiBadge** sign-in; proven by `scripts/prove-didi-auth.mjs`
-- id has **email aliases** (Michael = mpstaton@gmail.com + michael@humain.vc
-  + michael@reach.edu, one didi_id); orgs/memberships tables **empty**
-- **Production email works end to end** — Resend, domain-verified sender,
-  delivery to real inboxes proven
-- augment-it runs **local-only** (docker compose); active-workspace
-  split-brain fixed (browser pick authoritative on load)
+- **Live URLs:** `https://id.didi.sh` (identity service on Fly — full
+  magic-link loop operator-clicked in production; Resend domain-verified,
+  sender `no-reply@didi.sh`), `https://didi.sh` + `www` (the `site/`
+  conversion surface on Vercel), the GitHub splash.
+- **Steps 1–3 DONE** (see their sections): real email, orgs + memberships
+  seeded local AND prod (Michael = superuser, 3 addresses; Aniel pends his
+  address), and the membership gate proven (4401 / admitted / 4403).
+- augment-it workspace-service verifies `didi_session` on WS upgrade
+  (`services/workspace/src/didi.ts`); shell has the DidiBadge sign-in;
+  strategy-curator promoted to the head of ROTATION; the
+  active-workspace split-brain fixed (browser pick authoritative).
+- Local compose runs `DIDI_AUTH=optional` (nothing gated in dev);
+  `required` + `REQUIRED_ORG_ID` is the deploy posture, proven via the
+  prove script's GATE mode.
+- The DO droplet (167.172.42.247) is prepped: Coolify removed, 2GB swap,
+  Docker 28, ports 80/443 free, SSH via the id_rsa_nopass key.
+- **NEXT: step 4** (attribution envelope), then 5–8, then the deploy tail.
 
 Steps 1–8 are local, each verifiable on the laptop; 9–12 are the deploy
 tail. Steps marked ⚑ need an operator decision or action first.
