@@ -83,7 +83,12 @@ Original scope follows.
 - **Verify:** `/api/me` (signed in as Michael) returns the membership;
   tests for duplicate-membership upsert semantics.
 
-## Step 3 — Membership gate (augment-it, workspace-service)
+## Step 3 — Membership gate (augment-it, workspace-service) ✅ DONE 2026-07-06
+
+Proven via the prove script's GATE mode against a required-mode
+container: anonymous 4401, superuser admitted, signed-in non-member
+4403. Fails closed on id-service outage; 60s per-session cache; local
+compose stays optional. Original scope follows.
 
 - Extend `services/workspace/src/didi.ts`: after cookie verify, when
   `DIDI_AUTH=required`, GET `${ID_BASE}/api/me` with the cookie forwarded;
