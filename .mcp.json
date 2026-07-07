@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "surrealdb": {
+      "command": "${CLAUDE_PROJECT_DIR:-.}/scripts/mcp-surrealdb.sh"
+    }
+  }
+}
