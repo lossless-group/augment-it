@@ -28,15 +28,16 @@ tags:
 
 ## State as of writing (2026-07-06 — verify, don't assume)
 
-- id-didi-sh **live on Fly** (`id-didi-sh.fly.dev`); cert for `id.didi.sh`
-  issued but **DNS records still pending in Vercel** (A `66.241.125.92`,
-  AAAA `2a09:8280:1::140:453c:0` on name `id`)
+- id-didi-sh **live at `https://id.didi.sh`** (2026-07-06 late: DNS + TLS
+  validated; domain-verified Resend sender `no-reply@didi.sh`; the
+  `/access` landing deployed — the emailed links are working doors)
 - augment-it workspace-service **verifies `didi_session` on WS upgrade**
   (`services/workspace/src/didi.ts`, `DIDI_AUTH=optional`), shell has the
   **DidiBadge** sign-in; proven by `scripts/prove-didi-auth.mjs`
 - id has **email aliases** (Michael = mpstaton@gmail.com + michael@humain.vc
   + michael@reach.edu, one didi_id); orgs/memberships tables **empty**
-- **No production email** — magic links work via dev echo only
+- **Production email works end to end** — Resend, domain-verified sender,
+  delivery to real inboxes proven
 - augment-it runs **local-only** (docker compose); active-workspace
   split-brain fixed (browser pick authoritative on load)
 
