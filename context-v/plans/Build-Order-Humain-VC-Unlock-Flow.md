@@ -45,9 +45,14 @@ tail. Steps marked ⚑ need an operator decision or action first.
 
 ---
 
-## Step 1 ⚑ — Real email for magic links (id-didi-sh)
+## Step 1 — Real email for magic links (id-didi-sh) ✅ DONE 2026-07-06
 
-**Decision first:** Resend vs Postmark (sender: `no-reply@didi.sh`).
+**Decided: Resend.** Hand-rolled Swoosh adapter over Req (the hex package
+fights the lockfile); proven end to end — production magic links land in
+a real inbox. Remaining rider (⚑ operator): verify the didi.sh domain in
+Resend + its DNS records in Vercel, which lifts the
+only-send-to-account-owner restriction and flips the sender to
+no-reply@didi.sh. Original scope follows.
 
 - Add the Swoosh adapter dep (`gen_smtp`/`resend` per pick) to `mix.exs`;
   configure in `config/runtime.exs` (prod) with the API key from env —
@@ -60,7 +65,12 @@ tail. Steps marked ⚑ need an operator decision or action first.
   `/access` fallback page. Per the open-graph discipline, check spam
   placement once.
 
-## Step 2 — Org + membership seeding (id-didi-sh)
+## Step 2 — Org + membership seeding (id-didi-sh) ✅ DONE 2026-07-06
+
+Done on local AND production (mix id.org / id.member; prod via release
+eval — note the ~s() sigil gotcha and the 512MB requirement, both in the
+id repo changelog 2026-07-06_06). Aniel's membership pends his address.
+Original scope follows.
 
 - New mix task `id.org` (create org by domain-as-id + name) and
   `id.member <email-or-didi_id> <org_id> <role>`; validate role against
