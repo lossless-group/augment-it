@@ -7,11 +7,12 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Sonnet 5
-semantic_version: 0.0.0.2
+semantic_version: 0.1.0.0
 revisions:
+  - 2026-07-07 — v0.1.0.0: shipped and live-tested against the real FreedomFest 2026 batch. Two real deviations from the v0.0.0.2 plan, both discovered during implementation, not guessed in advance — (1) the export is a NEW script (`export-affiliation-ratings-csv.mjs`), not an extension of `export-event-attendees-csv.mjs`, because that script is person-per-row while ratings need affiliation-per-row (a person with two orgs needs two independently-rateable rows) — extending it would have meant changing its shape for every other consumer of that roster; (2) `person-enrichment` needed more than the planned "swap EVENT_SLUG for a picker" — its worklist and attendee query were architecturally coupled to the Gatsby-invite person shape (a `!full_name` worklist gate, a fixed RSVP-predicate allowlist), which would have shown zero or silently-wrong results for FreedomFest's `person-db-resolver`-sourced, `.name`-only persons. Fixed properly: the worklist is now every attendee (not just unnamed ones), the attendee query drops the predicate allowlist entirely (any observation pointing at the event counts), and the UI falls back to `.name` for display when `.full_name` is absent. See "What Shipped" below for the full account.
   - 2026-07-07 — v0.0.0.2: split into a hybrid — relevance rating moves to a CSV export/reimport round-trip (bulk-editable, reuses Record Collector's existing upload path); links + corpus point at `person-enrichment`'s existing per-affiliation surface (de-hardcoded from one event) instead of a new worklist UI. Smaller build, more reuse, per operator direction.
   - 2026-07-07 — v0.0.0.1: initial draft — single new all-DB-native worklist app covering rating + links + corpus together.
-status: Draft
+status: Shipped
 tags:
   - Spec
   - Augment-It

@@ -13,6 +13,12 @@
 import type { Surreal } from 'surrealdb';
 import { resolveOrgRow, slugify } from './resolver';
 
+// Actor attribution — same shape + same "never clobber with NULL when
+// unattributed" discipline as domains.ts's actorSetClause. Duplicated
+// locally rather than imported across service modules, matching how
+// domains.ts already does it in this same service.
+export type Actor = { didi_id: string; via?: string };
+
 export type PersonNormRecord = {
   name: string;
   linkedin_url?: string | null;
@@ -443,4 +449,107 @@ export async function applyPersonAffiliation(
   }
 
   return { ok: true, org_id: String(org.id), org_slug: org.slug, org_created, affiliation_created };
+}
+
+// ---------------------------------------------------------------------------
+// Capability: affiliation.rate — the write half of the Augment-from-
+// Affiliations CSV round-trip (context-v/specs/Augment-From-Affiliations.md).
+// Relevance lives on the affiliations RELATE edge itself, not on persons or
+// organizations (both multi-tenant — a bare field there would leak one
+// client's rating to any other client who can see the same row) and not a
+// new opportunities-like table (opportunities is confirmed org-only and
+// CSV-record-coupled — not a fit for an affiliation-driven origin).
+//
+// Looked up fresh by (person_uuid, org_slug) on every call — never trusts a
+// RecordId surviving the CSV round-trip, same lesson as person_uuid's
+// original introduction and domains.ts's source_uuid.
+// ---------------------------------------------------------------------------
+
+const RELEVANCE_LABELS: Record<string, string> = {
+  'very relevant': 'very_relevant',
+  'highly relevant': 'highly_relevant',
+  'relevant': 'relevant',
+  'skip': 'skip',
+  'irrelevant': 'irrelevant',
+};
+
+// Exported so the reimport resolver (or anything else) can render the
+// canonical label set without duplicating it — e.g. a column-mapping UI
+// that wants to validate before ever calling the capability.
+export const RELEVANCE_VALUES = Object.values(RELEVANCE_LABELS);
+
+// Human-typed text in, canonical machine value out. Throws rather than
+// guessing on anything that doesn't match one of the five labels
+// case-insensitively — flagged to the operator, never silently coerced or
+// dropped, per the spec's explicit discipline.
+export function normalizeRelevance(raw: string): string {
+  const key = raw.trim().toLowerCase();
+  const v = RELEVANCE_LABELS[key];
+  if (!v) {
+    throw new Error(
+      `unrecognized relevance value: "${raw}" — expected one of Very Relevant, Highly Relevant, Relevant, Skip, Irrelevant`,
+    );
+  }
+  return v;
+}
+
+export type AffiliationRateInput = {
+  person_uuid: string;
+  org_slug: string;
+  relevance: string; // raw, human-typed — normalized inside applyAffiliationRating
+  relevance_note?: string | null;
+  client: string;
+  actor?: Actor;
+};
+
+export type AffiliationRateResult = {
+  ok: true;
+  affiliation_id: string;
+  relevance: string;
+};
+
+export async function applyAffiliationRating(
+  db: Surreal,
+  input: AffiliationRateInput,
+): Promise<AffiliationRateResult> {
+  const relevance = normalizeRelevance(input.relevance);
+
+  const person = await fetchPersonByUuid(db, input.person_uuid);
+  if (!person) throw new Error(`person not found: ${input.person_uuid}`);
+  const org = await db.query('SELECT VALUE id FROM organizations WHERE slug = $slug LIMIT 1;', {
+    slug: input.org_slug,
+  });
+  const orgId = ((org?.[0] as unknown[]) ?? [])[0];
+  if (!orgId) throw new Error(`organization not found: ${input.org_slug}`);
+
+  const edge = await db.query(
+    'SELECT VALUE id FROM affiliations WHERE in = $person AND out = $org LIMIT 1;',
+    { person: person.id, org: orgId },
+  );
+  const edgeId = ((edge?.[0] as unknown[]) ?? [])[0];
+  if (!edgeId) {
+    throw new Error(
+      `no affiliation edge between person_uuid ${input.person_uuid} and org_slug ${input.org_slug} — resolve the affiliation before rating it`,
+    );
+  }
+
+  const sets = [
+    'relevance = $relevance',
+    'relevance_note = $relevance_note',
+    'relevance_rated_at = time::now()',
+    'client_access = array::union(client_access ?? [], [$client])',
+  ];
+  const vars: Record<string, unknown> = {
+    id: edgeId,
+    relevance,
+    relevance_note: input.relevance_note?.trim() || null,
+    client: input.client,
+  };
+  if (input.actor?.didi_id) {
+    sets.push('relevance_rated_by = $rated_by');
+    vars.rated_by = input.actor.didi_id;
+  }
+  await db.query(`UPDATE $id SET ${sets.join(', ')};`, vars);
+
+  return { ok: true, affiliation_id: String(edgeId), relevance };
 }

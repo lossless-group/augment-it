@@ -80,6 +80,17 @@ export const EVENT_ATTENDEES_ROTATION: string[] = ['recordCollector', 'recordDbR
  */
 export const PEOPLE_ROTATION: string[] = ['recordCollector', 'personDbResolver'];
 
+/**
+ * The "Rate Affiliations" flow's rotation — the write half of Augment from
+ * Affiliations (context-v/specs/Augment-From-Affiliations.md). Upload the
+ * rating-edited CSV (from scripts/export-affiliation-ratings-csv.mjs)
+ * through the existing Record Collector path, then affiliationRatingResolver
+ * maps columns once and writes relevance/relevance_note onto each row's
+ * affiliations edge. No match/create — every row's person + org already
+ * exist in canonical.
+ */
+export const AFFILIATION_RATING_ROTATION: string[] = ['recordCollector', 'affiliationRatingResolver'];
+
 export const REMOTES: RemoteEntry[] = [
   {
     id: 'recordCollector',
@@ -136,6 +147,13 @@ export const REMOTES: RemoteEntry[] = [
     description: 'Match each record to a canonical person (or create one), then their org + role — one by one',
     // @ts-expect-error — federation remote, type comes from the MF runtime
     importMount: () => import('personDbResolver/mount'),
+  },
+  {
+    id: 'affiliationRatingResolver',
+    label: 'Affiliation Rating Resolver',
+    description: 'Reimport a rated affiliations CSV and write relevance + notes back onto the affiliations edges',
+    // @ts-expect-error — federation remote, type comes from the MF runtime
+    importMount: () => import('affiliationRatingResolver/mount'),
   },
 ];
 
@@ -219,7 +237,13 @@ export const STRATEGY_CURATOR_REMOTE: RemoteEntry = {
   importMount: () => import('strategyCurator/mount'),
 };
 
-const EXTRA_REMOTES: RemoteEntry[] = [CHAT_REMOTE, PACK_RUNNER_REMOTE, SORT_FILTER_LENS_REMOTE, PERSON_ENRICHMENT_REMOTE, STRATEGY_CURATOR_REMOTE];
+const EXTRA_REMOTES: RemoteEntry[] = [
+  CHAT_REMOTE,
+  PACK_RUNNER_REMOTE,
+  SORT_FILTER_LENS_REMOTE,
+  PERSON_ENRICHMENT_REMOTE,
+  STRATEGY_CURATOR_REMOTE,
+];
 
 // Co-existence pairings — which two remotes share the viewport in Mode B,
 // and the default left-panel width %. Different pairs want different

@@ -151,6 +151,10 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'person.apply': 'person.apply.requested',
   'person.affiliate': 'person.affiliate.requested',
   'person.add_observation': 'person.add_observation.requested',
+  // Augment from Affiliations — the CSV-round-trip rating write, keyed by
+  // (person_uuid, org_slug) rather than a resolved candidate. Per
+  // context-v/specs/Augment-From-Affiliations.md.
+  'affiliation.rate': 'affiliation.rate.requested',
 
   // Domain catalog — the canonical typed-grouping graph behind apps/strategy-curator
   // (which is the type='strategy' view). Served by record-surrealdb-resolver
@@ -240,6 +244,9 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'person.apply': 30_000,
   'person.affiliate': 30_000,
   'person.add_observation': 30_000,
+  // One fresh lookup by (person_uuid, org_slug) + one UPDATE — same Cloud
+  // round-trip budget as its person.* siblings.
+  'affiliation.rate': 30_000,
   // Domain catalog — SurrealDB graph reads/writes; same Cloud round-trip budget.
   // retype fans out one content-ingest file-move round-trip per client_slug
   // on the row (usually one) — 45s covers a multi-client domain comfortably.

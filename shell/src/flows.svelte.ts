@@ -17,6 +17,7 @@ import {
   BUILD_CORPORA_ROTATION,
   EVENT_ATTENDEES_ROTATION,
   PEOPLE_ROTATION,
+  AFFILIATION_RATING_ROTATION,
 } from './remotes';
 
 export type FlowDef = {
@@ -54,6 +55,13 @@ export const FLOWS: FlowDef[] = [
     description:
       'Ingest a CSV of people (event speakers, attendees) and reconcile each row to a canonical person, then their org + role, in SurrealDB.',
     rotation: PEOPLE_ROTATION,
+  },
+  {
+    id: 'affiliationRating',
+    label: 'Rate Affiliations',
+    description:
+      'Reimport a relevance-rated affiliations CSV (from scripts/export-affiliation-ratings-csv.mjs) and write the ratings back onto each affiliations edge in SurrealDB. The first flow that starts from the canonical layer instead of a raw CSV.',
+    rotation: AFFILIATION_RATING_ROTATION,
   },
 ];
 
