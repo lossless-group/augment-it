@@ -472,8 +472,8 @@
             <label class="arr-label" for="arr-relevance">relevance</label>
             <select id="arr-relevance" bind:value={relevanceInput}>
               <option value="">— not rated —</option>
-              {#each RELEVANCE_OPTIONS as opt (opt)}
-                <option value={opt}>{opt}</option>
+              {#each RELEVANCE_OPTIONS as opt (opt.value)}
+                <option value={opt.value}>{opt.label}</option>
               {/each}
             </select>
           </div>

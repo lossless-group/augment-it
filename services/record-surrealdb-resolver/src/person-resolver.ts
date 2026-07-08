@@ -467,7 +467,9 @@ export async function applyPersonAffiliation(
 
 const RELEVANCE_LABELS: Record<string, string> = {
   'very relevant': 'very_relevant',
+  'very_relevant': 'very_relevant',
   'highly relevant': 'highly_relevant',
+  'highly_relevant': 'highly_relevant',
   'relevant': 'relevant',
   'skip': 'skip',
   'irrelevant': 'irrelevant',

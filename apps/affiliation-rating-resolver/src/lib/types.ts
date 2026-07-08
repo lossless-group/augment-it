@@ -57,10 +57,15 @@ export type AffiliationDetail = {
   error?: string;
 };
 
+// value = the canonical machine value affiliation.rate stores and
+// affiliation.detail returns (services/record-surrealdb-resolver/src/
+// person-resolver.ts's RELEVANCE_LABELS). Must match exactly, or a
+// previously-rated row's dropdown won't pre-select on reload — the bug
+// this shape fixes (values used to be the Title Case label only).
 export const RELEVANCE_OPTIONS = [
-  'Very Relevant',
-  'Highly Relevant',
-  'Relevant',
-  'Skip',
-  'Irrelevant',
+  { value: 'very_relevant', label: 'Very Relevant' },
+  { value: 'highly_relevant', label: 'Highly Relevant' },
+  { value: 'relevant', label: 'Relevant' },
+  { value: 'skip', label: 'Skip' },
+  { value: 'irrelevant', label: 'Irrelevant' },
 ] as const;
