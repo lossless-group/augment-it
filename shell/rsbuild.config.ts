@@ -7,6 +7,18 @@ import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 // reactive singleton instance — that's the load-bearing trick that makes
 // Window microfrontends + Chat panel all subscribe to one workspace state
 // (Per-App-Workspace-Conventions blueprint).
+//
+// strategyCurator and chat are the only two remotes the humain-vc deploy
+// (Build-Order Step 9) actually mounts — their URLs are env-configurable so
+// a production build can point at real hosted remoteEntry.js files instead
+// of localhost. The other twelve stay hardcoded: they belong to flows this
+// deploy doesn't use, Module Federation remotes are lazy-loaded, and
+// leaving them pointed at localhost is the same "no isolation, they error
+// if poked" rule the build order already established, just now true for
+// federation URLs too — nobody on this instance ever navigates to them.
+const STRATEGY_CURATOR_REMOTE = process.env.PUBLIC_STRATEGY_CURATOR_REMOTE ?? 'http://localhost:3017/remoteEntry.js';
+const CHAT_REMOTE = process.env.PUBLIC_CHAT_REMOTE ?? 'http://localhost:3006/remoteEntry.js';
+
 export default defineConfig({
   plugins: [
     pluginSvelte(),
@@ -17,7 +29,7 @@ export default defineConfig({
         promptTemplateManager: 'promptTemplateManager@http://localhost:3003/remoteEntry.js',
         requestReviewer: 'requestReviewer@http://localhost:3004/remoteEntry.js',
         responseReviewer: 'responseReviewer@http://localhost:3005/remoteEntry.js',
-        chat: 'chat@http://localhost:3006/remoteEntry.js',
+        chat: `chat@${CHAT_REMOTE}`,
         enhancedRecordsList: 'enhancedRecordsList@http://localhost:3007/remoteEntry.js',
         packRunner: 'packRunner@http://localhost:3009/remoteEntry.js',
         recordsSurface: 'recordsSurface@http://localhost:3011/remoteEntry.js',
@@ -25,7 +37,7 @@ export default defineConfig({
         personEnrichment: 'personEnrichment@http://localhost:3015/remoteEntry.js',
         recordDbResolver: 'recordDbResolver@http://localhost:3008/remoteEntry.js',
         personDbResolver: 'personDbResolver@http://localhost:3010/remoteEntry.js',
-        strategyCurator: 'strategyCurator@http://localhost:3017/remoteEntry.js',
+        strategyCurator: `strategyCurator@${STRATEGY_CURATOR_REMOTE}`,
         affiliationRatingResolver: 'affiliationRatingResolver@http://localhost:3012/remoteEntry.js',
       },
       // No `shared` block — sharing Svelte 5's reactive runtime and a

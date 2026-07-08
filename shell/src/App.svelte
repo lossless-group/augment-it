@@ -27,6 +27,19 @@
   import { layout, type LayoutMode } from './layout.svelte';
   import { activeFlow, FLOWS } from './flows.svelte';
 
+  // workspace-service's WS endpoint — every app that connects to it directly
+  // (this shell, plus the strategy-curator and chat remotes independently)
+  // reads the same PUBLIC_WS_URL, defaulting to localhost for dev. Rsbuild
+  // inlines PUBLIC_-prefixed env vars into import.meta.env at build time
+  // (same convention DidiBadge.svelte's PUBLIC_ID_BASE already uses).
+  // Deriving the plain-HTTP base from it (ws→http, wss→https) rather than a
+  // second env var — Step 7's /config check needs the same origin, not the
+  // WS scheme.
+  const WS_URL =
+    ((import.meta as { env?: Record<string, string> }).env?.PUBLIC_WS_URL as string | undefined) ??
+    'ws://localhost:3001/ws';
+  const WS_HTTP_BASE = WS_URL.replace(/^ws/, 'http').replace(/\/ws$/, '');
+
   // Chat rail visibility — persistent left-side companion to the focused
   // Window. Toggleable from the header; persisted to localStorage so a
   // user's preference survives reloads. Per the four-roles model in
@@ -267,14 +280,13 @@
   // second call is a no-op.
   onMount(() => {
     const TOKEN_KEY = 'augment_it_session_token';
-    const WS_HTTP_BASE = 'http://localhost:3001';
     // Fire BEFORE/alongside connect(), not after — an anonymous WS upgrade
     // against a DIDI_AUTH=required instance is rejected (4401) before any
     // session frame ships, so this plain GET is the only way an
     // unauthenticated visitor's shell learns the wall should render.
     void workspace.fetchDidiAuthMode(WS_HTTP_BASE);
     workspace.connect({
-      url: 'ws://localhost:3001/ws',
+      url: WS_URL,
       getToken: () => localStorage.getItem(TOKEN_KEY),
       saveToken: (t) => localStorage.setItem(TOKEN_KEY, t),
       onStatus: () => {

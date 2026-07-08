@@ -12,7 +12,15 @@ import { workspace, WORKSPACE_CHANGED_EVENT, type WorkspaceSummary } from '@augm
 import type { ExtractKind, Source, Strategy } from './types';
 
 const TOKEN_KEY = 'augment-it:session-token';
-const WS_URL = 'ws://localhost:3001/ws';
+// No `shared` block in federation (shell/rsbuild.config.ts) — this remote
+// owns its own workspace singleton and connects independently even when
+// mounted inside the shell, so it needs the same env-configured WS_URL the
+// shell and chat each read (rsbuild inlines PUBLIC_-prefixed vars into
+// import.meta.env at build time — applies to plain .ts modules too, not
+// just .svelte files).
+const WS_URL =
+  ((import.meta as { env?: Record<string, string> }).env?.PUBLIC_WS_URL as string | undefined) ??
+  'ws://localhost:3001/ws';
 const ACTIVE_STRATEGY_KEY = 'augment-it:active-strategy';
 // The operator-chosen domain type this surface is currently browsing/
 // writing into ('strategy', 'thesis', or any other value they type at
