@@ -120,7 +120,12 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
     sessions.add(session);
 
     socket.send(
-      JSON.stringify({ kind: 'session', token, didi_id: didi?.didi_id ?? null }),
+      JSON.stringify({
+        kind: 'session',
+        token,
+        didi_id: didi?.didi_id ?? null,
+        didi_auth_mode: didiMode(),
+      }),
     );
     app.log.info(
       {

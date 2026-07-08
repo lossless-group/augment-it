@@ -29,7 +29,12 @@
 
 <div class="chat-app">
   <div class="chat-status" class:open={connectionStatus === 'open'} class:closed={connectionStatus !== 'open'}>
-    chat · {connectionStatus}
+    <img class="didi-avatar" src="/didi-avatar.png" alt="" aria-hidden="true" />
+    <span class="didi-name">didi</span>
+    <span class="chat-status-sep">·</span>
+    <span class="chat-status-app">augment-it</span>
+    <span class="chat-status-sep">·</span>
+    <span class="chat-status-conn">{connectionStatus}</span>
   </div>
   <CharacterCastRow />
   <ChatSurface />

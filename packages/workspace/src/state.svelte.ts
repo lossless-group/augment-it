@@ -61,6 +61,19 @@ class AugmentItWorkspace {
    * each remote forward into this.
    */
   connection_status: 'idle' | 'connecting' | 'open' | 'closed' | 'error';
+  /**
+   * The instance's DIDI_AUTH posture, carried on the session frame. Null
+   * until the first session frame arrives. The shell's pre-auth wall
+   * (Build-Order Step 7) renders when this is 'required' and `user` has
+   * no `didi_id`.
+   */
+  didi_auth_mode: 'off' | 'optional' | 'required' | null;
+  /**
+   * Whether this instance was booted with ACTIVE_CLIENT_ID set (a
+   * single-tenant deploy) — populated by loadWorkspaces(). The shell hides
+   * the WorkspaceSwitcher when true (Build-Order Step 7).
+   */
+  pinned: boolean;
 
   private transport: Transport | null = null;
   private lastSeenSeq = -1;
@@ -80,6 +93,8 @@ class AugmentItWorkspace {
     this.workspaces_status = $state<'idle' | 'loading' | 'ready' | 'error'>('idle');
     this.workspaces_error = $state<string | null>(null);
     this.connection_status = $state<'idle' | 'connecting' | 'open' | 'closed' | 'error'>('idle');
+    this.didi_auth_mode = $state<'off' | 'optional' | 'required' | null>(null);
+    this.pinned = $state<boolean>(false);
     // Read the persisted pick eagerly so the chat surface has a value to
     // forward on the very first turn. The server-side discovery
     // (workspace.list) reconciles it after mount.
@@ -110,6 +125,26 @@ class AugmentItWorkspace {
    * is gone — same shape as the Sort & Filter Lens archived-set
    * fallback). Returns the resolved active id.
    */
+  /**
+   * Fetch this instance's DIDI_AUTH posture via a plain HTTP GET — needed
+   * because an anonymous WS upgrade against a DIDI_AUTH=required instance
+   * is rejected (4401) BEFORE any session frame is ever sent, so the
+   * session frame alone can never tell an anonymous shell "this instance
+   * requires sign-in." Call this alongside connect(), not instead of it —
+   * a member's session frame still carries didi_auth_mode too, as a
+   * cheap-to-keep second source once the socket does open. Build-Order
+   * Step 7.
+   */
+  async fetchDidiAuthMode(httpBase: string): Promise<void> {
+    try {
+      const r = await fetch(`${httpBase}/config`);
+      const j = (await r.json()) as { didi_auth_mode?: 'off' | 'optional' | 'required' };
+      if (j.didi_auth_mode) this.didi_auth_mode = j.didi_auth_mode;
+    } catch (err) {
+      console.warn('[workspace] fetchDidiAuthMode failed', err);
+    }
+  }
+
   async loadWorkspaces(): Promise<string | null> {
     this.workspaces_status = 'loading';
     this.workspaces_error = null;
@@ -118,9 +153,11 @@ class AugmentItWorkspace {
       const result = (await this.invoke('workspace.list', {})) as {
         workspaces: WorkspaceSummary[];
         active_client_id: string | null;
+        pinned?: boolean;
       };
       console.info('[workspace] workspace.list returned', result);
       this.workspaces = result.workspaces;
+      this.pinned = result.pinned ?? false;
       const persisted = this.active_client_id;
       const persistedExists = persisted && result.workspaces.some((w) => w.client_id === persisted);
       const resolved = persistedExists
@@ -254,6 +291,7 @@ class AugmentItWorkspace {
         user_id: this.user?.user_id,
         didi_id: frame.didi_id ?? null,
       };
+      this.didi_auth_mode = frame.didi_auth_mode ?? null;
     } else if (frame.kind === 'event') {
       this.ingestEvent({
         seq: frame.seq,

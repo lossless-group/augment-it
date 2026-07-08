@@ -5,6 +5,7 @@
   import FlowWidget from './FlowWidget.svelte';
   import WorkspaceSwitcher from './WorkspaceSwitcher.svelte';
   import DidiBadge from './DidiBadge.svelte';
+  import SignInWall from './SignInWall.svelte';
   import JumboPopdown, { type PopdownItem } from './JumboPopdown.svelte';
   import ToggleHeader from '@augment-it/shared-ui/ToggleHeader__PromptOrPackage--Icons.svelte';
   import { workspace } from '@augment-it/workspace';
@@ -44,6 +45,18 @@
       /* localStorage unavailable */
     }
   }
+
+  // ---- pre-auth wall (Build-Order Step 7) --------------------------------
+  // A single-tenant deploy sets DIDI_AUTH=required; the session frame
+  // carries that posture (workspace.didi_auth_mode) so the shell can
+  // decide BEFORE mounting any remote, rather than let each one fail
+  // capability calls closed one at a time. Unknown (null, pre-session)
+  // reads as "don't show the wall yet" — the session frame lands
+  // effectively instantly after the WS opens, so there's nothing worth
+  // building a loading skeleton around.
+  const showWall = $derived(
+    workspace.didi_auth_mode === 'required' && !workspace.user?.didi_id,
+  );
 
   // ---- composite slots — active-member state ----------------------------
   // A composite slot hosts one-of-N remotes based on shared state. We
@@ -254,6 +267,12 @@
   // second call is a no-op.
   onMount(() => {
     const TOKEN_KEY = 'augment_it_session_token';
+    const WS_HTTP_BASE = 'http://localhost:3001';
+    // Fire BEFORE/alongside connect(), not after — an anonymous WS upgrade
+    // against a DIDI_AUTH=required instance is rejected (4401) before any
+    // session frame ships, so this plain GET is the only way an
+    // unauthenticated visitor's shell learns the wall should render.
+    void workspace.fetchDidiAuthMode(WS_HTTP_BASE);
     workspace.connect({
       url: 'ws://localhost:3001/ws',
       getToken: () => localStorage.getItem(TOKEN_KEY),
@@ -406,6 +425,9 @@
   }
 </script>
 
+{#if showWall}
+  <SignInWall />
+{:else}
 <header>
   <div class="header-left">
     <div class="brand">
@@ -472,7 +494,9 @@
     <span class="muted">tiling host · :3100</span>
     <DidiBadge />
     <ModeToggle />
-    <WorkspaceSwitcher />
+    {#if !workspace.pinned}
+      <WorkspaceSwitcher />
+    {/if}
   </div>
 </header>
 
@@ -570,6 +594,7 @@
   {/if}
   </main>
 </div>
+{/if}
 
 <style>
   header {

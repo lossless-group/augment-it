@@ -13,6 +13,7 @@
 // the five patterns this implements: capability adapters, lifecycle events,
 // anticipation, three response modes, four cache-eligible slabs.
 
+import { dispatch } from './capabilities';
 import { getNats } from './nats';
 import { getActiveClientId } from './workspaces';
 
@@ -20,9 +21,16 @@ import { getActiveClientId } from './workspaces';
 //
 // Slab 1 — static spine. Pinned to package version; changes only on
 // release. Cache hits across every session.
-const STATIC_SPINE = `You are augment-it, an in-app assistant for tabular data enrichment.
+//
+// Persona: didi is the shared agent across the Lossless VC-tooling family
+// (augment-it, dididecks-ai, memopop-ai) — see [[Didi-sh-One-Login-One-
+// Agent-Three-Services]] (ai-labs). v0.0.1 here is deliberately augment-it
+// -local: one name/voice, but no cross-service runtime, no shared memory
+// across apps. The persona line says "didi" so the character is consistent
+// wherever a user meets it; everything after it is scoped to this app only.
+const STATIC_SPINE = `You are didi, the in-app teammate for augment-it — a corpus-curation, entity-augmentation, and grounded-research workspace. You are the SAME didi a user may also meet in dididecks or memopop, but right now you are operating strictly inside augment-it: only this app's capabilities exist for you. Never offer to do something in another app.
 
-The user is building a fundraising / outreach pipeline by enriching record sets (uploaded CSVs of companies, contacts, deals) with LLM-generated columns. Your job is to help them author and run the prompts that produce those enrichments.
+The user's two jobs here: (1) enriching record sets (uploaded CSVs of companies, contacts, deals) with LLM-generated columns, and (2) curating research into thesis/strategy corpora — triaging links and sources into the right corpus, tagging, and adding context as they find it.
 
 You have exactly three response modes. Pick one per turn, by calling exactly one of the three tools below:
 
@@ -71,11 +79,54 @@ VERB RECOGNITION SHORTCUTS:
 - "snapshot this", "advance the tracker", "emit v9" (or "emit the next version"), "promote the pipeline" → chat_invoke pipeline.promote_snapshot
 `;
 
+// Slab 2b — corpus-curation verbs (Build-Order Step 8 — the "inbox triage
+// into theses" job). Full triage discipline lives in
+// context-v/agent-skills/inbox-curation/SKILL.md; this is the condensed,
+// always-loaded operational form v0.0.1 ships with rather than building a
+// retrieval/skill-loading mechanism first.
+const CURATOR_CHAT_VERBS = `Corpus-curation capabilities (use these as the \`capability\` field in chat_propose / chat_invoke):
+
+source.add — File a URL as a source under an EXISTING corpus (domain).
+  args: { url: string, domain_type: string, domain_slug: string, client_slug: string }
+
+domain.create — Create a NEW corpus (thesis/strategy/topic — whatever type the workspace uses).
+  args: { type: string, slug: string, title: string, client_slug: string, tags?: string[] }
+
+extract.add — Append a pasted quote/extract to a source already filed under a corpus.
+  args: { source_uuid: string, domain_type: string, domain_slug: string, client_slug: string, kind: string, text: string }
+
+tag.apply — Add or remove a tag on a source.
+  args: { source_uuid: string, domain_type: string, domain_slug: string, client_slug: string, tag: string, op: "add" | "remove" }
+
+CORPUS-CURATION DISCIPLINE:
+- "Existing corpora" below (if present) lists every corpus already in this workspace as "Title → type:slug". Resolve a name the user types (e.g. "consumer-immunology", "the immunology thesis") against that list — match on title OR slug, case/punctuation-insensitive.
+- When the user names an EXISTING corpus by name (or slug) AND gives a URL — e.g. "file this link under consumer-immunology", "add this to the immunology thesis" — chat_invoke source.add directly with the resolved domain_type/domain_slug. The named corpus is unambiguous enough to skip proposing; this is the flow's core "fast triage" job.
+- domain.create is a bigger decision than adding to one. Always chat_propose first, UNLESS the user explicitly says "create a new thesis/corpus called X" or equivalent.
+- If the user gives a URL but names no corpus, or names one that doesn't match anything in "Existing corpora" — chat_propose between source.add (your best-guess existing corpus, if any is plausible) and corpus.inbox.add (park it, untriaged). Never invent or silently pick a corpus.
+- Never fabricate a domain_slug or source_uuid. If you need a source_uuid (for extract.add/tag.apply) and don't have one from context or the conversation, say so and ask rather than guessing.
+`;
+
 // Slab 3 — active skills. Empty in v0.0.1; cache breakpoint reserved.
 const ACTIVE_SKILLS = '';
 
 // Slab 4 — per-org reminders. Empty in v0.0.1; cache breakpoint reserved.
 const PER_ORG_REMINDERS = '';
+
+// The full v0.0.1 capability vocabulary — the enrichment verbs from
+// V001_CHAT_VERBS plus the corpus-curation verbs from CURATOR_CHAT_VERBS.
+// One shared list so the two chat_propose/chat_invoke schemas below can't
+// drift out of sync with each other.
+const CHAT_CAPABILITY_NAMES = [
+  'prompt.draft',
+  'prompt.improve',
+  'prompt.apply',
+  'corpus.inbox.add',
+  'pipeline.promote_snapshot',
+  'source.add',
+  'domain.create',
+  'extract.add',
+  'tag.apply',
+] as const;
 
 // --- The chat tool definitions the model picks among. ---
 // These mirror the three response modes from STATIC_SPINE. The SDK returns
@@ -112,7 +163,7 @@ export const CHAT_TOOLS = [
             properties: {
               capability: {
                 type: 'string',
-                enum: ['prompt.draft', 'prompt.improve', 'prompt.apply', 'corpus.inbox.add', 'pipeline.promote_snapshot'],
+                enum: CHAT_CAPABILITY_NAMES,
               },
               hint: { type: 'string', description: 'One-line label for the affordance button.' },
               args: {
@@ -133,7 +184,7 @@ export const CHAT_TOOLS = [
       required: ['text', 'capability', 'args'],
       properties: {
         text: { type: 'string', description: 'A short narration of what the capability is doing.' },
-        capability: { type: 'string', enum: ['prompt.draft', 'prompt.improve', 'prompt.apply', 'corpus.inbox.add', 'pipeline.promote_snapshot'] },
+        capability: { type: 'string', enum: CHAT_CAPABILITY_NAMES },
         args: { type: 'object' },
       },
     },
@@ -190,6 +241,31 @@ function contextSlab(ctx?: ChatTurnInput['context']): string {
 }
 
 /**
+ * "Existing corpora" — every domain (thesis/strategy/topic/…) already in
+ * the active workspace, so didi can resolve a name the user types ("file
+ * this under consumer-immunology") against a real domain_type/domain_slug
+ * instead of guessing or fabricating one. Read-only; a fresh domain.list
+ * per turn is cheap next to the LLM round-trip it feeds. Best-effort — a
+ * resolver hiccup degrades to an empty slab (didi falls back to
+ * chat_propose per CORPUS-CURATION DISCIPLINE) rather than failing the turn.
+ */
+async function existingCorporaSlab(clientSlug: string | null): Promise<string> {
+  if (!clientSlug) return '';
+  try {
+    const result = (await dispatch('domain.list', { client_slug: clientSlug })) as {
+      domains?: { type: string; slug: string; title: string }[];
+    };
+    const domains = result.domains ?? [];
+    if (domains.length === 0) return '';
+    const lines = domains.map((d) => `- ${d.title} → ${d.type}:${d.slug}`).join('\n');
+    return `Existing corpora in this workspace (Title → type:slug):\n${lines}\n`;
+  } catch (err) {
+    console.warn('[chat] existingCorporaSlab: domain.list failed', err);
+    return '';
+  }
+}
+
+/**
  * Build the full message array Anthropic will receive. The four cacheable
  * slabs become one combined system string with cache_control breakpoints
  * applied where the prompt-runner converts to the SDK call (the SDK
@@ -197,19 +273,26 @@ function contextSlab(ctx?: ChatTurnInput['context']): string {
  *
  * For v0.0.1, slabs 3 and 4 are empty strings but the assembly path is in
  * place so v0.0.2 can drop content in without restructuring.
+ *
+ * Async because the volatile "existing corpora" slab does a live
+ * domain.list read — the one slab in this stack that isn't pure string
+ * assembly. Everything else stays synchronous string-building.
  */
-function assembleSystemSlabs(input: ChatTurnInput): { text: string; cache_control?: { type: 'ephemeral' } }[] {
+async function assembleSystemSlabs(input: ChatTurnInput): Promise<{ text: string; cache_control?: { type: 'ephemeral' } }[]> {
   const slabs: { text: string; cache_control?: { type: 'ephemeral' } }[] = [
     { text: STATIC_SPINE, cache_control: { type: 'ephemeral' } },
     { text: V001_CHAT_VERBS, cache_control: { type: 'ephemeral' } },
+    { text: CURATOR_CHAT_VERBS, cache_control: { type: 'ephemeral' } },
   ];
   // Only include non-empty optional slabs so the SDK doesn't reject empties.
   if (ACTIVE_SKILLS) slabs.push({ text: ACTIVE_SKILLS, cache_control: { type: 'ephemeral' } });
   if (PER_ORG_REMINDERS) slabs.push({ text: PER_ORG_REMINDERS, cache_control: { type: 'ephemeral' } });
-  // Volatile slabs (no cache_control). Order: context → suggestions.
+  // Volatile slabs (no cache_control). Order: context → existing corpora → suggestions.
   const ctx = contextSlab(input.context);
+  const corpora = await existingCorporaSlab(input.context?.client_id ?? getActiveClientId());
   const sug = suggestedVerbsSlab(input.suggestions);
   if (ctx) slabs.push({ text: ctx });
+  if (corpora) slabs.push({ text: corpora });
   if (sug) slabs.push({ text: sug });
   return slabs;
 }
@@ -228,10 +311,11 @@ function assembleMessages(input: ChatTurnInput): { role: 'user' | 'assistant'; c
  * tool-use response; 60s is generous for the slowest case.
  */
 export async function dispatchChatTurn(input: ChatTurnInput): Promise<ChatTurnResult> {
+  const system = await assembleSystemSlabs(input);
   const reply = await getNats().request(
     'chat.turn.requested',
     JSON.stringify({
-      system: assembleSystemSlabs(input),
+      system,
       messages: assembleMessages(input),
       tools: CHAT_TOOLS,
     }),

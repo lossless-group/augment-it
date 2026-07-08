@@ -4,6 +4,7 @@ import { connectNats } from './nats';
 import { loadSessions } from './auth';
 import { registerWebsocket } from './ws';
 import { initWorkspaces, registerActiveQueryResponder } from './workspaces';
+import { didiMode } from './didi';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 const SESSION_STORE_PATH = process.env.SESSION_STORE_PATH ?? './data/sessions.json';
@@ -18,6 +19,18 @@ async function main(): Promise<void> {
   await app.register(websocket);
 
   app.get('/health', async () => ({ ok: true }));
+
+  // Plain, unauthenticated GET so the shell can learn this instance's
+  // DIDI_AUTH posture BEFORE attempting the WS upgrade — needed because an
+  // anonymous upgrade against a `required` instance is rejected (4401)
+  // before any session frame is ever sent, so the session frame alone
+  // can't tell an anonymous visitor "this instance requires sign-in."
+  // Build-Order Step 7. CORS is manual (no @fastify/cors dependency) since
+  // this is the only cross-origin GET the service serves.
+  app.get('/config', async (_req, reply) => {
+    reply.header('Access-Control-Allow-Origin', '*');
+    return { didi_auth_mode: didiMode() };
+  });
 
   await loadSessions(SESSION_STORE_PATH);
   app.log.info({ path: SESSION_STORE_PATH }, 'sessions loaded');

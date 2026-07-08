@@ -5,6 +5,7 @@
 import { getNats } from './nats';
 import {
   getActiveClientId,
+  isPinned,
   listWorkspaces,
   setActiveClientId,
   type WorkspaceSummary,
@@ -18,7 +19,10 @@ import {
 const LOCAL_CAPABILITIES: Record<string, (args: unknown) => Promise<unknown>> = {
   'workspace.list': async () => {
     const workspaces = await listWorkspaces();
-    return { workspaces, active_client_id: getActiveClientId() };
+    // pinned: true → this instance was booted with ACTIVE_CLIENT_ID set
+    // (single-tenant deploy). The shell hides the WorkspaceSwitcher rather
+    // than offer a switch that doesn't apply. Build-Order Step 7.
+    return { workspaces, active_client_id: getActiveClientId(), pinned: isPinned() };
   },
   'workspace.activate': async (args: unknown) => {
     const a = (args ?? {}) as { client_id?: string };

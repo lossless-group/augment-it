@@ -52,6 +52,12 @@ export type WorkspaceConfig = {
 let CLIENTS_ROOT = '';
 const configs = new Map<string, WorkspaceConfig>();
 let activeClientId: string | null = null;
+// Set once, at boot, from whether ACTIVE_CLIENT_ID was present in the
+// environment — a single-tenant deploy declares its one client this way.
+// Independent of whether that client_id actually resolved (a typo'd env
+// var still means "this instance intends to be pinned"); the shell reads
+// this to hide the WorkspaceSwitcher entirely (Build-Order Step 7).
+let pinned = false;
 
 function titleCase(slug: string): string {
   return slug
@@ -117,11 +123,18 @@ export async function initWorkspaces(opts: {
   for (const slug of slugs) {
     configs.set(slug, await loadConfigFor(slug));
   }
+  pinned = Boolean(opts.initial_active_id);
   if (opts.initial_active_id && configs.has(opts.initial_active_id)) {
     activeClientId = opts.initial_active_id;
   } else {
     activeClientId = slugs[0] ?? null;
   }
+}
+
+/** Whether this instance was booted with ACTIVE_CLIENT_ID set — a
+ *  single-tenant deploy. The shell hides the WorkspaceSwitcher when true. */
+export function isPinned(): boolean {
+  return pinned;
 }
 
 /**

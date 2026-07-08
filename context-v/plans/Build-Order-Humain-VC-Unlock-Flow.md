@@ -8,7 +8,7 @@ authors:
 augmented_with:
   - Claude Code on Claude Fable 5
   - Claude Code on Claude Sonnet 5
-semantic_version: 0.0.2.0
+semantic_version: 0.0.3.0
 status: Ready
 tags:
   - Plan
@@ -33,16 +33,26 @@ tags:
   magic-link loop operator-clicked in production; Resend domain-verified,
   sender `no-reply@didi.sh`), `https://didi.sh` + `www` (the `site/`
   conversion surface on Vercel), the GitHub splash.
-- **Steps 1–6 DONE** (see their sections): real email, orgs + memberships
+- **Steps 1–8 DONE** (see their sections): real email, orgs + memberships
   seeded local AND prod (Michael = superuser, 3 addresses; Aniel pends his
   address), the membership gate proven (4401 / admitted / 4403), the
   actor attribution envelope proven live (created_by/updated_by on
   domains/sources/source_usages + corpus frontmatter), thesis
   vocabulary (Corpora Curator rename, operator-defined + per-workspace-
   default domain type, `domain.retype` migration — `consumer-immunology`
-  is now `thesis:consumer-immunology`), and curator liveness (domain/source
+  is now `thesis:consumer-immunology`), curator liveness (domain/source
   mutations broadcast over NATS; the curator surface refetches on events
-  from a second session — proven via `LIVENESS=1` on the prove script).
+  from a second session — proven via `LIVENESS=1` on the prove script),
+  the pre-auth sign-in wall (a real anonymous-visitor gap found and closed
+  via a new `GET /config`, not just the session frame), and didi chat v0
+  (persona rename, curator verbs as chat-invokable verbs with a live
+  domain-name resolver, the `inbox-curation` agent-skill, and a face —
+  the character headshot composited with the shell's brand gradient).
+- **id.didi.sh went down and came back**: the Fly.io trial ended mid-week,
+  suspending the app; billing fixed, machine restarted, verified live
+  again (JWKS serving, aliases + orgs + memberships all intact in prod).
+  A reminder that this dependency needs a real payment method on file
+  before the DO deploy, not a trial.
 - **Interleaved but separate:** `feature/augment-affiliations` (the
   Augment-From-Affiliations MVP, `context-v/specs/Augment-From-Affiliations.md`)
   shipped and merged into `rebuild/turbo-rsbuild` on 2026-07-08, between
@@ -62,8 +72,8 @@ tags:
   repeatable check either way.
 - The DO droplet (167.172.42.247) is prepped: Coolify removed, 2GB swap,
   Docker 28, ports 80/443 free, SSH via the id_rsa_nopass key.
-- **NEXT: step 7** (instance posture + sign-in wall), then 8, then the
-  deploy tail.
+- **NEXT: step 9** — the deploy tail (9–12) is all that's left. Steps
+  1–8 are done and verified locally.
 
 Steps 1–8 are local, each verifiable on the laptop; 9–12 are the deploy
 tail. Steps marked ⚑ need an operator decision or action first.
@@ -240,7 +250,7 @@ succeeded) rather than split across resolver and content-ingest:
   Test domain + source cleaned up from SurrealDB and the humain-vc
   filesystem after the run, same discipline as step 4's ATTRIBUTION mode.
 
-## Step 7 — Instance posture + sign-in wall (augment-it, shell)
+## Step 7 — Instance posture + sign-in wall (augment-it, shell) ✅ DONE 2026-07-08
 
 > No dependency on
 > [[../explorations/Augment-It-Has-Outgrown-One-Flow-The-Choose-A-Flow-Front-Door]]'s
@@ -248,30 +258,74 @@ succeeded) rather than split across resolver and content-ingest:
 > navigate action with no auth interaction, unlike the front-door shape
 > originally sketched there. Independent work either order.
 
-- Shell: when the workspace-service reports `DIDI_AUTH=required` (expose
-  the mode via the session frame or `workspace.config`) and the session
-  has no `didi_id`, render the sign-in panel as a full pre-auth wall
-  instead of mounting remotes; hide the WorkspaceSwitcher when the
-  instance reports a pinned tenant (`ACTIVE_CLIENT_ID` set → include
-  `pinned: true` in `workspace.list`).
-- **Verify:** flip `DIDI_AUTH=required` locally → wall appears; sign in →
-  shell mounts; sign out → wall returns.
+Done as sketched, with a real gap found and closed along the way: an
+anonymous WS upgrade against `DIDI_AUTH=required` is rejected (4401) BEFORE
+any session frame ships, so the session frame alone can never tell an
+anonymous visitor's shell "this instance requires sign-in." Added a plain
+`GET /config` (CORS-open, `services/workspace/src/server.ts`) the shell
+fetches alongside — not instead of — `connect()`, so the wall renders
+correctly for the actual anonymous-visitor case, not just the
+already-connected-but-rejected one.
 
-## Step 8 — didi chat v0 (augment-it)
+- `services/workspace/src/server.ts`: new `GET /config` → `{
+  didi_auth_mode }`. `services/workspace/src/ws.ts`: session frame also
+  carries `didi_auth_mode` (belt-and-suspenders for the already-connected
+  case). `services/workspace/src/workspaces.ts` + `capabilities.ts`:
+  `workspace.list` gained `pinned` (true when `ACTIVE_CLIENT_ID` was set at
+  boot). `packages/workspace/src/state.svelte.ts` + `types.ts`: new
+  `didi_auth_mode` / `pinned` reactive fields, `fetchDidiAuthMode()`.
+- `shell/src/SignInWall.svelte` (new): full-screen pre-auth wall, same
+  headless sign-in mechanics as `DidiBadge.svelte`. `shell/src/App.svelte`:
+  `showWall` derived gates the entire header+stage behind `{#if showWall}
+  <SignInWall />{:else}…{/if}`; `WorkspaceSwitcher` hidden when
+  `workspace.pinned`.
+- **Verify:** confirmed live in a real browser (headless Chromium,
+  `playwright`) — anonymous visitor → full wall, no header/remotes/switcher;
+  signed in → wall gone, header + switcher + remotes all render, real data
+  loads. `pinned: true`/`false` verified via a temporary `ACTIVE_CLIENT_ID`
+  override (no rebuild needed) then reverted. `svelte-check` clean on
+  `shell` (2 pre-existing, unrelated errors confirmed via `git stash`).
 
-The largest step; keep it to the flow's two jobs (inbox triage into
-theses; glitch assistance):
+## Step 8 — didi chat v0 (augment-it) ✅ DONE 2026-07-08
 
-- Rename/persona: the chat rail presents as **didi**; system prompt names
-  the flow context (workspace, active thesis, the curator's verbs).
-- Wire curator capabilities as chat-invokable verbs through the existing
-  `dispatchChatTurn` path (`services/workspace/src/chat.ts`) — didi's
-  writes ride the same envelope, stamped `via: didi-agent` (step 4).
-- Author the first agent-skill: `context-v/agent-skills/inbox-curation/`
-  (the decile-hub-interface precedent is the format) — triage rules,
-  thesis-assignment discipline, the curator capability catalog.
-- **Verify:** "didi, file this link under consumer-immunology" ends with a
-  source in the right thesis, attributed correctly.
+Scoped deliberately to augment-it only — see
+[[../../../context-v/explorations/Didi-sh-One-Login-One-Agent-Three-Services|Didi-sh-One-Login-One-Agent-Three-Services]]
+for the full cross-service vision (one persona, shared skill-library
+package, per-app capability registries) this is the local first slice of.
+The shared `@lossless/in-app-agent` package extraction is explicitly
+deferred to its own initiative, not bundled into this flow.
+
+- **Persona rename** (`services/workspace/src/chat.ts`'s `STATIC_SPINE`):
+  didi introduces itself by name, names both jobs (enrichment + corpus
+  curation), and states plainly it's scoped to augment-it only — no
+  cross-service claims.
+- **Curator capabilities wired as chat verbs**: new `CURATOR_CHAT_VERBS`
+  slab (`source.add`, `domain.create`, `extract.add`, `tag.apply`) plus a
+  live, volatile `existingCorporaSlab()` — a `domain.list` read injected
+  into every turn as `Title → type:slug`, so didi resolves a name like
+  "consumer-immunology" against the workspace's REAL corpora instead of
+  guessing. `assembleSystemSlabs` is now async to support the live read.
+  Writes ride the existing actor envelope unchanged — `via: 'didi-agent'`
+  was already threaded from `apps/chat`'s invoke path since step 4.
+- **Agent-skill authored**: `context-v/agent-skills/inbox-curation/SKILL.md`
+  (decile-hub-interface's format) — the full decision tree (named +
+  existing corpus → invoke directly; new corpus → propose first; unclear →
+  propose-or-inbox), the never-fabricate-an-identifier discipline, and the
+  boundary with `corpus.inbox.add` (untriaged parking, not filing).
+- **Didi also got a face**: a character headshot (user-provided,
+  transparent PNG) composited with the shell's actual brand-duotone
+  gradient tokens, wired into `DidiBadge.svelte`, `SignInWall.svelte`, and
+  the chat rail's header (`apps/chat/src/App.svelte` — "didi · augment-it ·
+  \<status\>").
+- **Verify:** the literal acceptance line — "didi, file this link under
+  consumer-immunology" — run live against the local stack (a real chat_turn
+  → chat_invoke source.add → source filed under `thesis:consumer-immunology`,
+  `created_by` matching the signed-in didi_id). Also verified in the actual
+  browser UI: didi's first greeting lists the workspace's three real
+  corpora by name, pulled live from the same context slab. Test source
+  cleaned up after (DB + filesystem), same discipline as prior steps.
+  `svelte-check` clean on `apps/chat` and `shell`; `tsc --noEmit` clean on
+  `services/workspace`.
 
 ## Step 9 — Deploy augment-it, single-tenant on DigitalOcean
 

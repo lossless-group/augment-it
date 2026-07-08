@@ -94,7 +94,7 @@
     class:on={didiId !== null}
     title={didiId ? `didi.sh · ${didiId}` : 'No didi.sh ID connected'}
   >
-    <span class="didi-mark" aria-hidden="true">▣</span>
+    <img class="didi-mark" src="/didi-avatar.png" alt="" aria-hidden="true" />
     {#if didiId}
       <span class="didi-label">{me?.email ?? didiId.slice(0, 8)}</span>
     {:else}
@@ -157,7 +157,11 @@
     background: color-mix(in oklab, var(--color-thread, #55e0d2) 10%, transparent);
   }
   .didi-mark {
-    font-size: 12px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
   }
   .didi-label--muted {
     opacity: 0.8;

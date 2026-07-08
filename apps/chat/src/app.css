@@ -16,14 +16,29 @@
 }
 
 .chat-app .chat-status {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   padding: 0.4rem 0.8rem;
   font-size: 11px;
   font-family: var(--font-mono, ui-monospace, monospace);
   border-bottom: 1px solid var(--color-border);
   color: var(--color-text-muted);
 }
-.chat-app .chat-status.open { color: var(--color-accent); }
-.chat-app .chat-status.closed { color: var(--color-warn, #c66); }
+.chat-app .didi-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.chat-app .didi-name {
+  font-weight: 600;
+  color: var(--color-text);
+}
+.chat-app .chat-status-sep { opacity: 0.5; }
+.chat-app .chat-status.open .chat-status-conn { color: var(--color-accent); }
+.chat-app .chat-status.closed .chat-status-conn { color: var(--color-warn, #c66); }
 
 /* --- Character cast row --- */
 .chat-app .cast-row {

@@ -227,6 +227,13 @@ export type SessionFrame = {
   token: string;
   /** Verified didi.sh identity, or null when the upgrade had no valid cookie. */
   didi_id?: string | null;
+  /**
+   * The instance's DIDI_AUTH posture (services/workspace/src/didi.ts's
+   * MODE), carried on every session frame so the shell can decide whether
+   * to render the pre-auth wall (Build-Order Step 7) without a separate
+   * round-trip. 'required' + no didi_id → wall; anything else → mount.
+   */
+  didi_auth_mode?: 'off' | 'optional' | 'required';
 };
 
 // --- Chat surface frames ---
