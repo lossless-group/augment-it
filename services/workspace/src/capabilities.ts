@@ -155,6 +155,14 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // (person_uuid, org_slug) rather than a resolved candidate. Per
   // context-v/specs/Augment-From-Affiliations.md.
   'affiliation.rate': 'affiliation.rate.requested',
+  // Augment from Affiliations v0.2.0.0 — inline link/corpus editing on the
+  // affiliation-rating-resolver card, narrower than person.apply /
+  // resolver.apply (one entry, not a whole record batch).
+  'person.links.add': 'person.links.add.requested',
+  'person.corpus.add': 'person.corpus.add.requested',
+  'organization.links.add': 'organization.links.add.requested',
+  'organization.corpus.add': 'organization.corpus.add.requested',
+  'affiliation.detail': 'affiliation.detail.requested',
 
   // Domain catalog — the canonical typed-grouping graph behind apps/strategy-curator
   // (which is the type='strategy' view). Served by record-surrealdb-resolver
@@ -247,6 +255,15 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   // One fresh lookup by (person_uuid, org_slug) + one UPDATE — same Cloud
   // round-trip budget as its person.* siblings.
   'affiliation.rate': 30_000,
+  // One entity lookup + one additive UPDATE (corpus variants also touch
+  // content_items once). Same Cloud round-trip budget as everything else
+  // in this service.
+  'person.links.add': 30_000,
+  'person.corpus.add': 30_000,
+  'organization.links.add': 30_000,
+  'organization.corpus.add': 30_000,
+  // Two entity lookups + one edge lookup — same Cloud round-trip budget.
+  'affiliation.detail': 30_000,
   // Domain catalog — SurrealDB graph reads/writes; same Cloud round-trip budget.
   // retype fans out one content-ingest file-move round-trip per client_slug
   // on the row (usually one) — 45s covers a multi-client domain comfortably.

@@ -28,7 +28,7 @@ export type NormRecord = {
   corpus?: RawLink[];
 };
 
-type ShapedLink = { url: string; kind: string; url_domain: string; added_at: string };
+export type ShapedLink = { url: string; kind: string; url_domain: string; added_at: string };
 type ShapedStream = {
   url: string;
   kind: string;
@@ -136,7 +136,7 @@ function rawToUrl(l: RawLink): string {
   return (typeof l === 'string' ? l : l?.url ?? '').trim();
 }
 
-function shapeLink(l: RawLink): ShapedLink | null {
+export function shapeLink(l: RawLink): ShapedLink | null {
   const url = rawToUrl(l);
   if (!url) return null;
   const kind = typeof l === 'object' && l?.kind ? l.kind : inferLinkKind(url);
@@ -342,7 +342,7 @@ export async function searchOrgs(
 // (Ports apps/person-enrichment/src/App.svelte findOrCreateContent.)
 // ---------------------------------------------------------------------------
 
-async function findOrCreateContent(
+export async function findOrCreateContent(
   db: Surreal,
   url: string,
   kind: string,
@@ -762,4 +762,51 @@ export async function updateOrg(db: Surreal, input: UpdateOrgInput): Promise<Upd
     aliases: fresh.aliases ?? [],
     renamed,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Capabilities: organization.links.add / organization.corpus.add — narrow,
+// single-entry additive writes for an org that already exists, as opposed
+// to resolver.apply's whole-NormRecord batch append. Used by
+// affiliation-rating-resolver's inline per-affiliation editor
+// (context-v/specs/Augment-From-Affiliations.md v0.2.0.0) so an operator
+// can add one link/corpus URL without a CSV row driving it.
+// ---------------------------------------------------------------------------
+
+export type OrgLinkAddInput = { org_slug: string; url: string; kind?: string; client: string };
+export type OrgLinkAddResult = { ok: true; org_id: string; link: ShapedLink };
+
+export async function addOrgLink(db: Surreal, input: OrgLinkAddInput): Promise<OrgLinkAddResult> {
+  const org = await fetchOrgBySlug(db, input.org_slug);
+  if (!org) throw new Error(`organization not found: ${input.org_slug}`);
+  const shaped = shapeLink(input.kind ? { url: input.url, kind: input.kind } : input.url);
+  if (!shaped) throw new Error('organization.links.add requires a non-empty url');
+  await db.query(
+    `UPDATE $id SET
+        org_links       = array::concat(org_links ?? [], [$link]),
+        client_access   = array::union(client_access ?? [], [$client]),
+        last_touched_by = $client, last_touched_at = time::now();`,
+    { id: org.id, link: shaped, client: input.client },
+  );
+  return { ok: true, org_id: String(org.id), link: shaped };
+}
+
+export type OrgCorpusAddInput = { org_slug: string; url: string; kind?: string; client: string };
+export type OrgCorpusAddResult = { ok: true; org_id: string; entry: ShapedLink & { content_id: unknown } };
+
+export async function addOrgCorpus(db: Surreal, input: OrgCorpusAddInput): Promise<OrgCorpusAddResult> {
+  const org = await fetchOrgBySlug(db, input.org_slug);
+  if (!org) throw new Error(`organization not found: ${input.org_slug}`);
+  const shaped = shapeLink(input.kind ? { url: input.url, kind: input.kind } : input.url);
+  if (!shaped) throw new Error('organization.corpus.add requires a non-empty url');
+  const content_id = await findOrCreateContent(db, shaped.url, shaped.kind, shaped.url_domain);
+  const entry = { ...shaped, content_id };
+  await db.query(
+    `UPDATE $id SET
+        org_corpus      = array::concat(org_corpus ?? [], [$entry]),
+        client_access   = array::union(client_access ?? [], [$client]),
+        last_touched_by = $client, last_touched_at = time::now();`,
+    { id: org.id, entry, client: input.client },
+  );
+  return { ok: true, org_id: String(org.id), entry };
 }

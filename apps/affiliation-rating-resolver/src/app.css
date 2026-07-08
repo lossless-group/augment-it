@@ -34,13 +34,27 @@
 .arr-muted { color: var(--color-text-muted, #9aa0aa); }
 .arr-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-muted, #9aa0aa); }
 
-.arr-row-head { margin-bottom: 0.5rem; }
+.arr-row-head { margin-bottom: 0.5rem; display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
 .arr-row-title { font-size: 1.1rem; margin: 0.15rem 0; }
 .arr-row-org { color: var(--color-text-muted, #9aa0aa); }
-.arr-row-role { font-style: italic; }
+.arr-row-role { font-style: italic; font-size: 0.85rem; color: var(--color-text-muted, #9aa0aa); }
 .arr-field { margin: 0.5rem 0; }
 .arr-label { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted, #9aa0aa); margin-bottom: 0.2rem; }
 .arr-value { font-size: 0.9rem; }
+.arr-field select, .arr-field textarea { width: 100%; max-width: 28rem; background: var(--color-bg, #14151a); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 4px; padding: 0.4rem 0.5rem; font: inherit; font-size: 0.85rem; }
+.arr-field textarea { resize: vertical; }
+
+.arr-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--color-border, #2a2c33); }
+@media (max-width: 700px) { .arr-two-col { grid-template-columns: 1fr; } }
+.arr-subsection { display: flex; flex-direction: column; gap: 0.4rem; }
+.arr-link-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.arr-link-list li { font-size: 0.8rem; word-break: break-all; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.arr-link-list a { color: var(--color-link, #6fb3ff); text-decoration: none; }
+.arr-link-list a:hover { text-decoration: underline; }
+.arr-kind { font-size: 0.65rem; color: var(--color-text-muted, #9aa0aa); border: 1px solid var(--color-border, #2a2c33); border-radius: 3px; padding: 0 0.3rem; white-space: nowrap; }
+.arr-add-row { display: flex; gap: 0.4rem; }
+.arr-add-row input { flex: 1; min-width: 0; background: var(--color-bg, #14151a); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 4px; padding: 0.35rem 0.5rem; font-size: 0.8rem; }
+.arr-add-row input:disabled { opacity: 0.5; }
 
 .arr-result { background: var(--color-ok-bg, #173a26); border: 1px solid var(--color-ok-text, #6ee7a8); border-radius: 8px; padding: 0.7rem; margin-top: 0.6rem; }
 .arr-result-head { font-weight: 600; }

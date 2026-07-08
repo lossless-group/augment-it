@@ -11,8 +11,16 @@
   import { workspace, type RecordSet, type Row } from '@augment-it/workspace';
   import ColumnMapper from './components/ColumnMapper.svelte';
   import { normalizeRatingRecord, guessMapping, MAPPING_NONE } from './lib/normalize';
-  import { rateAffiliation } from './lib/resolver-client';
-  import type { RatingFieldMapping, RatingNormRecord } from './lib/types';
+  import {
+    rateAffiliation,
+    fetchAffiliationDetail,
+    addPersonLink,
+    addPersonCorpus,
+    addOrgLink,
+    addOrgCorpus,
+  } from './lib/resolver-client';
+  import { RELEVANCE_OPTIONS } from './lib/types';
+  import type { RatingFieldMapping, RatingNormRecord, AffiliationDetail, Link, CorpusEntry } from './lib/types';
 
   const TOKEN_KEY = 'augment-it:session-token';
   const WS_URL = 'ws://localhost:3001/ws';
@@ -41,6 +49,31 @@
   let bulkSkippedBlank = $state(0);
   let bulkFlagged = $state<{ row: number; person: string | null; error: string }[]>([]);
 
+  // ---- Inline editing state — the per-row "view the record, edit it in
+  // place" surface, same shape as record-db-resolver / person-db-resolver.
+  // Hydrated fresh via affiliation.detail whenever the row changes, so it
+  // reflects the CURRENT canonical state, not a stale CSV-export snapshot.
+  let detailLoading = $state(false);
+  let detailError = $state<string | null>(null);
+  let detail = $state<AffiliationDetail | null>(null);
+
+  let relevanceInput = $state<string>('');
+  let relevanceNoteInput = $state<string>('');
+
+  let personLinkUrl = $state('');
+  let personLinkBusy = $state(false);
+  let personLinkError = $state<string | null>(null);
+  let personCorpusUrl = $state('');
+  let personCorpusBusy = $state(false);
+  let personCorpusError = $state<string | null>(null);
+
+  let orgLinkUrl = $state('');
+  let orgLinkBusy = $state(false);
+  let orgLinkError = $state<string | null>(null);
+  let orgCorpusUrl = $state('');
+  let orgCorpusBusy = $state(false);
+  let orgCorpusError = $state<string | null>(null);
+
   const selectedSet = $derived(
     selectedRecordSetId ? recordSets.find((rs) => rs.record_set_id === selectedRecordSetId) ?? null : null,
   );
@@ -49,6 +82,53 @@
   const record = $derived<RatingNormRecord | null>(
     current && mapping ? normalizeRatingRecord(current.fields as Record<string, unknown>, mapping) : null,
   );
+
+  // Load fresh detail whenever the row's identity changes. Only reads
+  // record?.person_uuid / record?.org_slug — never relevanceInput or
+  // anything this effect itself writes, same "don't transitively read your
+  // own output" rule person-db-resolver's App.svelte already learned the
+  // hard way (see that file's header comment on the row-change effect).
+  $effect(() => {
+    const person_uuid = record?.person_uuid;
+    const org_slug = record?.org_slug;
+    if (!person_uuid || !org_slug) {
+      detail = null;
+      return;
+    }
+    void loadDetailFor(person_uuid, org_slug);
+  });
+
+  async function loadDetailFor(person_uuid: string, org_slug: string) {
+    detailLoading = true;
+    detailError = null;
+    resetLinkCorpusState();
+    try {
+      const d = await fetchAffiliationDetail(person_uuid, org_slug);
+      detail = d;
+      // Server's current rating wins over the CSV pre-fill once loaded;
+      // the CSV value is still shown as a fallback while this is loading.
+      relevanceInput = d.relevance ?? record?.relevance ?? '';
+      relevanceNoteInput = d.relevance_note ?? record?.relevance_note ?? '';
+    } catch (err) {
+      detail = null;
+      detailError = err instanceof Error ? err.message : String(err);
+      relevanceInput = record?.relevance ?? '';
+      relevanceNoteInput = record?.relevance_note ?? '';
+    } finally {
+      detailLoading = false;
+    }
+  }
+
+  function resetLinkCorpusState() {
+    personLinkUrl = '';
+    personLinkError = null;
+    personCorpusUrl = '';
+    personCorpusError = null;
+    orgLinkUrl = '';
+    orgLinkError = null;
+    orgCorpusUrl = '';
+    orgCorpusError = null;
+  }
 
   function onWorkspaceChanged(e: Event) {
     const detail = (e as CustomEvent).detail as { client_id?: string } | undefined;
@@ -164,15 +244,15 @@
   }
 
   async function applyCurrent() {
-    if (!record || !record.relevance) return;
+    if (!record || !relevanceInput.trim()) return;
     rowBusy = true;
     rowError = null;
     try {
       const r = await rateAffiliation({
         person_uuid: record.person_uuid,
         org_slug: record.org_slug,
-        relevance: record.relevance,
-        relevance_note: record.relevance_note,
+        relevance: relevanceInput,
+        relevance_note: relevanceNoteInput,
         client,
       });
       rowResult = { relevance: r.relevance };
@@ -180,6 +260,73 @@
       rowError = err instanceof Error ? err.message : String(err);
     } finally {
       rowBusy = false;
+    }
+  }
+
+  // ---- Person-side link/corpus add — commits immediately, same
+  // "each add is its own write" discipline as record-db-resolver /
+  // person-db-resolver's match/create actions.
+  async function submitPersonLink() {
+    const url = personLinkUrl.trim();
+    if (!url || !record || !detail) return;
+    personLinkBusy = true;
+    personLinkError = null;
+    try {
+      const link = await addPersonLink({ person_uuid: record.person_uuid, url, client });
+      detail = { ...detail, person: { ...detail.person, personal_links: [...detail.person.personal_links, link] } };
+      personLinkUrl = '';
+    } catch (err) {
+      personLinkError = err instanceof Error ? err.message : String(err);
+    } finally {
+      personLinkBusy = false;
+    }
+  }
+
+  async function submitPersonCorpus() {
+    const url = personCorpusUrl.trim();
+    if (!url || !record || !detail) return;
+    personCorpusBusy = true;
+    personCorpusError = null;
+    try {
+      const entry = await addPersonCorpus({ person_uuid: record.person_uuid, url, client });
+      detail = { ...detail, person: { ...detail.person, personal_corpus: [...detail.person.personal_corpus, entry] } };
+      personCorpusUrl = '';
+    } catch (err) {
+      personCorpusError = err instanceof Error ? err.message : String(err);
+    } finally {
+      personCorpusBusy = false;
+    }
+  }
+
+  async function submitOrgLink() {
+    const url = orgLinkUrl.trim();
+    if (!url || !record || !detail) return;
+    orgLinkBusy = true;
+    orgLinkError = null;
+    try {
+      const link = await addOrgLink({ org_slug: record.org_slug, url, client });
+      detail = { ...detail, org: { ...detail.org, org_links: [...detail.org.org_links, link] } };
+      orgLinkUrl = '';
+    } catch (err) {
+      orgLinkError = err instanceof Error ? err.message : String(err);
+    } finally {
+      orgLinkBusy = false;
+    }
+  }
+
+  async function submitOrgCorpus() {
+    const url = orgCorpusUrl.trim();
+    if (!url || !record || !detail) return;
+    orgCorpusBusy = true;
+    orgCorpusError = null;
+    try {
+      const entry = await addOrgCorpus({ org_slug: record.org_slug, url, client });
+      detail = { ...detail, org: { ...detail.org, org_corpus: [...detail.org.org_corpus, entry] } };
+      orgCorpusUrl = '';
+    } catch (err) {
+      orgCorpusError = err instanceof Error ? err.message : String(err);
+    } finally {
+      orgCorpusBusy = false;
     }
   }
 
@@ -313,36 +460,115 @@
       {:else if record}
         <div class="arr-card">
           <div class="arr-row-head">
-            <h3 class="arr-row-title">{record.person_name ?? record.person_uuid}</h3>
-            <span class="arr-row-org">{record.org_name ?? record.org_slug}</span>
+            <h3 class="arr-row-title">{detail?.person.name ?? record.person_name ?? record.person_uuid}</h3>
+            <span class="arr-row-org">{detail?.org.complete_name ?? record.org_name ?? record.org_slug}</span>
+            {#if detail?.kind}<span class="arr-row-role">{detail.kind}</span>{/if}
           </div>
+
+          {#if detailLoading}<p class="arr-muted">loading current state…</p>{/if}
+          {#if detailError}<div class="arr-error">couldn't load current state: {detailError} — falling back to the CSV-supplied values.</div>{/if}
 
           <div class="arr-field">
-            <span class="arr-label">relevance (from CSV)</span>
-            {#if record.relevance}
-              <span class="arr-value">{record.relevance}</span>
-            {:else}
-              <span class="arr-muted">— left blank in the CSV, skipping this row —</span>
-            {/if}
+            <label class="arr-label" for="arr-relevance">relevance</label>
+            <select id="arr-relevance" bind:value={relevanceInput}>
+              <option value="">— not rated —</option>
+              {#each RELEVANCE_OPTIONS as opt (opt)}
+                <option value={opt}>{opt}</option>
+              {/each}
+            </select>
           </div>
-          {#if record.relevance_note}
-            <div class="arr-field">
-              <span class="arr-label">note</span>
-              <span class="arr-value">{record.relevance_note}</span>
-            </div>
-          {/if}
+          <div class="arr-field">
+            <label class="arr-label" for="arr-relevance-note">note</label>
+            <textarea id="arr-relevance-note" bind:value={relevanceNoteInput} rows="2" placeholder="why this rating — helps whoever reads the export later"></textarea>
+          </div>
 
           {#if rowError}<div class="arr-error">{rowError}</div>{/if}
-
           {#if rowResult}
             <div class="arr-result">
               <div class="arr-result-head">✓ applied — <strong>{rowResult.relevance}</strong></div>
             </div>
-          {:else if record.relevance}
-            <button type="button" class="arr-btn arr-btn-primary" disabled={rowBusy} onclick={applyCurrent}>
-              apply this rating
-            </button>
           {/if}
+          <button type="button" class="arr-btn arr-btn-primary" disabled={rowBusy || !relevanceInput.trim()} onclick={applyCurrent}>
+            {rowBusy ? 'applying…' : 'apply this rating'}
+          </button>
+
+          <div class="arr-two-col">
+            <section class="arr-subsection">
+              <h4 class="arr-eyebrow">person links</h4>
+              {#if detail?.person.personal_links.length}
+                <ul class="arr-link-list">
+                  {#each detail.person.personal_links as l}
+                    <li><a href={l.url} target="_blank" rel="noopener">{l.url}</a> <code class="arr-kind">{l.kind}</code></li>
+                  {/each}
+                </ul>
+              {:else}
+                <p class="arr-muted">none yet</p>
+              {/if}
+              <div class="arr-add-row">
+                <input type="url" bind:value={personLinkUrl} placeholder="paste a canonical link (LinkedIn, website, X…)" disabled={!detail}
+                  onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void submitPersonLink(); } }} />
+                <button type="button" class="arr-btn" disabled={personLinkBusy || !personLinkUrl.trim() || !detail} onclick={submitPersonLink}>+ add</button>
+              </div>
+              {#if personLinkError}<div class="arr-error">{personLinkError}</div>{/if}
+            </section>
+
+            <section class="arr-subsection">
+              <h4 class="arr-eyebrow">person corpus</h4>
+              {#if detail?.person.personal_corpus.length}
+                <ul class="arr-link-list">
+                  {#each detail.person.personal_corpus as l}
+                    <li><a href={l.url} target="_blank" rel="noopener">{l.url}</a> <code class="arr-kind">{l.kind}</code></li>
+                  {/each}
+                </ul>
+              {:else}
+                <p class="arr-muted">none yet</p>
+              {/if}
+              <div class="arr-add-row">
+                <input type="url" bind:value={personCorpusUrl} placeholder="content ABOUT them — a press mention, an interview" disabled={!detail}
+                  onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void submitPersonCorpus(); } }} />
+                <button type="button" class="arr-btn" disabled={personCorpusBusy || !personCorpusUrl.trim() || !detail} onclick={submitPersonCorpus}>+ add</button>
+              </div>
+              {#if personCorpusError}<div class="arr-error">{personCorpusError}</div>{/if}
+            </section>
+
+            <section class="arr-subsection">
+              <h4 class="arr-eyebrow">org links</h4>
+              {#if detail?.org.org_links.length}
+                <ul class="arr-link-list">
+                  {#each detail.org.org_links as l}
+                    <li><a href={l.url} target="_blank" rel="noopener">{l.url}</a> <code class="arr-kind">{l.kind}</code></li>
+                  {/each}
+                </ul>
+              {:else}
+                <p class="arr-muted">none yet</p>
+              {/if}
+              <div class="arr-add-row">
+                <input type="url" bind:value={orgLinkUrl} placeholder="paste a canonical link (website, LinkedIn company…)" disabled={!detail}
+                  onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void submitOrgLink(); } }} />
+                <button type="button" class="arr-btn" disabled={orgLinkBusy || !orgLinkUrl.trim() || !detail} onclick={submitOrgLink}>+ add</button>
+              </div>
+              {#if orgLinkError}<div class="arr-error">{orgLinkError}</div>{/if}
+            </section>
+
+            <section class="arr-subsection">
+              <h4 class="arr-eyebrow">org corpus</h4>
+              {#if detail?.org.org_corpus.length}
+                <ul class="arr-link-list">
+                  {#each detail.org.org_corpus as l}
+                    <li><a href={l.url} target="_blank" rel="noopener">{l.url}</a> <code class="arr-kind">{l.kind}</code></li>
+                  {/each}
+                </ul>
+              {:else}
+                <p class="arr-muted">none yet</p>
+              {/if}
+              <div class="arr-add-row">
+                <input type="url" bind:value={orgCorpusUrl} placeholder="content ABOUT the org — press, a feature" disabled={!detail}
+                  onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void submitOrgCorpus(); } }} />
+                <button type="button" class="arr-btn" disabled={orgCorpusBusy || !orgCorpusUrl.trim() || !detail} onclick={submitOrgCorpus}>+ add</button>
+              </div>
+              {#if orgCorpusError}<div class="arr-error">{orgCorpusError}</div>{/if}
+            </section>
+          </div>
         </div>
 
         <div class="arr-actions">

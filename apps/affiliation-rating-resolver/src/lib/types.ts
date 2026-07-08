@@ -31,3 +31,36 @@ export type AffiliationRateResult = {
   relevance: string;
   error?: string;
 };
+
+// Same canonical link shape resolver.ts/person-resolver.ts produce —
+// mirrored here for the frontend, same convention as PersonCandidate etc.
+export type Link = { url: string; kind: string; url_domain: string; added_at: string };
+export type CorpusEntry = Link & { content_id: unknown };
+
+export type AffiliationDetail = {
+  ok: boolean;
+  person: {
+    person_uuid: string;
+    name: string | null;
+    personal_links: Link[];
+    personal_corpus: CorpusEntry[];
+  };
+  org: {
+    org_slug: string;
+    complete_name: string | null;
+    org_links: Link[];
+    org_corpus: CorpusEntry[];
+  };
+  kind: string | null;
+  relevance: string | null;
+  relevance_note: string | null;
+  error?: string;
+};
+
+export const RELEVANCE_OPTIONS = [
+  'Very Relevant',
+  'Highly Relevant',
+  'Relevant',
+  'Skip',
+  'Irrelevant',
+] as const;
