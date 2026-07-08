@@ -38,6 +38,16 @@ const BROADCAST_SUBJECTS = [
   // record_sets / rows so remotes refetch against the new tenant. See
   // [[Workspaces-as-Tenant-Primitive]] § "Tenant-aware envelope".
   'workspace.active.changed',
+  // Curator liveness — emitted by record-surrealdb-resolver's domain/source
+  // handlers (domains.ts) after a mutation commits. Two people in the same
+  // tenant see each other's edits without a refresh — see the Build-Order
+  // plan's Step 6.
+  'domain.created',
+  'domain.retyped',
+  'source.added',
+  'source.updated',
+  'source.removed',
+  'extract.added',
 ];
 
 type Session = {

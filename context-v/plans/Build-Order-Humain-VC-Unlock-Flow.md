@@ -2,12 +2,13 @@
 title: "Build order: the humain-vc unlock flow, step by step"
 lede: "The execution sequence for Flow 1 (Michael + Aniel, side-by-side thesis corpus building on a hosted augment-it) — each step names its repo, files, and verification so any fresh session can pick up mid-sequence. The strategy and scope cuts live in the ai-labs plan; this is the how."
 date_created: 2026-07-06
-date_modified: 2026-07-06
+date_modified: 2026-07-08
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.1.0
+  - Claude Code on Claude Sonnet 5
+semantic_version: 0.0.2.0
 status: Ready
 tags:
   - Plan
@@ -26,20 +27,27 @@ tags:
 > deliberately-NOT-built list. Read it first; this doc only sequences.
 > Identity spec of record: `ai-labs/context-v/specs/Id-Didi-Sh-Identity-Service.md`.
 
-## State as of writing (2026-07-06, end of day — verify, don't assume)
+## State as of writing (2026-07-08 — verify, don't assume)
 
 - **Live URLs:** `https://id.didi.sh` (identity service on Fly — full
   magic-link loop operator-clicked in production; Resend domain-verified,
   sender `no-reply@didi.sh`), `https://didi.sh` + `www` (the `site/`
   conversion surface on Vercel), the GitHub splash.
-- **Steps 1–5 DONE** (see their sections): real email, orgs + memberships
+- **Steps 1–6 DONE** (see their sections): real email, orgs + memberships
   seeded local AND prod (Michael = superuser, 3 addresses; Aniel pends his
   address), the membership gate proven (4401 / admitted / 4403), the
   actor attribution envelope proven live (created_by/updated_by on
-  domains/sources/source_usages + corpus frontmatter), and thesis
+  domains/sources/source_usages + corpus frontmatter), thesis
   vocabulary (Corpora Curator rename, operator-defined + per-workspace-
   default domain type, `domain.retype` migration — `consumer-immunology`
-  is now `thesis:consumer-immunology`).
+  is now `thesis:consumer-immunology`), and curator liveness (domain/source
+  mutations broadcast over NATS; the curator surface refetches on events
+  from a second session — proven via `LIVENESS=1` on the prove script).
+- **Interleaved but separate:** `feature/augment-affiliations` (the
+  Augment-From-Affiliations MVP, `context-v/specs/Augment-From-Affiliations.md`)
+  shipped and merged into `rebuild/turbo-rsbuild` on 2026-07-08, between
+  steps 5 and 6 of this sequence — a different flow, same repo, not part of
+  this build order.
 - augment-it workspace-service verifies `didi_session` on WS upgrade
   (`services/workspace/src/didi.ts`); shell has the DidiBadge sign-in AND
   a "Flows" jumbo popdown ("Build Corpora" → strategyCurator, full-screen);
@@ -54,7 +62,8 @@ tags:
   repeatable check either way.
 - The DO droplet (167.172.42.247) is prepped: Coolify removed, 2GB swap,
   Docker 28, ports 80/443 free, SSH via the id_rsa_nopass key.
-- **NEXT: step 6** (curator liveness), then 7–8, then the deploy tail.
+- **NEXT: step 7** (instance posture + sign-in wall), then 8, then the
+  deploy tail.
 
 Steps 1–8 are local, each verifiable on the laptop; 9–12 are the deploy
 tail. Steps marked ⚑ need an operator decision or action first.
@@ -197,20 +206,39 @@ more general than the original sketch:
   frontmatter, verified by direct SurrealDB query and `cat`); reach-edu
   untouched, still resolves `'strategy'`.
 
-## Step 6 — Curator liveness (augment-it)
+## Step 6 — Curator liveness (augment-it) ✅ DONE 2026-07-08
 
-- Resolver + content-ingest handlers publish NATS events after mutations:
-  `domain.created`, `domain.retyped`, `source.added`, `source.updated`,
-  `source.removed`, `extract.added` (payload: slugs + client_id + actor).
-- Add those subjects to `BROADCAST_SUBJECTS` in
+Done as sketched, with the broadcast owned by the resolver alone (the single
+service that already runs each mutation's full DB + content-ingest
+lifecycle end to end, so it's the one place that knows a mutation actually
+succeeded) rather than split across resolver and content-ingest:
+
+- `services/record-surrealdb-resolver/src/domains.ts`'s
+  `registerDomainHandlers` gained a `broadcast(subject, payload)` helper
+  (fire-and-forget `nc.publish`, same pattern as `workspaces.ts`'s
+  `workspace.active.changed`) called after each of the six mutations
+  commits: `domain.created`, `domain.retyped`, `source.added`,
+  `source.updated`, `source.removed`, `extract.added` — payload carries
+  the domain/source slugs, `client_slug` (or `client_slugs` for retype,
+  which can span clients), and `actor`.
+- Those six subjects added to `BROADCAST_SUBJECTS` in
   `services/workspace/src/ws.ts`.
-- `apps/strategy-curator/src/curation.svelte.ts`: subscribe via the
-  workspace singleton's event stream; refetch the affected list on events
-  for the active domain/client (skip events from own invokes if double-
-  render annoys; correctness first).
-- **Verify:** two browser windows, both on humain-vc; add a source in one;
-  the other's list updates without refresh. This is the Flow-1 step-4
-  acceptance, locally.
+- `apps/strategy-curator/src/App.svelte` (not `curation.svelte.ts` — an
+  `$effect` needs a component, and `record-collector`'s App.svelte already
+  set the precedent) watches `workspace.events`, dedups by `seq` the same
+  way `record-collector` does, and calls the state singleton's
+  `loadStrategies()` (domain events, type-and-client-scoped) or new
+  `refreshSources()` (source/extract events, domain-and-client-scoped —
+  refetches without resetting focus/tags, unlike the user-driven `select()`).
+- **Verify:** ran the protocol-level equivalent of "two browser windows" —
+  a new `LIVENESS=1` mode in `scripts/prove-didi-auth.mjs` opens two
+  independently-authenticated WS sessions against the live local stack;
+  session A invokes `domain.create` then `source.add`; session B (idle,
+  never invokes) asserted receipt of `domain.created` then `source.added`
+  with matching payloads, no polling. Passed both. `apps/strategy-curator`
+  (`svelte-check`) and the two touched services (`tsc --noEmit`) all clean.
+  Test domain + source cleaned up from SurrealDB and the humain-vc
+  filesystem after the run, same discipline as step 4's ATTRIBUTION mode.
 
 ## Step 7 — Instance posture + sign-in wall (augment-it, shell)
 

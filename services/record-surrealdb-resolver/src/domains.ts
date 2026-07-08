@@ -399,6 +399,19 @@ export function registerDomainHandlers(nc: NatsConnection): void {
     })();
   };
 
+  // Curator liveness — fire-and-forget broadcast after a mutation commits, so
+  // every connected browser session (ws.ts's BROADCAST_SUBJECTS) can refetch
+  // the affected domain/source list without a manual refresh. See the
+  // Build-Order plan's Step 6 and [[Workspaces-as-Tenant-Primitive]] §
+  // "Tenant-aware envelope" for the actor field's provenance.
+  const broadcast = (subject: string, payload: Record<string, unknown>): void => {
+    try {
+      nc.publish(subject, JSON.stringify(payload));
+    } catch (err) {
+      console.warn(`[domains] could not publish ${subject}`, err);
+    }
+  };
+
   // domain.create — DB upsert + write the filesystem index.md (content-ingest,
   // filesystem-authoritative). Cross-service request over NATS.
   void (async () => {
@@ -426,6 +439,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         );
         const fileRes = reply.json() as { ok: boolean; corpus_path?: string; error?: string };
         if (!fileRes.ok) throw new Error(`index.md write failed: ${fileRes.error ?? 'unknown'}`);
+        broadcast('domain.created', { type: domain.type, slug: domain.slug, client_slug: args.client_slug, actor: args.actor ?? null });
         if (msg.reply) msg.respond(JSON.stringify({ ok: true, domain, corpus_path: fileRes.corpus_path }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
@@ -468,6 +482,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
             file_errors.push({ client_slug, error: err instanceof Error ? err.message : String(err) });
           }
         }
+        broadcast('domain.retyped', { type: args.new_type, old_type: args.type, slug: args.slug, client_slugs: domain.client_slugs, actor: args.actor ?? null });
         if (msg.reply) msg.respond(JSON.stringify({ ok: true, domain, file_errors }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
@@ -507,6 +522,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
              WHERE source_uuid = $u AND client_slug = $c AND domain_type = $t AND domain_slug = $s;`,
           { p: f.corpus_path ?? null, sl: f.source_slug ?? null, u: source.source_uuid, c: args.client_slug, t: args.domain_type, s: args.domain_slug },
         );
+        broadcast('source.added', { domain_type: args.domain_type, domain_slug: args.domain_slug, client_slug: args.client_slug, source_uuid: source.source_uuid, actor: args.actor ?? null });
         if (msg.reply) {
           msg.respond(JSON.stringify({ ok: true, source: { ...source, title: f.title ?? source.title, authors: f.authors, publisher: f.publisher, published_date: f.published_date, status: 'metadata-only', source_slug: f.source_slug, corpus_path: f.corpus_path } }));
         }
@@ -588,6 +604,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         if (usage?.source_slug) {
           await nc.request('corpus.source.remove.requested', JSON.stringify({ client_slug: a.client_slug, domain_type: a.domain_type, domain_slug: a.domain_slug, source_slug: usage.source_slug }), { timeout: 15_000 });
         }
+        broadcast('source.removed', { domain_type: a.domain_type, domain_slug: a.domain_slug, client_slug: a.client_slug, source_uuid: a.source_uuid, actor: a.actor ?? null });
         if (msg.reply) msg.respond(JSON.stringify({ ok: true, source_uuid: a.source_uuid }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
@@ -643,6 +660,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
             );
           }
         }
+        broadcast('source.updated', { domain_type: a.domain_type, domain_slug: a.domain_slug, client_slug: a.client_slug, source_uuid: a.source_uuid, actor: a.actor ?? null });
         if (msg.reply) msg.respond(JSON.stringify({ ok: true, fields, source_slug }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
@@ -690,7 +708,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('extract.add.requested');
     for await (const msg of sub) {
-      const args = msg.json() as { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; kind: string; text: string };
+      const args = msg.json() as { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; kind: string; text: string; actor?: Actor };
       try {
         const db = await getDb();
         await ensureDomainSchema(db);
@@ -715,6 +733,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         );
         const f = reply.json() as { ok: boolean; corpus_path?: string; error?: string };
         if (!f.ok) throw new Error(`extract write failed: ${f.error ?? 'unknown'}`);
+        broadcast('extract.added', { domain_type: args.domain_type, domain_slug: args.domain_slug, client_slug: args.client_slug, source_uuid: args.source_uuid, actor: args.actor ?? null });
         if (msg.reply) msg.respond(JSON.stringify({ ok: true, corpus_path: f.corpus_path }));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);

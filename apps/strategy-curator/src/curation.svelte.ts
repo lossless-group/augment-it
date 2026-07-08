@@ -461,6 +461,20 @@ class CurationState {
     const i = this.sources.findIndex((x) => x.source_uuid === s.source_uuid);
     if (i >= 0) this.sources[i] = withSlug(s);
   }
+
+  // Re-fetch the active domain's sources without resetting focus/tags —
+  // the curator-liveness path (App.svelte's workspace.events effect, Step
+  // 6) calls this when a REMOTE session's mutation lands, as opposed to
+  // select() which is the user-driven "switch domain" path and resets
+  // focus deliberately.
+  async refreshSources(): Promise<void> {
+    if (!this.activeSlug) return;
+    const r = await this.call<{ sources: Source[] }>('domain.assemble', { type: this.domainType, slug: this.activeSlug, client_slug: this.clientSlug });
+    if (!r) return;
+    const nextSources = (r.sources ?? []).map(withSlug);
+    this.sources = nextSources;
+    if (this.focusIdx >= nextSources.length) this.focusIdx = Math.max(0, nextSources.length - 1);
+  }
 }
 
 // Belt-and-suspenders: if a source arrives without source_slug but with a

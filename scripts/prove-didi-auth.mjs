@@ -109,6 +109,59 @@ if (process.env.ATTRIBUTION === '1') {
   process.exit(0);
 }
 
+// ── LIVENESS MODE (build-order step 6) — curator liveness proof ────────────
+// Two independently-connected WS sessions, both signed in (the same protocol
+// two browser windows use): session A invokes domain.create then source.add;
+// session B — which never invokes anything — must receive the domain.created
+// and source.added broadcast EventFrames without polling. This is the
+// protocol-level equivalent of "two browser windows, add a source in one,
+// the other's list updates without refresh."
+if (process.env.LIVENESS === '1') {
+  const client_slug = process.env.LIVENESS_CLIENT ?? 'humain-vc';
+  step('LIVENESS 1. sign in, open two independent sessions');
+  const jwt = await signInAs(EMAIL);
+  const sessionA = await openSession(WS_URL, { Cookie: `didi_session=${jwt}` });
+  const sessionB = await openSession(WS_URL, { Cookie: `didi_session=${jwt}` });
+  console.log('session A + session B both connected and signed in ✓');
+
+  step('LIVENESS 2. session A: domain.create — session B must see domain.created');
+  const domainSlug = `liveness-proof-${Date.now().toString(36)}`;
+  const domainWait = waitForEvent(sessionB, 'domain.created', 10_000);
+  const domainResult = await invokeOn(sessionA, 'domain.create', {
+    type: 'thesis',
+    slug: domainSlug,
+    title: 'Liveness proof',
+    client_slug,
+    tags: [],
+  });
+  if (!domainResult.ok) fail(`domain.create failed: ${domainResult.error}`);
+  const domainEvent = await domainWait;
+  console.log('session B received domain.created:', JSON.stringify(domainEvent.payload));
+  if (domainEvent.payload.slug !== domainSlug || domainEvent.payload.client_slug !== client_slug) {
+    fail(`domain.created payload mismatch: ${JSON.stringify(domainEvent.payload)}`);
+  }
+
+  step('LIVENESS 3. session A: source.add — session B must see source.added');
+  const sourceWait = waitForEvent(sessionB, 'source.added', 10_000);
+  const sourceResult = await invokeOn(sessionA, 'source.add', {
+    url: `https://example.com/liveness-proof-${Date.now()}`,
+    domain_type: 'thesis',
+    domain_slug: domainSlug,
+    client_slug,
+  });
+  if (!sourceResult.ok) fail(`source.add failed: ${sourceResult.error}`);
+  const sourceEvent = await sourceWait;
+  console.log('session B received source.added:', JSON.stringify(sourceEvent.payload));
+  if (sourceEvent.payload.domain_slug !== domainSlug || sourceEvent.payload.client_slug !== client_slug) {
+    fail(`source.added payload mismatch: ${JSON.stringify(sourceEvent.payload)}`);
+  }
+
+  sessionA.ws.close();
+  sessionB.ws.close();
+  console.log('\n\x1b[32mCURATOR LIVENESS PROVEN (domain.created + source.added broadcast to a second session)\x1b[0m');
+  process.exit(0);
+}
+
 // ── GATE MODE (build-order step 3) — runs ONLY the gate tests ──────────────
 // The base steps below assume DIDI_AUTH=optional; gate mode assumes the
 // container is running with:
@@ -255,6 +308,69 @@ function wsInvoke(url, headers, capability, args) {
       clearTimeout(timer);
       reject(err);
     });
+  }).catch((err) => fail(err.message));
+}
+
+// Opens a WS connection and resolves once the session frame lands, keeping
+// the socket open (unlike firstFrame, which closes immediately) so LIVENESS
+// mode can invoke on it and/or listen for later broadcast EventFrames.
+function openSession(url, headers) {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url, { headers });
+    const listeners = new Set();
+    const timer = setTimeout(() => {
+      ws.terminate();
+      reject(new Error('timeout waiting for session frame'));
+    }, 8000);
+    ws.on('message', (raw) => {
+      const frame = JSON.parse(raw.toString('utf8'));
+      if (frame.kind === 'session') {
+        clearTimeout(timer);
+        resolve({ ws, listeners });
+        return;
+      }
+      for (const fn of listeners) fn(frame);
+    });
+    ws.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+  }).catch((err) => fail(err.message));
+}
+
+// Sends one invoke frame on an already-open session and resolves with its
+// matching result frame's `result` (or throws via the session's own error
+// path) — does NOT close the socket, so the caller can keep listening.
+function invokeOn(session, capability, args) {
+  return new Promise((resolve, reject) => {
+    const id = `live_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    const timer = setTimeout(() => reject(new Error(`timeout waiting for result of ${capability}`)), 15000);
+    const onFrame = (frame) => {
+      if (frame.kind === 'result' && frame.id === id) {
+        clearTimeout(timer);
+        session.listeners.delete(onFrame);
+        resolve(frame);
+      }
+    };
+    session.listeners.add(onFrame);
+    session.ws.send(JSON.stringify({ kind: 'invoke', id, capability, args }));
+  }).catch((err) => fail(err.message));
+}
+
+// Resolves with the first EventFrame on `session` whose subject matches, or
+// rejects (via fail) after timeoutMs — the "browser B's list updates without
+// refresh" assertion at the protocol level.
+function waitForEvent(session, subject, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`timeout waiting for ${subject} broadcast`)), timeoutMs);
+    const onFrame = (frame) => {
+      if (frame.kind === 'event' && frame.subject === subject) {
+        clearTimeout(timer);
+        session.listeners.delete(onFrame);
+        resolve(frame);
+      }
+    };
+    session.listeners.add(onFrame);
   }).catch((err) => fail(err.message));
 }
 
