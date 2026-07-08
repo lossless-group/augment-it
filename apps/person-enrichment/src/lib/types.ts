@@ -10,6 +10,10 @@ export type Person = {
   first_name?: string | null;
   surname?: string | null;
   full_name?: string | null;       // stored — materialized from first_name + surname
+  // Some sources (e.g. person-db-resolver, which never splits first/last)
+  // write a single `name` field instead of first_name/surname/full_name.
+  // Display-only fallback — see hydrateForm()'s displayName.
+  name?: string | null;
   source?: string | null;
   client_access?: string[] | null;
   // we don't render most other fields in v0; surfaced for triage only

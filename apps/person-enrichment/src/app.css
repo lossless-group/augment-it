@@ -49,6 +49,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.pe-event-picker {
+  font-size: 12px;
+  color: var(--color-text);
+  background: var(--color-surface, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  max-width: 20rem;
+}
 .pe-progress {
   display: flex;
   align-items: baseline;

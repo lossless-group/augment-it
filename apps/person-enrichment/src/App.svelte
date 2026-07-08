@@ -4,13 +4,28 @@
   // A pulse-surface hosts ONE entity at a time and composes N
   // pulse-dimensions against it (name, socials, additional emails,
   // organization, web presence). The operator works through the
-  // worklist of un-enriched attendees for ONE event, and each pulse —
-  // one search burst per attendee — fills as many dimensions as the
-  // search surfaces.
+  // worklist of attendees for ONE event, and each pulse — one search
+  // burst or affiliation edit per attendee — fills as many dimensions
+  // as the operator has for them.
   //
-  // v0 hardcodes the Turning-Jobs-Into-Degrees event; event-picker is
-  // a later slice. v0 also talks directly to SurrealDB; later slices
-  // proxy through per-dimension services.
+  // Event-picker (2026-07-07, per context-v/specs/Augment-From-Affiliations.md):
+  // replaces the v0 hardcoded EVENT_SLUG. Two real consequences of
+  // generalizing past the Gatsby-invite shape this app originally
+  // targeted, both load-bearing, not cosmetic:
+  //   1. The attendee query no longer filters by a fixed RSVP predicate
+  //      allowlist — ANY observation whose object is the picked event
+  //      counts as an attendance signal (speaker_at, sponsor_of,
+  //      invited_to, ...). Other predicates never use an event as their
+  //      object, so this is safe without enumerating every event-tie
+  //      verb that exists today or gets added later.
+  //   2. The worklist is now EVERY attendee, not just ones missing a
+  //      full_name. person-db-resolver-sourced persons (e.g. FreedomFest
+  //      speakers) already have a `.name` and will never have a
+  //      `full_name` — gating the worklist on "!full_name" would have
+  //      hidden all of them, defeating the reason this app is being
+  //      reused for affiliation link/corpus editing in the first place.
+  // v0 still talks directly to SurrealDB; later slices proxy through
+  // per-dimension services.
 
   import { onMount, onDestroy } from 'svelte';
   import { getDb, disconnect, CLIENT } from './lib/surreal';
@@ -22,11 +37,12 @@
   import AffiliationCard  from './pulse-dimensions/AffiliationCard.svelte';
   import type { AffiliationState } from './lib/types';
 
-  const EVENT_SLUG = '2026-05-21-turning-jobs-into-degrees';
-  const RSVP_PREDICATES = ['invited_to', 'visited_event_page', 'email_bounced'] as const;
-
   // ---- State -----------------------------------------------------------------
 
+  let events       = $state<EventRow[]>([]);
+  let eventSlug    = $state<string | null>(
+    typeof localStorage !== 'undefined' ? localStorage.getItem('augment-it:person-enrichment:event-slug') : null,
+  );
   let event = $state<EventRow | null>(null);
   let allAttendees = $state<Person[]>([]);
   let worklist     = $state<number[]>([]);
@@ -49,14 +65,41 @@
       ? allAttendees[worklist[worklistIdx]]
       : null,
   );
+  // full_name (Gatsby-shape) or name (person-db-resolver-shape) — display
+  // fallback only, never written back as-is (savePersonName still writes
+  // first_name/surname/full_name; a .name-only person keeps their .name
+  // untouched unless the operator explicitly edits first/last here).
+  const displayName = $derived(current?.full_name || current?.name || null);
 
-  const enrichedCount = $derived(allAttendees.filter((p) => p.full_name).length);
+  const enrichedCount = $derived(allAttendees.filter((p) => p.full_name || p.name).length);
   const totalCount    = $derived(allAttendees.length);
   const remainingInWorklist = $derived(Math.max(0, worklist.length - worklistIdx));
 
   // ---- Load ------------------------------------------------------------------
 
+  async function loadEvents() {
+    try {
+      const db = await getDb();
+      const r = await db.query(
+        `SELECT * FROM events WHERE client_access CONTAINS $client ORDER BY first_seen_at DESC`,
+        { client: CLIENT },
+      );
+      events = ((r?.[0] as any[]) || []) as EventRow[];
+      if (!eventSlug && events.length) eventSlug = events[0].slug;
+    } catch (e: any) {
+      error = e?.message || String(e);
+    }
+  }
+
+  function onPickEvent() {
+    if (typeof localStorage !== 'undefined' && eventSlug) {
+      localStorage.setItem('augment-it:person-enrichment:event-slug', eventSlug);
+    }
+    void load();
+  }
+
   async function load() {
+    if (!eventSlug) return;
     loading = true; error = null; status = 'connecting…';
     try {
       const db = await getDb();
@@ -64,28 +107,30 @@
       status = 'loading event…';
       const evResult = await db.query(
         'SELECT * FROM events WHERE slug = $slug LIMIT 1',
-        { slug: EVENT_SLUG },
+        { slug: eventSlug },
       );
       const ev = (evResult?.[0] as any)?.[0];
-      if (!ev) throw new Error(`event ${EVENT_SLUG} not found`);
+      if (!ev) throw new Error(`event ${eventSlug} not found`);
       event = ev;
 
+      // No hardcoded predicate allowlist — see the header comment. ANY
+      // observation whose object is this event counts as an attendance
+      // signal, regardless of which event-tie verb wrote it.
       status = 'loading attendees…';
       const peopleResult = await db.query(
         `SELECT * FROM persons
            WHERE id IN (
-             SELECT VALUE subject FROM observations
-               WHERE object = $event_id AND predicate IN $preds
+             SELECT VALUE subject FROM observations WHERE object = $event_id
            )
            ORDER BY first_seen_at ASC`,
-        { event_id: ev.id, preds: RSVP_PREDICATES },
+        { event_id: ev.id },
       );
       allAttendees = ((peopleResult?.[0] as any[]) || []) as Person[];
 
-      worklist = allAttendees
-        .map((p, i) => ({ p, i }))
-        .filter(({ p }) => !p.full_name)
-        .map(({ i }) => i);
+      // Every attendee, not just ones missing a full_name — see the header
+      // comment for why gating on "!full_name" would hide already-named
+      // (person-db-resolver-sourced) attendees entirely.
+      worklist = allAttendees.map((_p, i) => i);
       worklistIdx = 0;
 
       hydrateForm();
@@ -701,7 +746,10 @@
   }
 
   onMount(() => {
-    load();
+    (async () => {
+      await loadEvents();
+      if (eventSlug) await load();
+    })();
     window.addEventListener('keydown', onSurfaceKey, true);  // capture phase
   });
   onDestroy(() => {
@@ -714,11 +762,16 @@
   <header class="pe-header">
     <div class="pe-event">
       <span class="pe-event-label">event</span>
-      <span class="pe-event-name">{event?.name ?? '—'}</span>
+      <select class="pe-event-picker" bind:value={eventSlug} onchange={onPickEvent}>
+        <option value={null}>— pick an event —</option>
+        {#each events as ev (ev.slug)}
+          <option value={ev.slug}>{ev.name}</option>
+        {/each}
+      </select>
     </div>
     <div class="pe-progress">
       <span class="pe-counter">{enrichedCount} / {totalCount}</span>
-      <span class="pe-counter-label">enriched</span>
+      <span class="pe-counter-label">named</span>
       {#if worklist.length}
         <span class="pe-divider">·</span>
         <span class="pe-counter">{remainingInWorklist}</span>
@@ -745,20 +798,30 @@
     {:else}
       <div class="pe-card">
         <div class="pe-meta">
-          <div class="pe-meta-row">
-            <span class="pe-label">email</span>
-            <code class="pe-code">{current.email ?? '—'}</code>
-          </div>
+          {#if displayName}
+            <div class="pe-meta-row">
+              <span class="pe-label">name</span>
+              <strong>{displayName}</strong>
+            </div>
+          {/if}
+          {#if current.email}
+            <div class="pe-meta-row">
+              <span class="pe-label">email</span>
+              <code class="pe-code">{current.email}</code>
+            </div>
+          {/if}
           {#if event?.source_url}
             <div class="pe-meta-row">
               <span class="pe-label">source</span>
-              <a class="pe-link" href={event.source_url} target="_blank" rel="noopener">open gatsby table</a>
+              <a class="pe-link" href={event.source_url} target="_blank" rel="noopener">open source</a>
             </div>
           {/if}
-          <div class="pe-search-row">
-            <button class="pe-btn pe-btn-ghost" type="button" onclick={searchGoogle}>↗ google {current.email}</button>
-            <button class="pe-btn pe-btn-ghost" type="button" onclick={searchDuck}>↗ duckduckgo</button>
-          </div>
+          {#if current.email}
+            <div class="pe-search-row">
+              <button class="pe-btn pe-btn-ghost" type="button" onclick={searchGoogle}>↗ google {current.email}</button>
+              <button class="pe-btn pe-btn-ghost" type="button" onclick={searchDuck}>↗ duckduckgo</button>
+            </div>
+          {/if}
         </div>
 
         <NameFields      bind:first_name bind:surname onSave={savePersonName} />
@@ -808,7 +871,7 @@
         {#if showSummary}
           <div class="pe-summary">
             <div class="pe-summary-head">
-              <strong>Writes for {current.full_name ?? current.email} this session</strong>
+              <strong>Writes for {displayName ?? current.email ?? current.id} this session</strong>
               <span class="pe-hint">{saveLog.length} entr{saveLog.length === 1 ? 'y' : 'ies'}</span>
             </div>
             <ul class="pe-summary-list">

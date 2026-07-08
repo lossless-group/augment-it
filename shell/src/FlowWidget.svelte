@@ -93,6 +93,7 @@
           onclick={() => onSelectStep(step.id)}
         >
           <span class="bubble-num">{i + 1}</span>
+          <span class="bubble-label">{step.label}</span>
         </button>
         {#if i < steps.length - 1}
           <span
@@ -180,18 +181,43 @@
     background: transparent;
     color: var(--color-text-muted);
     border: 1px solid var(--color-border);
-    width: 1.75rem;
     height: 1.75rem;
-    padding: 0;
+    padding: 0 0.65rem 0 0.3rem;
     border-radius: 999px;
     font: inherit;
     font-size: 0.75rem;
     line-height: 1;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 0.4rem;
     cursor: pointer;
+    white-space: nowrap;
     transition: border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  }
+  .bubble-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, currentColor 18%, transparent);
+    flex-shrink: 0;
+  }
+  .bubble-label {
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+  /* The left-rail orientation is narrow — labels would force horizontal
+     overflow. Numbered badge + hover tooltip only there, same as before
+     this change. */
+  .orientation-left .bubble-label {
+    display: none;
+  }
+  .orientation-left .bubble {
+    padding: 0;
+    width: 1.75rem;
+    justify-content: center;
   }
 
   /* Visited: filled in muted-accent — "you've been here." */

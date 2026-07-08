@@ -17,10 +17,14 @@ import {
   updateOrg,
   updateOpportunity,
   opportunitiesForOrg,
+  addOrgLink,
+  addOrgCorpus,
   type NormRecord,
   type ApplyInput,
   type UpdateOrgInput,
   type UpdateOpportunityInput,
+  type OrgLinkAddInput,
+  type OrgCorpusAddInput,
 } from './resolver';
 
 export function registerHandlers(nc: NatsConnection): void {
@@ -113,6 +117,39 @@ export function registerHandlers(nc: NatsConnection): void {
         const db = await getDb();
         const result = await opportunitiesForOrg(db, args.org_slug, args.client);
         if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...result }));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
+
+  // organization.links.add — single-entry additive write for an already-
+  // resolved org. Per context-v/specs/Augment-From-Affiliations.md v0.2.0.0.
+  (async () => {
+    const sub = nc.subscribe('organization.links.add.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as OrgLinkAddInput;
+      try {
+        const db = await getDb();
+        const result = await addOrgLink(db, args);
+        if (msg.reply) msg.respond(JSON.stringify(result));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
+
+  // organization.corpus.add
+  (async () => {
+    const sub = nc.subscribe('organization.corpus.add.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as OrgCorpusAddInput;
+      try {
+        const db = await getDb();
+        const result = await addOrgCorpus(db, args);
+        if (msg.reply) msg.respond(JSON.stringify(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
         if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));

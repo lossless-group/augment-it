@@ -11,7 +11,13 @@
 // so it's reachable from the shell instead of CLI-only.
 
 import type { Surreal } from 'surrealdb';
-import { resolveOrgRow, slugify } from './resolver';
+import { resolveOrgRow, slugify, shapeLink, findOrCreateContent, type ShapedLink } from './resolver';
+
+// Actor attribution — same shape + same "never clobber with NULL when
+// unattributed" discipline as domains.ts's actorSetClause. Duplicated
+// locally rather than imported across service modules, matching how
+// domains.ts already does it in this same service.
+export type Actor = { didi_id: string; via?: string };
 
 export type PersonNormRecord = {
   name: string;
@@ -443,4 +449,254 @@ export async function applyPersonAffiliation(
   }
 
   return { ok: true, org_id: String(org.id), org_slug: org.slug, org_created, affiliation_created };
+}
+
+// ---------------------------------------------------------------------------
+// Capability: affiliation.rate — the write half of the Augment-from-
+// Affiliations CSV round-trip (context-v/specs/Augment-From-Affiliations.md).
+// Relevance lives on the affiliations RELATE edge itself, not on persons or
+// organizations (both multi-tenant — a bare field there would leak one
+// client's rating to any other client who can see the same row) and not a
+// new opportunities-like table (opportunities is confirmed org-only and
+// CSV-record-coupled — not a fit for an affiliation-driven origin).
+//
+// Looked up fresh by (person_uuid, org_slug) on every call — never trusts a
+// RecordId surviving the CSV round-trip, same lesson as person_uuid's
+// original introduction and domains.ts's source_uuid.
+// ---------------------------------------------------------------------------
+
+const RELEVANCE_LABELS: Record<string, string> = {
+  'very relevant': 'very_relevant',
+  'very_relevant': 'very_relevant',
+  'highly relevant': 'highly_relevant',
+  'highly_relevant': 'highly_relevant',
+  'relevant': 'relevant',
+  'skip': 'skip',
+  'irrelevant': 'irrelevant',
+};
+
+// Exported so the reimport resolver (or anything else) can render the
+// canonical label set without duplicating it — e.g. a column-mapping UI
+// that wants to validate before ever calling the capability.
+export const RELEVANCE_VALUES = Object.values(RELEVANCE_LABELS);
+
+// Human-typed text in, canonical machine value out. Throws rather than
+// guessing on anything that doesn't match one of the five labels
+// case-insensitively — flagged to the operator, never silently coerced or
+// dropped, per the spec's explicit discipline.
+export function normalizeRelevance(raw: string): string {
+  const key = raw.trim().toLowerCase();
+  const v = RELEVANCE_LABELS[key];
+  if (!v) {
+    throw new Error(
+      `unrecognized relevance value: "${raw}" — expected one of Very Relevant, Highly Relevant, Relevant, Skip, Irrelevant`,
+    );
+  }
+  return v;
+}
+
+export type AffiliationRateInput = {
+  person_uuid: string;
+  org_slug: string;
+  relevance: string; // raw, human-typed — normalized inside applyAffiliationRating
+  relevance_note?: string | null;
+  client: string;
+  actor?: Actor;
+};
+
+export type AffiliationRateResult = {
+  ok: true;
+  affiliation_id: string;
+  relevance: string;
+};
+
+export async function applyAffiliationRating(
+  db: Surreal,
+  input: AffiliationRateInput,
+): Promise<AffiliationRateResult> {
+  const relevance = normalizeRelevance(input.relevance);
+
+  const person = await fetchPersonByUuid(db, input.person_uuid);
+  if (!person) throw new Error(`person not found: ${input.person_uuid}`);
+  const org = await db.query('SELECT VALUE id FROM organizations WHERE slug = $slug LIMIT 1;', {
+    slug: input.org_slug,
+  });
+  const orgId = ((org?.[0] as unknown[]) ?? [])[0];
+  if (!orgId) throw new Error(`organization not found: ${input.org_slug}`);
+
+  const edge = await db.query(
+    'SELECT VALUE id FROM affiliations WHERE in = $person AND out = $org LIMIT 1;',
+    { person: person.id, org: orgId },
+  );
+  const edgeId = ((edge?.[0] as unknown[]) ?? [])[0];
+  if (!edgeId) {
+    throw new Error(
+      `no affiliation edge between person_uuid ${input.person_uuid} and org_slug ${input.org_slug} — resolve the affiliation before rating it`,
+    );
+  }
+
+  const sets = [
+    'relevance = $relevance',
+    'relevance_note = $relevance_note',
+    'relevance_rated_at = time::now()',
+    'client_access = array::union(client_access ?? [], [$client])',
+  ];
+  const vars: Record<string, unknown> = {
+    id: edgeId,
+    relevance,
+    relevance_note: input.relevance_note?.trim() || null,
+    client: input.client,
+  };
+  if (input.actor?.didi_id) {
+    sets.push('relevance_rated_by = $rated_by');
+    vars.rated_by = input.actor.didi_id;
+  }
+  await db.query(`UPDATE $id SET ${sets.join(', ')};`, vars);
+
+  return { ok: true, affiliation_id: String(edgeId), relevance };
+}
+
+// ---------------------------------------------------------------------------
+// Capability: affiliation.detail — the read half that makes the inline
+// editor honest: shows the CURRENT persons/organizations link+corpus
+// arrays and the current relevance, not a snapshot frozen at CSV-export
+// time. Called whenever the operator navigates to a row. Per
+// context-v/specs/Augment-From-Affiliations.md v0.2.0.0.
+// ---------------------------------------------------------------------------
+
+type PersonDetailRow = {
+  id: unknown;
+  person_uuid?: string | null;
+  name?: string | null;
+  personal_links?: ShapedLink[] | null;
+  personal_corpus?: (ShapedLink & { content_id: unknown })[] | null;
+};
+type OrgDetailRow = {
+  id: unknown;
+  slug: string;
+  complete_name?: string | null;
+  org_links?: ShapedLink[] | null;
+  org_corpus?: (ShapedLink & { content_id: unknown })[] | null;
+};
+type AffiliationEdgeRow = {
+  kind?: string | null;
+  relevance?: string | null;
+  relevance_note?: string | null;
+};
+
+export type AffiliationDetailInput = { person_uuid: string; org_slug: string };
+export type AffiliationDetailResult = {
+  ok: true;
+  person: {
+    person_uuid: string;
+    name: string | null;
+    personal_links: ShapedLink[];
+    personal_corpus: (ShapedLink & { content_id: unknown })[];
+  };
+  org: {
+    org_slug: string;
+    complete_name: string | null;
+    org_links: ShapedLink[];
+    org_corpus: (ShapedLink & { content_id: unknown })[];
+  };
+  kind: string | null;
+  relevance: string | null;
+  relevance_note: string | null;
+};
+
+export async function getAffiliationDetail(
+  db: Surreal,
+  input: AffiliationDetailInput,
+): Promise<AffiliationDetailResult> {
+  const personRes = await db.query(
+    `SELECT id, person_uuid, name, personal_links, personal_corpus FROM persons WHERE person_uuid = $u LIMIT 1;`,
+    { u: input.person_uuid },
+  );
+  const person = ((personRes?.[0] as PersonDetailRow[]) ?? [])[0];
+  if (!person) throw new Error(`person not found: ${input.person_uuid}`);
+
+  const orgRes = await db.query(
+    `SELECT id, slug, complete_name, org_links, org_corpus FROM organizations WHERE slug = $slug LIMIT 1;`,
+    { slug: input.org_slug },
+  );
+  const org = ((orgRes?.[0] as OrgDetailRow[]) ?? [])[0];
+  if (!org) throw new Error(`organization not found: ${input.org_slug}`);
+
+  const affRes = await db.query(
+    `SELECT kind, relevance, relevance_note FROM affiliations WHERE in = $person AND out = $org LIMIT 1;`,
+    { person: person.id, org: org.id },
+  );
+  const aff = ((affRes?.[0] as AffiliationEdgeRow[]) ?? [])[0] ?? {};
+
+  return {
+    ok: true,
+    person: {
+      person_uuid: input.person_uuid,
+      name: person.name ?? null,
+      personal_links: person.personal_links ?? [],
+      personal_corpus: person.personal_corpus ?? [],
+    },
+    org: {
+      org_slug: input.org_slug,
+      complete_name: org.complete_name ?? null,
+      org_links: org.org_links ?? [],
+      org_corpus: org.org_corpus ?? [],
+    },
+    kind: aff.kind ?? null,
+    relevance: aff.relevance ?? null,
+    relevance_note: aff.relevance_note ?? null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Capabilities: person.links.add / person.corpus.add — the person-side
+// sibling of resolver.ts's organization.links.add / organization.corpus.add.
+// Same narrow, single-entry shape; reuses shapeLink/findOrCreateContent
+// rather than reimplementing them. Per
+// context-v/specs/Augment-From-Affiliations.md v0.2.0.0.
+// ---------------------------------------------------------------------------
+
+export type PersonLinkAddInput = { person_uuid: string; url: string; kind?: string; client: string };
+export type PersonLinkAddResult = { ok: true; person_uuid: string; link: ShapedLink };
+
+export async function addPersonLink(db: Surreal, input: PersonLinkAddInput): Promise<PersonLinkAddResult> {
+  const person = await fetchPersonByUuid(db, input.person_uuid);
+  if (!person) throw new Error(`person not found: ${input.person_uuid}`);
+  const shaped = shapeLink(input.kind ? { url: input.url, kind: input.kind } : input.url);
+  if (!shaped) throw new Error('person.links.add requires a non-empty url');
+  await db.query(
+    `UPDATE $id SET
+        personal_links  = array::concat(personal_links ?? [], [$link]),
+        client_access   = array::union(client_access ?? [], [$client]),
+        last_touched_by = $client, last_touched_at = time::now();`,
+    { id: person.id, link: shaped, client: input.client },
+  );
+  return { ok: true, person_uuid: input.person_uuid, link: shaped };
+}
+
+export type PersonCorpusAddInput = { person_uuid: string; url: string; kind?: string; client: string };
+export type PersonCorpusAddResult = {
+  ok: true;
+  person_uuid: string;
+  entry: ShapedLink & { content_id: unknown };
+};
+
+export async function addPersonCorpus(
+  db: Surreal,
+  input: PersonCorpusAddInput,
+): Promise<PersonCorpusAddResult> {
+  const person = await fetchPersonByUuid(db, input.person_uuid);
+  if (!person) throw new Error(`person not found: ${input.person_uuid}`);
+  const shaped = shapeLink(input.kind ? { url: input.url, kind: input.kind } : input.url);
+  if (!shaped) throw new Error('person.corpus.add requires a non-empty url');
+  const content_id = await findOrCreateContent(db, shaped.url, shaped.kind, shaped.url_domain);
+  const entry = { ...shaped, content_id };
+  await db.query(
+    `UPDATE $id SET
+        personal_corpus = array::concat(personal_corpus ?? [], [$entry]),
+        client_access   = array::union(client_access ?? [], [$client]),
+        last_touched_by = $client, last_touched_at = time::now();`,
+    { id: person.id, entry, client: input.client },
+  );
+  return { ok: true, person_uuid: input.person_uuid, entry };
 }
