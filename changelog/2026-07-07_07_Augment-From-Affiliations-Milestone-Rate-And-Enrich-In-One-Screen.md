@@ -1,6 +1,6 @@
 ---
 date_created: 2026-07-07
-date_modified: 2026-07-07
+date_modified: 2026-07-08
 title: "Augment from Affiliations hits its milestone — rate, link, and enrich in one screen, 9 real rows worked end to end"
 lede: "The v0.1.0.0 rating loop shipped tonight, then got real feedback the moment it was actually used: two screens for one task was the wrong shape. Reversed course — apps/affiliation-rating-resolver now does what record-db-resolver and person-db-resolver already do for their entities: view the record, edit it in place. Five new capabilities later, the operator worked through 9 real FreedomFest 2026 affiliations end to end — real relevance ratings, real notes, real canonical links, real corpus content — and every byte of it verified correct directly against SurrealDB."
 publish: true
@@ -18,7 +18,10 @@ files_changed:
   - services/record-surrealdb-resolver/src/handlers.ts
   - services/record-surrealdb-resolver/src/person-handlers.ts
   - services/workspace/src/capabilities.ts
+  - services/record-surrealdb-resolver/src/person-resolver.ts
+  - apps/affiliation-rating-resolver/src/lib/types.ts
   - context-v/specs/Augment-From-Affiliations.md
+  - scripts/export-affiliation-ratings-csv.mjs
 tags:
   - Progress-Update
   - Milestone
@@ -59,7 +62,15 @@ Along the way: a query that accidentally swept the entire pre-existing 882-perso
 
 Rand Paul and Jessie Markell still need their ratings applied (links/corpus already saved). The known duplicate-person rows (Ethan Akimoto, Rudolfo Beltran) from earlier tonight are still on the list, untouched by this work. The CEO-brief export that turns rated affiliations into something shareable is still the next real spec, now with real rating data to design against instead of guesses.
 
+## Postscript (2026-07-08)
+
+Three loose ends closed the morning after, before merging `feature/augment-affiliations` into `rebuild/turbo-rsbuild`:
+
+- **The relevance-dropdown pre-select bug**, found immediately after this milestone, is fixed in `965173e`: the stored value is snake_case (`highly_relevant`) but the `<option value>` was the Title Case label, so a previously-rated row's dropdown rendered blank on reload even though the rating had saved correctly. Fixed at the root — `normalizeRelevance` now accepts its own snake_case output, and the dropdown carries the machine value explicitly.
+- **The on-disk CSV was stale.** The only `affiliation-ratings.csv` in the repo was a 17:53 export that predated most of this night's live-edit work — reloading it would have shown 3 rated rows, not 57. Re-ran `scripts/export-affiliation-ratings-csv.mjs` fresh against SurrealDB and committed the current snapshot (57 of 61 rated) plus the branded HTML/PDF relevance report generated the same night, in the `reach-edu` submodule (`6490adc`) — the 61-row rating pass now has a durable artifact, not just live DB state.
+- **The spec is updated to `status: Shipped`, MVP confirmed**, with a "Next desired features" section naming what's deferred: observation visibility/editing in the same screen, and concurrent updates across persons/organizations/observations.
+
 ## Related
 
-- `context-v/specs/Augment-From-Affiliations.md` — now at v0.2.0.0
+- `context-v/specs/Augment-From-Affiliations.md` — now at v0.2.1.0, MVP confirmed
 - [[2026-07-07_06_Augment-From-Affiliations-Initial-Build-Live-Rating-Loop-Working]] — the v0.1.0.0 entry this one reverses part of

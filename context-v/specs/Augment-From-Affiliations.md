@@ -2,13 +2,15 @@
 title: "Augment from Affiliations — the first flow that starts from SurrealDB instead of a CSV, turning an event's speaker/org pairs into a rated, sourced prospect list"
 lede: "Every flow in augment-it so far starts with a CSV — upload, map columns, resolve. This one starts with data already in the canonical layer: pick an event, export every person↔org [[Client-Tagging-on-Canonical-Writes|affiliations]] edge tied to it as a CSV, rate relevance offline in a spreadsheet, reimport — while links and corpus content get added through the existing per-affiliation surface, not a new one. Building the sourced short-list a Reach.Edu team member needs to walk into FreedomFest 2026 and know who's worth a conversation."
 date_created: 2026-07-07
-date_modified: 2026-07-07
+date_modified: 2026-07-08
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Sonnet 5
-semantic_version: 0.2.0.0
+semantic_version: 0.2.1.0
+date_first_published: 2026-07-07
 revisions:
+  - 2026-07-08 — v0.2.1.0: MVP confirmed shipped and in active use (9 real FreedomFest 2026 affiliations rated, linked, and enriched end to end, plus the relevance-dropdown pre-select fix in `965173e`). Named the next desired features — see "Next desired features" below — deferred, not started.
   - 2026-07-07 — v0.2.0.0: reversed the v0.0.0.2 split, per direct operator feedback after using the shipped v0.1.0.0 screen. "Two loops, two apps" was the wrong shape — the operator wants ONE screen per affiliation that does what `record-db-resolver`/`person-db-resolver` already do for their entities: view the record and edit it in place, including adding canonical links and corpus content, not just reading a CSV-supplied rating. `affiliation-rating-resolver` now also carries interactive relevance editing plus person-side and org-side link/corpus add — the CSV round-trip stays (bulk-editing 61 rows in a spreadsheet is still genuinely faster than 61 clicks), but it's now a *pre-fill* for this screen, not the only way to set a rating. `person-enrichment` is no longer this flow's link/corpus surface.
   - 2026-07-07 — v0.1.0.0: shipped and live-tested against the real FreedomFest 2026 batch. Two real deviations from the v0.0.0.2 plan, both discovered during implementation, not guessed in advance — (1) the export is a NEW script (`export-affiliation-ratings-csv.mjs`), not an extension of `export-event-attendees-csv.mjs`, because that script is person-per-row while ratings need affiliation-per-row (a person with two orgs needs two independently-rateable rows) — extending it would have meant changing its shape for every other consumer of that roster; (2) `person-enrichment` needed more than the planned "swap EVENT_SLUG for a picker" — its worklist and attendee query were architecturally coupled to the Gatsby-invite person shape (a `!full_name` worklist gate, a fixed RSVP-predicate allowlist), which would have shown zero or silently-wrong results for FreedomFest's `person-db-resolver`-sourced, `.name`-only persons. Fixed properly: the worklist is now every attendee (not just unnamed ones), the attendee query drops the predicate allowlist entirely (any observation pointing at the event counts), and the UI falls back to `.name` for display when `.full_name` is absent. See "What Shipped" below for the full account.
   - 2026-07-07 — v0.0.0.2: split into a hybrid — relevance rating moves to a CSV export/reimport round-trip (bulk-editable, reuses Record Collector's existing upload path); links + corpus point at `person-enrichment`'s existing per-affiliation surface (de-hardcoded from one event) instead of a new worklist UI. Smaller build, more reuse, per operator direction.
@@ -236,6 +238,35 @@ in `CAPABILITY_TO_SUBJECT` per the existing gating discipline:
   → branded HTML/PDF) — the export side of this spec extends the first;
   the eventual CEO-brief export (out of scope here) has a natural home in
   the third once rating data exists to feed it.
+
+## MVP achieved (2026-07-08)
+
+The flow works end to end against real data: 9 FreedomFest 2026
+affiliations rated, noted, and enriched with real canonical links and
+corpus content, verified directly against SurrealDB. The v0.2.0.0
+reversal (one screen, edit in place) is the shape that stuck; the
+relevance-dropdown pre-select bug found immediately after (stored
+snake_case value vs. Title Case `<option value>`) is fixed in `965173e`.
+No open defects block using this for a second event.
+
+## Next desired features (not yet scoped)
+
+Named by the operator after using the MVP, deferred until there's a real
+case pulling them forward — same manual-first-then-automate discipline as
+the rest of this spec:
+
+- **User visibility and control over creating and editing observations,
+  in the same UI.** Today `affiliation-rating-resolver` edits the
+  `affiliations` edge and the person/org link+corpus fields, but the
+  underlying `observations` (the event-tie records the affiliation and
+  the export query are built on) aren't visible or editable from this
+  screen — same "bounce to a second surface" friction the v0.2.0.0
+  reversal fixed for links and corpus.
+- **Concurrent updates across persons, organizations, and observations.**
+  Right now each add/edit commits independently per entity (person link,
+  org link, rating), but there's no story yet for two operators editing
+  overlapping affiliations at the same time, or for one save touching
+  person + org + observation together as one coherent update.
 
 ## Out of scope for v0.2.0.0
 
