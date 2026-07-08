@@ -16,7 +16,7 @@
   // WS_URL the shell and strategy-curator each read (rsbuild inlines
   // PUBLIC_-prefixed vars into import.meta.env at build time).
   const WS_URL =
-    ((import.meta as { env?: Record<string, string> }).env?.PUBLIC_WS_URL as string | undefined) ??
+    ((import.meta as { env?: Record<string, string> }).env?.PUBLIC_WS_URL as string | undefined) ||
     'ws://localhost:3001/ws';
 
   let connectionStatus = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');

@@ -19,7 +19,7 @@ const TOKEN_KEY = 'augment-it:session-token';
 // import.meta.env at build time — applies to plain .ts modules too, not
 // just .svelte files).
 const WS_URL =
-  ((import.meta as { env?: Record<string, string> }).env?.PUBLIC_WS_URL as string | undefined) ??
+  ((import.meta as { env?: Record<string, string> }).env?.PUBLIC_WS_URL as string | undefined) ||
   'ws://localhost:3001/ws';
 const ACTIVE_STRATEGY_KEY = 'augment-it:active-strategy';
 // The operator-chosen domain type this surface is currently browsing/

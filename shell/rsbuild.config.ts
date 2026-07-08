@@ -16,8 +16,15 @@ import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 // leaving them pointed at localhost is the same "no isolation, they error
 // if poked" rule the build order already established, just now true for
 // federation URLs too — nobody on this instance ever navigates to them.
-const STRATEGY_CURATOR_REMOTE = process.env.PUBLIC_STRATEGY_CURATOR_REMOTE ?? 'http://localhost:3017/remoteEntry.js';
-const CHAT_REMOTE = process.env.PUBLIC_CHAT_REMOTE ?? 'http://localhost:3006/remoteEntry.js';
+// `|| default` (not `?? default`) deliberately — an unset Docker ARG
+// resolves to an EMPTY STRING once assigned to ENV, not undefined, so `??`
+// alone would silently ship `strategyCurator@` / `chat@` (no host) instead
+// of falling back. Caught locally: a docker build with these vars unset
+// produced "TypeError: object null is not iterable" deep in rspack's
+// Module Federation remote-info resolution — an empty remote URL, not a
+// missing one.
+const STRATEGY_CURATOR_REMOTE = process.env.PUBLIC_STRATEGY_CURATOR_REMOTE || 'http://localhost:3017/remoteEntry.js';
+const CHAT_REMOTE = process.env.PUBLIC_CHAT_REMOTE || 'http://localhost:3006/remoteEntry.js';
 
 export default defineConfig({
   plugins: [

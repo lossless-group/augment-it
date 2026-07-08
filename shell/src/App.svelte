@@ -36,7 +36,7 @@
   // second env var — Step 7's /config check needs the same origin, not the
   // WS scheme.
   const WS_URL =
-    ((import.meta as { env?: Record<string, string> }).env?.PUBLIC_WS_URL as string | undefined) ??
+    ((import.meta as { env?: Record<string, string> }).env?.PUBLIC_WS_URL as string | undefined) ||
     'ws://localhost:3001/ws';
   const WS_HTTP_BASE = WS_URL.replace(/^ws/, 'http').replace(/\/ws$/, '');
 
