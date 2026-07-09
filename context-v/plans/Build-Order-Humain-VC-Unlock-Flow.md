@@ -2,13 +2,13 @@
 title: "Build order: the humain-vc unlock flow, step by step"
 lede: "The execution sequence for Flow 1 (Michael + Aniel, side-by-side thesis corpus building on a hosted augment-it) — each step names its repo, files, and verification so any fresh session can pick up mid-sequence. The strategy and scope cuts live in the ai-labs plan; this is the how."
 date_created: 2026-07-06
-date_modified: 2026-07-08
+date_modified: 2026-07-09
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
   - Claude Code on Claude Sonnet 5
-semantic_version: 0.0.3.0
+semantic_version: 0.0.4.0
 status: Ready
 tags:
   - Plan
@@ -70,10 +70,20 @@ tags:
   (flipped from the `optional` dev default for live testing this session —
   flip back in `.env` when done); the prove script's GATE mode is the
   repeatable check either way.
-- The DO droplet (167.172.42.247) is prepped: Coolify removed, 2GB swap,
-  Docker 28, ports 80/443 free, SSH via the id_rsa_nopass key.
-- **NEXT: step 9** — the deploy tail (9–12) is all that's left. Steps
-  1–8 are done and verified locally.
+- **The DO droplet plan was abandoned** (167.172.42.247 — still prepped,
+  still paid-for, just not used). Steps 9–10 shipped on **Railway**
+  instead, plus a real custom domain — see their sections for why and
+  the full list of Railway-specific gotchas hit along the way.
+- **Live URLs, deployed:** `https://augment.didi.sh` (shell, single-tenant
+  humain-vc), `wss://ws.augment.didi.sh/ws` (workspace-service). Both
+  verified live via headless-browser checks against the real deployed
+  URLs, not just localhost.
+- **NEXT: step 12** — the dress rehearsal. Aniel's membership still isn't
+  seeded on prod (carried over from Step 2 — his address was never
+  confirmed), and nobody has completed an actual human sign-in against
+  `augment.didi.sh` yet (dev-token echo is off in prod by design, so this
+  genuinely needs a person clicking a real email). Step 11 (corpus sync)
+  needs a Railway-native redesign before it's real, but doesn't block 12.
 
 Steps 1–8 are local, each verifiable on the laptop; 9–12 are the deploy
 tail. Steps marked ⚑ need an operator decision or action first.
@@ -327,60 +337,129 @@ deferred to its own initiative, not bundled into this flow.
   `svelte-check` clean on `apps/chat` and `shell`; `tsc --noEmit` clean on
   `services/workspace`.
 
-## Step 9 — Deploy augment-it, single-tenant on DigitalOcean
+## Step 9 — Deploy augment-it, single-tenant ✅ DONE 2026-07-09 (Railway, not DigitalOcean)
 
-**Decided 2026-07-06: the repurposed DigitalOcean droplet**
-`ubuntu-s-1vcpu-1gb-amd-ams3-01` at **167.172.42.247** (already paid
-for; whatever's on it is disposable — code lives on GitHub). Caddy for
-TLS at `augment.didi.sh`.
+**Platform changed after re-checking the DO droplet's live numbers**: the
+`167.172.42.247` box (prepped 2026-07-06) turned out to have only ~112MB
+free / 537MB available RAM before running a single one of our own
+services — the "escape hatch: resize to 2GB if it strains" language in
+the original plan undersold how tight it already was. A leftover
+`coolify-proxy` container was also still holding ports 80/443, meaning
+"ports freed" was stale too. Given very few users and no prior DO ops
+investment (vs. real Fly.io experience from id-didi-sh this same week),
+the operator chose **Railway** over both DO and Fly — Railway's
+multi-service-project model is the closest 1:1 match to this repo's
+actual docker-compose shape. The DO droplet is abandoned for this flow
+(still paid-for and untouched otherwise).
 
-**Box prepped 2026-07-06:** Coolify (the prior tenant) removed, ports
-80/443 freed, 2 GB swapfile active + persisted, Docker 28 present,
-~556 MB RAM available, 18 GB disk free. SSH: root@ with the
-`id_rsa_nopass` key.
+**8 Railway services**, one project (`augment-it`, workspace "The
+Lossless Group"): `nats` (official image, custom start command — see
+gotcha below), `workspace-service`, `record-surrealdb-resolver`,
+`content-ingest`, `prompt-runner` (all four Dockerfile builds,
+`rootDirectory` = `/services/<name>`), and three frontends —
+`shell`, `strategy-curator`, `chat` — each **also** Dockerfile-built
+(not Railway's Railpack auto-builder; see gotcha below), full-repo
+build context (they need the pnpm workspace), each producing its own
+static `dist/` served via `serve`.
 
-**The 1 GB constraint:** the full 11-service compose won't fit. Flow 1
-needs only the curator path — run a **flow-minimal compose profile**:
-`nats + workspace-service + record-surrealdb-resolver + content-ingest`
-(+ Caddy, + the shell as static files). ~400–500 MB resident; add a
-**2 GB swapfile** for fetch/compression spikes and build churn (pnpm
-install on 1 GB wants swap; bring services up sequentially on first
-build). Other microfrontends stay mounted in the shell and error if
-poked — consistent with the "no extra work, no isolation" rule.
-Escape hatch: DO resize to 2 GB ($12/mo) is two clicks if it strains.
+**Two Railway Volumes**, deliberately NOT shared (confirmed via Railway
+docs + support: a volume is strictly single-service): `content-ingest`
+owns `/clients` (the real corpus filesystem, read-write); `workspace-service`
+gets its own tiny `/data` volume, self-seeded on every boot via its
+`deploy.startCommand` (`mkdir -p /data/clients/humain-vc && echo
+DEFAULT_DOMAIN_TYPE=thesis > .../​.env && npm start`) rather than
+uploading the real `clients/humain-vc/.env` (which also holds unrelated
+Decile Hub credentials workspace-service has no business touching).
 
-- Box provisioning; clone; `.env` with: `ACTIVE_CLIENT_ID=humain-vc`,
-  `DIDI_AUTH=required`, `REQUIRED_ORG_ID=humain.vc`,
-  `ID_JWKS_URL=https://id.didi.sh/.well-known/jwks.json`,
-  `ID_ISSUER=https://id.didi.sh`, real API keys (Jina etc.).
-- Only humain-vc under `clients/` on the box (isolation by absence).
-- Caddy: `augment.didi.sh` → shell static build + `/ws` → workspace :3001;
-  the shell's `PUBLIC_ID_BASE=https://id.didi.sh` at build.
-- **Verify:** `scripts/prove-didi-auth.mjs` with `ID_BASE=https://id.didi.sh
-  WS_URL=wss://augment.didi.sh/ws` — member in, stranger out.
+**Real gotchas hit and fixed, worth knowing before touching this again:**
+- Railway's CLI (`environment edit --service-config`, dot-path form)
+  silently no-ops in the version used this session — `{"committed":false,
+  "message":"No changes to apply"}` regardless of value. The **JSON patch
+  form** (`environment edit --json`) works reliably; used for everything.
+- `railway volume add` panics (Rust `unwrap()` on `None`) in this CLI
+  version — created volumes via direct GraphQL (`volumeCreate` mutation)
+  instead.
+- `nats-server` does **not** accept `-max_payload` as a CLI flag (matches
+  this repo's own `nats.conf` comment from months ago) — needed an inline
+  generated config file. First attempt (`printf '...\n...\n'`) corrupted
+  across the Railway CLI → GraphQL → container `sh -c` chain; the
+  **multi-`echo`, no-embedded-newlines** form is what actually survives:
+  `echo port: 4222 > /tmp/nats.conf && echo http_port: 8222 >> ... &&
+  nats-server -c /tmp/nats.conf`.
+- Railway's **Railpack builder auto-detected this repo as a turborepo**
+  (`turbo.json` exists at root) and unconditionally ran the root
+  package.json's `build` script (`turbo run build`) for the three
+  frontends, ignoring any custom `buildCommand` override — and `turbo`
+  was never actually an installed binary here. Fixed by giving `shell`,
+  `strategy-curator`, and `chat` their own Dockerfiles (direct `pnpm
+  --filter <pkg> build`), same pattern as the four backend services.
+- A Docker `ARG` that's declared but never passed resolves to an **empty
+  string**, not `undefined` — `?? default` doesn't catch it. Two real
+  bugs from this: (1) `shell/rsbuild.config.ts`'s remote-URL fallbacks
+  had to change from `??` to `||`; (2) module-federation `assetPrefix`
+  was only set for `dev`, not `output` (the field that also covers
+  production builds) — missing it meant `chat`'s and `strategy-curator`'s
+  async sub-chunks resolved as relative paths against the **shell's**
+  origin instead of their own, 404ing into the shell's SPA-fallback HTML
+  ("SyntaxError: Unexpected token '<'"). Only reproduces cross-origin —
+  local federation dev never surfaces it. Both fixed with
+  `output.assetPrefix` env-configured per remote.
+- Railway auto-injects its own `PORT` (8080) for any service — this
+  silently mismatched the public domain's configured target port (3001)
+  for `workspace-service` until `PORT=3001` was set explicitly as a
+  service variable.
 
-## Step 10 ⚑ — DNS + cookie day (Vercel DNS)
+**Verify, as done:** headless-Chromium checks against the live deployed
+URLs (not just localhost) — anonymous visitor → full wall, zero
+unexpected console errors (only the 12 out-of-scope remotes' harmless
+`localhost` failures, unchanged from local); `workspace-service`'s
+`/config` endpoint live; `scripts/prove-didi-auth.mjs`'s `GATE=1` mode
+run against the real deployed `wss://ws.augment.didi.sh/ws` — anonymous
+correctly rejected 4401. Member-admitted couldn't be scripted against
+prod `id.didi.sh` (dev-token echo is deliberately disabled there) — that
+leg needs a real human sign-in (Step 12).
 
-- ⚑ The **pending id records** land first (name `id`: A + AAAA above) —
-  `fly certs check id.didi.sh` goes green.
-- `augment` record → the step-9 box. Both apps now under `.didi.sh`; the
-  cookie is shared for real (sign in once, both surfaces).
-- id-didi-sh CORS config for prod: add `https://augment.didi.sh` to
-  `cors_origins` (runtime env), redeploy id.
-- **Verify:** sign in on augment.didi.sh; didi_session Domain=.didi.sh in
-  devtools; badge lights on reload.
+## Step 10 — DNS + cookie day ✅ DONE 2026-07-09 (Railway custom domains, not DO/Caddy)
 
-## Step 11 — Corpus sync, option A (box ↔ R2 ↔ laptop)
+Two Railway custom domains, both required under `*.didi.sh` for the
+`didi_session` cookie (`Domain=.didi.sh`) to actually reach them — the
+shell's own page origin AND workspace-service's WS endpoint (every
+federated remote connects to workspace-service directly, so it's the one
+that must share the cookie domain; the remotes' own static-asset
+origins don't need to):
 
-- rclone remote for the existing R2 account on the box + laptop; bucket
-  prefix `corpus/humain-vc/`.
-- Box: cron/systemd timer `rclone sync /srv/augment-it/clients/humain-vc
-  r2:…` (push, scheduled + post-session manual); laptop pulls on demand.
-- **Single-writer discipline documented in the repo README**: while the
-  team works hosted, the box is authoritative; Michael's local edits go
-  through R2 deliberately, never concurrently.
-- **Verify:** add a source hosted → appears on laptop after pull;
-  checksums match.
+- `augment.didi.sh` → `shell` (CNAME + TXT ownership-verification record,
+  added at Vercel DNS by the operator; validated + cert issued within
+  minutes).
+- `ws.augment.didi.sh` → `workspace-service` (same pattern).
+- `id-didi-sh`'s prod `cors_origins` — **was empty** (`config/runtime.exs`
+  never set it; only `dev.exs` had `localhost:3100`), meaning every
+  cross-origin browser call to `id.didi.sh` in production had been
+  silently CORS-rejected since it went live, just never surfaced because
+  augment-it wasn't deployed yet. Added `["https://augment.didi.sh"]`,
+  deployed to Fly.
+- `PUBLIC_WS_URL` rebuilt into `shell`/`strategy-curator`/`chat` as
+  `wss://ws.augment.didi.sh/ws`.
+- **Verify:** `curl -H "Origin: https://augment.didi.sh" -X OPTIONS
+  https://id.didi.sh/api/magic-links` returns
+  `access-control-allow-origin: https://augment.didi.sh` +
+  `access-control-allow-credentials: true`. Live browser check against
+  `https://augment.didi.sh` clean (see Step 9). Real sign-in + cookie
+  attachment still needs a human (Step 12) — dev-token echo being off in
+  prod is a feature, not a gap to route around.
+
+## Step 11 — Corpus sync ⚑ NEEDS REVISITING (Railway volumes replace the DO-box assumption)
+
+Written when Step 9 targeted a DO droplet with a filesystem an rclone
+timer could reach directly. On Railway, `content-ingest`'s corpus lives
+on a **Railway Volume** — reachable via `railway volume files` (CLI, hit
+its own bugs this session — see Step 9) or `railway ssh`, not a plain
+box path a cron job can rclone from directly. The single-writer
+discipline (team writes hosted; Michael's local edits sync deliberately,
+never concurrently) still holds as a policy — the *mechanism* needs a
+Railway-native answer (a periodic job inside `content-ingest` itself
+pushing to R2, most likely) before this step is actually done. Not
+blocking Step 12 — humain-vc's corpus is empty-ish today either way.
 
 ## Step 12 — Dress rehearsal (the acceptance run)
 
