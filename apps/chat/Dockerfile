@@ -18,7 +18,9 @@ COPY shell ./shell
 RUN pnpm install --frozen-lockfile
 
 ARG PUBLIC_WS_URL
+ARG PUBLIC_CHAT_ASSET_PREFIX
 ENV PUBLIC_WS_URL=$PUBLIC_WS_URL
+ENV PUBLIC_CHAT_ASSET_PREFIX=$PUBLIC_CHAT_ASSET_PREFIX
 RUN pnpm --filter @augment-it/chat build
 
 FROM node:22-alpine

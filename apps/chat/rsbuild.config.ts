@@ -7,6 +7,16 @@ import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 // .css side-effect imports). See changelog entries:
 // - 2026-05-21_03 — federation-meets-Svelte-5 lessons
 // - 2026-05-23_01 — in-app chat v0.0.1 (this surface)
+// Own-origin asset prefix — a federated remote's sub-chunks (async imports,
+// __federation_expose_mount, etc.) resolve against whatever `assetPrefix`
+// this build was compiled with, NOT the host page's origin. Missing this
+// in production silently 404s every chunk beyond remoteEntry.js itself
+// against the SHELL's origin (which serves its own SPA fallback HTML for
+// unknown paths) — "SyntaxError: Unexpected token '<'" is that HTML being
+// eval'd as JS. `dev.assetPrefix` alone only covers the local dev server;
+// `output.assetPrefix` is the field that also applies to production builds.
+const ASSET_PREFIX = process.env.PUBLIC_CHAT_ASSET_PREFIX || 'http://localhost:3006';
+
 export default defineConfig({
   plugins: [
     pluginSvelte(),
@@ -25,6 +35,7 @@ export default defineConfig({
   output: {
     target: 'web',
     overrideBrowserslist: ['last 2 Chrome versions', 'last 2 Firefox versions', 'last 2 Safari versions'],
+    assetPrefix: ASSET_PREFIX,
   },
   tools: {
     swc: {
@@ -41,6 +52,6 @@ export default defineConfig({
     cors: { origin: ['http://localhost:3100'] }, // the federation shell
   },
   dev: {
-    assetPrefix: 'http://localhost:3006',
+    assetPrefix: ASSET_PREFIX,
   },
 });

@@ -18,7 +18,9 @@ COPY shell ./shell
 RUN pnpm install --frozen-lockfile
 
 ARG PUBLIC_WS_URL
+ARG PUBLIC_STRATEGY_CURATOR_ASSET_PREFIX
 ENV PUBLIC_WS_URL=$PUBLIC_WS_URL
+ENV PUBLIC_STRATEGY_CURATOR_ASSET_PREFIX=$PUBLIC_STRATEGY_CURATOR_ASSET_PREFIX
 RUN pnpm --filter @augment-it/strategy-curator build
 
 FROM node:22-alpine
