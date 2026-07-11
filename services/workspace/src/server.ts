@@ -3,7 +3,7 @@ import websocket from '@fastify/websocket';
 import { connectNats } from './nats';
 import { loadSessions } from './auth';
 import { registerWebsocket } from './ws';
-import { initWorkspaces, registerActiveQueryResponder } from './workspaces';
+import { initWorkspaces, registerActiveQueryResponder, listWorkspaces, getActiveClientId } from './workspaces';
 import { didiMode } from './didi';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
@@ -39,7 +39,20 @@ async function main(): Promise<void> {
     clients_root: CLIENTS_ROOT,
     initial_active_id: INITIAL_ACTIVE_CLIENT_ID,
   });
-  app.log.info({ clients_root: CLIENTS_ROOT }, 'workspaces initialized');
+  // Diagnostic: which workspaces did discover() actually find, and what
+  // did active-id resolution land on? "workspaces initialized" alone gave
+  // no visibility into a real prod bug (2026-07-11 — humain-vc showing
+  // "no workspace" in the curator on the deployed instance).
+  const discovered = await listWorkspaces();
+  app.log.info(
+    {
+      clients_root: CLIENTS_ROOT,
+      initial_active_id: INITIAL_ACTIVE_CLIENT_ID,
+      resolved_active_id: getActiveClientId(),
+      discovered_slugs: discovered.map((w) => w.client_id),
+    },
+    'workspaces initialized',
+  );
 
   await connectNats(NATS_URL);
   app.log.info({ url: NATS_URL }, 'nats connected');
