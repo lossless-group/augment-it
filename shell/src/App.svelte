@@ -71,6 +71,18 @@
     workspace.didi_auth_mode === 'required' && !workspace.user?.didi_id,
   );
 
+  // A pinned (single-tenant) instance should default to Build Corpora, not
+  // FLOWS[0] (Improve a CSV — Record Collector's flow, whose remotes are
+  // deliberately unreachable on a humain-vc-pinned deploy). `pinned` only
+  // resolves after workspace.list, well after activeFlow's own module-init
+  // default was already chosen — this effect catches up once it's known.
+  // Real bug, not hypothetical: every fresh sign-in landed on Record
+  // Collector / DB Resolver first, both showing "remote exposes no mount
+  // function" on the deployed instance.
+  $effect(() => {
+    if (workspace.pinned) activeFlow.applyPinnedDefault();
+  });
+
   // ---- composite slots — active-member state ----------------------------
   // A composite slot hosts one-of-N remotes based on shared state. We
   // keep the active member id per composite as reactive state so the

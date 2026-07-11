@@ -95,6 +95,26 @@ class ActiveFlowState {
     this.activeFlowId = id;
     if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, id);
   }
+
+  /**
+   * Called once App.svelte learns the instance is pinned (workspace.pinned
+   * — a single-tenant deploy, per Build-Order Step 7). `readStored()` runs
+   * at module-init time, before workspace.list has resolved, so it can
+   * only ever fall back to FLOWS[0] ('csvAugmentation' — Record
+   * Collector's flow) for a brand-new session; on a humain-vc-pinned
+   * instance that flow's remotes are deliberately unreachable
+   * (client-side, real bug: every fresh sign-in landed there first).
+   * Only overrides when the user has never made an explicit choice
+   * (no localStorage key at all) — an operator who deliberately picked a
+   * different flow keeps that choice, and this never persists to
+   * localStorage itself, so it stays a soft default, not a hard commit.
+   */
+  applyPinnedDefault(): void {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem(STORAGE_KEY) !== null) return;
+    if (this.activeFlowId === 'buildCorpora') return;
+    if (!FLOWS.some((f) => f.id === 'buildCorpora')) return;
+    this.activeFlowId = 'buildCorpora';
+  }
 }
 
 export const activeFlow = new ActiveFlowState();
