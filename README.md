@@ -135,6 +135,17 @@ pnpm preview      # Preview the production build
 
 The `scripts/dev.sh` script prints the full URL list on start.
 
+## Deployment
+
+The humain-vc single-tenant instance runs live on **Railway** at
+[`https://augment.didi.sh`](https://augment.didi.sh) — 8 services (NATS +
+5 backend microservices + 3 federated frontends), two persistent volumes,
+and a custom `*.didi.sh` domain (required for the shared `didi_session`
+cookie). See **[`DEPLOYMENT.md`](DEPLOYMENT.md)** for the full service
+list, environment variables, redeploy commands, and the real gotchas hit
+getting it there (Railway CLI quirks, Module Federation cross-origin
+asset resolution, `nats-server` config).
+
 ## Conventions
 
 - **Branch tiers:** `development` → `main` → `master`. Parent on tier X → all submodules on tier X.
