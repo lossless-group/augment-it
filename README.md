@@ -26,7 +26,9 @@ The codebase is a federated set of small Svelte 5 microfrontends mounted into a 
 
 - **NATS** as the message bus — every service subscribes to a subject via the `@nats-io/transport-node` v3 client (migrated off the legacy `nats@2` package); the browser talks to the backend via the workspace capabilities router
 - **libSQL** / **JSON-stored row + response data** behind small TS services
-- **Anthropic** for free-form prompt enrichment (via `prompt-runner`)
+- **SurrealDB Cloud** as the canonical entity layer — persons, organizations, and domains/sources (the corpus catalog: strategies, theses, topics) live here, shared across every client workspace and resolved via `record-surrealdb-resolver`. This is the "start from data already in the canonical layer" side of the app, alongside the original CSV-first pipeline — see [Core concepts](#core-concepts)
+- **didi.sh** as the shared identity plane — magic-link sign-in, org/membership-gated access, actor attribution (`created_by`/`updated_by`) on every canonical write. One account works across this app and its sibling Lossless VC-tooling apps (dididecks, memopop)
+- **Anthropic** for free-form prompt enrichment (via `prompt-runner`) and the in-app chat agent ("didi") — same service, two jobs
 - **Search providers are pluggable** (via `social-search`): a `connectors/` seam with a common `Connector` interface, dispatched per-fire with an optional `provider_override`. **SearXNG** (self-hosted, no API key) is the default for the social packs; **Tavily** stays wired in as a peer for content-RAG packs. Response Reviewer's by-record view exposes both — each record has a SearXNG row and a Tavily row of per-pack run icons, so any source can be re-fired on any record through either provider (additive; never overrides accepted data)
 
 ## App structure
@@ -34,32 +36,40 @@ The codebase is a federated set of small Svelte 5 microfrontends mounted into a 
 ```zsh
 augment-it/
 ├── apps/                              # Federated Svelte 5 remotes
-│   ├── record-collector/        :3001 # CSV ingest, per-cell editing, socials chip row
-│   ├── enhanced-records-list/   :3002 # Promoted canonical sets, generic cell rendering
+│   ├── record-collector/        :3002 # CSV ingest, per-cell editing, socials chip row
 │   ├── prompt-template-manager/ :3003 # Custom-prompt authoring (paired with pack-runner)
 │   ├── request-reviewer/        :3004 # Pre-flight review of fan-out plans
 │   ├── response-reviewer/       :3005 # By-record triage cockpit (post-flight)
-│   ├── chat/                    :3006 # In-app chat verb surface (/inbox lands URLs as corpus)
+│   ├── chat/                    :3006 # "didi" — the in-app chat verb surface; curator + enrichment verbs, inbox triage
+│   ├── enhanced-records-list/   :3007 # Promoted canonical sets, generic cell rendering
+│   ├── record-db-resolver/      :3008 # Generic DB-agnostic match/create bridge for organizations, one record at a time
 │   ├── pack-runner/             :3009 # Source-bound pack invocation (paired with PTM)
+│   ├── person-db-resolver/      :3010 # Match-or-create a person + their org, RELATE the affiliation edge (sibling of record-db-resolver)
+│   ├── records-surface/         :3011 # Live view of promoted record sets over the workspace WebSocket
+│   ├── affiliation-rating-resolver/ :3012 # Rate + enrich person↔org affiliations in place — links, corpus, relevance — one screen per edge
 │   ├── sort-filter-lens/        :3013 # First Lens — sort/filter/inline-edit over the active record set
+│   ├── person-enrichment/       :3015 # Sparse-person triage — name/socials/org/web presence, one attendee at a time
+│   ├── strategy-curator/        :3017 # "Corpora Curator" — build a strategy/thesis corpus from the SurrealDB canonical layer, live multi-operator sync
 │   ├── highlight-collector/           # planned — collect highlights from AI responses (scaffold)
 │   └── insight-manager/               # planned — manage insights across responses (scaffold)
 │
-├── shell/                       :3000 # Window manager, peek-deck rotation, pair-mode
+├── shell/                       :3100 # Window manager, peek-deck rotation, pair-mode, Flows registry, didi.sh sign-in
 │
 ├── services/                          # Stateless TS over NATS
 │   ├── ingest/                        # CSV → record_set.create (dynamic schema from headers)
 │   ├── xlsx-ingest/                   # XLSX workbook → record_set.create (same shape as CSV)
-│   ├── workspace/                     # Browser-facing capabilities router
+│   ├── workspace/                     # Browser-facing capabilities router; didi.sh session verify, chat dispatch, per-workspace .env
 │   ├── row-store/                     # Rows, record sets, promote-fold, row.fields write-back (+ socials, predecessor lineage)
 │   ├── prompt-store/                  # Persists custom prompt templates
-│   ├── prompt-runner/                 # Anthropic, custom prompts, per-row fan-out
+│   ├── prompt-runner/                 # Anthropic, custom prompts, per-row fan-out, chat_turn dispatch
 │   ├── response-store/                # Sibling payload (prose + structured Candidate)
-│   ├── content-ingest/                # Funder-content corpus: Jina-extracted .md + binary PDFs, record_uuid + published_at stamping, /promote-snapshot
-│   └── social-search/                 # Pack search/fan-out, pluggable connectors (SearXNG default, Tavily peer)
+│   ├── content-ingest/                # Jina-extracted .md + binary PDFs for both the funder-content corpus and the domain/strategy-thesis corpus; record_uuid + published_at stamping, /promote-snapshot
+│   ├── record-surrealdb-resolver/     # Canonical entity layer — persons, organizations, domains/sources (the corpus catalog), affiliations — against the shared SurrealDB Cloud instance
+│   ├── social-search/                 # Pack search/fan-out, pluggable connectors (SearXNG default, Tavily peer)
+│   └── decile-mcp/                    # MCP server wrapping the Decile Hub API — a per-client VC CRM + fund-admin connector
 │
 ├── packages/                          # Shared code
-│   ├── workspace/                     # Shared types (Row, ResponseRecord, Candidate, SocialProfile)
+│   ├── workspace/                     # Shared types (Row, ResponseRecord, Candidate, SocialProfile) + the workspace singleton every remote connects through
 │   ├── theme/                         # CSS tokens, three modes
 │   ├── shared-ui/                     # First reusable Svelte components (ConfidencePill, …)
 │   ├── config/                        # planned — cross-app/package config (scaffold)
@@ -90,10 +100,13 @@ augment-it/
 - **Packs and bundles.** A **pack** is the atomic enrichment unit — one source, one prompt-snippet template, one extraction schema, one render config. A **bundle** is a workflow composition of packs with orchestration, carry-forward between passes, and a single chat verb that fires the whole thing. The contracts are locked in `context-v/blueprints/Packs-and-Bundles-Pattern.md`.
 - **Sibling-payload responses.** Every response record carries both prose AND an optional structured `Candidate` (url, display_name, confidence 0–100, snippet, source_metadata), plus an `outcome` enum (`found | not_found | error | skipped | pending`). The renderer in Response Reviewer branches on outcome.
 - **Inline correction + human-supply on one surface.** The by-record view in Response Reviewer lets the user edit URLs, edit display_names, edit entity-names (the row's identity column), or supply a URL the pack didn't find — all riding the same `response.set_structured` subject.
-- **Federation-host shell.** The shell handles peek-deck tile rotation, co-existence (50/50 splits), paired-only remotes (`pack-runner`, `chat` — not in the rotation, reached via the `augment-it:navigate` event), and runtime cross-remote communication via `window` events + localStorage.
+- **Federation-host shell, multiple Flows.** The shell used to walk one hardcoded `ROTATION`; it now owns a `FLOWS` registry (`shell/src/flows.svelte.ts`) — each Flow (`Improve a CSV`, `Build Corpora`, `Augment a CSV of Event Attendees`, `Augment a CSV of People`, `Rate Affiliations`, …) is a named use-case with its own rotation, switched via the header's "Flows" popdown. Within a Flow the shell still handles peek-deck tile rotation, co-existence (50/50 splits), and runtime cross-remote communication via `window` events + localStorage. A single-tenant (pinned) deploy defaults to its one relevant Flow rather than the first-registered one.
 - **Lenses.** A *lens* is a federated remote that re-presents the active record set under a different affordance shape — sort/filter, inline-edit, per-row corpus add — without leaving the record. `sort-filter-lens` is the first; registered as a third member of `AUGMENT_COMPOSITE` alongside PTM + Pack Runner. Lenses auto-fall-back to the newest non-archived record set when localStorage points at an archived one, so they survive `/promote-snapshot` cleanly.
 - **Funder-content corpus.** Per-client, per-funder directory of source materials backing each row. Two entry vectors land into the same shape: the chat `/inbox <url>` verb (with active-client context) and the per-row inline "+ URL" affordance in the lens. Both run fire-and-forget through `services/content-ingest/`, Jina-extract markdown, preserve original PDFs as LFS binaries, and stamp `record_uuid` + `published_at` into frontmatter. Manual-paste URLs land regardless of domain (operator curation trumps the same-host rule, which only binds pack outputs).
 - **Corpus chips tell the truth.** `corpus.list_for_record` joins by `corpus_funder_slug` as primary (one dir scan) with `record_uuid` lineage as fallback — chips stay accurate across `/promote-snapshot` cuts. `/promote-snapshot` itself derives `corpus_*` columns from filesystem state when cutting a new record set, and stitches `predecessor_record_set_id` for lineage walks.
+- **The canonical layer — a second, DB-first way to build a corpus.** Every flow above starts from an uploaded CSV. `strategy-curator` ("Corpora Curator" in the UI) starts the other direction: pick or create a **domain** — a `type`-discriminated grouping (`strategy`, `thesis`, `topic`, `market-segment`, …) stored in SurrealDB, not the filesystem — and gather **sources** into it (Jina-fetched metadata, full-content fetch, tags, pasted extracts). `record-surrealdb-resolver` owns the DB side (the `domains`/`sources`/`source_usages` tables plus `persons`/`organizations`/`affiliations`); `content-ingest` mirrors every write to an on-disk corpus file. `person-db-resolver`, `record-db-resolver`, and `affiliation-rating-resolver` are the sibling canonical-layer flows — matching/creating people and organizations, then rating the relevance of the affiliation between them — all writing into the same shared entity graph rather than a per-upload CSV schema.
+- **Live multi-operator sync.** Domain and source mutations on the canonical layer broadcast over NATS (`domain.created`, `source.added`, …); every connected session in the same workspace refetches automatically. Two people signed into the same client see each other's edits without a refresh.
+- **didi.sh identity + actor attribution.** Sign-in is magic-link only (no passwords, invite-only), via the shared `id.didi.sh` service — one account works across this app and its sibling Lossless VC-tooling apps. A signed-in session's `didi_id` rides every capability call and gets stamped as `created_by`/`updated_by` on canonical writes (DB rows and corpus frontmatter alike), so every mutation on the canonical layer carries who did it. The in-app chat agent ("didi") writes through the same envelope, tagged `via: didi-agent`, so an agent-driven edit is distinguishable from a manual one.
 
 ## Setup
 
@@ -122,7 +135,7 @@ Start the full stack (Docker services + every federated remote + shell) with one
 pnpm stack up
 ```
 
-The shell will be available at [http://localhost:3000](http://localhost:3000). Every remote is also independently reachable at its own port (`:3001`–`:3006`, `:3009`) — useful for debugging Module-Federation cross-origin errors which the shell's DevTools console scrubs to `'Script error.'`.
+The shell will be available at [http://localhost:3100](http://localhost:3100) (`:3000` is deliberately skipped — reserved locally for Open WebUI). Every remote is also independently reachable at its own port (`:3002`–`:3017`, see [App structure](#app-structure) for the full list) — useful for debugging Module-Federation cross-origin errors which the shell's DevTools console scrubs to `'Script error.'`.
 
 Other common commands:
 
@@ -139,7 +152,7 @@ The `scripts/dev.sh` script prints the full URL list on start.
 
 The humain-vc single-tenant instance runs live on **Railway** at
 [`https://augment.didi.sh`](https://augment.didi.sh) — 8 services (NATS +
-5 backend microservices + 3 federated frontends), two persistent volumes,
+4 backend microservices + 3 federated frontends), two persistent volumes,
 and a custom `*.didi.sh` domain (required for the shared `didi_session`
 cookie). See **[`DEPLOYMENT.md`](DEPLOYMENT.md)** for the full service
 list, environment variables, redeploy commands, and the real gotchas hit
