@@ -110,7 +110,7 @@ credential handling).
 |---|---|
 | `workspace-service` | `NATS_URL` (`nats://${{nats.RAILWAY_PRIVATE_DOMAIN}}:4222`), `CLIENTS_ROOT=/data/clients`, `SESSION_STORE_PATH=/data/sessions.json`, `ID_JWKS_URL`, `ID_ISSUER`, `DIDI_AUTH=required`, `REQUIRED_ORG_ID=humain.vc`, `ACTIVE_CLIENT_ID=humain-vc`, `PORT=3001` (see gotcha below) |
 | `record-surrealdb-resolver` | `NATS_URL`, `SURREAL_URL`, `SURREAL_NS`, `SURREAL_DB`, `SURREAL_USER`, `SURREAL_PASS` |
-| `content-ingest` | `NATS_URL`, `CLIENTS_ROOT=/clients`, `JINA_API_KEY` (**not currently set** — see [Known gaps](#known-gaps)) |
+| `content-ingest` | `NATS_URL`, `CLIENTS_ROOT=/clients`, `JINA_API_KEY` (paid-tier extraction) |
 | `prompt-runner` | `NATS_URL`, `ANTHROPIC_API_KEY` |
 | `shell` | `PUBLIC_WS_URL=wss://ws.augment.didi.sh/ws`, `PUBLIC_ID_BASE=https://id.didi.sh`, `PUBLIC_STRATEGY_CURATOR_REMOTE`, `PUBLIC_CHAT_REMOTE` (all build-time — baked in via Docker `ARG`/`ENV`, not read at runtime) |
 | `strategy-curator` | `PUBLIC_WS_URL`, `PUBLIC_STRATEGY_CURATOR_ASSET_PREFIX` (build-time) |
@@ -220,14 +220,6 @@ keyed by ID).
 
 ## Known gaps
 
-- **`JINA_API_KEY` naming mismatch.** `.env.example` and this repo's local
-  `.env` both define `JINA_AI_API_KEY`; `services/content-ingest/src/jina.ts`
-  actually reads `process.env.JINA_API_KEY` (no "AI"). Degrades gracefully
-  to Jina's free/no-auth tier when unset, so nothing has visibly broken —
-  but the deployed `content-ingest` is running on the free tier's rate
-  limits as a result. Either rename the var everywhere for consistency, or
-  set `JINA_API_KEY` (the name the code actually reads) on Railway with the
-  real key value.
 - **Corpus sync / backup.** The corpus lives on a single Railway Volume
   with no automated backup or sync-to-laptop story yet — the original plan
   assumed a DO box's filesystem an rclone cron job could reach directly,

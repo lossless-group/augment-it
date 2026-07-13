@@ -12,8 +12,8 @@
 //   node scripts/jina-fetch-urls.mjs            # uses the MANIFEST below
 //   node scripts/jina-fetch-urls.mjs --dry-run  # fetch + report, write nothing
 //
-// Reads JINA_AI_API_KEY from augment-it/.env (Jina paid tier; the service
-// reads JINA_API_KEY in-container, but the committed .env var is JINA_AI_API_KEY).
+// Reads JINA_API_KEY from augment-it/.env (Jina paid tier — same var name
+// services/content-ingest/src/jina.ts reads in-container).
 
 import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
@@ -55,10 +55,10 @@ const MANIFEST = [
 //         this exact reach.edu URL (caught by the exact_url dedupe).
 
 async function loadJinaKey() {
-  if (process.env.JINA_AI_API_KEY) return process.env.JINA_AI_API_KEY;
+  if (process.env.JINA_API_KEY) return process.env.JINA_API_KEY;
   try {
     const env = await readFile(join(REPO_ROOT, '.env'), 'utf8');
-    const m = env.match(/^JINA_AI_API_KEY=(.+)$/m);
+    const m = env.match(/^JINA_API_KEY=(.+)$/m);
     if (m) return m[1].trim().replace(/^["']|["']$/g, '');
   } catch {}
   return null;
@@ -179,7 +179,7 @@ function buildFrontmatter(item, r) {
 
 async function main() {
   const key = await loadJinaKey();
-  if (!key) console.warn('⚠  No JINA_AI_API_KEY found — trying free tier (lower rate limits).');
+  if (!key) console.warn('⚠  No JINA_API_KEY found — trying free tier (lower rate limits).');
   const seen = await existingUrls();
   let written = 0, skipped = 0, failed = 0;
 
