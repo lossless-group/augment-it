@@ -24,6 +24,8 @@ export function normalizePersonRecord(
     role: get(mapping.role) || null,
     linkedin_url: get(mapping.linkedin_url) || null,
     observation: get(mapping.observation) || null,
+    email: get(mapping.email) || null,
+    bio: get(mapping.bio) || null,
   };
 }
 
@@ -37,6 +39,8 @@ const GUESSES: Record<keyof FieldMapping, string[]> = {
   role: ['title', 'role', 'Title', 'Role'],
   linkedin_url: ['linkedin_url', 'linkedin', 'profile_url', 'LinkedIn'],
   observation: ['observation', 'Observation'],
+  email: ['email', 'Email', 'email_address', 'Email Address'],
+  bio: ['bio', 'Bio', 'biography', 'Biography'],
 };
 
 export function guessMapping(columns: string[]): FieldMapping {
@@ -52,6 +56,8 @@ export function guessMapping(columns: string[]): FieldMapping {
     role: pick('role'),
     linkedin_url: pick('linkedin_url'),
     observation: pick('observation'),
+    email: pick('email'),
+    bio: pick('bio'),
   };
 }
 

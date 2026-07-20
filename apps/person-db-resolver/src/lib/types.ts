@@ -8,6 +8,15 @@ export type PersonNormRecord = {
   org_name?: string | null;
   role?: string | null;
   observation?: string | null;
+  email?: string | null;
+  bio?: string | null;
+};
+
+export type PersonObservationRow = {
+  predicate: string;
+  object: unknown;
+  observed_at: string;
+  source: string;
 };
 
 export type PersonCandidate = {
@@ -15,6 +24,7 @@ export type PersonCandidate = {
   name: string | null;
   headline: string | null;
   linkedin_profile_url: string | null;
+  email: string | null;
   score: number;
   match_reason: string[];
 };
@@ -65,4 +75,6 @@ export type FieldMapping = {
   role: string;
   linkedin_url: string;
   observation: string;
+  email: string;
+  bio: string;
 };

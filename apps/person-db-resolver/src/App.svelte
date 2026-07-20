@@ -19,6 +19,7 @@
     applyPerson,
     affiliatePerson,
     addPersonObservation,
+    fetchPersonObservations,
     fetchOrgCandidates,
     searchOrgs,
   } from './lib/resolver-client';
@@ -27,6 +28,7 @@
     PersonNormRecord,
     PersonCandidate,
     PersonApplyResult,
+    PersonObservationRow,
     OrgCandidate,
     OrgSuggestion,
     PersonAffiliateResult,
@@ -36,6 +38,11 @@
   const WS_URL = 'ws://localhost:3001/ws';
   const ACTIVE_RECORD_SET_KEY = 'augment-it:active-record-set';
   const MAPPING_KEY_PREFIX = 'augment-it:person-db-resolver:mapping:';
+  // Per-record-set "where I left off" — restored on every selectRecordSet()
+  // (mount, HMR remount, workspace switch, tab reopen), not just typed
+  // navigation. Saved on every idx change so it's always current, not just
+  // on explicit jumps.
+  const IDX_KEY_PREFIX = 'augment-it:person-db-resolver:idx:';
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
   let client = $state<string>('reach-edu');
@@ -53,13 +60,30 @@
   let personCandidates = $state<PersonCandidate[]>([]);
   let loadingPerson = $state(false);
   let personError = $state<string | null>(null);
+  // Which action set personError — candidates/match/create all share the
+  // one error slot, but a raw SurrealDB constraint message (e.g. a UNIQUE
+  // index collision on create) reads very differently from a failed
+  // candidate lookup. Labeled at the throw site instead of hardcoded in
+  // the template.
+  let personErrorLabel = $state<'candidates' | 'match' | 'create'>('candidates');
   let personResult = $state<PersonApplyResult | null>(null);
   let personBusy = $state(false);
   let personNameInput = $state('');
+  // Editable mirror of the mapped Observation column — before this, the
+  // event-tie text (e.g. "attendee at Aspen Institute: ...") was parsed and
+  // written silently with zero operator visibility or per-row override.
+  // Same "operator-edited value wins, falls back to the mapped column"
+  // pattern as personNameInput.
+  let personObservationInput = $state('');
   let personSearchQuery = $state('');
   let personSearchResults = $state<PersonCandidate[]>([]);
   let personSearching = $state(false);
   let personSkipped = $state(false);
+  // Read-only history for the matched/created person — observations are
+  // append-only, so this is what makes "editing" sane: see what's on file,
+  // add a correction on top, don't blindly append with no context.
+  let personObservations = $state<PersonObservationRow[]>([]);
+  let personObservationsLoading = $state(false);
 
   let orgCandidates = $state<OrgCandidate[]>([]);
   let loadingOrg = $state(false);
@@ -87,11 +111,17 @@
   );
   const source = $derived(selectedSet ? `record-set:${selectedSet.name}` : 'person-db-resolver');
   // The person actions (candidates/create/match) use the OPERATOR-EDITED
-  // name, not the raw mapped column — record.name stays visible in
-  // RecordCard as "here's what the CSV said," personNameInput is what
-  // actually gets written. Falls back to the mapped name if cleared.
+  // name and observation text, not the raw mapped columns — record stays
+  // visible in RecordCard as "here's what the CSV said," these inputs are
+  // what actually gets written. Falls back to the mapped values if cleared.
   const personRecord = $derived(
-    record ? { ...record, name: personNameInput.trim() || record.name } : null,
+    record
+      ? {
+          ...record,
+          name: personNameInput.trim() || record.name,
+          observation: personObservationInput.trim() || record.observation,
+        }
+      : null,
   );
 
   function onActiveRecordSetChange(e: Event) {
@@ -161,9 +191,32 @@
     try {
       const r = (await workspace.invoke('row.list', { record_set_id })) as { rows: Row[] };
       rows = r.rows.filter((row) => !(row.fields as Record<string, unknown>).archived);
+      // Resume where this record set was left off — mount, HMR remount,
+      // workspace switch, or tab reopen all land here via the same path.
+      const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(`${IDX_KEY_PREFIX}${record_set_id}`) : null;
+      if (stored != null) {
+        const n = Number(stored);
+        if (Number.isFinite(n)) idx = Math.min(Math.max(0, n), Math.max(0, rows.length - 1));
+      }
     } catch (err) {
       console.error('row.list', err);
     }
+  }
+
+  function saveIdx() {
+    if (selectedRecordSetId && typeof localStorage !== 'undefined') {
+      localStorage.setItem(`${IDX_KEY_PREFIX}${selectedRecordSetId}`, String(idx));
+    }
+  }
+
+  // Manual "jump to row N" — accepts 1-based row numbers (matches the
+  // "N / total" display), clamps to the valid range.
+  function jumpTo(raw: string | number) {
+    const n = typeof raw === 'number' ? raw : Number(raw);
+    if (!Number.isFinite(n) || rows.length === 0) return;
+    idx = Math.min(Math.max(0, Math.round(n) - 1), rows.length - 1);
+    resetRowState();
+    saveIdx();
   }
 
   function loadMapping(record_set_id: string) {
@@ -197,6 +250,7 @@
     personSkipped = false;
     personSearchQuery = '';
     personSearchResults = [];
+    personObservations = [];
     orgCandidates = [];
     orgError = null;
     orgResult = null;
@@ -226,6 +280,7 @@
       return;
     }
     personNameInput = rec.name;
+    personObservationInput = rec.observation ?? '';
     void loadPersonCandidatesFor(rec);
   });
 
@@ -236,6 +291,7 @@
     try {
       personCandidates = await fetchPersonCandidates(rec, client);
     } catch (err) {
+      personErrorLabel = 'candidates';
       personError = err instanceof Error ? err.message : String(err);
       personCandidates = [];
     } finally {
@@ -287,13 +343,27 @@
     await loadOrgCandidatesFor(orgNameInput);
   }
 
+  async function loadPersonObservations(person_uuid: string) {
+    personObservationsLoading = true;
+    try {
+      personObservations = await fetchPersonObservations(person_uuid, client);
+    } catch (err) {
+      console.error('person.observations', err);
+      personObservations = [];
+    } finally {
+      personObservationsLoading = false;
+    }
+  }
+
   async function doMatchPerson(c: PersonCandidate) {
     if (!personRecord) return;
     personBusy = true;
     personError = null;
     try {
       personResult = await applyPerson({ action: 'match', person_uuid: c.person_uuid, record: personRecord, client, source });
+      void loadPersonObservations(personResult.person_uuid);
     } catch (err) {
+      personErrorLabel = 'match';
       personError = err instanceof Error ? err.message : String(err);
     } finally {
       personBusy = false;
@@ -306,7 +376,9 @@
     personError = null;
     try {
       personResult = await applyPerson({ action: 'create', record: personRecord, client, source });
+      void loadPersonObservations(personResult.person_uuid);
     } catch (err) {
+      personErrorLabel = 'create';
       personError = err instanceof Error ? err.message : String(err);
     } finally {
       personBusy = false;
@@ -423,6 +495,7 @@
       obsSaved = true;
       obsPredicate = '';
       obsValue = '';
+      void loadPersonObservations(personResult.person_uuid);
     } catch (err) {
       obsError = err instanceof Error ? err.message : String(err);
     } finally {
@@ -433,10 +506,12 @@
   function advance() {
     idx = Math.min(idx + 1, rows.length);
     resetRowState();
+    saveIdx();
   }
   function back() {
     idx = Math.max(0, idx - 1);
     resetRowState();
+    saveIdx();
   }
   function skipRow() {
     advance();
@@ -463,7 +538,18 @@
         {/each}
       </select>
       {#if rows.length}
-        <span class="pdr-progress">{Math.min(idx + 1, rows.length)} / {rows.length}</span>
+        <span class="pdr-progress">
+          <input
+            type="number"
+            class="pdr-jump"
+            min="1"
+            max={rows.length}
+            value={Math.min(idx + 1, rows.length)}
+            title="jump to row"
+            onchange={(e) => jumpTo(e.currentTarget.value)}
+            onkeydown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+          /> / {rows.length}
+        </span>
         <button type="button" class="pdr-btn" onclick={() => (showMapper = true)}>edit column mapping</button>
       {/if}
     </div>
@@ -489,12 +575,21 @@
             <span class="pdr-eyebrow">person</span>
             {#if loadingPerson}<span class="pdr-muted">finding candidates…</span>{/if}
           </div>
-          {#if personError}<div class="pdr-error">candidates: {personError}</div>{/if}
+          {#if personError}<div class="pdr-error">{personErrorLabel}: {personError}</div>{/if}
 
           {#if !personResult && !personSkipped}
             <label class="pdr-org-name-row">
               <span>person name</span>
               <input type="text" bind:value={personNameInput} onchange={() => void loadPersonCandidates()} placeholder="Person name" />
+            </label>
+            <label class="pdr-org-name-row">
+              <span>observation (event tie)</span>
+              <input
+                type="text"
+                bind:value={personObservationInput}
+                placeholder="e.g. attendee at Event Name"
+                title="Written as a parsed event-tie observation on create/match. Edit or clear before resolving this row."
+              />
             </label>
             <PersonCandidateList candidates={personCandidates} busy={personBusy} onMatch={doMatchPerson} />
             <div class="pdr-create">
@@ -537,6 +632,25 @@
               <div class="pdr-result-head">
                 {personResult.created ? '✓ created' : '✓ matched'} <strong>{personResult.name}</strong>
               </div>
+              <details class="pdr-search" open>
+                <summary>
+                  observation history{personObservationsLoading ? ' — loading…' : ` (${personObservations.length})`}
+                </summary>
+                {#if !personObservationsLoading && personObservations.length === 0}
+                  <p class="pdr-muted">nothing on file yet.</p>
+                {:else}
+                  <ul class="pdr-search-results">
+                    {#each personObservations as o (o.predicate + String(o.observed_at) + String(o.object))}
+                      <li>
+                        <span>
+                          <strong>{o.predicate}</strong>: {String(o.object)}
+                          <span class="pdr-muted"> — {new Date(o.observed_at).toLocaleString()} · {o.source}</span>
+                        </span>
+                      </li>
+                    {/each}
+                  </ul>
+                {/if}
+              </details>
               <div class="pdr-add-obs">
                 <label><span>predicate (optional)</span><input type="text" bind:value={obsPredicate} placeholder="defaults to 'note'" /></label>
                 <label><span>value</span><input type="text" bind:value={obsValue} placeholder="e.g. confirmed 2026-07-07" /></label>

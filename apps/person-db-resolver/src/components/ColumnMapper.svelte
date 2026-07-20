@@ -31,6 +31,8 @@
     { key: 'role', label: 'Role / title', required: false },
     { key: 'linkedin_url', label: 'LinkedIn URL', required: false },
     { key: 'observation', label: 'Observation (event tie)', required: false },
+    { key: 'email', label: 'Email', required: false },
+    { key: 'bio', label: 'Bio', required: false },
   ];
 
   function save() {

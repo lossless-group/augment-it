@@ -16,6 +16,22 @@
       | string
       | undefined) ?? 'http://localhost:4000';
 
+  // Dev auto-login (local-only escape hatch): set PUBLIC_DEV_AUTO_LOGIN_EMAIL
+  // in .env to skip the manual "send magic link" click every time the wall
+  // renders. Rides the same dev-token-echo path a real sign-in uses — it's
+  // never set in a deployed build, so this is a no-op in prod.
+  const DEV_AUTO_LOGIN_EMAIL = (import.meta as { env?: Record<string, string> }).env
+    ?.PUBLIC_DEV_AUTO_LOGIN_EMAIL as string | undefined;
+
+  // Guards the auto-login attempt with sessionStorage, NOT a component-local
+  // flag: signInWithEmail() ends in a full page reload, which re-mounts this
+  // component from scratch (and the wall keeps rendering post-reload for a
+  // beat, until the WS session re-verifies) — a local-only flag let the
+  // effect re-fire on every reload, which triggered another reload: an
+  // infinite magic-link loop. sessionStorage survives the reload, so the
+  // attempt is truly one-shot per tab.
+  const AUTO_LOGIN_ATTEMPTED_KEY = 'didi_dev_auto_login_attempted';
+
   let email = $state('');
   let busy = $state(false);
   let notice = $state('');
@@ -25,9 +41,15 @@
     emailInput?.focus();
   });
 
-  async function signIn(e: SubmitEvent) {
-    e.preventDefault();
-    if (!email || busy) return;
+  $effect(() => {
+    if (DEV_AUTO_LOGIN_EMAIL && !sessionStorage.getItem(AUTO_LOGIN_ATTEMPTED_KEY)) {
+      sessionStorage.setItem(AUTO_LOGIN_ATTEMPTED_KEY, '1');
+      signInWithEmail(DEV_AUTO_LOGIN_EMAIL);
+    }
+  });
+
+  async function signInWithEmail(addr: string) {
+    if (busy) return;
     busy = true;
     notice = '';
     try {
@@ -35,7 +57,7 @@
         method: 'POST',
         credentials: 'include',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email, app: 'augment-it' }),
+        body: JSON.stringify({ email: addr, app: 'augment-it' }),
       }).then((r) => r.json());
 
       if (issue.dev_token) {
@@ -60,6 +82,12 @@
       notice = `id service unreachable at ${ID_BASE}`;
     }
     busy = false;
+  }
+
+  async function signIn(e: SubmitEvent) {
+    e.preventDefault();
+    if (!email) return;
+    await signInWithEmail(email);
   }
 </script>
 

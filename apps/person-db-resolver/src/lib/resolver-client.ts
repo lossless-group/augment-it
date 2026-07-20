@@ -11,6 +11,7 @@ import type {
   PersonCandidate,
   PersonApplyResult,
   PersonAffiliateResult,
+  PersonObservationRow,
   OrgCandidate,
   OrgSuggestion,
 } from './types';
@@ -76,6 +77,19 @@ export async function addPersonObservation(args: {
 }): Promise<void> {
   const r = (await workspace.invoke('person.add_observation', args)) as { ok: boolean; error?: string };
   if (!r.ok) throw new Error(r.error || 'person.add_observation failed');
+}
+
+export async function fetchPersonObservations(
+  person_uuid: string,
+  client: string,
+): Promise<PersonObservationRow[]> {
+  const r = (await workspace.invoke('person.observations', { person_uuid, client })) as {
+    ok: boolean;
+    observations?: PersonObservationRow[];
+    error?: string;
+  };
+  if (!r.ok) throw new Error(r.error || 'person.observations failed');
+  return r.observations ?? [];
 }
 
 // Org side — reuses record-db-resolver's own capabilities, fed a synthetic

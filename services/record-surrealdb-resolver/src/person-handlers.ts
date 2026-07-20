@@ -15,6 +15,7 @@ import {
   applyPersonResolution,
   applyPersonAffiliation,
   addPersonObservation,
+  listPersonObservations,
   applyAffiliationRating,
   addPersonLink,
   addPersonCorpus,
@@ -23,6 +24,7 @@ import {
   type PersonApplyInput,
   type PersonAffiliateInput,
   type PersonAddObservationInput,
+  type PersonObservationsInput,
   type AffiliationRateInput,
   type PersonLinkAddInput,
   type PersonCorpusAddInput,
@@ -102,6 +104,22 @@ export function registerPersonHandlers(nc: NatsConnection): void {
       try {
         const db = await getDb();
         const result = await addPersonObservation(db, args);
+        if (msg.reply) msg.respond(JSON.stringify(result));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
+
+  // person.observations — read-only history, see person-resolver.ts
+  (async () => {
+    const sub = nc.subscribe('person.observations.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as PersonObservationsInput;
+      try {
+        const db = await getDb();
+        const result = await listPersonObservations(db, args);
         if (msg.reply) msg.respond(JSON.stringify(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);

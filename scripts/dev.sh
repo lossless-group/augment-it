@@ -25,6 +25,9 @@
 # ORDER. `up` starts the backend, waits until workspace-service answers on
 # :3001, then starts the frontend. Module Federation loads remotes lazily,
 # so the rsbuild servers can come up in any order among themselves.
+#
+# id-didi-sh (identity/sign-in, sibling repo at ../id-didi-sh) is started
+# first, idempotently — see id_didi_sh_up() below.
 
 set -euo pipefail
 
@@ -32,7 +35,57 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."   # augment-it root
 
 WORKSPACE_URL="http://localhost:3001/"
 
+# id-didi-sh lives in its own sibling repo (ai-labs/id-didi-sh) — deliberately
+# not vendored into augment-it, because the identity service is meant to back
+# sign-in for other apps too, not just this one. But locally, augment-it's
+# sign-in wall is useless without it running, so this brings it up as a
+# side effect of `stack up` — idempotent (does nothing if already up on
+# :4000) and never torn down by `dev.sh down` (other apps may still need it).
+ID_DIDI_SH_DIR="../id-didi-sh"
+ID_DIDI_SH_LOG="/tmp/id-didi-sh.log"
+
+port_open() {
+  (exec 3<>"/dev/tcp/$1/$2") 2>/dev/null
+}
+
+id_didi_sh_up() {
+  if port_open localhost 4000; then
+    echo "  ✓ id-didi-sh already running on :4000"
+    return 0
+  fi
+  if [[ ! -d "$ID_DIDI_SH_DIR" ]]; then
+    echo "  ⚠ id-didi-sh not found at $ID_DIDI_SH_DIR — skipping (local sign-in won't work until it's started)"
+    return 0
+  fi
+  if ! command -v mix >/dev/null 2>&1; then
+    echo "  ⚠ 'mix' not found — skipping id-didi-sh (install Elixir to enable local sign-in)"
+    return 0
+  fi
+  echo "▶ id-didi-sh — starting (mix phx.server, background, log: $ID_DIDI_SH_LOG)"
+  ( cd "$ID_DIDI_SH_DIR" && mix phx.server > "$ID_DIDI_SH_LOG" 2>&1 & disown )
+  for _ in $(seq 1 30); do
+    port_open localhost 4000 && { echo "  ✓ id-didi-sh is up"; return 0; }
+    sleep 1
+  done
+  echo "  ⚠ id-didi-sh didn't answer in 30s — check $ID_DIDI_SH_LOG"
+}
+
+# The frontend rsbuild dev servers run via `pnpm --filter`, which execs
+# with cwd set to each package dir — so root .env is invisible to rsbuild's
+# own dotenv loading. Export PUBLIC_* vars from it explicitly so
+# PUBLIC_DEV_AUTO_LOGIN_EMAIL (and any future PUBLIC_* dev flag) reaches
+# `import.meta.env` in the shell. Only PUBLIC_*-prefixed keys — everything
+# else in .env is a backend secret with no business in a browser bundle.
+export_public_env() {
+  [[ -f .env ]] || return 0
+  while IFS='=' read -r key value; do
+    [[ "$key" =~ ^PUBLIC_[A-Z0-9_]*$ ]] || continue
+    export "$key=$value"
+  done < <(grep -E '^PUBLIC_[A-Z0-9_]*=' .env)
+}
+
 backend_up() {
+  id_didi_sh_up
   echo "▶ backend — docker compose up --build (rebuilds images so code changes land)"
   docker compose up --build -d
   echo "    searxng (pack search)   http://localhost:8080  (JSON: /search?q=test&format=json)"
@@ -54,6 +107,8 @@ wait_for_workspace() {
 }
 
 frontend_up() {
+  id_didi_sh_up
+  export_public_env
   echo "▶ frontend — rsbuild dev servers:"
   echo "    shell                   http://localhost:3100"
   echo "    record-collector        http://localhost:3002"

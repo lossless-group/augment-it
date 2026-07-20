@@ -155,6 +155,7 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'person.apply': 'person.apply.requested',
   'person.affiliate': 'person.affiliate.requested',
   'person.add_observation': 'person.add_observation.requested',
+  'person.observations': 'person.observations.requested',
   // Augment from Affiliations — the CSV-round-trip rating write, keyed by
   // (person_uuid, org_slug) rather than a resolved candidate. Per
   // context-v/specs/Augment-From-Affiliations.md.
@@ -256,6 +257,7 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'person.apply': 30_000,
   'person.affiliate': 30_000,
   'person.add_observation': 30_000,
+  'person.observations': 30_000,
   // One fresh lookup by (person_uuid, org_slug) + one UPDATE — same Cloud
   // round-trip budget as its person.* siblings.
   'affiliation.rate': 30_000,

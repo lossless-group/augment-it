@@ -27,6 +27,11 @@ export type PersonNormRecord = {
   // Free text like "Speaker at FreedomFest 2026" — parsed into
   // (predicate, event name) by parseEventObservation below.
   observation?: string | null;
+  email?: string | null;
+  // Not every record has one — optional, written as a has_bio observation
+  // only when present. No related_org: a bio describes the person, not a
+  // specific affiliation.
+  bio?: string | null;
 };
 
 type PersonRow = {
@@ -35,9 +40,10 @@ type PersonRow = {
   name?: string | null;
   headline?: string | null;
   linkedin_profile_url?: string | null;
+  email?: string | null;
 };
 
-const PERSON_FIELDS = 'id, person_uuid, name, headline, linkedin_profile_url';
+const PERSON_FIELDS = 'id, person_uuid, name, headline, linkedin_profile_url, email';
 
 export type PersonCandidate = {
   // Wire-safe handle — NEVER the raw RecordId (SurrealDB RecordIds don't
@@ -48,6 +54,7 @@ export type PersonCandidate = {
   name: string | null;
   headline: string | null;
   linkedin_profile_url: string | null;
+  email: string | null;
   score: number;
   match_reason: string[];
 };
@@ -93,51 +100,66 @@ export async function findPersonCandidates(
 ): Promise<{ candidates: PersonCandidate[] }> {
   const persons = await loadClientPersons(db, client);
 
-  // 1. exact linkedin_profile_url — decisive, no need to also fuzzy-match.
-  if (record.linkedin_url) {
-    const url = record.linkedin_url.trim();
-    const hit = persons.find((p) => (p.linkedin_profile_url ?? '').trim() === url);
-    if (hit && hit.person_uuid) {
-      return {
-        candidates: [
-          {
-            person_uuid: hit.person_uuid,
-            name: hit.name ?? null,
-            headline: hit.headline ?? null,
-            linkedin_profile_url: hit.linkedin_profile_url ?? null,
-            score: 100,
-            match_reason: ['linkedin_url'],
-          },
-        ],
-      };
+  // Collect from every signal instead of short-circuiting on the first
+  // exact hit — CSV data has minor discrepancies (a typo'd email, a
+  // stale LinkedIn slug), so a decisive match on one signal shouldn't
+  // hide a plausible-but-imperfect match on another. Merged by
+  // person_uuid below; the operator sees everything and picks.
+  const byUuid = new Map<string, PersonCandidate>();
+  const upsert = (p: PersonRow, score: number, reason: string) => {
+    if (!p.person_uuid) return;
+    const existing = byUuid.get(p.person_uuid);
+    if (existing) {
+      existing.score = Math.max(existing.score, score);
+      if (!existing.match_reason.includes(reason)) existing.match_reason.push(reason);
+      return;
     }
-  }
-
-  // 2. fuzzy name (+ org boost when the person's headline mentions the org).
-  const q = record.name.trim().toLowerCase();
-  if (q.length < 3) return { candidates: [] };
-  const org = (record.org_name ?? '').trim().toLowerCase();
-  const scored: PersonCandidate[] = [];
-  for (const p of persons) {
-    if (!p.person_uuid) continue;
-    const name = (p.name ?? '').toLowerCase();
-    if (!name || (!name.includes(q) && !q.includes(name))) continue;
-    const reasons = ['name'];
-    let score = 55;
-    if (org && (p.headline ?? '').toLowerCase().includes(org)) {
-      score = 75;
-      reasons.push('org_in_headline');
-    }
-    scored.push({
+    byUuid.set(p.person_uuid, {
       person_uuid: p.person_uuid,
       name: p.name ?? null,
       headline: p.headline ?? null,
       linkedin_profile_url: p.linkedin_profile_url ?? null,
+      email: p.email ?? null,
       score,
-      match_reason: reasons,
+      match_reason: [reason],
     });
+  };
+
+  // 1. exact linkedin_profile_url — decisive.
+  if (record.linkedin_url) {
+    const url = record.linkedin_url.trim();
+    const hit = persons.find((p) => (p.linkedin_profile_url ?? '').trim() === url);
+    if (hit) upsert(hit, 100, 'linkedin_url');
   }
-  scored.sort((a, b) => b.score - a.score);
+
+  // 2. exact email — decisive, same standing as linkedin_url. Catches stub
+  // rows from the bulk CLI import path (surreal-write-event-attendees.mjs)
+  // that only ever had an email, no name — fuzzy name matching below can't
+  // find those.
+  if (record.email) {
+    const emailLc = record.email.trim().toLowerCase();
+    const hit = persons.find((p) => (p.email ?? '').trim().toLowerCase() === emailLc);
+    if (hit) upsert(hit, 100, 'email');
+  }
+
+  // 3. fuzzy name (+ org boost when the person's headline mentions the org)
+  // — always runs, even after a decisive hit above, so near-matches
+  // (a different person entirely, or the same person under a slightly
+  // different name spelling) still surface as alternatives.
+  const q = record.name.trim().toLowerCase();
+  if (q.length >= 3) {
+    const org = (record.org_name ?? '').trim().toLowerCase();
+    for (const p of persons) {
+      if (!p.person_uuid) continue;
+      const name = (p.name ?? '').toLowerCase();
+      if (!name || (!name.includes(q) && !q.includes(name))) continue;
+      const orgBoost = org && (p.headline ?? '').toLowerCase().includes(org);
+      upsert(p, orgBoost ? 75 : 55, 'name');
+      if (orgBoost) upsert(p, 75, 'org_in_headline');
+    }
+  }
+
+  const scored = Array.from(byUuid.values()).sort((a, b) => b.score - a.score);
   return { candidates: scored.slice(0, 8) };
 }
 
@@ -220,12 +242,23 @@ export function parseEventObservation(
 
 async function createObservation(
   db: Surreal,
-  args: { subject: unknown; predicate: string; object: unknown; source: string; client: string },
+  args: {
+    subject: unknown;
+    predicate: string;
+    object: unknown;
+    source: string;
+    client: string;
+    // Optional — which event this fact was captured in the context of
+    // (e.g. a bio pulled from an event-attendee CSV). Schemaless table,
+    // so this is just absent on rows that don't have one.
+    related_event?: unknown;
+  },
 ): Promise<void> {
   await db.query(
     `CREATE observations SET
         id = rand::uuid::v7(), subject = $subject, predicate = $predicate, object = $object,
-        source = $source, observed_at = time::now(), client = $client;`,
+        source = $source, observed_at = time::now(), client = $client
+        ${args.related_event ? ', related_event = $related_event' : ''};`,
     args,
   );
 }
@@ -263,6 +296,38 @@ export async function addPersonObservation(
     client: input.client,
   });
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Capability: person.observations — read-only history for a person. The
+// observations table is append-only (never edited), so "editing" a fact
+// means adding a newer one, not mutating the old row — this makes that
+// history visible so the operator sees what's already on file before
+// adding a correction on top of it, instead of blindly appending.
+// ---------------------------------------------------------------------------
+
+export type PersonObservationsInput = { person_uuid: string; client: string };
+export type PersonObservationRow = {
+  predicate: string;
+  object: unknown;
+  observed_at: string;
+  source: string;
+};
+export type PersonObservationsResult = { ok: true; observations: PersonObservationRow[] };
+
+export async function listPersonObservations(
+  db: Surreal,
+  input: PersonObservationsInput,
+): Promise<PersonObservationsResult> {
+  const person = await fetchPersonByUuid(db, input.person_uuid);
+  if (!person) throw new Error(`person not found: ${input.person_uuid}`);
+  const r = await db.query(
+    `SELECT predicate, object, observed_at, source FROM observations
+       WHERE subject = $subject AND client = $client
+       ORDER BY observed_at DESC LIMIT 50;`,
+    { subject: person.id, client: input.client },
+  );
+  return { ok: true, observations: (r?.[0] as PersonObservationRow[]) ?? [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -310,6 +375,24 @@ export async function applyPersonResolution(
           last_touched_by = $client, last_touched_at = time::now(), last_seen_at = time::now();`,
       { id: person.id, client },
     );
+    // Additive only — never overwrite an email already on the row (could be
+    // human-verified). Matches the "additive enrichment never overrides
+    // accepted" discipline used elsewhere in this codebase.
+    if (record.email && !person.email) {
+      const emailLc = record.email.trim().toLowerCase();
+      await db.query(`UPDATE $id SET email = $email;`, { id: person.id, email: emailLc });
+      person.email = emailLc;
+    }
+    // Same additive backfill for name — stub rows from the bulk CLI import
+    // path (surreal-write-event-attendees.mjs) often have no name at all.
+    // Without this, matching one of those stubs writes a has_name
+    // observation but leaves persons.name empty forever, which is what
+    // silently broke MacKenzie Moritz's row in the tags/relevance report.
+    if (record.name && !person.name) {
+      const name = record.name.trim();
+      await db.query(`UPDATE $id SET name = $name;`, { id: person.id, name });
+      person.name = name;
+    }
   } else {
     // create — but defend against a race (same linkedin_url landed since candidates loaded).
     if (record.linkedin_url) {
@@ -318,17 +401,30 @@ export async function applyPersonResolution(
         { url: record.linkedin_url.trim() },
       );
       person = ((existing?.[0] as PersonRow[]) ?? [])[0] ?? null;
+      // Race hit an existing row — additive-only email backfill, same
+      // discipline as the match branch above.
+      if (person && record.email && !person.email) {
+        const emailLc = record.email.trim().toLowerCase();
+        await db.query(`UPDATE $id SET email = $email;`, { id: person.id, email: emailLc });
+        person.email = emailLc;
+      }
     }
     if (!person) {
       const createdRes = await db.query(
         `CREATE persons SET
             id = rand::uuid::v7(), person_uuid = <string> rand::uuid::v7(),
-            name = $name, linkedin_profile_url = $linkedin_url,
+            name = $name, linkedin_profile_url = $linkedin_url, email = $email,
             source = $source, client_access = [$client],
             first_touched_by = $client, last_touched_by = $client,
             last_touched_at = time::now(), first_seen_at = time::now(), last_seen_at = time::now()
          RETURN ${PERSON_FIELDS};`,
-        { name: record.name.trim(), linkedin_url: record.linkedin_url ?? null, source, client },
+        {
+          name: record.name.trim(),
+          linkedin_url: record.linkedin_url ?? null,
+          email: record.email ? record.email.trim().toLowerCase() : null,
+          source,
+          client,
+        },
       );
       const row = ((createdRes?.[0] as PersonRow[]) ?? [])[0];
       if (!row) throw new Error('person create returned no row');
@@ -364,10 +460,35 @@ export async function applyPersonResolution(
       client,
     });
   }
+  if (record.email) {
+    await createObservation(db, {
+      subject: person.id,
+      predicate: 'has_email',
+      object: record.email.trim().toLowerCase(),
+      source,
+      client,
+    });
+  }
   const eventObs = parseEventObservation(record.observation);
+  let eventId: unknown = null;
   if (eventObs) {
-    const eventId = await ensureEvent(db, { name: eventObs.event_name, client, source });
+    eventId = await ensureEvent(db, { name: eventObs.event_name, client, source });
     await createObservation(db, { subject: person.id, predicate: eventObs.predicate, object: eventId, source, client });
+  }
+  if (record.bio) {
+    await createObservation(db, {
+      subject: person.id,
+      predicate: 'has_bio',
+      object: record.bio.trim(),
+      source,
+      client,
+      // Ties this bio to the event it was captured alongside, if this row
+      // had one — a person can have differently-worded bios per event
+      // (a conference program blurb vs. a LinkedIn summary), so this is
+      // additive context, not exclusive: an event-less has_bio (e.g. from
+      // person-enrichment) just omits it.
+      related_event: eventId ?? undefined,
+    });
   }
 
   if (!person.person_uuid) throw new Error('person.apply: person_uuid backfill failed');

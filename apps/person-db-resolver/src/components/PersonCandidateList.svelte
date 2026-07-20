@@ -22,8 +22,15 @@
       <li class="pdr-candidate">
         <div class="pdr-candidate-head">
           <div class="pdr-candidate-id">
-            <span class="pdr-candidate-name">{c.name || '(no name)'}</span>
+            <span class="pdr-candidate-name">
+              {c.name || c.email || c.linkedin_profile_url || '(no identifying info on this record)'}
+            </span>
             {#if c.headline}<span class="pdr-candidate-headline">{c.headline}</span>{/if}
+            {#if !c.name}
+              <span class="pdr-candidate-headline">
+                stub record — no name on file{c.email ? `, matched by email` : c.linkedin_profile_url ? `, matched by LinkedIn URL` : ''}
+              </span>
+            {/if}
           </div>
           <div class="pdr-candidate-score">
             <span class="pdr-score" data-tier={c.score >= 90 ? 'high' : c.score >= 60 ? 'mid' : 'low'}>{c.score}</span>
