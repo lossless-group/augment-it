@@ -821,3 +821,61 @@ export async function addPersonCorpus(
   );
   return { ok: true, person_uuid: input.person_uuid, entry };
 }
+
+// ---------------------------------------------------------------------------
+// organization.affiliations — the people reveal for the Augment-from-DB org
+// workbench: every person RELATEd to one org, with role + relevance off the
+// edge and links/corpus-count off the person. Same two-query discipline as
+// getAffiliationDetail (resolve the org's live RecordId by slug, then filter
+// edges) — RecordIds never cross the wire.
+// Spec: context-v/specs/Augment-From-DB-Flow.md §Capability contract.
+// ---------------------------------------------------------------------------
+
+export type OrgAffiliationsInput = { org_slug: string; client: string };
+export type AffiliatedPerson = {
+  person_uuid: string;
+  name: string | null;
+  headline: string | null;
+  role: string | null;      // the affiliation edge's `kind`
+  relevance: string | null; // passes through as written by the rating loop
+  personal_links: ShapedLink[];
+  personal_corpus_count: number;
+};
+export type OrgAffiliationsResult = { ok: true; people: AffiliatedPerson[] };
+
+export async function listOrgAffiliations(
+  db: Surreal,
+  input: OrgAffiliationsInput,
+): Promise<OrgAffiliationsResult> {
+  const orgRes = await db.query(
+    `SELECT id FROM organizations WHERE slug = $slug AND client_access CONTAINS $client LIMIT 1;`,
+    { slug: input.org_slug, client: input.client },
+  );
+  const org = ((orgRes?.[0] as { id: unknown }[]) ?? [])[0];
+  if (!org) throw new Error(`organization not found: ${input.org_slug}`);
+
+  const affRes = await db.query(
+    `SELECT kind, relevance,
+            in.person_uuid AS person_uuid, in.name AS name, in.headline AS headline,
+            in.personal_links AS personal_links,
+            array::len(in.personal_corpus ?? []) AS personal_corpus_count
+       FROM affiliations
+       WHERE out = $org;`,
+    { org: org.id },
+  );
+  const rows = (affRes?.[0] as Record<string, unknown>[]) ?? [];
+  const people: AffiliatedPerson[] = rows
+    .filter((r) => r.person_uuid) // edge whose person was deleted → skip
+    .map((r) => ({
+      person_uuid: String(r.person_uuid),
+      name: (r.name as string) ?? null,
+      headline: (r.headline as string) ?? null,
+      role: (r.kind as string) ?? null,
+      relevance: (r.relevance as string) ?? null,
+      personal_links: (r.personal_links as ShapedLink[]) ?? [],
+      personal_corpus_count: Number(r.personal_corpus_count ?? 0),
+    }))
+    // relevance is a string ("90", "75", …) — numeric sort in JS, nulls last
+    .sort((a, b) => Number(b.relevance ?? -1) - Number(a.relevance ?? -1));
+  return { ok: true, people };
+}

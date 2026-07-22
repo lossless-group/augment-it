@@ -114,6 +114,11 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // pages). Reply rides on NATS; no response-store write. Per
   // context-v/specs/Flow-for-Bundles-Packs.md §"The connectors".
   'connector.fire': 'connector.fire.requested',
+  // Augment from DB — generic query-shaped fire resolved through the
+  // connector registry (explicit provider wins, else free-tier-first for the
+  // intent). social-search-service is the consumer. Per
+  // context-v/specs/Augment-From-DB-Flow.md §Capability contract.
+  'search.fire': 'search.fire.requested',
   // Content ingest — Jina-pull markdown + per-client corpus. Per
   // context-v/specs/Funder-Content-Corpus-Workflow.md §Step 5 and
   // context-v/specs/Response-Reviewer-Shell-and-Content-Reader-Mode.md.
@@ -168,6 +173,11 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'organization.links.add': 'organization.links.add.requested',
   'organization.corpus.add': 'organization.corpus.add.requested',
   'affiliation.detail': 'affiliation.detail.requested',
+  // Augment from DB — the org-workbench reads (full org card; people reveal
+  // over the affiliations edges). record-surrealdb-resolver is the consumer.
+  // Per context-v/specs/Augment-From-DB-Flow.md §Capability contract.
+  'organization.detail': 'organization.detail.requested',
+  'organization.affiliations': 'organization.affiliations.requested',
 
   // Domain catalog — the canonical typed-grouping graph behind apps/strategy-curator
   // (which is the type='strategy' view). Served by record-surrealdb-resolver
@@ -270,6 +280,12 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'organization.corpus.add': 30_000,
   // Two entity lookups + one edge lookup — same Cloud round-trip budget.
   'affiliation.detail': 30_000,
+  // Augment from DB — one org read (detail) / one org read + one edge scan
+  // (affiliations). Same Cloud round-trip budget.
+  'organization.detail': 30_000,
+  'organization.affiliations': 30_000,
+  // One query, one provider — pack.search's budget.
+  'search.fire': 30_000,
   // Domain catalog — SurrealDB graph reads/writes; same Cloud round-trip budget.
   // retype fans out one content-ingest file-move round-trip per client_slug
   // on the row (usually one) — 45s covers a multi-client domain comfortably.

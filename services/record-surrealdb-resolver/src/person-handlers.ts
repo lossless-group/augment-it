@@ -20,6 +20,7 @@ import {
   addPersonLink,
   addPersonCorpus,
   getAffiliationDetail,
+  listOrgAffiliations,
   type PersonNormRecord,
   type PersonApplyInput,
   type PersonAffiliateInput,
@@ -29,6 +30,7 @@ import {
   type PersonLinkAddInput,
   type PersonCorpusAddInput,
   type AffiliationDetailInput,
+  type OrgAffiliationsInput,
 } from './person-resolver';
 
 export function registerPersonHandlers(nc: NatsConnection): void {
@@ -188,6 +190,24 @@ export function registerPersonHandlers(nc: NatsConnection): void {
       try {
         const db = await getDb();
         const result = await getAffiliationDetail(db, args);
+        if (msg.reply) msg.respond(JSON.stringify(result));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
+
+  // organization.affiliations — every person RELATEd to one org, for the
+  // Augment-from-DB org workbench's people reveal. Per
+  // context-v/specs/Augment-From-DB-Flow.md.
+  (async () => {
+    const sub = nc.subscribe('organization.affiliations.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as OrgAffiliationsInput;
+      try {
+        const db = await getDb();
+        const result = await listOrgAffiliations(db, args);
         if (msg.reply) msg.respond(JSON.stringify(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);

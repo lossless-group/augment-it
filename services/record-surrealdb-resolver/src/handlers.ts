@@ -19,6 +19,7 @@ import {
   opportunitiesForOrg,
   addOrgLink,
   addOrgCorpus,
+  getOrgDetail,
   type NormRecord,
   type ApplyInput,
   type UpdateOrgInput,
@@ -149,6 +150,24 @@ export function registerHandlers(nc: NatsConnection): void {
       try {
         const db = await getDb();
         const result = await addOrgCorpus(db, args);
+        if (msg.reply) msg.respond(JSON.stringify(result));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
+
+  // organization.detail — the full org card (identity + org_links +
+  // media_streams + org_corpus) for the Augment-from-DB org workbench.
+  // Per context-v/specs/Augment-From-DB-Flow.md.
+  (async () => {
+    const sub = nc.subscribe('organization.detail.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as { org_slug: string; client: string };
+      try {
+        const db = await getDb();
+        const result = await getOrgDetail(db, args.org_slug, args.client);
         if (msg.reply) msg.respond(JSON.stringify(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);

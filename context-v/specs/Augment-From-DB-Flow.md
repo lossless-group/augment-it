@@ -7,8 +7,12 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.1.1
 exploration_of_record: "[[../explorations/Augment-From-DB-Flow-Two-New-Microfrontends]]"
+revisions:
+  - 2026-07-22 — v0.0.1.1: status → Implementing. Phase 1 executed and shipped same day ([[../plans/Augment-From-DB-Phase-1-Service-Capabilities]], changelog 2026-07-22_01) — all four capabilities live and proven over NATS; both flagged SurrealQL constructs worked without fallbacks. Phases 2–5 remain.
+  - 2026-07-22 — v0.0.1.0: user sign-off. Narrative pass ran clean — the doc was written in one pass after the exploration settled, so structure and prose stand as drafted; no TBD markers existed. Next step per the spec→plan cascade: cut Phase 1 as the first plan in context-v/plans/.
+  - 2026-07-22 — v0.0.0.1: initial draft from the exploration of record, grounded in a same-day code read (flows registry, capability dispatcher, resolver handlers, connector registry). Six exploration open questions locked as decisions D1–D6.
 tags:
   - Spec
   - Augment-It
@@ -22,7 +26,7 @@ tags:
   - Exa
   - Pulse-Streams
   - Affiliations
-status: Draft
+status: Implementing
 ---
 
 # Augment from DB — Org Workbench + Search-and-Add

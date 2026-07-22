@@ -323,6 +323,8 @@ export async function searchOrgs(
            string::lowercase(complete_name)      CONTAINS $q
            OR string::lowercase(conventional_name) CONTAINS $q
            OR string::lowercase(slug)             CONTAINS $q
+           OR string::lowercase(array::join(aliases ?? [], ' '))           CONTAINS $q
+           OR string::lowercase(array::join(domains[*].domain ?? [], ' ')) CONTAINS $q
          )
        ORDER BY complete_name ASC
        LIMIT 8`,
@@ -809,4 +811,56 @@ export async function addOrgCorpus(db: Surreal, input: OrgCorpusAddInput): Promi
     { id: org.id, entry, client: input.client },
   );
   return { ok: true, org_id: String(org.id), entry };
+}
+
+// ---------------------------------------------------------------------------
+// organization.detail — the full org card for the Augment-from-DB org
+// workbench: identity, all three additive lists, aliases + domains. Read
+// path, so it takes the client_access filter (searchOrgs precedent), unlike
+// fetchOrgBySlug which serves already-resolved write paths.
+// Spec: context-v/specs/Augment-From-DB-Flow.md §Capability contract.
+// ---------------------------------------------------------------------------
+
+export type OrgDetailResult = {
+  ok: true;
+  org: {
+    org_id: string;
+    slug: string;
+    complete_name: string | null;
+    conventional_name: string | null;
+    aliases: string[];
+    domains: { domain?: string }[];
+    org_links: ShapedLink[];
+    media_streams: (ShapedLink & { party?: string })[];
+    org_corpus: (ShapedLink & { content_id?: unknown })[];
+  };
+};
+
+export async function getOrgDetail(
+  db: Surreal,
+  org_slug: string,
+  client: string,
+): Promise<OrgDetailResult> {
+  const r = await db.query(
+    `SELECT ${ORG_FIELDS} FROM organizations
+       WHERE slug = $slug AND client_access CONTAINS $client
+       LIMIT 1;`,
+    { slug: org_slug, client },
+  );
+  const row = ((r?.[0] as OrgRow[]) ?? [])[0];
+  if (!row) throw new Error(`organization not found: ${org_slug}`);
+  return {
+    ok: true,
+    org: {
+      org_id: String(row.id),
+      slug: row.slug,
+      complete_name: row.complete_name ?? null,
+      conventional_name: row.conventional_name ?? null,
+      aliases: row.aliases ?? [],
+      domains: (row.domains as { domain?: string }[]) ?? [],
+      org_links: (row.org_links as ShapedLink[]) ?? [],
+      media_streams: (row.media_streams as (ShapedLink & { party?: string })[]) ?? [],
+      org_corpus: (row.org_corpus as (ShapedLink & { content_id?: unknown })[]) ?? [],
+    },
+  };
 }

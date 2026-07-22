@@ -7,6 +7,7 @@ import { searxngConnector } from './searxng';
 import { serpapiConnector } from './serpapi';
 import { gdeltConnector } from './gdelt';
 import { googleNewsRssConnector } from './google-news-rss';
+import { exaConnector } from './exa';
 
 const CONNECTORS: Record<ProviderId, Connector> = {
   tavily: tavilyConnector,
@@ -14,6 +15,7 @@ const CONNECTORS: Record<ProviderId, Connector> = {
   serpapi: serpapiConnector,
   gdelt: gdeltConnector,
   'google-news-rss': googleNewsRssConnector,
+  exa: exaConnector,
 };
 
 export function getConnector(id: ProviderId): Connector {

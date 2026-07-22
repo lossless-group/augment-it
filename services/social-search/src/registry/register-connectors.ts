@@ -27,6 +27,7 @@ import { tavilyConnector } from '../connectors/tavily';
 import { serpapiConnector } from '../connectors/serpapi';
 import { gdeltConnector } from '../connectors/gdelt';
 import { googleNewsRssConnector } from '../connectors/google-news-rss';
+import { exaConnector } from '../connectors/exa';
 
 // All of the social-search intents the legacy SearXNG-default packs serve.
 // Listed here once so multiple registrations don't redeclare the same set.
@@ -134,6 +135,25 @@ const GOOGLE_NEWS_RSS_REG: ConnectorRegistration = {
     }),
 };
 
+const EXA_REG: ConnectorRegistration = {
+  id: 'exa',
+  display_name: 'Exa (neural search)',
+  short_label: 'ex',
+  capabilities: ['search.web', ...SOCIAL_INTENTS],
+  cost_tier: 'paid',
+  // Note the repo's historical env name (EXA_AI_API_KEY, not EXA_API_KEY) —
+  // it predates this connector. register() flips status to 'needs-env'
+  // automatically when it's absent.
+  requires_env: ['EXA_AI_API_KEY'],
+  status: 'available',
+  fire: async (opts: ConnectorFireOpts) =>
+    exaConnector(opts.query, {
+      include_domains: opts.include_domains,
+      max_results: opts.max_results,
+      signal: opts.signal,
+    }),
+};
+
 // Firecrawl is an extract connector (URL → page data), not a search
 // connector. Its current shape doesn't fit ConnectorFn (which expects a
 // query + returns ConnectorResult[]). Registration for crawl-style
@@ -148,4 +168,5 @@ export function registerExistingConnectors(registry: ConnectorRegistry): void {
   registry.register(SERPAPI_REG);
   registry.register(GDELT_REG);
   registry.register(GOOGLE_NEWS_RSS_REG);
+  registry.register(EXA_REG);
 }

@@ -55,6 +55,7 @@ import {
 import { getRegistry } from './registry/registry';
 import { registerExistingConnectors } from './registry/register-connectors';
 import type { Capability } from './registry/capabilities';
+import { fireSearch, type SearchFireInput } from './search-fire';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 const MAX_CONCURRENT = Number.parseInt(process.env.SOCIAL_SEARCH_CONCURRENCY ?? '4', 10);
@@ -412,6 +413,39 @@ async function main(): Promise<void> {
       const sanitized = all.map(({ fire: _omit, ...rest }) => rest);
       if (msg.reply) {
         msg.respond(JSON.stringify({ ok: true, connectors: sanitized }));
+      }
+    }
+  })();
+
+  // search.fire.requested — Augment-from-DB generic query fire. Unlike
+  // connector.fire (which localizes errors inside an ok:true result for the
+  // per-row triage loop), this replies ok:false on failure — the search-and-
+  // add UI needs to distinguish "provider failed" from "zero results". See
+  // context-v/specs/Augment-From-DB-Flow.md §Capability contract.
+  (async () => {
+    const sub = nc.subscribe('search.fire.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as SearchFireInput;
+      try {
+        const { provider, results } = await fireSearch(args);
+        if (msg.reply) {
+          msg.respond(JSON.stringify({
+            ok: true,
+            provider,
+            results,
+            fired_at: new Date().toISOString(),
+          }));
+        }
+        console.log(JSON.stringify({
+          level: 'info',
+          msg: 'search.fire',
+          provider,
+          results: results.length,
+        }));
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        console.error(JSON.stringify({ level: 'error', msg: 'search.fire failed', error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
   })();

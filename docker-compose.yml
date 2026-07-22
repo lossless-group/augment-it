@@ -148,6 +148,10 @@ services:
       # Firecrawl — used by the Records Surface (firecrawl-nav-scan,
       # firecrawl-nav-agent) and by the Entity Pulse official-blog-pack.
       FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY}
+      # Exa — neural/keyword web search, a peer connector in the registry
+      # (Augment-from-DB search.fire). Sourced from augment-it/.env, where
+      # the key already lives under this exact name.
+      EXA_AI_API_KEY: ${EXA_AI_API_KEY:-}
       # SerpApi — used by the Records Surface (serpapi-site-search) and by
       # the Entity Pulse official-blog-pack's find-index stage.
       # The repo .env keeps this as SERP_API_KEY (historical name with an
