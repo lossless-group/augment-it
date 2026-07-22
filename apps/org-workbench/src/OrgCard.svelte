@@ -6,6 +6,7 @@
   // never an optimistic guess.
 
   import AdditiveList from './AdditiveList.svelte';
+  import PeopleReveal from './PeopleReveal.svelte';
   import { addOrgLink, addOrgStream, addOrgCorpus } from './lib/org-client';
   import { requestSearch } from './lib/search-request';
   import type { OrgDetail, SearchRequestDetail } from './lib/types';
@@ -87,5 +88,7 @@
       onadd={makeAdd(addOrgCorpus)}
       onsearch={makeSearch('corpus', (n) => `"${n}" news`)}
     />
+
+    <PeopleReveal org_slug={org.slug} orgName={displayName} {client} />
   </div>
 </article>

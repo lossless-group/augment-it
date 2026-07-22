@@ -66,3 +66,30 @@
 
 .ow-empty { color: var(--color-text-muted, #9aa0aa); font-size: 0.8rem; margin: 0.4rem 0 0; }
 .ow-error { color: var(--color-error-text, #f3a3a3); font-size: 0.8rem; margin-top: 0.4rem; }
+
+/* people reveal (Phase 4) */
+.ow-people { border-top: 1px solid var(--color-border, #2a2c33); padding-top: 0.75rem; }
+.ow-people-toggle { background: none; border: none; color: inherit; font: inherit; font-size: 0.9rem; cursor: pointer; padding: 0; }
+.ow-people-list { list-style: none; margin: 0.5rem 0 0.75rem; padding: 0; display: grid; gap: 0.35rem; }
+.ow-person-row { display: flex; align-items: baseline; gap: 0.6rem; width: 100%; text-align: left; background: var(--color-bg, #14151a); border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; color: inherit; font: inherit; padding: 0.45rem 0.7rem; cursor: pointer; }
+.ow-person-row:hover { background: var(--color-border, #2a2c33); }
+.ow-person-name { font-size: 0.88rem; }
+.ow-person-role { color: var(--color-text-muted, #9aa0aa); font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ow-person-relevance { flex-shrink: 0; font-size: 0.7rem; padding: 1px 6px; border-radius: 3px; background: var(--color-ok-bg, #173a26); color: var(--color-ok-text, #6ee7a8); font-variant-numeric: tabular-nums; }
+.ow-person-meta { margin-left: auto; flex-shrink: 0; color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; }
+.ow-person-card { margin: 0.35rem 0 0.6rem 0.9rem; padding: 0.6rem 0.9rem; border-left: 2px solid var(--color-border, #2a2c33); }
+.ow-person-headline { margin: 0 0 0.4rem; font-size: 0.8rem; color: var(--color-text-muted, #b7bcc5); }
+
+/* add-person (Phase 4) */
+.ow-addperson { margin-top: 0.4rem; }
+.ow-addperson-open { background: none; border: 1px dashed var(--color-border, #2a2c33); border-radius: 6px; color: var(--color-text-muted, #9aa0aa); font: inherit; font-size: 0.82rem; padding: 0.4rem 0.8rem; cursor: pointer; }
+.ow-addperson-open:hover { color: var(--color-text, #e7e7e7); border-color: var(--color-text-muted, #9aa0aa); }
+.ow-addperson-form { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.ow-addperson-actions { display: flex; gap: 0.5rem; }
+.ow-gate { margin-top: 0.5rem; }
+.ow-gate-note { color: var(--color-text-muted, #9aa0aa); font-size: 0.8rem; margin: 0 0 0.4rem; }
+.ow-gate-list { list-style: none; margin: 0 0 0.5rem; padding: 0; display: grid; gap: 0.3rem; }
+.ow-gate-pick { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; width: 100%; text-align: left; background: var(--color-bg, #14151a); border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; color: inherit; font: inherit; font-size: 0.82rem; padding: 0.4rem 0.7rem; cursor: pointer; }
+.ow-gate-pick:hover { background: var(--color-border, #2a2c33); }
+.ow-gate-headline { color: var(--color-text-muted, #9aa0aa); font-size: 0.75rem; }
+.ow-gate-score { margin-left: auto; color: var(--color-text-muted, #9aa0aa); font-size: 0.7rem; font-variant-numeric: tabular-nums; }

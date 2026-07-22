@@ -29,6 +29,27 @@ export type OrgDetail = {
   org_corpus: (ShapedLink & { content_id?: unknown })[];
 };
 
+// Phase 4 — add-person wire shapes (person-resolver.ts mirrors).
+export type PersonNormRecord = {
+  name: string;
+  linkedin_url?: string | null;
+  org_name?: string | null;
+  role?: string | null;
+  observation?: string | null;
+  email?: string | null;
+  bio?: string | null;
+};
+
+export type PersonCandidate = {
+  person_uuid: string;
+  name: string | null;
+  headline: string | null;
+  linkedin_profile_url: string | null;
+  email: string | null;
+  score: number;
+  match_reason: string[];
+};
+
 // Phase 4 — the people reveal (organization.affiliations).
 export type AffiliatedPerson = {
   person_uuid: string;
