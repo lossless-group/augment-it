@@ -91,6 +91,15 @@ export const PEOPLE_ROTATION: string[] = ['recordCollector', 'personDbResolver']
  */
 export const AFFILIATION_RATING_ROTATION: string[] = ['recordCollector', 'affiliationRatingResolver'];
 
+/**
+ * The "Augment from DB" flow's rotation — start from a canonical SurrealDB
+ * organization instead of a CSV. One step today: the org workbench
+ * (search → org card → additive lists). The search-and-add remote (Phase 3)
+ * joins as an EXTRA_REMOTES pairing partner, not a numbered step. See
+ * context-v/specs/Augment-From-DB-Flow.md.
+ */
+export const AUGMENT_FROM_DB_ROTATION: string[] = ['orgWorkbench'];
+
 export const REMOTES: RemoteEntry[] = [
   {
     id: 'recordCollector',
@@ -154,6 +163,13 @@ export const REMOTES: RemoteEntry[] = [
     description: 'Reimport a rated affiliations CSV and write relevance + notes back onto the affiliations edges',
     // @ts-expect-error — federation remote, type comes from the MF runtime
     importMount: () => import('affiliationRatingResolver/mount'),
+  },
+  {
+    id: 'orgWorkbench',
+    label: 'Org Workbench',
+    description: 'Start from a canonical organization — search to it, work its links, streams, and corpus in place',
+    // @ts-expect-error — federation remote, type comes from the MF runtime
+    importMount: () => import('orgWorkbench/mount'),
   },
 ];
 

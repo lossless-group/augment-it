@@ -19,6 +19,7 @@ import {
   opportunitiesForOrg,
   addOrgLink,
   addOrgCorpus,
+  addOrgStream,
   getOrgDetail,
   type NormRecord,
   type ApplyInput,
@@ -26,6 +27,7 @@ import {
   type UpdateOpportunityInput,
   type OrgLinkAddInput,
   type OrgCorpusAddInput,
+  type OrgStreamAddInput,
 } from './resolver';
 
 export function registerHandlers(nc: NatsConnection): void {
@@ -150,6 +152,24 @@ export function registerHandlers(nc: NatsConnection): void {
       try {
         const db = await getDb();
         const result = await addOrgCorpus(db, args);
+        if (msg.reply) msg.respond(JSON.stringify(result));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
+
+  // organization.streams.add — single-entry additive write for media_streams
+  // (the org card's pulse-streams ➕). Per
+  // context-v/plans/Augment-From-DB-Phase-2-Org-Workbench-Remote.md.
+  (async () => {
+    const sub = nc.subscribe('organization.streams.add.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as OrgStreamAddInput;
+      try {
+        const db = await getDb();
+        const result = await addOrgStream(db, args);
         if (msg.reply) msg.respond(JSON.stringify(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);

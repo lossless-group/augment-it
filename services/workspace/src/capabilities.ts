@@ -178,6 +178,7 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // Per context-v/specs/Augment-From-DB-Flow.md §Capability contract.
   'organization.detail': 'organization.detail.requested',
   'organization.affiliations': 'organization.affiliations.requested',
+  'organization.streams.add': 'organization.streams.add.requested',
 
   // Domain catalog — the canonical typed-grouping graph behind apps/strategy-curator
   // (which is the type='strategy' view). Served by record-surrealdb-resolver
@@ -284,6 +285,7 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   // (affiliations). Same Cloud round-trip budget.
   'organization.detail': 30_000,
   'organization.affiliations': 30_000,
+  'organization.streams.add': 30_000,
   // One query, one provider — pack.search's budget.
   'search.fire': 30_000,
   // Domain catalog — SurrealDB graph reads/writes; same Cloud round-trip budget.

@@ -139,6 +139,37 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
+  apps/org-workbench:
+    dependencies:
+      '@augment-it/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
+      '@augment-it/workspace':
+        specifier: workspace:*
+        version: link:../../packages/workspace
+      svelte:
+        specifier: ^5.56.4
+        version: 5.56.4
+    devDependencies:
+      '@module-federation/enhanced':
+        specifier: ^2.6.0
+        version: 2.6.0(@rspack/core@2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(@swc/helpers@0.5.23))(node-fetch@2.7.0(encoding@0.1.13))(typescript@6.0.3)(webpack@5.107.1)
+      '@module-federation/rsbuild-plugin':
+        specifier: ^2.6.0
+        version: 2.6.0(@rsbuild/core@2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(core-js@3.47.0))(@rspack/core@2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(@swc/helpers@0.5.23))(node-fetch@2.7.0(encoding@0.1.13))(typescript@6.0.3)(webpack@5.107.1)
+      '@rsbuild/core':
+        specifier: ^2.1.2
+        version: 2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(core-js@3.47.0)
+      '@rsbuild/plugin-svelte':
+        specifier: ^2.0.0
+        version: 2.0.0(@rsbuild/core@2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(core-js@3.47.0))(svelte@5.56.4)(typescript@6.0.3)
+      svelte-check:
+        specifier: ^4.7.1
+        version: 4.7.1(svelte@5.56.4)(typescript@6.0.3)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
   apps/pack-runner:
     dependencies:
       '@augment-it/theme':

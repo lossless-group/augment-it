@@ -46,6 +46,7 @@ export default defineConfig({
         personDbResolver: 'personDbResolver@http://localhost:3010/remoteEntry.js',
         strategyCurator: `strategyCurator@${STRATEGY_CURATOR_REMOTE}`,
         affiliationRatingResolver: 'affiliationRatingResolver@http://localhost:3012/remoteEntry.js',
+        orgWorkbench: 'orgWorkbench@http://localhost:3014/remoteEntry.js',
       },
       // No `shared` block — sharing Svelte 5's reactive runtime and a
       // .svelte.ts singleton across federation has known issues with the

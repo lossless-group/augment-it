@@ -18,6 +18,7 @@ import {
   EVENT_ATTENDEES_ROTATION,
   PEOPLE_ROTATION,
   AFFILIATION_RATING_ROTATION,
+  AUGMENT_FROM_DB_ROTATION,
 } from './remotes';
 
 export type FlowDef = {
@@ -62,6 +63,13 @@ export const FLOWS: FlowDef[] = [
     description:
       'Reimport a relevance-rated affiliations CSV (from scripts/export-affiliation-ratings-csv.mjs) and write the ratings back onto each affiliations edge in SurrealDB. The first flow that starts from the canonical layer instead of a raw CSV.',
     rotation: AFFILIATION_RATING_ROTATION,
+  },
+  {
+    id: 'augmentFromDb',
+    label: 'Augment from DB',
+    description:
+      'Start from a canonical organization in SurrealDB — search to it, see its links, streams, corpus, and (soon) people, and augment any of them in place. The org-first workbench flow.',
+    rotation: AUGMENT_FROM_DB_ROTATION,
   },
 ];
 

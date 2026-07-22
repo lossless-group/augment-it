@@ -1,0 +1,68 @@
+/* org-workbench — scoped ow-* surface styles. Uses @augment-it/theme :root
+   tokens with literal fallbacks so the remote still renders standalone if a
+   token is absent (same discipline as person-db-resolver's pdr-*). */
+
+.ow-app {
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+  color: var(--color-text, #e7e7e7);
+  padding: 0.5rem 1.25rem 2rem;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.ow-header { position: sticky; top: 0; z-index: 2; padding: 0.75rem 0; background: var(--color-bg, #14151a); border-bottom: 1px solid var(--color-border, #2a2c33); }
+.ow-title-row { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+.ow-title { font-size: 1.05rem; margin: 0; }
+.ow-source { font-size: 0.75rem; color: var(--color-text-muted, #9aa0aa); border: 1px solid var(--color-border, #2a2c33); border-radius: 3px; padding: 1px 7px; }
+.ow-client { font-size: 0.8rem; color: var(--color-text-muted, #9aa0aa); }
+.ow-ws { margin-left: auto; font-size: 0.7rem; padding: 1px 7px; border-radius: 3px; background: var(--color-border, #2a2c33); }
+.ow-ws.status-open { background: var(--color-ok-bg, #173a26); color: var(--color-ok-text, #6ee7a8); }
+.ow-ws.status-closed, .ow-ws.status-error { background: var(--color-error-bg, #3a1717); color: var(--color-error-text, #f3a3a3); }
+
+/* search */
+.ow-search { position: relative; margin-top: 0.6rem; }
+.ow-search-input { width: 100%; box-sizing: border-box; background: var(--color-surface, #1c1e25); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; padding: 0.5rem 0.75rem; font: inherit; }
+.ow-search-busy { position: absolute; right: 0.75rem; top: 0.5rem; color: var(--color-text-muted, #9aa0aa); }
+.ow-search-drop { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5; margin: 0; padding: 0.25rem; list-style: none; background: var(--color-surface, #1c1e25); border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); max-height: 18rem; overflow-y: auto; }
+.ow-search-item { display: flex; justify-content: space-between; gap: 0.75rem; width: 100%; text-align: left; background: none; border: none; color: inherit; font: inherit; padding: 0.45rem 0.6rem; border-radius: 4px; cursor: pointer; }
+.ow-search-item:hover { background: var(--color-border, #2a2c33); }
+.ow-search-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ow-search-slug { color: var(--color-text-muted, #9aa0aa); font-size: 0.75rem; flex-shrink: 0; }
+
+/* card */
+.ow-body { margin-top: 1rem; }
+.ow-loading, .ow-empty-state { color: var(--color-text-muted, #9aa0aa); }
+.ow-card { border: 1px solid var(--color-border, #2a2c33); border-radius: 8px; background: var(--color-surface, #1c1e25); padding: 1rem 1.25rem; }
+.ow-card-head { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+.ow-card-name { margin: 0; font-size: 1.15rem; }
+.ow-card-slug { color: var(--color-text-muted, #9aa0aa); font-size: 0.8rem; }
+.ow-identity { display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 0.9rem; margin: 0.75rem 0 0; font-size: 0.85rem; }
+.ow-identity dt { color: var(--color-text-muted, #9aa0aa); }
+.ow-identity dd { margin: 0; }
+
+/* additive lists */
+.ow-lists { display: grid; gap: 1rem; margin-top: 1.1rem; }
+.ow-list { border-top: 1px solid var(--color-border, #2a2c33); padding-top: 0.75rem; }
+.ow-list-head { display: flex; align-items: center; justify-content: space-between; }
+.ow-list-title { margin: 0; font-size: 0.9rem; }
+.ow-list-count { color: var(--color-text-muted, #9aa0aa); font-weight: normal; font-size: 0.8rem; margin-left: 0.35rem; }
+.ow-list-actions { display: flex; align-items: center; gap: 0.5rem; }
+.ow-added { font-size: 0.75rem; color: var(--color-ok-text, #6ee7a8); }
+.ow-plus { width: 1.6rem; height: 1.6rem; border-radius: 4px; border: 1px solid var(--color-border, #2a2c33); background: var(--color-bg, #14151a); color: inherit; font-size: 1rem; line-height: 1; cursor: pointer; }
+.ow-plus:hover { background: var(--color-border, #2a2c33); }
+
+.ow-add { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.ow-add-url { flex: 2; min-width: 0; background: var(--color-bg, #14151a); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 4px; padding: 0.35rem 0.5rem; font: inherit; }
+.ow-add-kind { flex: 1; min-width: 0; background: var(--color-bg, #14151a); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 4px; padding: 0.35rem 0.5rem; font: inherit; }
+.ow-add-go { border: 1px solid var(--color-border, #2a2c33); background: var(--color-surface, #1c1e25); color: inherit; border-radius: 4px; padding: 0.35rem 0.8rem; font: inherit; cursor: pointer; }
+.ow-add-go:disabled { opacity: 0.6; cursor: default; }
+
+.ow-entries { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.3rem; }
+.ow-entry { display: flex; align-items: baseline; gap: 0.6rem; font-size: 0.85rem; }
+.ow-kind { flex-shrink: 0; font-size: 0.7rem; padding: 1px 6px; border-radius: 3px; background: var(--color-border, #2a2c33); color: var(--color-text-muted, #cfd3da); }
+.ow-url { color: var(--color-link, #8ab4f8); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ow-url:hover { text-decoration: underline; }
+.ow-date { margin-left: auto; flex-shrink: 0; color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+
+.ow-empty { color: var(--color-text-muted, #9aa0aa); font-size: 0.8rem; margin: 0.4rem 0 0; }
+.ow-error { color: var(--color-error-text, #f3a3a3); font-size: 0.8rem; margin-top: 0.4rem; }

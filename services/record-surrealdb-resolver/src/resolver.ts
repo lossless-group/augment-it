@@ -813,6 +813,30 @@ export async function addOrgCorpus(db: Surreal, input: OrgCorpusAddInput): Promi
   return { ok: true, org_id: String(org.id), entry };
 }
 
+// organization.streams.add — single-entry additive write for media_streams,
+// the sibling of addOrgLink/addOrgCorpus the Augment-from-DB org card's
+// ➕ needs (streams previously only arrived via resolver.apply's batch
+// path). Reuses shapeStream: kind auto-inferred, party 'first_party'.
+// Per context-v/plans/Augment-From-DB-Phase-2-Org-Workbench-Remote.md.
+
+export type OrgStreamAddInput = { org_slug: string; url: string; kind?: string; client: string };
+export type OrgStreamAddResult = { ok: true; org_id: string; stream: ShapedStream };
+
+export async function addOrgStream(db: Surreal, input: OrgStreamAddInput): Promise<OrgStreamAddResult> {
+  const org = await fetchOrgBySlug(db, input.org_slug);
+  if (!org) throw new Error(`organization not found: ${input.org_slug}`);
+  const shaped = shapeStream(input.kind ? { url: input.url, kind: input.kind } : input.url);
+  if (!shaped) throw new Error('organization.streams.add requires a non-empty url');
+  await db.query(
+    `UPDATE $id SET
+        media_streams   = array::concat(media_streams ?? [], [$stream]),
+        client_access   = array::union(client_access ?? [], [$client]),
+        last_touched_by = $client, last_touched_at = time::now();`,
+    { id: org.id, stream: shaped, client: input.client },
+  );
+  return { ok: true, org_id: String(org.id), stream: shaped };
+}
+
 // ---------------------------------------------------------------------------
 // organization.detail — the full org card for the Augment-from-DB org
 // workbench: identity, all three additive lists, aliases + domains. Read
