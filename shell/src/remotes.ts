@@ -253,12 +253,27 @@ export const STRATEGY_CURATOR_REMOTE: RemoteEntry = {
   importMount: () => import('strategyCurator/mount'),
 };
 
+// SEARCH_AND_ADD_REMOTE — the "Augment from DB" flow's search surface
+// (spec D2): launched from any 🔍 on the org-workbench card via
+// augment-it:search-request + augment-it:navigate, it tiles next to the
+// card through the orgWorkbench+searchAndAdd pairing. Pair-only, not a
+// numbered rotation step — the same surface will serve person cards and
+// other flows. See context-v/specs/Augment-From-DB-Flow.md §Phase 3.
+export const SEARCH_AND_ADD_REMOTE: RemoteEntry = {
+  id: 'searchAndAdd',
+  label: 'Search & Add',
+  description: 'Editable-term web search through the provider palette — one-click add to the launching entity',
+  // @ts-expect-error — federation remote, type comes from the MF runtime
+  importMount: () => import('searchAndAdd/mount'),
+};
+
 const EXTRA_REMOTES: RemoteEntry[] = [
   CHAT_REMOTE,
   PACK_RUNNER_REMOTE,
   SORT_FILTER_LENS_REMOTE,
   PERSON_ENRICHMENT_REMOTE,
   STRATEGY_CURATOR_REMOTE,
+  SEARCH_AND_ADD_REMOTE,
 ];
 
 // Co-existence pairings — which two remotes share the viewport in Mode B,
@@ -291,6 +306,16 @@ export const PAIRINGS: Pairing[] = [
     left: 'recordCollector',
     right: 'enhancedRecordsList',
     defaultLeftPct: 25, // record-collector narrower; the checkpoint table needs room
+  },
+  {
+    // Augment from DB (spec D2): the org card keeps the majority; the
+    // search-results rail rides on the right. Opened by the 🔍's
+    // augment-it:navigate {remoteId:'searchAndAdd'} — appended LAST so
+    // PAIRINGS[0] (the default pair) is unchanged.
+    key: 'orgWorkbench+searchAndAdd',
+    left: 'orgWorkbench',
+    right: 'searchAndAdd',
+    defaultLeftPct: 55,
   },
 ];
 

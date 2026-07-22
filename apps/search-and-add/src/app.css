@@ -1,0 +1,55 @@
+/* search-and-add — scoped saa-* surface styles. Theme tokens with literal
+   fallbacks, same discipline as org-workbench's ow-*. */
+
+.saa-app {
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+  color: var(--color-text, #e7e7e7);
+  padding: 0.5rem 1.25rem 2rem;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.saa-header { position: sticky; top: 0; z-index: 2; padding: 0.75rem 0; background: var(--color-bg, #14151a); border-bottom: 1px solid var(--color-border, #2a2c33); }
+.saa-title-row { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+.saa-title { font-size: 1.05rem; margin: 0; }
+.saa-context { font-size: 0.8rem; color: var(--color-text-muted, #9aa0aa); }
+.saa-context strong { color: var(--color-text, #e7e7e7); }
+.saa-context-none { font-style: italic; }
+.saa-context-warn { color: var(--color-error-text, #f3a3a3); }
+.saa-ws { margin-left: auto; font-size: 0.7rem; padding: 1px 7px; border-radius: 3px; background: var(--color-border, #2a2c33); }
+.saa-ws.status-open { background: var(--color-ok-bg, #173a26); color: var(--color-ok-text, #6ee7a8); }
+.saa-ws.status-closed, .saa-ws.status-error { background: var(--color-error-bg, #3a1717); color: var(--color-error-text, #f3a3a3); }
+
+/* term bar */
+.saa-termbar { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
+.saa-term { flex: 1; min-width: 0; background: var(--color-surface, #1c1e25); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; padding: 0.5rem 0.75rem; font: inherit; }
+.saa-fire { border: 1px solid var(--color-border, #2a2c33); background: var(--color-surface, #1c1e25); color: inherit; border-radius: 6px; padding: 0.5rem 1rem; font: inherit; cursor: pointer; }
+.saa-fire:disabled { opacity: 0.6; cursor: default; }
+
+/* provider palette */
+.saa-palette { display: flex; gap: 0.4rem; margin-top: 0.55rem; flex-wrap: wrap; }
+.saa-chip { min-width: 2.2rem; padding: 0.2rem 0.55rem; border-radius: 999px; border: 1px solid var(--color-border, #2a2c33); background: var(--color-bg, #14151a); color: var(--color-text-muted, #cfd3da); font: inherit; font-size: 0.75rem; cursor: pointer; }
+.saa-chip:hover:not(:disabled) { background: var(--color-border, #2a2c33); }
+.saa-chip.active { border-color: var(--color-link, #8ab4f8); color: var(--color-link, #8ab4f8); }
+.saa-chip.tier-paid:not(.active) { border-style: dashed; }
+.saa-chip.dark, .saa-chip:disabled { opacity: 0.35; cursor: default; }
+
+/* results */
+.saa-body { margin-top: 0.9rem; }
+.saa-provider-note { color: var(--color-text-muted, #9aa0aa); font-size: 0.8rem; margin: 0 0 0.6rem; }
+.saa-results { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.saa-row { display: flex; gap: 0.75rem; align-items: flex-start; border: 1px solid var(--color-border, #2a2c33); border-radius: 8px; background: var(--color-surface, #1c1e25); padding: 0.6rem 0.8rem; }
+.saa-row-main { min-width: 0; flex: 1; }
+.saa-row-title { color: var(--color-link, #8ab4f8); text-decoration: none; font-size: 0.92rem; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.saa-row-title:hover { text-decoration: underline; }
+.saa-row-host { color: var(--color-text-muted, #9aa0aa); font-size: 0.75rem; margin-left: 0.5rem; }
+.saa-row-date { color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; margin-left: 0.5rem; font-variant-numeric: tabular-nums; }
+.saa-row-snippet { margin: 0.25rem 0 0; font-size: 0.8rem; color: var(--color-text-muted, #b7bcc5); line-height: 1.35; }
+.saa-add { flex-shrink: 0; width: 1.9rem; height: 1.9rem; border-radius: 6px; border: 1px solid var(--color-border, #2a2c33); background: var(--color-bg, #14151a); color: inherit; font-size: 1.05rem; line-height: 1; cursor: pointer; }
+.saa-add:hover:not(:disabled) { background: var(--color-border, #2a2c33); }
+.saa-add.added { border-color: var(--color-ok-text, #6ee7a8); color: var(--color-ok-text, #6ee7a8); cursor: default; }
+.saa-add:disabled:not(.added) { opacity: 0.6; cursor: default; }
+
+.saa-empty { color: var(--color-text-muted, #9aa0aa); font-size: 0.85rem; }
+.saa-error { color: var(--color-error-text, #f3a3a3); font-size: 0.8rem; margin-top: 0.35rem; }
+.saa-fire-error { margin-top: 0.5rem; }

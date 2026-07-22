@@ -41,11 +41,12 @@ export type AffiliatedPerson = {
 };
 
 // Phase 3 — the A→B launch envelope for the search-and-add remote (spec D2).
-// Dispatched as CustomEvent('augment-it:search-request', { detail }).
+// Dispatched as CustomEvent('augment-it:search-request', { detail }) AND
+// persisted to localStorage (see lib/search-request.ts for why both).
 export type SearchRequestDetail = {
   entity:
-    | { type: 'organization'; org_slug: string }
-    | { type: 'person'; person_uuid: string };
+    | { type: 'organization'; org_slug: string; display_name?: string }
+    | { type: 'person'; person_uuid: string; display_name?: string };
   target: 'links' | 'corpus' | 'streams';
   seed_term: string;
   intent?: string;

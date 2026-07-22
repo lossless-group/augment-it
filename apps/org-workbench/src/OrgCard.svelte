@@ -7,7 +7,8 @@
 
   import AdditiveList from './AdditiveList.svelte';
   import { addOrgLink, addOrgStream, addOrgCorpus } from './lib/org-client';
-  import type { OrgDetail } from './lib/types';
+  import { requestSearch } from './lib/search-request';
+  import type { OrgDetail, SearchRequestDetail } from './lib/types';
 
   let {
     org,
@@ -27,6 +28,19 @@
         new CustomEvent('augment-it:entity-updated', { detail: { org_slug: org.slug } }),
       );
     };
+  }
+
+  // 🔍 — launch search-and-add pre-scoped to this org + list. Seed terms are
+  // hardcoded v1 (spec open question: pack-template convergence later); the
+  // operator rewrites them freely in the TermBar anyway — that's the point.
+  const displayName = $derived(org.complete_name ?? org.conventional_name ?? org.slug);
+  function makeSearch(target: SearchRequestDetail['target'], seed: (name: string) => string) {
+    return () =>
+      requestSearch({
+        entity: { type: 'organization', org_slug: org.slug, display_name: displayName },
+        target,
+        seed_term: seed(displayName),
+      });
   }
 </script>
 
@@ -57,18 +71,21 @@
       entries={org.org_links}
       kindHint="kind (auto: website/linkedin/x/…)"
       onadd={makeAdd(addOrgLink)}
+      onsearch={makeSearch('links', (n) => `"${n}" LinkedIn`)}
     />
     <AdditiveList
       title="Pulse streams"
       entries={org.media_streams}
       kindHint="kind (auto: blog_index/rss/newsroom/…)"
       onadd={makeAdd(addOrgStream)}
+      onsearch={makeSearch('streams', (n) => `"${n}" blog`)}
     />
     <AdditiveList
       title="Corpus items"
       entries={org.org_corpus}
       kindHint="kind (optional)"
       onadd={makeAdd(addOrgCorpus)}
+      onsearch={makeSearch('corpus', (n) => `"${n}" news`)}
     />
   </div>
 </article>

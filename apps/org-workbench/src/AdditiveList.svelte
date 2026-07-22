@@ -13,11 +13,14 @@
     entries,
     kindHint = 'auto-detected from URL',
     onadd,
+    onsearch,
   }: {
     title: string;
     entries: ShapedLink[];
     kindHint?: string;
     onadd: (url: string, kind?: string) => Promise<void>;
+    // Optional 🔍 — launches search-and-add pre-scoped to this list (Phase 3).
+    onsearch?: () => void;
   } = $props();
 
   let adding = $state(false);
@@ -61,6 +64,11 @@
     <h3 class="ow-list-title">{title} <span class="ow-list-count">{entries.length}</span></h3>
     <span class="ow-list-actions">
       {#if justAdded}<span class="ow-added">added ✓</span>{/if}
+      {#if onsearch}
+        <button type="button" class="ow-plus" title="Search the web for {title}" onclick={onsearch}>
+          🔍
+        </button>
+      {/if}
       <button type="button" class="ow-plus" title="Add to {title}" onclick={() => (open = !open)}>
         {open ? '×' : '+'}
       </button>
