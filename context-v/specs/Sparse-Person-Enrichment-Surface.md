@@ -10,9 +10,9 @@ augmented_with:
   - Claude Code on Claude Opus 4.7 (1M context)
 semantic_version: 0.0.0.3
 revisions:
-  - 2026-07-21 — v0.0.0.3: status sweep — promoted to Shipped. The surface shipped 2026-06-16 as apps/person-enrichment (:3015, registered in the shell) per changelog 2026-06-16_01_Person-Enrichment-Surface-Ships; many-per-person affiliations + org autocomplete followed 2026-06-17.
-  - 2026-06-15 — v0.0.0.2: four open questions resolved per operator. Search becomes "open a new tab," not a connector. Worklist is always scoped to one event, not generic-sparse. Verb palette named: `create_org`, `add_profile` (smart single-field parser), `fill_out_query` (URL → extract). Fuzzy matching dropped — no cross-client overlap to chase.
-  - 2026-06-15 — v0.0.0.1: initial draft.
+  - "2026-07-21 — v0.0.0.3: status sweep — promoted to Shipped. The surface shipped 2026-06-16 as apps/person-enrichment (:3015, registered in the shell) per changelog 2026-06-16_01_Person-Enrichment-Surface-Ships; many-per-person affiliations + org autocomplete followed 2026-06-17."
+  - "2026-06-15 — v0.0.0.2: four open questions resolved per operator. Search becomes \"open a new tab,\" not a connector. Worklist is always scoped to one event, not generic-sparse. Verb palette named: `create_org`, `add_profile` (smart single-field parser), `fill_out_query` (URL → extract). Fuzzy matching dropped — no cross-client overlap to chase."
+  - "2026-06-15 — v0.0.0.1: initial draft."
 status: Shipped
 tags:
   - Spec
