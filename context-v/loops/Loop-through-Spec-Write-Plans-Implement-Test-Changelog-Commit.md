@@ -7,8 +7,11 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 proven_on: "[[../specs/Augment-From-DB-Flow]] — five phases, commits 8d141ca..251dda4 + milestone a9a42b0, 2026-07-22"
+revisions:
+  - "2026-07-22 — v0.0.0.2 — visual pass: mermaid loop cycle + status-lifecycle diagram, ASCII test ladder, per-iteration artifact-trail tree. Written retrospectively from the first run, so the diagrams show what happened, not what was hoped."
+  - "2026-07-22 — v0.0.0.1 — initial codification, same day as the proving run."
 tags:
   - Loop
   - Augment-It
@@ -24,6 +27,11 @@ status: Proven-Once
 > `context-v/loops/` is an **experimental** folder (per the context-vigilance
 > skill) and this is its first occupant here. Expect the shape to drift as
 > more loops get codified.
+>
+> This one was codified *retrospectively* — the run came first because there
+> was no example to write against. **Next time, invert it:** author (or
+> update) the loop doc before running, using this file as the template. The
+> doc is the durable definition; the session is the execution.
 
 ## What this loop is
 
@@ -39,6 +47,26 @@ is service/data-layer work (surfaces come after their capabilities — this
 ordering is what makes later phases UI-only and cheap); a proof-script
 convention; the changelog and git-conventions skills.
 
+## The loop at a glance
+
+```mermaid
+flowchart TD
+  SPEC["Spec: Signed-Off,<br/>phases 1..N"] --> PICK["Take next phase"]
+  PICK --> PLAN["1 · Author plan<br/>re-ground against LIVE code;<br/>correct spec drift explicitly"]
+  PLAN --> IMPL["2 · Implement<br/>from named in-repo templates"]
+  IMPL --> TEST["3 · Test, scriptable-first<br/>(the ladder, below)"]
+  TEST --> GREEN{proof green?}
+  GREEN -- "no" --> STOP1(["STOP — surface it;<br/>never build a phase on red"])
+  GREEN -- "yes" --> LOG["4 · Changelog entry<br/>honest about what was NOT tested"]
+  LOG --> FLIP["5 · Status flips<br/>plan → Shipped + post_ship_note;<br/>spec → Implementing / Shipped"]
+  FLIP --> COMMIT["6 · Commit + push<br/>attempt(flow, capability, stepN)<br/>explicit paths only"]
+  COMMIT --> MORE{phases left?}
+  MORE -- "yes" --> PICK
+  MORE -- "no" --> MILE["milestone(flow): verdict<br/>empty marker commit"]
+  MILE --> DONE(["Loop ends.<br/>Usability iteration = a NEW loop"])
+  PLAN -. "spec turns out WRONG<br/>(not just drifted)" .-> STOP2(["STOP — revise spec<br/>with the user, resume"])
+```
+
 ## The iteration (one phase per pass)
 
 1. **Author the plan** — `context-v/plans/<Spec>-Phase-N-<Name>.md`,
@@ -52,19 +80,25 @@ convention; the changelog and git-conventions skills.
    from a named in-repo template (the plan lists which). Service verbs cross
    their three files (handler → capabilities map+timeout → typed client
    wrapper); remotes follow the scaffold of the newest shipped remote.
-3. **Test, scriptable-first** — the ladder, cheapest to dearest:
-   - svelte-check / `tsc --noEmit` on everything touched;
-   - builds (each remote + the shell — the federation host build is the
-     regression that catches registration typos);
-   - dev-server smoke (`curl :PORT/remoteEntry.js`);
-   - **rebuild the touched service containers** (the running stack is old
-     code until you do) and prove new verbs over raw NATS;
-   - re-run the standing proof script as a regression
-     (`scripts/prove-<spec-slug>-capabilities.mjs` — Phase 1 writes it,
-     every later phase re-runs it);
-   - live end-to-end where it's side-effect-safe (the stream-scan flip
-     test); **never** where it pollutes shared data (no test persons in the
-     canonical layer — name the operator walk-through instead of faking it).
+3. **Test, scriptable-first** — climb the ladder, cheapest to dearest;
+   stop climbing only where the next rung would pollute shared data:
+
+   ```text
+   cost/risk ▲   ┌──────────────────────────────────────────────────────┐
+             6   │ operator browser walk-through ── NAMED, not faked    │  humans only
+             ────┼──────────────────────────────────────────────────────┤ ─────────────
+             5   │ live end-to-end, side-effect-safe only               │
+                 │   ✓ stream-scan flip test   ✗ test persons in canon  │
+             4   │ container rebuild + raw-NATS proof of new verbs      │
+                 │   (the running stack is OLD code until you rebuild)  │
+             3   │ standing regression: prove-<spec>-capabilities.mjs   │  every phase,
+                 │   written in Phase 1, re-run every phase             │  scripted
+             2   │ dev-server smoke: curl :PORT/remoteEntry.js          │
+             1   │ builds — each remote + THE SHELL (catches            │
+                 │   federation-registration typos)                     │
+             0   │ svelte-check + tsc --noEmit on everything touched    │
+                 └──────────────────────────────────────────────────────┘
+   ```
 4. **Changelog** — one entry per phase, changelog-conventions shape, honest
    about what was NOT tested and why.
 5. **Status flips** — plan → `Shipped` + `date_first_published` +
@@ -77,6 +111,41 @@ convention; the changelog and git-conventions skills.
    explicit paths only — never sweep in unrelated dirty state (submodules
    like `clients/*` stay untouched for deliberate tidying). Push each phase;
    don't batch.
+
+### What one pass leaves behind (the artifact trail)
+
+Every iteration deposits the same four artifacts plus one commit — this is
+the proving run's Phase 2, but every phase leaves the identical shape:
+
+```text
+augment-it/
+├── context-v/
+│   ├── specs/Augment-From-DB-Flow.md          ← status flip (+ post_ship_note at the end)
+│   └── plans/
+│       └── Augment-From-DB-Phase-2-….md       ← NEW: the plan, → Shipped + post_ship_note
+├── changelog/
+│   └── 2026-07-22_02_Org-Workbench-….md       ← NEW: one entry, honest about untested legs
+├── apps/ | services/ | shell/                 ← the code, from named in-repo templates
+└── (git) attempt(augment-from-db, org-workbench, step2): …   ← one pushed commit
+```
+
+### Status lifecycles the loop drives
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  state "Spec" as S {
+    [*] --> SignedOff
+    SignedOff --> Implementing: first phase starts
+    Implementing --> Shipped: last phase lands
+    note right of Shipped: post_ship_note lists what stays human-only
+  }
+  state "Each phase's Plan" as P {
+    [*] --> Draft
+    Draft --> Shipped_: proof green, same day
+    note right of Shipped_: date_first_published + post_ship_note record deviations and skipped checks
+  }
+```
 
 ## Exit conditions
 
