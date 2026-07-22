@@ -2,13 +2,16 @@
 title: "Record ↔ DB Resolver — operator-driven match/create bridge from row-store records to canonical organizations"
 lede: "The row-store records and the SurrealDB canonical orgs never got bridged. The resolver is the per-record surface that closes the gap: for each record, confirm which canonical org it is (→ additive enrich) or create a new one — one at a time, operator in the driver's seat."
 date_created: 2026-06-22
-date_modified: 2026-06-22
+date_modified: 2026-07-21
+date_first_published: 2026-06-22
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.8 (1M context)
-semantic_version: 0.0.0.1
-status: Draft
+  - Claude Code on Claude Fable 5
+semantic_version: 0.0.0.2
+status: Shipped
+post_ship_note: "Shipped the day it was written — changelog carries four entries on 2026-06-22 (v0.0.0.1 bridge, v0.0.0.2 round-trip bond + editable canonical, edit-with-traceability, v0.0.0.3 auto-minted opportunities). Live as apps/record-db-resolver (:3008) + services/record-surrealdb-resolver; the person-aware sibling followed 2026-07-07."
 tags:
   - Spec
   - Augment-It

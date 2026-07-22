@@ -2,14 +2,16 @@
 title: "Strategy Curator — An Entry-Point App for augment-it"
 lede: "Pick or create a strategy, gather sources for it (metadata first, full content on demand, PDFs preserved), and pull extracts — without the strategy↔source↔funder↔person graph ever decoupling. The trick: a canonical source registry in SurrealDB owns identity; the client's filesystem owns usage; a shared UUID is the only bond."
 date_created: 2026-06-29
-date_modified: 2026-07-06
+date_modified: 2026-07-21
+date_first_published: 2026-06-29
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.8 (1M context)
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.7
-status: Implementing
+semantic_version: 0.0.0.8
+status: Shipped
+post_ship_note: "First slice (source surface) shipped 2026-06-29; the Build-Corpora front door landed 2026-07-06; live in the shell at :3017 as 'Corpora Curator' and deployed with the Railway cut of 2026-07-09."
 tags:
   - Spec
   - Augment-It

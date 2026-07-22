@@ -2,13 +2,15 @@
 title: "Search Providers as First-Class — Stand Up SearXNG as the New Default for Social Packs; Tavily Stays as a Peer; Per-Row Iteration as the Workflow We're Building Toward"
 lede: "The social packs route through Tavily today, but Tavily is a content-RAG index — wrong substrate for sparse-text JS-rendered social-profile pages. The fix is **not** to swap Tavily out. The fix is to make **search provider** a first-class concern in the architecture, stand SearXNG up as a peer, flip the common-seven social packs so SearXNG becomes their new default, and keep Tavily wired in as a peer for the content-RAG packs/bundles that will want it (deep-research, document extraction, annual-report summarization). The deeper goal — the reason this is more than a refactor — is that the product is being shaped around an **iteration loop**: a user finds a `not_found` or low-confidence response in the by-record triage view, suspects the provider is the issue, and wants to re-fire the same pack against the same row through a different provider (SearXNG → Brave → Google CSE → direct-API connector) until the accurate data surfaces with the fewest API calls. That loop only exists if providers are plural and selectable per-fire."
 date_created: 2026-05-26
-date_modified: 2026-05-28
+date_modified: 2026-07-21
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.3
+  - Claude Code on Claude Fable 5
+semantic_version: 0.0.0.4
 revisions:
+  - 2026-07-21 — Status sweep, resolved. The core ask fully landed: SearXNG shipped as peer provider + social-pack default with provider_override on 2026-06-01 (changelog 2026-06-01_01), and the capability registry (registry/, register-connectors.ts booting searxng/tavily/serpapi/gdelt/google-news-rss) landed 2026-06-02 — going beyond this issue's Layer 1. Never done from the original plan: step 7's foundation-dataset smoke (the ≥60% acceptance number) and step 8's blueprint write-up. Those are noted, not blocking — the architecture the issue argued for is in production. (semver 0.0.0.4)
   - 2026-05-26 — Initial draft as "Switch Search Substrate from Tavily to SearXNG." Framed the move as a substrate swap with Tavily preserved as a side-effect. (semver 0.0.0.1)
   - 2026-05-27 — Reframed. The decision is **provider plurality as a first-class architectural concern**, not a substrate swap. SearXNG becomes the new default for social packs; Tavily stays as a peer for content-RAG packs; future providers (Brave, Google CSE, ProPublica NPO, Candid, LinkedIn-direct, MCP-server-as-provider) plug in via the same connector interface. Added §The iteration loop we're building toward — per-row, per-pack provider selection as a future product affordance. File renamed from `Switch-Search-Substrate-from-Tavily-to-Searxng.md` to `Search-Providers-as-First-Class-SearXNG-Default.md` to match. (semver 0.0.0.2)
   - 2026-05-28 — Layer 1 (the connector plumbing, proposed-work steps 1–6) landed in code. `connectors/{types,index,tavily,searxng}.ts` exist, `PackConfig` is provider-aware, all common-seven social packs default to `connector: 'searxng'`, `runOnePackSearch` dispatches on provider and accepts `provider_override`, and the SearXNG container + `settings.yml` are in `docker-compose.yml`. Steps 7 (foundation-dataset smoke / the ≥60% acceptance number) and 8 (blueprint write-up) remain, as does the per-record iteration UI in response-reviewer :3005. (semver 0.0.0.3)
@@ -23,7 +25,7 @@ tags:
   - Provider-Plurality
   - Iteration-Loop
   - Social-Search
-status: Open
+status: Resolved · Provider Plurality Shipped 2026-06-01 · Registry 2026-06-02 · Smoke Metric + Blueprint Skipped
 ---
 
 # Search Providers as First-Class — SearXNG Becomes the New Default for Social Packs

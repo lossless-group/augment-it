@@ -6,9 +6,11 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7
-semantic_version: 0.0.0.5
-date_modified: 2026-06-02
+semantic_version: 0.0.0.6
+date_modified: 2026-07-21
+date_first_published: 2026-06-02
 revisions:
+  - 2026-07-21 — Status sweep, promoted to Partially-Shipped (0.0.0.6). The OfficialUpdates foundation shipped starting 2026-06-02: official-blog-pack, official-pressrelease-pack, official-social-posts-pack, the google-news-rss connector, and the entity-officials bundle all live under services/social-search/src/entity-pulse/ with fire scripts. The four-phase DAG gating, two-score (confidence + relevance) LLM scoring, three-layer curation wiring, and the MediaMentions/SocialsMentions phases are not confirmed in code. See ## Remaining work below.
   - 2026-06-01 — Initial draft (0.0.0.1).
   - 2026-06-02 — SerpApi added as a peer provider; news pack stays on the free path. Lock: Google News RSS as the v1 default for `news-mentions-pack` (with GDELT immediate peer); SerpApi `engine: 'google_news'` is available behind `provider_override` but never default. `official-site-updates-pack` provider section split into find-index vs extract-posts stages — SerpApi (`engine: 'google'` with `site:`-restrict) is the strongest find-index option; Firecrawl stays for extract-posts. Provider-override shape grows from a single string to `{ find?, extract? }` to match the two-stage economy. New open question: per-bundle cost budget (surfaces in Decision §10's adaptive RR as a candidate pre-fire estimate line). Resolved open question: news provider priority.
   - 2026-06-02 — Engineering-handoff sharpening, two pieces locked: (a) every returned item carries two independent 0-100 scores — `confidence` (Profile-Builder-style: link valid + informative) and `relevance` (LLM-scored against a `relevance_context` brief). Each has a 90-100 / 51-89 / 0-50 tier with semantics tied to triage default-accept / human-review / default-skip behaviour. Worked example (Reach University's apprenticeship-degrees fundraise) shows how a 3-year-old article can score higher on relevance than yesterday's news. (b) No hard cap on returned items — structured response wraps `all` (master, sorted by combined score), `most_recent` and `most_relevant` (each soft cap 20). Sort and tie-break rules locked; per-fire `provider_override.score: 'llm' | 'keywords-only' | 'none'` escape hatch added. Cost discipline section names the batching + cheap-model + pre-filter pattern that keeps LLM scoring viable at fan-out scale.
@@ -25,7 +27,7 @@ tags:
   - Agent-Pack
   - Social-Aggregation
   - Profile-Continuation
-status: Draft
+status: Partially-Shipped
 ---
 
 # Entity-Pulse Bundle
@@ -978,3 +980,39 @@ palette (parallel step 8) are unambiguously branch-shaped.
 - [[In-App-Chat-v0-0-1-for-Augment-It]] — the chat verb registry
   that may eventually carry `/voice-of-entity` or
   `/entity-pulse` as a one-shot verb.
+
+## Remaining work (as of 2026-07-21)
+
+Assessed against a code scan on 2026-07-21 (branch
+`rebuild/turbo-rsbuild`) — flag-don't-fix; correct this list if the
+scan missed something.
+
+**Shipped** (per changelog `2026-06-02_01_Official-Blog-Pack-Step-1`
+and commits `7065da8`/`ceb3f27`, maintained through the 2026-07-01
+NATS v3 migration):
+
+- `official-blog-pack`, `official-pressrelease-pack`,
+  `official-social-posts-pack` under
+  `services/social-search/src/entity-pulse/packs/`
+- `google-news-rss` connector + `entity-officials` bundle +
+  `dispatch.ts`
+- Fire scripts (`scripts/fire-official-blog.ts` and siblings)
+- The 8MB NATS `max_payload` bump this bundle's fan-out forced
+
+**Not confirmed in code** (the migration plan's later steps):
+
+- Phase 2 OfficialUpdates rollup-agent, and the four-phase DAG with
+  `depends_on` gating + `prior_context` carry-forward
+- Two-score item scoring (confidence + relevance vs a
+  `relevance_context` brief) and the tiered triage defaults
+- Three-layer `PulseCategoryState` curation wiring
+  ([[Pulse-Curation-Layer-and-UI]] remains Draft; the
+  OfficialPulse junk-URL issue log shows triage happened
+  *post-promotion* instead, with a 99.7% reject rate — see
+  [[../issues/OfficialPulse-URLs-Appear-as-Junk-in-Promoted-Versions]])
+- MediaMentions Phases 3 + 4, remaining MediaMentions packs, and
+  SocialsMentions entirely
+
+The "Augment from DB" flow's step 8 (pulse-stream scanning) is the
+next likely consumer of this spec — see
+[[../explorations/Augment-From-DB-Flow-Two-New-Microfrontends]].

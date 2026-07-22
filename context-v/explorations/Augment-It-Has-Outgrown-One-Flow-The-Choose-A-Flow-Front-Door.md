@@ -2,13 +2,16 @@
 title: "augment-it has outgrown one flow — ROTATION is the CSV-augmentation pipeline's shape wearing a general-purpose name, and strategy-curator's promotion to its head is a splice, not a fit"
 lede: "augment-it started as one thing — augment a CSV, row by row — and ROTATION (shell/src/remotes.ts) is that flow's shape, hardcoded as THE numbered nav. Every use case since (DB-canonicalization for reach-edu's CRM exit, per-org/person corpus curation, now domain/thesis curation for humain-vc) has been reconciled onto that one array instead of recognized as its own flow. Strategy Curator's 2026-07-06 'promotion to the head of ROTATION' is the symptom: a domain-curation session doesn't hand off into recordCollector, but ROTATION was the only navigation primitive that existed, so that's where it landed. The fix isn't a bigger ROTATION array — it's a 'what are you trying to do?' front door that picks which flow mounts, so a use case that isn't CSV-row augmentation stops being forced to pretend it is."
 date_created: 2026-07-06
-date_modified: 2026-07-07
+date_modified: 2026-07-21
+date_first_published: 2026-07-07
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Sonnet 5
-semantic_version: 0.0.0.4
-status: Implementing
+  - Claude Code on Claude Fable 5
+semantic_version: 0.0.0.5
+status: Shipped
+post_ship_note: "The front door shipped 2026-07-07 as the FLOWS registry (shell/src/flows.svelte.ts) + dynamic bubble strip — see changelog 2026-07-07_02_ROTATION-Becomes-N-Flows. Five flows registered as of 2026-07-21."
 tags:
   - Exploration
   - Augment-It
