@@ -15,7 +15,7 @@
   import ProviderPalette from './ProviderPalette.svelte';
   import ResultsList from './ResultsList.svelte';
   import { searchContext } from './lib/search-context.svelte';
-  import { fireSearch, fetchConnectors, addResult, verbFor } from './lib/search-client';
+  import { fireSearch, fetchConnectors, addResult, verbFor, scanStream } from './lib/search-client';
   import type { ConnectorInfo, ConnectorResult } from './lib/types';
 
   const TOKEN_KEY = 'augment-it:session-token';
@@ -36,6 +36,9 @@
   let firedArrival = -1;
 
   const req = $derived(searchContext.request);
+  // Phase 5 — scan mode: the envelope carries a stream. No term, no palette;
+  // the stream URL is the query and organization.stream.scan is the fire.
+  const scanMode = $derived(Boolean(req?.stream?.url && req?.entity.type === 'organization'));
   const entityLabel = $derived(
     req
       ? req.entity.display_name ??
@@ -52,6 +55,7 @@
   });
 
   async function fire() {
+    if (scanMode) return void scan();
     if (!term.trim()) return;
     firing = true;
     fireError = null;
@@ -72,6 +76,28 @@
     }
   }
 
+  async function scan() {
+    if (!req?.stream?.url || req.entity.type !== 'organization') return;
+    firing = true;
+    fireError = null;
+    try {
+      const r = await scanStream({
+        org_slug: req.entity.org_slug,
+        stream_url: req.stream.url,
+        stream_kind: req.stream.kind,
+        client,
+      });
+      results = r.results;
+      firedVia = `stream scan (${r.already_known} already in corpus)`;
+    } catch (err) {
+      fireError = err instanceof Error ? err.message : String(err);
+      results = [];
+      firedVia = null;
+    } finally {
+      firing = false;
+    }
+  }
+
   // A fresh envelope (mount-time localStorage read counts, via arrival 0 vs
   // firedArrival -1) seeds the term and auto-fires exactly once. Later
   // operator edits + re-fires never re-trigger this.
@@ -82,7 +108,7 @@
         term = req.seed_term;
         results = [];
         firedVia = null;
-        void fire();
+        void (scanMode ? scan() : fire());
       }
     }
   });
@@ -139,8 +165,19 @@
       {/if}
       <span class="saa-ws status-{status}">{status}</span>
     </div>
-    <TermBar bind:term {firing} onfire={fire} />
-    <ProviderPalette {connectors} bind:selected={selectedProvider} />
+    {#if scanMode && req?.stream}
+      <div class="saa-scanbar">
+        <span class="saa-scan-label">scanning stream</span>
+        <a class="saa-scan-url" href={req.stream.url} target="_blank" rel="noreferrer">{req.stream.url}</a>
+        {#if req.stream.kind}<span class="saa-scan-kind">{req.stream.kind}</span>{/if}
+        <button type="button" class="saa-fire" disabled={firing} onclick={scan}>
+          {firing ? 'scanning…' : 'Re-scan'}
+        </button>
+      </div>
+    {:else}
+      <TermBar bind:term {firing} onfire={fire} />
+      <ProviderPalette {connectors} bind:selected={selectedProvider} />
+    {/if}
     {#if fireError}<div class="saa-error saa-fire-error">{fireError}</div>{/if}
   </header>
 

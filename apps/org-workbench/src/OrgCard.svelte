@@ -80,6 +80,16 @@
       kindHint="kind (auto: blog_index/rss/newsroom/…)"
       onadd={makeAdd(addOrgStream)}
       onsearch={makeSearch('streams', (n) => `"${n}" blog`)}
+      entryaction={{
+        label: 'scan',
+        fn: (stream) =>
+          requestSearch({
+            entity: { type: 'organization', org_slug: org.slug, display_name: displayName },
+            target: 'corpus',
+            seed_term: '',
+            stream: { url: stream.url, kind: stream.kind },
+          }),
+      }}
     />
     <AdditiveList
       title="Corpus items"

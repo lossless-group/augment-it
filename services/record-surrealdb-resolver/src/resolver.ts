@@ -813,6 +813,22 @@ export async function addOrgCorpus(db: Surreal, input: OrgCorpusAddInput): Promi
   return { ok: true, org_id: String(org.id), entry };
 }
 
+// content.urls.check — which of these URLs are already in the content_items
+// ledger? Service-to-service read (social-search's stream-scan dedup rides
+// it); shared ledger keyed by unique url, so no client filter. Per
+// context-v/plans/Augment-From-DB-Phase-5-Stream-Scan-Mode.md.
+
+export async function checkContentUrls(
+  db: Surreal,
+  urls: string[],
+): Promise<{ ok: true; existing: string[] }> {
+  const clean = urls.filter((u) => typeof u === 'string' && u.trim().length > 0);
+  if (clean.length === 0) return { ok: true, existing: [] };
+  const r = await db.query(`SELECT url FROM content_items WHERE url IN $urls;`, { urls: clean });
+  const rows = (r?.[0] as { url?: string }[]) ?? [];
+  return { ok: true, existing: rows.map((row) => row.url).filter((u): u is string => Boolean(u)) };
+}
+
 // organization.streams.add — single-entry additive write for media_streams,
 // the sibling of addOrgLink/addOrgCorpus the Augment-from-DB org card's
 // ➕ needs (streams previously only arrived via resolver.apply's batch

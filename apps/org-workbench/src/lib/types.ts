@@ -71,4 +71,8 @@ export type SearchRequestDetail = {
   target: 'links' | 'corpus' | 'streams';
   seed_term: string;
   intent?: string;
+  // Phase 5 — when present, search-and-add enters scan mode: the stream URL
+  // is scanned via organization.stream.scan instead of a term search, and
+  // ➕ lands items in org_corpus (target is 'corpus' for scan envelopes).
+  stream?: { url: string; kind?: string };
 };

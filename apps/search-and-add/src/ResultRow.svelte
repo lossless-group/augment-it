@@ -18,6 +18,9 @@
   let added = $state(false);
   let error = $state<string | null>(null);
 
+  // Scan mode: the corpus already holds this URL — badge it, park the ➕.
+  const known = $derived(result.known === true);
+
   async function add() {
     adding = true;
     error = null;
@@ -44,6 +47,7 @@
   <div class="saa-row-main">
     <a class="saa-row-title" href={result.url} target="_blank" rel="noreferrer">{result.title}</a>
     <span class="saa-row-host">{host(result.url)}</span>
+    {#if known}<span class="saa-known">in corpus</span>{/if}
     {#if result.published_date}<span class="saa-row-date">{result.published_date.slice(0, 10)}</span>{/if}
     {#if result.content}<p class="saa-row-snippet">{result.content.slice(0, 220)}</p>{/if}
     {#if error}<div class="saa-error">{error}</div>{/if}
@@ -51,11 +55,11 @@
   <button
     type="button"
     class="saa-add"
-    class:added
-    disabled={adding || added}
+    class:added={added || known}
+    disabled={adding || added || known}
     onclick={add}
-    title={added ? 'added to the entity' : 'add to the entity'}
+    title={known ? 'already in the corpus' : added ? 'added to the entity' : 'add to the entity'}
   >
-    {added ? '✓' : adding ? '…' : '+'}
+    {added || known ? '✓' : adding ? '…' : '+'}
   </button>
 </li>

@@ -56,6 +56,7 @@ import { getRegistry } from './registry/registry';
 import { registerExistingConnectors } from './registry/register-connectors';
 import type { Capability } from './registry/capabilities';
 import { fireSearch, type SearchFireInput } from './search-fire';
+import { scanStream, type StreamScanInput } from './stream-scan';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 const MAX_CONCURRENT = Number.parseInt(process.env.SOCIAL_SEARCH_CONCURRENCY ?? '4', 10);
@@ -445,6 +446,31 @@ async function main(): Promise<void> {
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         console.error(JSON.stringify({ level: 'error', msg: 'search.fire failed', error }));
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
+
+  // organization.stream.scan.requested — scan one media_streams entry via
+  // the official-blog machinery (curated-index path) + content_items dedup.
+  // ok:false on failure, same contract + reason as search.fire above.
+  (async () => {
+    const sub = nc.subscribe('organization.stream.scan.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as StreamScanInput;
+      try {
+        const result = await scanStream(nc, args);
+        if (msg.reply) msg.respond(JSON.stringify(result));
+        console.log(JSON.stringify({
+          level: 'info',
+          msg: 'organization.stream.scan',
+          stream_url: args.stream_url,
+          found: result.meta.total_found,
+          known: result.meta.already_known,
+        }));
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        console.error(JSON.stringify({ level: 'error', msg: 'organization.stream.scan failed', error }));
         if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }

@@ -119,6 +119,9 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // intent). social-search-service is the consumer. Per
   // context-v/specs/Augment-From-DB-Flow.md §Capability contract.
   'search.fire': 'search.fire.requested',
+  // Scan one media_streams entry (blog/RSS/newsroom index) via the
+  // official-blog machinery's curated-index path + content_items dedup.
+  'organization.stream.scan': 'organization.stream.scan.requested',
   // Content ingest — Jina-pull markdown + per-client corpus. Per
   // context-v/specs/Funder-Content-Corpus-Workflow.md §Step 5 and
   // context-v/specs/Response-Reviewer-Shell-and-Content-Reader-Mode.md.
@@ -288,6 +291,9 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'organization.streams.add': 30_000,
   // One query, one provider — pack.search's budget.
   'search.fire': 30_000,
+  // Multi-stage (Firecrawl index harvest + per-post dates + dedup read) —
+  // pack.entity_pulse's budget.
+  'organization.stream.scan': 60_000,
   // Domain catalog — SurrealDB graph reads/writes; same Cloud round-trip budget.
   // retype fans out one content-ingest file-move round-trip per client_slug
   // on the row (usually one) — 45s covers a multi-client domain comfortably.

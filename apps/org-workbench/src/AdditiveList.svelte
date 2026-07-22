@@ -14,6 +14,7 @@
     kindHint = 'auto-detected from URL',
     onadd,
     onsearch,
+    entryaction,
   }: {
     title: string;
     entries: ShapedLink[];
@@ -21,6 +22,8 @@
     onadd: (url: string, kind?: string) => Promise<void>;
     // Optional 🔍 — launches search-and-add pre-scoped to this list (Phase 3).
     onsearch?: () => void;
+    // Optional per-entry action (Phase 5 — "scan" on pulse streams).
+    entryaction?: { label: string; fn: (entry: ShapedLink) => void };
   } = $props();
 
   let adding = $state(false);
@@ -105,6 +108,11 @@
         <li class="ow-entry">
           <span class="ow-kind">{e.kind}</span>
           <a class="ow-url" href={e.url} target="_blank" rel="noreferrer">{host(e.url)}</a>
+          {#if entryaction}
+            <button type="button" class="ow-entry-action" onclick={() => entryaction.fn(e)}>
+              {entryaction.label}
+            </button>
+          {/if}
           <span class="ow-date">{(e.added_at ?? '').slice(0, 10)}</span>
         </li>
       {/each}

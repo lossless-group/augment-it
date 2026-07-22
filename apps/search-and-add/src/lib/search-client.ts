@@ -21,6 +21,37 @@ export async function fireSearch(args: {
   return { provider: r.provider ?? 'unknown', results: r.results ?? [] };
 }
 
+export async function scanStream(args: {
+  org_slug: string;
+  stream_url: string;
+  stream_kind?: string;
+  client: string;
+}): Promise<{ results: ConnectorResult[]; already_known: number }> {
+  const r = (await workspace.invoke('organization.stream.scan', args)) as {
+    ok: boolean;
+    items?: {
+      url: string;
+      title: string;
+      snippet: string;
+      published_date: string | null;
+      already_in_corpus: boolean;
+    }[];
+    meta?: { already_known: number };
+    error?: string;
+  };
+  if (!r.ok) throw new Error(r.error || 'organization.stream.scan failed');
+  return {
+    results: (r.items ?? []).map((i) => ({
+      url: i.url,
+      title: i.title,
+      content: i.snippet,
+      published_date: i.published_date ?? undefined,
+      known: i.already_in_corpus,
+    })),
+    already_known: r.meta?.already_known ?? 0,
+  };
+}
+
 export async function fetchConnectors(): Promise<ConnectorInfo[]> {
   const r = (await workspace.invoke('connectors.inventory', {})) as {
     ok: boolean;

@@ -63,6 +63,8 @@
 .ow-url { color: var(--color-link, #8ab4f8); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ow-url:hover { text-decoration: underline; }
 .ow-date { margin-left: auto; flex-shrink: 0; color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+.ow-entry-action { flex-shrink: 0; font-size: 0.7rem; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--color-border, #2a2c33); background: var(--color-bg, #14151a); color: var(--color-text-muted, #cfd3da); font-family: inherit; cursor: pointer; }
+.ow-entry-action:hover { background: var(--color-border, #2a2c33); color: var(--color-text, #e7e7e7); }
 
 .ow-empty { color: var(--color-text-muted, #9aa0aa); font-size: 0.8rem; margin: 0.4rem 0 0; }
 .ow-error { color: var(--color-error-text, #f3a3a3); font-size: 0.8rem; margin-top: 0.4rem; }

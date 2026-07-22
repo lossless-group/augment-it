@@ -21,6 +21,7 @@ import {
   addOrgCorpus,
   addOrgStream,
   getOrgDetail,
+  checkContentUrls,
   type NormRecord,
   type ApplyInput,
   type UpdateOrgInput,
@@ -152,6 +153,24 @@ export function registerHandlers(nc: NatsConnection): void {
       try {
         const db = await getDb();
         const result = await addOrgCorpus(db, args);
+        if (msg.reply) msg.respond(JSON.stringify(result));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
+
+  // content.urls.check — dedup read for social-search's stream scan
+  // (service-to-service; not in the workspace capability map). Per
+  // context-v/plans/Augment-From-DB-Phase-5-Stream-Scan-Mode.md.
+  (async () => {
+    const sub = nc.subscribe('content.urls.check.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as { urls: string[] };
+      try {
+        const db = await getDb();
+        const result = await checkContentUrls(db, args.urls ?? []);
         if (msg.reply) msg.respond(JSON.stringify(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);

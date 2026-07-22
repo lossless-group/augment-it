@@ -12,16 +12,21 @@ export type SearchRequestDetail = {
   target: 'links' | 'corpus' | 'streams';
   seed_term: string;
   intent?: string;
+  // Phase 5 — scan mode: when present, the stream URL is scanned via
+  // organization.stream.scan instead of a term search.
+  stream?: { url: string; kind?: string };
 };
 
 // Normalized result every connector returns (services/social-search
-// connectors/types.ts ConnectorResult, verbatim).
+// connectors/types.ts ConnectorResult, verbatim) — plus the scan mode's
+// already-in-corpus flag, absent on term-search results.
 export type ConnectorResult = {
   url: string;
   title: string;
   content: string;
   score?: number;
   published_date?: string;
+  known?: boolean;
 };
 
 // connectors.inventory wire shape — ConnectorRegistration minus `fire`.
