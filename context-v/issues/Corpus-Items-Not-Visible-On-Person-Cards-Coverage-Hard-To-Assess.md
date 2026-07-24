@@ -16,9 +16,9 @@ tags:
   - Org-Workbench
   - Persons
   - Coverage
-status: Partially-Shipped
+status: Shipped
 date_first_published: 2026-07-24
-post_ship_note: "Layer 1 (per-card visibility) shipped 2026-07-24 — eager entries on organization.affiliations, AdditiveList render, no titles (content_items has none). Layer 2 (coverage roster) deferred into the component-library sweep. Per [[../plans/Workbench-Usability-Sweep-Corpus-Visibility-Stream-Editing-Affiliation-Promotion]]; gh #20 closed."
+post_ship_note: "Layer 1 (per-card visibility) shipped 2026-07-24 AM — eager entries on organization.affiliations, AdditiveList render, no titles (content_items has none; the write-side is [[Corpus-Adds-Dont-Fetch-Metadata-No-Cue-No-Inspector]]). Layer 2 (coverage roster) shipped same day PM in 760e9fe as the OrgRoster column, gh #32 — un-deferring the earlier fold-into-#22 plan. gh #20 closed."
 ---
 
 # Corpus items invisible on person cards; coverage unassessable
