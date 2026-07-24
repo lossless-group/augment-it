@@ -7,7 +7,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 tags:
   - Issue
   - Usability
@@ -16,7 +16,9 @@ tags:
   - Org-Workbench
   - Persons
   - Coverage
-status: Open · Jotted
+status: Partially-Shipped
+date_first_published: 2026-07-24
+post_ship_note: "Layer 1 (per-card visibility) shipped 2026-07-24 — eager entries on organization.affiliations, AdditiveList render, no titles (content_items has none). Layer 2 (coverage roster) deferred into the component-library sweep. Per [[../plans/Workbench-Usability-Sweep-Corpus-Visibility-Stream-Editing-Affiliation-Promotion]]; gh #20 closed."
 ---
 
 # Corpus items invisible on person cards; coverage unassessable

@@ -7,7 +7,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 tags:
   - Issue
   - Usability
@@ -16,7 +16,9 @@ tags:
   - Persons
   - Identity-Links
   - Org-Workbench
-status: Open · Jotted
+status: Shipped
+date_first_published: 2026-07-24
+post_ship_note: "Shipped 2026-07-24 — → affiliation row action + AddAffiliationInline (gate inverted), org_domain seeded on create, bio URL as observation source (no has_bio_at predicate for v1). Riders named not built: server inferLinkKind bio vocabulary, search-and-add rail promotion, didi-chat verb. Per [[../plans/Workbench-Usability-Sweep-Corpus-Visibility-Stream-Editing-Affiliation-Promotion]]; gh #25 closed."
 ---
 
 # Person bio pages are affiliation signals

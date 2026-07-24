@@ -7,7 +7,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 tags:
   - Issue
   - Usability
@@ -15,7 +15,9 @@ tags:
   - Pulse-Streams
   - Org-Workbench
   - Media-Streams
-status: Open · Jotted
+status: Shipped
+date_first_published: 2026-07-24
+post_ship_note: "Shipped 2026-07-24 — name on ShapedStream + ➕ form, organization.streams.update (match-by-URL patch; the update-vs-additive question resolved as sparse patch per the updateOrg precedent), in-place kind/name editor, topic_hub in inferStreamKind. Kind confirmed descriptive-only (stream-scan ignores it). Per [[../plans/Workbench-Usability-Sweep-Corpus-Visibility-Stream-Editing-Affiliation-Promotion]]; gh #26 closed."
 ---
 
 # Pulse streams need editable kind + user-facing names
