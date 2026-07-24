@@ -25,6 +25,60 @@ export async function searchOrgs(q: string, client: string): Promise<OrgSuggesti
   return r.candidates ?? [];
 }
 
+// The relevance brief — per-workspace standing intent didi crawls load.
+export async function fetchBrief(
+  client: string,
+): Promise<{ brief: string | null; updated_at: string | null }> {
+  const r = (await workspace.invoke('client.brief.get', { client })) as {
+    ok: boolean;
+    brief?: string | null;
+    updated_at?: string | null;
+    error?: string;
+  };
+  if (!r.ok) throw new Error(r.error || 'client.brief.get failed');
+  return { brief: r.brief ?? null, updated_at: r.updated_at ?? null };
+}
+
+export async function saveBrief(client: string, brief: string): Promise<void> {
+  const r = (await workspace.invoke('client.brief.set', { client, brief })) as {
+    ok: boolean;
+    error?: string;
+  };
+  if (!r.ok) throw new Error(r.error || 'client.brief.set failed');
+}
+
+// didi's team crawl — candidates only; staging + accept live in PeopleReveal.
+export type CrawledPerson = {
+  name: string;
+  role: string | null;
+  headline: string | null;
+  linkedin_url: string | null;
+  bio_url: string | null;
+};
+
+export async function crawlTeam(
+  org_slug: string,
+  client: string,
+): Promise<{ people: CrawledPerson[]; filtered_note: string; source_urls: string[] }> {
+  const r = (await workspace.invoke('organization.crawl', {
+    org_slug,
+    target: 'team',
+    client,
+  })) as {
+    ok: boolean;
+    people?: CrawledPerson[];
+    filtered_note?: string;
+    source_urls?: string[];
+    error?: string;
+  };
+  if (!r.ok) throw new Error(r.error || 'organization.crawl (team) failed');
+  return {
+    people: r.people ?? [],
+    filtered_note: r.filtered_note ?? '',
+    source_urls: r.source_urls ?? [],
+  };
+}
+
 // The coverage roster — every org this client can see, with counts, fewest
 // corpus first.
 export async function fetchOrgRoster(client: string): Promise<OrgRosterRow[]> {

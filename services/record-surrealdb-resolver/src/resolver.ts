@@ -941,6 +941,43 @@ export async function updateOrgStream(
   return { ok: true, org_id: String(org.id), stream: patched };
 }
 
+// client.brief.get / client.brief.set — the relevance brief: a small
+// operator-editable prose document, scoped per workspace client, that didi
+// crawls (and eventually every agent action) load as standing intent — the
+// topical scope ("what's relevant") and the people policy ("who from a team
+// page is worth ingesting"). Server-side by design so the chat rail and the
+// list buttons read ONE source of truth.
+// Per context-v/specs/Augment-From-DB-Flow.md §v1.2.
+
+export type BriefGetResult = { ok: true; brief: string | null; updated_at: string | null };
+export type BriefSetInput = { client: string; brief: string };
+
+export async function getClientBrief(db: Surreal, client: string): Promise<BriefGetResult> {
+  const r = await db.query(
+    `SELECT brief, updated_at FROM relevance_briefs WHERE client = $client LIMIT 1;`,
+    { client },
+  );
+  const row = ((r?.[0] as { brief?: string; updated_at?: unknown }[]) ?? [])[0];
+  return {
+    ok: true,
+    brief: row?.brief ?? null,
+    updated_at: row?.updated_at ? String(row.updated_at) : null,
+  };
+}
+
+export async function setClientBrief(db: Surreal, input: BriefSetInput): Promise<BriefGetResult> {
+  const brief = input.brief.trim();
+  await db.query(
+    `DEFINE INDEX IF NOT EXISTS relevance_briefs_client_uq ON relevance_briefs FIELDS client UNIQUE;`,
+  );
+  await db.query(
+    `UPSERT relevance_briefs SET brief = $brief, updated_at = time::now(), client = $client
+       WHERE client = $client;`,
+    { client: input.client, brief },
+  );
+  return getClientBrief(db, input.client);
+}
+
 // organization.roster — the coverage column in front of the workbench flow:
 // every org the client can see, with entity-list counts, sorted so the orgs
 // that could and should have more corpus surface first. Counts ride

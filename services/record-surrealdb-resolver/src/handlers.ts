@@ -22,6 +22,9 @@ import {
   addOrgStream,
   updateOrgStream,
   listOrgRoster,
+  getClientBrief,
+  setClientBrief,
+  type BriefSetInput,
   getOrgDetail,
   checkContentUrls,
   type NormRecord,
@@ -192,6 +195,38 @@ export function registerHandlers(nc: NatsConnection): void {
       try {
         const db = await getDb();
         const result = await addOrgStream(db, args);
+        if (msg.reply) msg.respond(JSON.stringify(result));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
+
+  // client.brief.get / client.brief.set — the per-workspace relevance brief.
+  // Per context-v/specs/Augment-From-DB-Flow.md §v1.2.
+  (async () => {
+    const sub = nc.subscribe('client.brief.get.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as { client: string };
+      try {
+        const db = await getDb();
+        const result = await getClientBrief(db, args.client);
+        if (msg.reply) msg.respond(JSON.stringify(result));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
+
+  (async () => {
+    const sub = nc.subscribe('client.brief.set.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as BriefSetInput;
+      try {
+        const db = await getDb();
+        const result = await setClientBrief(db, args);
         if (msg.reply) msg.respond(JSON.stringify(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);

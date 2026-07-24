@@ -15,7 +15,7 @@
   import ProviderPalette from './ProviderPalette.svelte';
   import ResultsList from './ResultsList.svelte';
   import { searchContext } from './lib/search-context.svelte';
-  import { fireSearch, fetchConnectors, addResult, verbFor, scanStream } from './lib/search-client';
+  import { fireSearch, fetchConnectors, addResult, verbFor, scanStream, crawlSearch } from './lib/search-client';
   import type { ConnectorInfo, ConnectorResult } from './lib/types';
 
   const TOKEN_KEY = 'augment-it:session-token';
@@ -39,6 +39,15 @@
   // Phase 5 — scan mode: the envelope carries a stream. No term, no palette;
   // the stream URL is the query and organization.stream.scan is the fire.
   const scanMode = $derived(Boolean(req?.stream?.url && req?.entity.type === 'organization'));
+  // v1.2 — crawl mode: didi's web crawl fires organization.crawl instead of
+  // a term search. Org-only, links/streams targets only.
+  const crawlMode = $derived(
+    Boolean(
+      req?.crawl &&
+        req?.entity.type === 'organization' &&
+        (req?.target === 'links' || req?.target === 'streams'),
+    ),
+  );
   const entityLabel = $derived(
     req
       ? req.entity.display_name ??
@@ -54,7 +63,26 @@
     }
   });
 
+  async function crawl() {
+    if (!req || req.entity.type !== 'organization') return;
+    if (req.target !== 'links' && req.target !== 'streams') return;
+    firing = true;
+    fireError = null;
+    try {
+      const r = await crawlSearch({ org_slug: req.entity.org_slug, target: req.target, client });
+      results = r.results;
+      firedVia = `${r.provider} (${r.results.length} candidates)`;
+    } catch (err) {
+      fireError = err instanceof Error ? err.message : String(err);
+      results = [];
+      firedVia = null;
+    } finally {
+      firing = false;
+    }
+  }
+
   async function fire() {
+    if (crawlMode) return void crawl();
     if (scanMode) return void scan();
     if (!term.trim()) return;
     firing = true;
@@ -108,14 +136,17 @@
         term = req.seed_term;
         results = [];
         firedVia = null;
-        void (scanMode ? scan() : fire());
+        void (crawlMode ? crawl() : scanMode ? scan() : fire());
       }
     }
   });
 
   async function onAdd(url: string) {
     if (!req) throw new Error('no launch context — open a 🔍 from an entity card');
-    await addResult(req, url, client);
+    // Crawl results carry the model's kind (and a stream's real name) —
+    // pass them through so the write keeps them instead of re-inferring.
+    const hit = crawlMode ? results.find((r) => r.url === url) : undefined;
+    await addResult(req, url, client, hit ? { kind: hit.kind, name: hit.name } : undefined);
   }
 
   async function loadActiveClient() {
@@ -165,7 +196,16 @@
       {/if}
       <span class="saa-ws status-{status}">{status}</span>
     </div>
-    {#if scanMode && req?.stream}
+    {#if crawlMode && req}
+      <div class="saa-scanbar">
+        <span class="saa-scan-label">didi crawl</span>
+        <span class="saa-scan-kind">{req.target === 'links' ? 'identity links' : 'pulse streams'}</span>
+        <span class="saa-scan-url">{firing ? 'crawling the web — this takes a minute…' : 'candidates below — ➕ what belongs'}</span>
+        <button type="button" class="saa-fire" disabled={firing} onclick={crawl}>
+          {firing ? 'crawling…' : 'Re-crawl'}
+        </button>
+      </div>
+    {:else if scanMode && req?.stream}
       <div class="saa-scanbar">
         <span class="saa-scan-label">scanning stream</span>
         <a class="saa-scan-url" href={req.stream.url} target="_blank" rel="noreferrer">{req.stream.url}</a>

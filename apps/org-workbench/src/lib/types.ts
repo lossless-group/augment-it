@@ -105,4 +105,7 @@ export type SearchRequestDetail = {
   // is scanned via organization.stream.scan instead of a term search, and
   // ➕ lands items in org_corpus (target is 'corpus' for scan envelopes).
   stream?: { url: string; kind?: string };
+  // v1.2 — when true, search-and-add enters crawl mode: didi's web crawl
+  // (organization.crawl) fires instead of a term search.
+  crawl?: boolean;
 };

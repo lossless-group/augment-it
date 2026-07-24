@@ -15,6 +15,9 @@ export type SearchRequestDetail = {
   // Phase 5 — scan mode: when present, the stream URL is scanned via
   // organization.stream.scan instead of a term search.
   stream?: { url: string; kind?: string };
+  // v1.2 — crawl mode: didi's web crawl (organization.crawl) fires instead
+  // of a term search; no TermBar, no palette. Spec §v1.2.
+  crawl?: boolean;
 };
 
 // Normalized result every connector returns (services/social-search
@@ -27,6 +30,10 @@ export type ConnectorResult = {
   score?: number;
   published_date?: string;
   known?: boolean;
+  // Crawl-mode extras: the model's inferred entry kind, and (streams) the
+  // stream's real title — carried through the ➕ so the add write keeps them.
+  kind?: string;
+  name?: string;
 };
 
 // connectors.inventory wire shape — ConnectorRegistration minus `fire`.

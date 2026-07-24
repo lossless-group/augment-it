@@ -9,6 +9,7 @@ import { connect } from '@nats-io/transport-node';
 import { modelName } from './anthropic';
 import { applyPrompt } from './apply';
 import { registerChatTurnHandler } from './chat-turn';
+import { registerCrawlHandler } from './crawl';
 import { draftPrompt, improvePrompt } from './drafter';
 import { previewRequest } from './preview';
 import { runPromptAgainstRecordSet } from './run';
@@ -230,6 +231,10 @@ async function main(): Promise<void> {
   // Workspace assembles the four-slab prompt + tools; this handler makes
   // the SDK call and returns the tool_use block. See ./chat-turn.ts.
   registerChatTurnHandler(nc);
+
+  // organization.crawl.requested — didi's web crawl for one org (identity
+  // links / pulse streams / team members), candidates-only. See ./crawl.ts.
+  registerCrawlHandler(nc);
 
   console.log(JSON.stringify({ level: 'info', msg: 'prompt-runner-service ready' }));
 }

@@ -36,6 +36,27 @@
 .ow-columns { display: flex; gap: 1.25rem; align-items: flex-start; margin-top: 1rem; }
 .ow-body { flex: 1; min-width: 0; }
 
+/* relevance brief — didi's standing intent, view/edit in place (v1.2) */
+.ow-brief { position: relative; }
+.ow-brief-panel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 6; width: 34rem; max-width: 80vw; padding: 0.75rem; background: var(--color-surface, #1c1e25); border: 1px solid var(--color-border, #2a2c33); border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); display: flex; flex-direction: column; gap: 0.5rem; }
+.ow-brief-hint { margin: 0; font-size: 0.8rem; color: var(--color-text-muted, #9aa0aa); }
+.ow-brief-date { margin-left: 0.5rem; font-style: italic; }
+.ow-brief-text { width: 100%; box-sizing: border-box; background: var(--color-bg, #14151a); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; padding: 0.5rem 0.65rem; font: inherit; font-size: 0.85rem; resize: vertical; }
+
+/* staged people — didi's team-crawl candidates awaiting per-row accept (v1.2) */
+.ow-staged { margin: 0.6rem 0; padding: 0.6rem; border: 1px dashed var(--color-border, #2a2c33); border-radius: 8px; background: color-mix(in srgb, var(--color-surface, #1c1e25) 88%, transparent); }
+.ow-staged-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+.ow-staged-title { font-size: 0.82rem; color: var(--color-text-muted, #9aa0aa); }
+.ow-staged-title a { color: inherit; margin-left: 0.3rem; }
+.ow-staged-note { margin: 0.3rem 0 0; font-size: 0.78rem; font-style: italic; color: var(--color-text-muted, #9aa0aa); }
+.ow-staged-list { margin: 0.5rem 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+.ow-staged-row { padding: 0.4rem 0.5rem; border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; }
+.ow-staged-row.done { opacity: 0.55; }
+.ow-staged-main { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.ow-staged-actions { margin-left: auto; display: flex; gap: 0.35rem; align-items: center; }
+.ow-staged-busy { font-size: 0.8rem; color: var(--color-text-muted, #9aa0aa); }
+.ow-staged-headline { margin: 0.25rem 0 0; font-size: 0.8rem; color: var(--color-text-muted, #9aa0aa); }
+
 /* coverage roster — the column in front of the flow (gh #32) */
 .ow-roster { width: 300px; flex-shrink: 0; position: sticky; top: 7.5rem; max-height: calc(100vh - 8.5rem); display: flex; flex-direction: column; border: 1px solid var(--color-border, #2a2c33); border-radius: 8px; background: var(--color-surface, #1c1e25); }
 .ow-roster-head { display: flex; gap: 0.4rem; padding: 0.5rem; border-bottom: 1px solid var(--color-border, #2a2c33); }

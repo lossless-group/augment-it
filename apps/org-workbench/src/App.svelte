@@ -12,6 +12,7 @@
   import OrgCard from './OrgCard.svelte';
   import OrgCreateInline from './OrgCreateInline.svelte';
   import OrgRoster from './OrgRoster.svelte';
+  import BriefPanel from './BriefPanel.svelte';
   import { fetchOrgDetail } from './lib/org-client';
   import type { OrgDetail, OrgSuggestion } from './lib/types';
 
@@ -122,6 +123,7 @@
       >
         {creating ? '×' : '+ New organization'}
       </button>
+      <BriefPanel {client} />
     </div>
     {#if creating}
       <OrgCreateInline

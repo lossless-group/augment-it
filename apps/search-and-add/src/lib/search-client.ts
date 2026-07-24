@@ -52,6 +52,24 @@ export async function scanStream(args: {
   };
 }
 
+// v1.2 crawl mode — didi's web crawl for the launching org. One model turn
+// with server-side web search; slow (tens of seconds); candidates only.
+export async function crawlSearch(args: {
+  org_slug: string;
+  target: 'links' | 'streams';
+  client: string;
+  max_results?: number;
+}): Promise<{ provider: string; results: ConnectorResult[] }> {
+  const r = (await workspace.invoke('organization.crawl', args)) as {
+    ok: boolean;
+    provider?: string;
+    results?: ConnectorResult[];
+    error?: string;
+  };
+  if (!r.ok) throw new Error(r.error || 'organization.crawl failed');
+  return { provider: r.provider ?? 'didi-crawl', results: r.results ?? [] };
+}
+
 export async function fetchConnectors(): Promise<ConnectorInfo[]> {
   const r = (await workspace.invoke('connectors.inventory', {})) as {
     ok: boolean;
@@ -85,12 +103,15 @@ export async function addResult(
   req: SearchRequestDetail,
   url: string,
   client: string,
+  // Crawl-mode extras — the model's kind and (streams) the stream's real
+  // title ride the write instead of being re-inferred server-side.
+  extra?: { kind?: string; name?: string },
 ): Promise<void> {
   const verb = verbFor(req);
   const args =
     req.entity.type === 'organization'
-      ? { org_slug: req.entity.org_slug, url, client }
-      : { person_uuid: req.entity.person_uuid, url, client };
+      ? { org_slug: req.entity.org_slug, url, client, ...(extra ?? {}) }
+      : { person_uuid: req.entity.person_uuid, url, client, ...(extra ?? {}) };
   const r = (await workspace.invoke(verb, args)) as { ok: boolean; error?: string };
   if (!r.ok) throw new Error(r.error || `${verb} failed`);
   window.dispatchEvent(

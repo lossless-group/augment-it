@@ -20,6 +20,7 @@
     nameable = false,
     onadd,
     onsearch,
+    oncrawl,
     onedit,
     entryaction,
   }: {
@@ -31,6 +32,9 @@
     onadd: (url: string, kind?: string, name?: string) => Promise<void>;
     // Optional 🔍 — launches search-and-add pre-scoped to this list (Phase 3).
     onsearch?: () => void;
+    // Optional 🤖 — didi's crawl for this whole list (v1.2): header-level,
+    // because the list (not one entry) is the crawl's subject.
+    oncrawl?: () => void;
     // Optional per-entry patch (kind/name matched by URL server-side) —
     // presence turns on the in-place editor.
     onedit?: (entry: Entry, patch: { kind?: string; name?: string }) => Promise<void>;
@@ -138,6 +142,11 @@
     <h3 class="ow-list-title">{title} <span class="ow-list-count">{entries.length}</span></h3>
     <span class="ow-list-actions">
       {#if justAdded}<span class="ow-added">added ✓</span>{/if}
+      {#if oncrawl}
+        <button type="button" class="ow-plus" title="didi: crawl the web for {title}" onclick={oncrawl}>
+          🤖
+        </button>
+      {/if}
       {#if onsearch}
         <button type="button" class="ow-plus" title="Search the web for {title}" onclick={onsearch}>
           🔍

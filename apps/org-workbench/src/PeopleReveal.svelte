@@ -9,7 +9,8 @@
   import { onMount } from 'svelte';
   import PersonCard from './PersonCard.svelte';
   import AddPersonInline from './AddPersonInline.svelte';
-  import { fetchOrgAffiliations } from './lib/org-client';
+  import StagedPeople from './StagedPeople.svelte';
+  import { fetchOrgAffiliations, crawlTeam, type CrawledPerson } from './lib/org-client';
   import type { AffiliatedPerson } from './lib/types';
 
   let {
@@ -28,6 +29,31 @@
   let loading = $state(false);
   let error = $state<string | null>(null);
   let expanded = $state<string | null>(null); // person_uuid
+
+  // didi's team crawl (v1.2) — staged candidates, never auto-written.
+  let crawling = $state(false);
+  let crawlError = $state<string | null>(null);
+  let crawlGen = $state(0); // bumps per crawl so StagedPeople remounts fresh
+  let staged = $state<{
+    people: CrawledPerson[];
+    filtered_note: string;
+    source_urls: string[];
+  } | null>(null);
+
+  async function crawl() {
+    crawling = true;
+    crawlError = null;
+    try {
+      const r = await crawlTeam(org_slug, client);
+      staged = r;
+      crawlGen += 1;
+      if (!open) toggle();
+    } catch (err) {
+      crawlError = err instanceof Error ? err.message : String(err);
+    } finally {
+      crawling = false;
+    }
+  }
 
   async function load() {
     loading = true;
@@ -60,6 +86,8 @@
     people = [];
     loaded = false;
     expanded = null;
+    staged = null;
+    crawlError = null;
     if (open) void load();
   });
 
@@ -76,7 +104,20 @@
         {open ? '▾' : '▸'} People{#if loaded}&nbsp;<span class="ow-list-count">{people.length}</span>{/if}
       </button>
     </h3>
+    <span class="ow-list-actions">
+      <button
+        type="button"
+        class="ow-plus"
+        title="didi: crawl the web for relevant team members (selection per the relevance brief)"
+        disabled={crawling}
+        onclick={crawl}
+      >
+        {crawling ? '…' : '🤖'}
+      </button>
+    </span>
   </header>
+  {#if crawling}<p class="ow-empty">didi is crawling for team members — this takes a minute…</p>{/if}
+  {#if crawlError}<div class="ow-error">{crawlError}</div>{/if}
 
   {#if open}
     {#if loading}
@@ -109,6 +150,20 @@
             </li>
           {/each}
         </ul>
+      {/if}
+      {#if staged}
+        {#key crawlGen}
+          <StagedPeople
+            {org_slug}
+            {orgName}
+            {client}
+            people={staged.people}
+            filtered_note={staged.filtered_note}
+            source_urls={staged.source_urls}
+            onchanged={load}
+            onclear={() => (staged = null)}
+          />
+        {/key}
       {/if}
       <AddPersonInline {org_slug} {orgName} {client} onadded={load} />
     {/if}

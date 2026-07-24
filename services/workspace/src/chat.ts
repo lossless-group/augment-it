@@ -106,6 +106,24 @@ CORPUS-CURATION DISCIPLINE:
 - Never fabricate a domain_slug or source_uuid. If you need a source_uuid (for extract.add/tag.apply) and don't have one from context or the conversation, say so and ask rather than guessing.
 `;
 
+// Workbench crawl verbs — didi's web crawl for one org, per
+// context-v/specs/Augment-From-DB-Flow.md §v1.2. The capability is served
+// by prompt-runner (Anthropic server-side web search + the per-workspace
+// relevance brief); candidates come back for the operator to adjudicate —
+// the crawl itself never writes.
+const WORKBENCH_CHAT_VERBS = `Org-workbench crawl capability (use as the \`capability\` field in chat_propose / chat_invoke):
+
+organization.crawl — didi crawls the web for one organization. Three targets:
+  "crawl for relevant identity links"  → target: "links"   (official site, LinkedIn, socials, Wikipedia)
+  "crawl for relevant pulse streams"   → target: "streams" (blog/newsroom/RSS/newsletters/topic hubs)
+  "crawl for relevant team members"    → target: "team"    (leadership + team members selected per the workspace's relevance brief)
+  args: { org_slug: string, target: "links" | "streams" | "team", client: string, max_results?: number }
+
+CRAWL DISCIPLINE:
+- The crawl returns CANDIDATES only — nothing is written until the operator accepts rows. It is slow (tens of seconds); tell the user it's running.
+- Requires an org_slug. If the user names an organization, resolve it via context or ask; never guess a slug.
+`;
+
 // Slab 3 — active skills. Empty in v0.0.1; cache breakpoint reserved.
 const ACTIVE_SKILLS = '';
 
@@ -126,6 +144,7 @@ const CHAT_CAPABILITY_NAMES = [
   'domain.create',
   'extract.add',
   'tag.apply',
+  'organization.crawl',
 ] as const;
 
 // --- The chat tool definitions the model picks among. ---
@@ -283,6 +302,7 @@ async function assembleSystemSlabs(input: ChatTurnInput): Promise<{ text: string
     { text: STATIC_SPINE, cache_control: { type: 'ephemeral' } },
     { text: V001_CHAT_VERBS, cache_control: { type: 'ephemeral' } },
     { text: CURATOR_CHAT_VERBS, cache_control: { type: 'ephemeral' } },
+    { text: WORKBENCH_CHAT_VERBS, cache_control: { type: 'ephemeral' } },
   ];
   // Only include non-empty optional slabs so the SDK doesn't reject empties.
   if (ACTIVE_SKILLS) slabs.push({ text: ACTIVE_SKILLS, cache_control: { type: 'ephemeral' } });

@@ -58,6 +58,18 @@
         seed_term: seed(displayName),
       });
   }
+
+  // 🤖 — didi's crawl for a whole list (v1.2): same envelope, crawl flag on;
+  // search-and-add's crawl mode fires organization.crawl instead of a term.
+  function makeCrawl(target: 'links' | 'streams') {
+    return () =>
+      requestSearch({
+        entity: { type: 'organization', org_slug: org.slug, display_name: displayName },
+        target,
+        seed_term: '',
+        crawl: true,
+      });
+  }
 </script>
 
 <article class="ow-card">
@@ -88,6 +100,7 @@
       kindHint="kind (auto: website/linkedin/x/…)"
       onadd={makeAdd(addOrgLink)}
       onsearch={makeSearch('links', (n) => `"${n}" LinkedIn`)}
+      oncrawl={makeCrawl('links')}
     />
     <AdditiveList
       title="Pulse streams"
@@ -97,6 +110,7 @@
       onadd={addStream}
       onedit={editStream}
       onsearch={makeSearch('streams', (n) => `"${n}" blog`)}
+      oncrawl={makeCrawl('streams')}
       entryaction={{
         label: 'scan',
         fn: (stream) =>
