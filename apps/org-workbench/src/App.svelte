@@ -10,6 +10,7 @@
   import { workspace } from '@augment-it/workspace';
   import OrgSearch from './OrgSearch.svelte';
   import OrgCard from './OrgCard.svelte';
+  import OrgCreateInline from './OrgCreateInline.svelte';
   import { fetchOrgDetail } from './lib/org-client';
   import type { OrgDetail, OrgSuggestion } from './lib/types';
 
@@ -41,6 +42,15 @@
 
   function onPick(s: OrgSuggestion) {
     void loadOrg(s.slug);
+  }
+
+  // Gated org creation (issue #29) — the ➕ opens OrgCreateInline; both a
+  // picked candidate and a fresh create land in the same loadOrg.
+  let creating = $state(false);
+
+  function onCreateOpen(org_slug: string) {
+    creating = false;
+    void loadOrg(org_slug);
   }
 
   function refetch() {
@@ -99,7 +109,20 @@
       <span class="ow-client">client: <strong>{client}</strong></span>
       <span class="ow-ws status-{status}">{status}</span>
     </div>
-    <OrgSearch {client} onpick={onPick} />
+    <div class="ow-search-row">
+      <OrgSearch {client} onpick={onPick} />
+      <button
+        type="button"
+        class="ow-add-go"
+        title="Create an organization (gated — existing matches shown first)"
+        onclick={() => (creating = !creating)}
+      >
+        {creating ? '×' : '+ New organization'}
+      </button>
+    </div>
+    {#if creating}
+      <OrgCreateInline {client} onopen={onCreateOpen} oncancel={() => (creating = false)} />
+    {/if}
   </header>
 
   <main class="ow-body">

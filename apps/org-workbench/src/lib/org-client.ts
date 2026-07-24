@@ -7,6 +7,7 @@ import { workspace } from '@augment-it/workspace';
 import type {
   OrgSuggestion,
   OrgDetail,
+  OrgCandidate,
   AffiliatedPerson,
   ShapedLink,
   PersonCandidate,
@@ -21,6 +22,42 @@ export async function searchOrgs(q: string, client: string): Promise<OrgSuggesti
   };
   if (!r.ok) throw new Error(r.error || 'resolver.search failed');
   return r.candidates ?? [];
+}
+
+// Scored candidates for the create gate — every signal the resolver knows
+// (slug/domain/fuzzy name), unlike searchOrgs's lighter name-contains.
+export async function fetchOrgCandidates(
+  record: { name: string; url?: string; domains?: string[] },
+  client: string,
+): Promise<OrgCandidate[]> {
+  const r = (await workspace.invoke('resolver.candidates', { record, client })) as {
+    ok: boolean;
+    candidates?: OrgCandidate[];
+    error?: string;
+  };
+  if (!r.ok) throw new Error(r.error || 'resolver.candidates failed');
+  return r.candidates ?? [];
+}
+
+// Org-only create — person.affiliate with NO person_uuid is the documented
+// "independent decisions" path: resolves (here: creates) the org, no edge,
+// no observation. Seeds domains[] from org_domain so the new org is
+// domain-matchable from birth.
+export async function createOrg(args: {
+  org_name: string;
+  org_domain?: string;
+  client: string;
+  source?: string;
+}): Promise<{ org_slug: string; org_created: boolean }> {
+  const r = (await workspace.invoke('person.affiliate', {
+    org_action: 'create',
+    org_name: args.org_name,
+    org_domain: args.org_domain,
+    client: args.client,
+    source: args.source ?? 'org-workbench',
+  })) as { ok: boolean; org_slug?: string; org_created?: boolean; error?: string };
+  if (!r.ok || !r.org_slug) throw new Error(r.error || 'org create failed');
+  return { org_slug: r.org_slug, org_created: r.org_created ?? false };
 }
 
 export async function fetchOrgDetail(org_slug: string, client: string): Promise<OrgDetail> {

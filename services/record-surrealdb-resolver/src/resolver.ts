@@ -614,7 +614,18 @@ export async function resolveOrgRow(
   const slug = slugify(input.name);
   if (!slug) throw new Error('resolveOrgRow (create) requires a non-empty name');
   const existing = await fetchOrgBySlug(db, slug);
-  if (existing) return { org: existing, created: false };
+  if (existing) {
+    // Create-intent hitting a slug another client minted: this client now
+    // knows the org (shared canonical layer, per-workspace visibility) —
+    // union access, or the caller's follow-up read can't see its own result.
+    await db.query(
+      `UPDATE $id SET
+          client_access   = array::union(client_access ?? [], [$client]),
+          last_touched_by = $client, last_touched_at = time::now();`,
+      { id: existing.id, client: input.client },
+    );
+    return { org: existing, created: false };
+  }
   const completeName = input.name.trim();
   const domain = input.domain?.trim().toLowerCase().replace(/^www\./, '');
   const createdRes = await db.query(

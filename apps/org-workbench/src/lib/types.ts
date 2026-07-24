@@ -67,6 +67,18 @@ export type AffiliatedPerson = {
   personal_corpus_count: number;
 };
 
+// Scored org candidate (resolver.candidates) — the gate's evidence when the
+// operator wants to create an org: slug 100 · domain 90 · fuzzy name 60.
+export type OrgCandidate = {
+  org_id: string;
+  slug: string;
+  complete_name: string | null;
+  conventional_name: string | null;
+  score: number;
+  match_reason: string[];
+  existing: { org_links: number; media_streams: number; org_corpus: number };
+};
+
 // Phase 3 — the A→B launch envelope for the search-and-add remote (spec D2).
 // Dispatched as CustomEvent('augment-it:search-request', { detail }) AND
 // persisted to localStorage (see lib/search-request.ts for why both).
