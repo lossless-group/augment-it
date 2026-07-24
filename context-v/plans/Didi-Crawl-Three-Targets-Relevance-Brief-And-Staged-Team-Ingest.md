@@ -16,7 +16,9 @@ tags:
   - Didi-Chat
   - Crawl
   - Relevance-Brief
-status: Implementing
+status: Shipped
+date_first_published: 2026-07-24
+post_ship_note: "Shipped same-day in 72cf25d (gh #33). Live-proven: brief round-trip + a 65s Aspen links crawl, 8 correctly-kinded deduped candidates incl. a brief-steered find. Deviations: none of substance — the search-and-add ➕ passes the model's kind/name through addResult (small extension the plan implied), and StagedPeople remounts per-crawl via a keyed block. Chat door is capability-legal only; conversational plumbing stays with the didi-chat plan."
 ---
 
 # Didi crawl — the v1.2 build
