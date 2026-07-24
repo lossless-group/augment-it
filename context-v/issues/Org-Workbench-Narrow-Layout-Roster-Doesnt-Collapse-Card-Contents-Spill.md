@@ -7,7 +7,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 tags:
   - Issue
   - Usability
@@ -15,7 +15,9 @@ tags:
   - Org-Workbench
   - Layout
   - CSS
-status: Open
+status: Shipped
+date_first_published: 2026-07-24
+post_ship_note: "Shipped 2026-07-24 — min-width:0 down the card's flex/grid chain (+ .ow-url flex:1 so ellipsis engages), roster auto-hides under 860px with the ◀/▶ orgs toggle. Browser-drive verified at 720px on the Sterling card: 0px card overflow, 0px link spill, toggle round-trips. gh #38 closed."
 ---
 
 # Narrow-pane workbench: roster hogs, card spills

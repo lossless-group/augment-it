@@ -72,6 +72,16 @@
   let creating = $state(false);
   let searchQuery = $state('');
 
+  // Roster responsiveness (gh #38): in a narrow tiling pane the roster's
+  // 300px is unaffordable — auto-hide below the threshold, with a manual
+  // ◀/▶ toggle that overrides the auto behavior in either direction.
+  const ROSTER_AUTO_HIDE_PX = 860;
+  let columnsWidth = $state(0);
+  let rosterManual = $state<boolean | null>(null);
+  const rosterVisible = $derived(
+    rosterManual ?? !(columnsWidth > 0 && columnsWidth < ROSTER_AUTO_HIDE_PX),
+  );
+
   function onCreateOpen(org_slug: string) {
     creating = false;
     void loadOrg(org_slug);
@@ -135,6 +145,14 @@
       <span class="ow-ws status-{status}">{status}</span>
     </div>
     <div class="ow-search-row">
+      <button
+        type="button"
+        class="ow-add-go"
+        title={rosterVisible ? 'Hide the org roster' : 'Show the org roster'}
+        onclick={() => (rosterManual = !rosterVisible)}
+      >
+        {rosterVisible ? '◀ orgs' : '▶ orgs'}
+      </button>
       <OrgSearch {client} onpick={onPick} onquery={(q) => (searchQuery = q)} />
       <button
         type="button"
@@ -156,8 +174,8 @@
     {/if}
   </header>
 
-  <div class="ow-columns">
-    {#if status === 'open'}
+  <div class="ow-columns" bind:clientWidth={columnsWidth}>
+    {#if status === 'open' && rosterVisible}
       <OrgRoster {client} activeSlug={org?.slug ?? null} onpick={(slug) => void loadOrg(slug)} />
     {/if}
     <main class="ow-body">

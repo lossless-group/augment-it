@@ -71,7 +71,7 @@
 .ow-roster-counts { font-size: 0.72rem; color: var(--color-text-muted, #9aa0aa); }
 .ow-roster-corpus.zero { color: var(--color-error-text, #f3a3a3); font-weight: 600; }
 .ow-loading, .ow-empty-state { color: var(--color-text-muted, #9aa0aa); }
-.ow-card { border: 1px solid var(--color-border, #2a2c33); border-radius: 8px; background: var(--color-surface, #1c1e25); padding: 1rem 1.25rem; }
+.ow-card { border: 1px solid var(--color-border, #2a2c33); border-radius: 8px; background: var(--color-surface, #1c1e25); padding: 1rem 1.25rem; min-width: 0; overflow: hidden; }
 .ow-card-head { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
 .ow-card-name { margin: 0; font-size: 1.15rem; }
 .ow-card-slug { color: var(--color-text-muted, #9aa0aa); font-size: 0.8rem; }
@@ -81,6 +81,10 @@
 
 /* additive lists */
 .ow-lists { display: grid; gap: 1rem; margin-top: 1.1rem; }
+/* Flex/grid items default to min-width:auto and refuse to shrink — the
+   root of the narrow-pane spill (gh #38). Zero it down the chain so
+   ellipsis/wrapping can actually engage. */
+.ow-lists > * { min-width: 0; }
 .ow-list { border-top: 1px solid var(--color-border, #2a2c33); padding-top: 0.75rem; }
 .ow-list-head { display: flex; align-items: center; justify-content: space-between; }
 .ow-list-title { margin: 0; font-size: 0.9rem; }
@@ -97,9 +101,9 @@
 .ow-add-go:disabled { opacity: 0.6; cursor: default; }
 
 .ow-entries { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.3rem; }
-.ow-entry { display: flex; align-items: baseline; gap: 0.6rem; font-size: 0.85rem; }
+.ow-entry { display: flex; align-items: baseline; gap: 0.6rem; font-size: 0.85rem; min-width: 0; }
 .ow-kind { flex-shrink: 0; font-size: 0.7rem; padding: 1px 6px; border-radius: 3px; background: var(--color-border, #2a2c33); color: var(--color-text-muted, #cfd3da); }
-.ow-url { color: var(--color-link, #8ab4f8); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ow-url { color: var(--color-link, #8ab4f8); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 auto; }
 .ow-url:hover { text-decoration: underline; }
 .ow-date { margin-left: auto; flex-shrink: 0; color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
 .ow-entry-action { flex-shrink: 0; font-size: 0.7rem; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--color-border, #2a2c33); background: var(--color-bg, #14151a); color: var(--color-text-muted, #cfd3da); font-family: inherit; cursor: pointer; }
@@ -114,7 +118,8 @@
 .ow-people-list { list-style: none; margin: 0.5rem 0 0.75rem; padding: 0; display: grid; gap: 0.35rem; }
 .ow-person-row { display: flex; align-items: baseline; gap: 0.6rem; width: 100%; text-align: left; background: var(--color-bg, #14151a); border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; color: inherit; font: inherit; padding: 0.45rem 0.7rem; cursor: pointer; }
 .ow-person-row:hover { background: var(--color-border, #2a2c33); }
-.ow-person-name { font-size: 0.88rem; }
+.ow-person-row { min-width: 0; }
+.ow-person-name { font-size: 0.88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .ow-person-role { color: var(--color-text-muted, #9aa0aa); font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ow-person-relevance { flex-shrink: 0; font-size: 0.7rem; padding: 1px 6px; border-radius: 3px; background: var(--color-ok-bg, #173a26); color: var(--color-ok-text, #6ee7a8); font-variant-numeric: tabular-nums; }
 .ow-person-meta { margin-left: auto; flex-shrink: 0; color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; }
