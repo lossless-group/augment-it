@@ -21,10 +21,14 @@ services:
     environment:
       NATS_URL: nats://nats:4222
       SESSION_STORE_PATH: /data/sessions.json
+      # Operator's last workspace pick, restored on boot — without it every
+      # container rebuild reset the active workspace to the alphabetically
+      # first slug and every surface followed it into the wrong tenant.
+      ACTIVE_STORE_PATH: /data/active-workspace.json
       PORT: "3001"
       # Workspace registry — each child of /clients is a workspace, per
       # [[Workspaces-as-Tenant-Primitive]]. ACTIVE_CLIENT_ID is optional;
-      # absent → first slug alphabetically (humain-vc today).
+      # absent → persisted last pick, then first slug alphabetically.
       CLIENTS_ROOT: /clients
       ACTIVE_CLIENT_ID: ${ACTIVE_CLIENT_ID:-}
       # didi.sh identity (spec increment 2) — verify the didi_session

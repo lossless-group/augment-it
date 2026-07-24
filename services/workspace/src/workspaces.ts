@@ -21,7 +21,7 @@
 // in a later step. Persistence to a JSON file is intentionally deferred
 // — multi-user / per-session active workspace is a later spec move.
 
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { getNats } from './nats';
 
@@ -107,11 +107,39 @@ async function loadConfigFor(client_id: string): Promise<WorkspaceConfig> {
   return { client_id, env: Object.freeze(env) };
 }
 
+// Where the operator's last workspace pick persists across restarts —
+// the same durable volume sessions.json lives on. Without this, every
+// container rebuild silently reset the active workspace to the
+// alphabetically-first slug (humain-vc), and every surface followed it
+// into the wrong (empty) tenant slice. Unset (non-docker dev) → skip
+// persistence, in-memory only, same as before.
+const ACTIVE_STORE_PATH = process.env.ACTIVE_STORE_PATH ?? '';
+
+async function readPersistedActive(): Promise<string | null> {
+  if (!ACTIVE_STORE_PATH) return null;
+  try {
+    const raw = await readFile(ACTIVE_STORE_PATH, 'utf8');
+    const parsed = JSON.parse(raw) as { client_id?: string };
+    return typeof parsed.client_id === 'string' ? parsed.client_id : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistActive(client_id: string): void {
+  if (!ACTIVE_STORE_PATH) return;
+  // Fire-and-forget — a failed persist degrades to the old reset-on-restart
+  // behavior, never fails the switch itself.
+  void writeFile(ACTIVE_STORE_PATH, JSON.stringify({ client_id }), 'utf8').catch((err) => {
+    console.warn('[workspaces] could not persist active workspace', err);
+  });
+}
+
 /**
  * Initialize the workspace registry. Scans CLIENTS_ROOT for directories,
  * primes each one's WorkspaceConfig, and resolves an initial active slug.
- * Active selection precedence: explicit ACTIVE_CLIENT_ID env > alphabetical
- * first discovered > null.
+ * Active selection precedence: explicit ACTIVE_CLIENT_ID env (pinned) >
+ * persisted last pick (ACTIVE_STORE_PATH) > alphabetical first > null.
  */
 export async function initWorkspaces(opts: {
   clients_root: string;
@@ -124,8 +152,11 @@ export async function initWorkspaces(opts: {
     configs.set(slug, await loadConfigFor(slug));
   }
   pinned = Boolean(opts.initial_active_id);
+  const persisted = pinned ? null : await readPersistedActive();
   if (opts.initial_active_id && configs.has(opts.initial_active_id)) {
     activeClientId = opts.initial_active_id;
+  } else if (persisted && configs.has(persisted)) {
+    activeClientId = persisted;
   } else {
     activeClientId = slugs[0] ?? null;
   }
@@ -198,6 +229,7 @@ export function setActiveClientId(client_id: string): WorkspaceSummary {
   }
   const prev = activeClientId;
   activeClientId = client_id;
+  persistActive(client_id);
   // Broadcast the switch so domain services (row-store today; prompt-store
   // / response-store / content-ingest next) can re-scope their state to
   // the new tenant. Fire-and-forget — publish is local to NATS.
