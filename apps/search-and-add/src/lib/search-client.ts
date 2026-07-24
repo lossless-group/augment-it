@@ -52,6 +52,21 @@ export async function scanStream(args: {
   };
 }
 
+// The workspace invoke has NO client-side timeout, and a WS reconnect drops
+// pending invokes — a lost reply means an eternal spinner. Long-running
+// calls race a deadline so the UI always resolves to retryable state.
+function withDeadline<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`${label} got no reply in ${Math.round(ms / 1000)}s — the run may still finish server-side; re-fire to retry`)),
+        ms,
+      ),
+    ),
+  ]);
+}
+
 // v1.2 crawl mode — didi's web crawl for the launching org. One model turn
 // with server-side web search; slow (tens of seconds); candidates only.
 export async function crawlSearch(args: {
@@ -60,7 +75,11 @@ export async function crawlSearch(args: {
   client: string;
   max_results?: number;
 }): Promise<{ provider: string; results: ConnectorResult[] }> {
-  const r = (await workspace.invoke('organization.crawl', args)) as {
+  const r = (await withDeadline(
+    workspace.invoke('organization.crawl', args),
+    660_000,
+    'didi crawl',
+  )) as {
     ok: boolean;
     provider?: string;
     results?: ConnectorResult[];

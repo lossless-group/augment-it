@@ -306,8 +306,9 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'client.brief.get': 30_000,
   'client.brief.set': 30_000,
   // A crawl is one model turn with multiple server-side web searches (plus
-  // pause_turn continuations) — minutes, not seconds.
-  'organization.crawl': 300_000,
+  // pause_turn continuations) — minutes, not seconds. Team crawls have been
+  // observed at 211s live; 600s matches the pack.fan_out ceiling.
+  'organization.crawl': 600_000,
   // One query, one provider — pack.search's budget.
   'search.fire': 30_000,
   // Multi-stage (Firecrawl index harvest + per-post dates + dedup read) —
