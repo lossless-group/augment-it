@@ -34,6 +34,27 @@
       summary: 'Emit a snapshot CSV — v(N+1) with corpus_* columns appended',
       example: 'Run between augmentation cycles to capture the prior cycle in the spine',
     },
+    // didi crawls (v1.2) — organization.crawl, three targets. The argument
+    // is the org slug (shown as the code chip on the org card); didi asks
+    // rather than guessing when given a loose name.
+    {
+      verb: '/crawl-links',
+      insert: '/crawl-links ',
+      summary: 'didi crawls the web for the org’s identity & social links (candidates only)',
+      example: '/crawl-links the-aspen-institute',
+    },
+    {
+      verb: '/crawl-streams',
+      insert: '/crawl-streams ',
+      summary: 'didi crawls for the org’s pulse streams — blog/newsroom/RSS/newsletters',
+      example: '/crawl-streams the-aspen-institute',
+    },
+    {
+      verb: '/crawl-team',
+      insert: '/crawl-team ',
+      summary: 'didi crawls for relevant team members (selection per the relevance brief)',
+      example: '/crawl-team the-aspen-institute',
+    },
   ];
 
   let commandsOpen = $state<boolean>(false);
