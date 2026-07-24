@@ -7,11 +7,12 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.1.1.0
+semantic_version: 0.1.2.0
 date_first_published: 2026-07-22
 exploration_of_record: "[[../explorations/Augment-From-DB-Flow-Two-New-Microfrontends]]"
 post_ship_note: "All five phases implemented, proven, and pushed on 2026-07-22 (attempt(augment-from-db, …, step1–5)). Pending: the operator browser walk-throughs each phase plan names, and the parked open questions (fire-log persistence, pack-template seed terms, pinned-deploy env-configurable remote URLs). Deviations from the as-specced snippets are recorded in each phase plan's post_ship_note — notably organization.streams.add (a verb the spec missed), the localStorage-hardened D2 launch contract, and relevance as string|null."
 revisions:
+  - "2026-07-24 — v0.1.2.0: third crawl target added to §v1.2 — 'crawl for relevant team members' (the team-page identifier + ingester): agent finds team/leadership pages, extracts people, selects per the relevance brief's people policy (default: all major leadership + all team members covering Education & Workforce Development and related strategies/topics), stages into the didi-chat team-page plan's verify-then-write flow. Relevance brief now explicitly carries topical scope AND people policy."
   - "2026-07-24 — v0.1.1.0: §v1.2 extensions added — the coverage roster recorded as shipped (OrgRoster + organization.roster, gh #32, un-deferring #20's layer 2), and the didi agent-crawl capability specified: 'crawl for relevant identity links / pulse streams' as chat verb AND list button (one implementation, two triggers), candidates-into-state never direct writes, driven by a per-workspace operator-editable relevance brief. Plan pending; composes with the didi-chat team-page plan."
   - "2026-07-22 — v0.1.0.0: status → Shipped. Phases 2–5 executed same day ([[../plans/Augment-From-DB-Phase-2-Org-Workbench-Remote]], [[../plans/Augment-From-DB-Phase-3-Search-And-Add-Remote]], [[../plans/Augment-From-DB-Phase-4-People-Reveal-And-Add-Person]], [[../plans/Augment-From-DB-Phase-5-Stream-Scan-Mode]]; changelog 2026-07-22_02 through _05). Both remotes live (:3014, :3016); stream-scan flip-test proven against Aspen's blog."
   - "2026-07-22 — v0.0.1.1: status → Implementing. Phase 1 executed and shipped same day ([[../plans/Augment-From-DB-Phase-1-Service-Capabilities]], changelog 2026-07-22_01) — all four capabilities live and proven over NATS; both flagged SurrealQL constructs worked without fallbacks. Phases 2–5 remain."
@@ -604,6 +605,25 @@ The workbench gains agent actions, arriving through two equivalent doors:
   fires the identical capability with zero typing — the chat verb and the
   button are one implementation with two triggers.
 
+Three crawl targets, same contract:
+
+1. *"crawl for relevant identity links"* → org_links candidates.
+2. *"crawl for relevant pulse streams"* → media_streams candidates.
+3. *"crawl for relevant team members"* → the agent finds the org's team /
+   leadership / people page(s), extracts people, and **selects per the
+   relevance brief's people policy** before staging. The default policy
+   (reach-edu's brief): **all major leadership, plus all team members
+   covering Education & Workforce Development and related
+   strategies/topics** — not the whole staff directory of a large org.
+   Staged people objects ride the flow
+   [[../plans/Didi-Chat-In-Org-Workbench-Verify-Team-Page-Into-People-Objects]]
+   establishes: into state, operator alters/verifies on the card, approval →
+   `person.apply` + `person.affiliate` (role from the page, the team-page
+   URL as observation source — and the page itself is an org_link candidate
+   of kind team_page). The identifier half also answers
+   [[Person-Bio-Pages-Are-Affiliation-Signals-Not-Just-Identity-Links]]'s
+   sibling note: the crawl recognizes team/bio pages by shape, not just URL.
+
 **Why an agent, why now:** identity links and pulse streams are exactly the
 shape web-search-equipped agents get mostly right, quickly — "official site,
 LinkedIn, X, YouTube, blog/newsroom index for ‹org›" is a solved retrieval
@@ -638,7 +658,10 @@ funders and their education-adjacent publication streams). The brief is:
   operator, loaded into every crawl (and eventually every didi action in
   this workbench). First-class UI: view + edit in place (a panel off the
   workbench header; the State-Inspector issue's "what does the app
-  believe" ethos applied to agent context).
+  believe" ethos applied to agent context). It carries both the topical
+  scope (what subject matter is relevant) and the **people policy** (who
+  from a team page is worth ingesting — leadership always; staff filtered
+  by coverage area).
 - **Scoped per workspace client** (reach-edu's brief ≠ humain-vc's), with
   per-org additions later if needed.
 - **Storage — open question**: localStorage is the v1 floor, but a brief

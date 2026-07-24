@@ -7,7 +7,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 tags:
   - Plan
   - Augment-It
@@ -65,9 +65,17 @@ or alongside them; not yet slotted against a spec. -->
 
 1. Context plumbing: org-workbench broadcasts its active org
    (`augment-it:active-entity` or a workspace frame) → chat includes it.
-2. Verb: `org.team_page.scan` (propose-shaped) — input: team-page URL
-   (from org_links or operator-pasted); output: staged
+2. Verb: `org.team_page.scan` (propose-shaped) — surfaced to the operator
+   as *"crawl for relevant team members"* (the third crawl target in
+   [[../specs/Augment-From-DB-Flow]] §v1.2 — chat verb AND button). Input:
+   team-page URL (from org_links, operator-pasted, or the agent FINDS it —
+   the identifier half); output: staged
    `people: [{name, role, headline?, linkedin?, bio_url}]` in state.
+   **Selection rides the relevance brief's people policy** — default:
+   all major leadership, plus all team members covering Education &
+   Workforce Development and related strategies/topics; the agent stages
+   the selected set (with a "N others on the page filtered by policy"
+   note so the filter is visible, not silent).
 3. Staging UI on the workbench: the people reveal grows a "staged"
    section (distinct chrome) with per-row edit/verify/skip.
 4. Approval → batch `person.candidates/apply/affiliate` with
