@@ -35,6 +35,9 @@ type ShapedStream = {
   party: string;
   url_domain: string;
   added_at: string;
+  // Operator-facing title ("Today's Credentials") — hostname is the fallback
+  // display, so absence is fine; only ever set by the operator, never inferred.
+  name?: string;
 };
 
 export type OrgRow = {
@@ -129,6 +132,7 @@ function inferStreamKind(url: string): string {
   if (/blog|stories|insights|ideas|posts/.test(path)) return 'blog_index';
   if (host === 'youtube.com') return 'youtube_channel';
   if (/substack\.com$/.test(host)) return 'substack';
+  if (/\/topics?\/|\/tag\/|\/category\//.test(path)) return 'topic_hub';
   return 'updates_index';
 }
 
@@ -835,7 +839,13 @@ export async function checkContentUrls(
 // path). Reuses shapeStream: kind auto-inferred, party 'first_party'.
 // Per context-v/plans/Augment-From-DB-Phase-2-Org-Workbench-Remote.md.
 
-export type OrgStreamAddInput = { org_slug: string; url: string; kind?: string; client: string };
+export type OrgStreamAddInput = {
+  org_slug: string;
+  url: string;
+  kind?: string;
+  name?: string;
+  client: string;
+};
 export type OrgStreamAddResult = { ok: true; org_id: string; stream: ShapedStream };
 
 export async function addOrgStream(db: Surreal, input: OrgStreamAddInput): Promise<OrgStreamAddResult> {
@@ -843,14 +853,63 @@ export async function addOrgStream(db: Surreal, input: OrgStreamAddInput): Promi
   if (!org) throw new Error(`organization not found: ${input.org_slug}`);
   const shaped = shapeStream(input.kind ? { url: input.url, kind: input.kind } : input.url);
   if (!shaped) throw new Error('organization.streams.add requires a non-empty url');
+  const name = input.name?.trim();
+  const stream: ShapedStream = name ? { ...shaped, name } : shaped;
   await db.query(
     `UPDATE $id SET
         media_streams   = array::concat(media_streams ?? [], [$stream]),
         client_access   = array::union(client_access ?? [], [$client]),
         last_touched_by = $client, last_touched_at = time::now();`,
-    { id: org.id, stream: shaped, client: input.client },
+    { id: org.id, stream, client: input.client },
   );
-  return { ok: true, org_id: String(org.id), stream: shaped };
+  return { ok: true, org_id: String(org.id), stream };
+}
+
+// organization.streams.update — the first patch on an entity-list entry. The
+// additive discipline stands for entries (no delete, dedup-by-URL server-side);
+// this patches fields ON an entry matched by its de-facto key, the exact URL —
+// the same sparse-SET + last_touched stamping updateOrg models. Safe today
+// because stream kind is descriptive only (stream-scan routes every kind the
+// same way); name is operator-facing display.
+// Per context-v/plans/Workbench-Usability-Sweep-Corpus-Visibility-Stream-Editing-Affiliation-Promotion.md.
+
+export type OrgStreamUpdateInput = {
+  org_slug: string;
+  url: string;
+  kind?: string;
+  name?: string;
+  client: string;
+};
+export type OrgStreamUpdateResult = { ok: true; org_id: string; stream: ShapedStream };
+
+export async function updateOrgStream(
+  db: Surreal,
+  input: OrgStreamUpdateInput,
+): Promise<OrgStreamUpdateResult> {
+  const org = await fetchOrgBySlug(db, input.org_slug);
+  if (!org) throw new Error(`organization not found: ${input.org_slug}`);
+  const kind = input.kind?.trim();
+  const name = input.name?.trim();
+  if (!kind && !name) throw new Error('organization.streams.update requires kind and/or name');
+  const target = input.url.trim();
+  const streams = (org.media_streams ?? []) as ShapedStream[];
+  const idx = streams.findIndex((s) => (s?.url ?? '').trim() === target);
+  if (idx === -1) throw new Error(`stream not found on ${input.org_slug}: ${target}`);
+  const patched: ShapedStream = {
+    ...streams[idx],
+    ...(kind ? { kind } : {}),
+    ...(name ? { name } : {}),
+  };
+  const next = streams.slice();
+  next[idx] = patched;
+  await db.query(
+    `UPDATE $id SET
+        media_streams   = $streams,
+        client_access   = array::union(client_access ?? [], [$client]),
+        last_touched_by = $client, last_touched_at = time::now();`,
+    { id: org.id, streams: next, client: input.client },
+  );
+  return { ok: true, org_id: String(org.id), stream: patched };
 }
 
 // ---------------------------------------------------------------------------

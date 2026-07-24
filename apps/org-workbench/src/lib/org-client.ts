@@ -58,13 +58,31 @@ export async function addOrgLink(args: AddArgs): Promise<ShapedLink> {
   return r.link;
 }
 
-export async function addOrgStream(args: AddArgs): Promise<ShapedLink> {
+export async function addOrgStream(args: AddArgs & { name?: string }): Promise<ShapedLink> {
   const r = (await workspace.invoke('organization.streams.add', args)) as {
     ok: boolean;
     stream?: ShapedLink;
     error?: string;
   };
   if (!r.ok || !r.stream) throw new Error(r.error || 'organization.streams.add failed');
+  return r.stream;
+}
+
+// Patch kind/name on one media_streams entry, matched by exact URL — the
+// first non-additive write on an entity list (updateOrg precedent).
+export async function updateOrgStream(args: {
+  org_slug: string;
+  url: string;
+  kind?: string;
+  name?: string;
+  client: string;
+}): Promise<ShapedLink> {
+  const r = (await workspace.invoke('organization.streams.update', args)) as {
+    ok: boolean;
+    stream?: ShapedLink;
+    error?: string;
+  };
+  if (!r.ok || !r.stream) throw new Error(r.error || 'organization.streams.update failed');
   return r.stream;
 }
 

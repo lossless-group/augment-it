@@ -182,6 +182,9 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'organization.detail': 'organization.detail.requested',
   'organization.affiliations': 'organization.affiliations.requested',
   'organization.streams.add': 'organization.streams.add.requested',
+  // Patch kind/name on one media_streams entry, matched by URL. Per
+  // context-v/plans/Workbench-Usability-Sweep-Corpus-Visibility-Stream-Editing-Affiliation-Promotion.md.
+  'organization.streams.update': 'organization.streams.update.requested',
 
   // Domain catalog — the canonical typed-grouping graph behind apps/strategy-curator
   // (which is the type='strategy' view). Served by record-surrealdb-resolver
@@ -289,6 +292,7 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'organization.detail': 30_000,
   'organization.affiliations': 30_000,
   'organization.streams.add': 30_000,
+  'organization.streams.update': 30_000,
   // One query, one provider — pack.search's budget.
   'search.fire': 30_000,
   // Multi-stage (Firecrawl index harvest + per-post dates + dedup read) —

@@ -17,6 +17,11 @@ export type ShapedLink = {
   added_at: string;
 };
 
+// media_streams entries — ShapedLink plus the stream-only fields: party
+// (always 'first_party' today) and the operator-facing name ("Today's
+// Credentials"); hostname is the display fallback when name is absent.
+export type StreamEntry = ShapedLink & { party?: string; name?: string };
+
 export type OrgDetail = {
   org_id: string;
   slug: string;
@@ -25,7 +30,7 @@ export type OrgDetail = {
   aliases: string[];
   domains: { domain?: string }[];
   org_links: ShapedLink[];
-  media_streams: (ShapedLink & { party?: string })[];
+  media_streams: StreamEntry[];
   org_corpus: (ShapedLink & { content_id?: unknown })[];
 };
 

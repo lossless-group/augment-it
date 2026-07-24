@@ -20,6 +20,7 @@ import {
   addOrgLink,
   addOrgCorpus,
   addOrgStream,
+  updateOrgStream,
   getOrgDetail,
   checkContentUrls,
   type NormRecord,
@@ -29,6 +30,7 @@ import {
   type OrgLinkAddInput,
   type OrgCorpusAddInput,
   type OrgStreamAddInput,
+  type OrgStreamUpdateInput,
 } from './resolver';
 
 export function registerHandlers(nc: NatsConnection): void {
@@ -189,6 +191,24 @@ export function registerHandlers(nc: NatsConnection): void {
       try {
         const db = await getDb();
         const result = await addOrgStream(db, args);
+        if (msg.reply) msg.respond(JSON.stringify(result));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
+
+  // organization.streams.update — patch kind/name on one media_streams entry,
+  // matched by URL. Per context-v/plans/Workbench-Usability-Sweep-Corpus-
+  // Visibility-Stream-Editing-Affiliation-Promotion.md.
+  (async () => {
+    const sub = nc.subscribe('organization.streams.update.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as OrgStreamUpdateInput;
+      try {
+        const db = await getDb();
+        const result = await updateOrgStream(db, args);
         if (msg.reply) msg.respond(JSON.stringify(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);

@@ -7,9 +7,9 @@
 
   import AdditiveList from './AdditiveList.svelte';
   import PeopleReveal from './PeopleReveal.svelte';
-  import { addOrgLink, addOrgStream, addOrgCorpus } from './lib/org-client';
+  import { addOrgLink, addOrgStream, updateOrgStream, addOrgCorpus } from './lib/org-client';
   import { requestSearch } from './lib/search-request';
-  import type { OrgDetail, SearchRequestDetail } from './lib/types';
+  import type { OrgDetail, SearchRequestDetail, StreamEntry } from './lib/types';
 
   let {
     org,
@@ -21,14 +21,29 @@
     onchanged: () => void;
   } = $props();
 
+  function bump() {
+    onchanged();
+    window.dispatchEvent(
+      new CustomEvent('augment-it:entity-updated', { detail: { org_slug: org.slug } }),
+    );
+  }
+
   function makeAdd(fn: (args: { org_slug: string; url: string; kind?: string; client: string }) => Promise<unknown>) {
     return async (url: string, kind?: string) => {
       await fn({ org_slug: org.slug, url, kind, client });
-      onchanged();
-      window.dispatchEvent(
-        new CustomEvent('augment-it:entity-updated', { detail: { org_slug: org.slug } }),
-      );
+      bump();
     };
+  }
+
+  // Streams get their own add (name rides along) and the kind/name patch.
+  async function addStream(url: string, kind?: string, name?: string) {
+    await addOrgStream({ org_slug: org.slug, url, kind, name, client });
+    bump();
+  }
+
+  async function editStream(entry: StreamEntry, patch: { kind?: string; name?: string }) {
+    await updateOrgStream({ org_slug: org.slug, url: entry.url, ...patch, client });
+    bump();
   }
 
   // 🔍 — launch search-and-add pre-scoped to this org + list. Seed terms are
@@ -78,7 +93,9 @@
       title="Pulse streams"
       entries={org.media_streams}
       kindHint="kind (auto: blog_index/rss/newsroom/…)"
-      onadd={makeAdd(addOrgStream)}
+      nameable
+      onadd={addStream}
+      onedit={editStream}
       onsearch={makeSearch('streams', (n) => `"${n}" blog`)}
       entryaction={{
         label: 'scan',

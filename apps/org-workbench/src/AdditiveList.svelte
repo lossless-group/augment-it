@@ -1,37 +1,57 @@
 <script lang="ts">
   // Generic additive list — the org card's repeated organ. Renders shaped
-  // entries (kind badge · host · date) with an inline ➕ form that hands the
-  // URL (+ optional kind) to a caller-supplied add function. Additive only:
-  // no edit, no delete — canonical writes are append + dedup server-side.
-  // Busy/error states are localized to this list; a failed add never
+  // entries (kind badge · name-or-host · date) with an inline ➕ form that
+  // hands the URL (+ optional kind, + optional name when nameable) to a
+  // caller-supplied add function. Entries are additive: no delete — canonical
+  // writes are append + dedup server-side. When the caller supplies onedit,
+  // an entry's kind/name become patchable in place (✎ or the kind badge) —
+  // fields on an entry are correctable; the entry itself is still additive.
+  // Busy/error states are localized to this list; a failed add or edit never
   // disturbs the sibling lists.
 
   import type { ShapedLink } from './lib/types';
+
+  type Entry = ShapedLink & { name?: string };
 
   let {
     title,
     entries,
     kindHint = 'auto-detected from URL',
+    nameable = false,
     onadd,
     onsearch,
+    onedit,
     entryaction,
   }: {
     title: string;
-    entries: ShapedLink[];
+    entries: Entry[];
     kindHint?: string;
-    onadd: (url: string, kind?: string) => Promise<void>;
+    // Show a name input on the ➕ form (streams: "Today's Credentials").
+    nameable?: boolean;
+    onadd: (url: string, kind?: string, name?: string) => Promise<void>;
     // Optional 🔍 — launches search-and-add pre-scoped to this list (Phase 3).
     onsearch?: () => void;
+    // Optional per-entry patch (kind/name matched by URL server-side) —
+    // presence turns on the in-place editor.
+    onedit?: (entry: Entry, patch: { kind?: string; name?: string }) => Promise<void>;
     // Optional per-entry action (Phase 5 — "scan" on pulse streams).
-    entryaction?: { label: string; fn: (entry: ShapedLink) => void };
+    entryaction?: { label: string; fn: (entry: Entry) => void };
   } = $props();
 
   let adding = $state(false);
   let open = $state(false);
   let url = $state('');
   let kind = $state('');
+  let name = $state('');
   let error = $state<string | null>(null);
   let justAdded = $state(false);
+
+  // In-place editor — one row at a time, keyed by the entry's URL.
+  let editUrl = $state<string | null>(null);
+  let editKind = $state('');
+  let editName = $state('');
+  let editBusy = $state(false);
+  let editError = $state<string | null>(null);
 
   async function submit(e: SubmitEvent) {
     e.preventDefault();
@@ -40,9 +60,10 @@
     adding = true;
     error = null;
     try {
-      await onadd(trimmed, kind.trim() || undefined);
+      await onadd(trimmed, kind.trim() || undefined, name.trim() || undefined);
       url = '';
       kind = '';
+      name = '';
       open = false;
       justAdded = true;
       setTimeout(() => (justAdded = false), 2000);
@@ -50,6 +71,49 @@
       error = err instanceof Error ? err.message : String(err);
     } finally {
       adding = false;
+    }
+  }
+
+  function startEdit(entry: Entry) {
+    editUrl = entry.url;
+    editKind = entry.kind;
+    editName = entry.name ?? '';
+    editError = null;
+  }
+
+  function abortEdit() {
+    editUrl = null;
+    editError = null;
+  }
+
+  async function commitEdit(e: SubmitEvent, entry: Entry) {
+    e.preventDefault();
+    if (!onedit) return;
+    const patch: { kind?: string; name?: string } = {};
+    const k = editKind.trim();
+    const n = editName.trim();
+    if (k && k !== entry.kind) patch.kind = k;
+    if (n && n !== (entry.name ?? '')) patch.name = n;
+    if (!patch.kind && !patch.name) {
+      abortEdit();
+      return;
+    }
+    editBusy = true;
+    editError = null;
+    try {
+      await onedit(entry, patch);
+      editUrl = null;
+    } catch (err) {
+      editError = err instanceof Error ? err.message : String(err);
+    } finally {
+      editBusy = false;
+    }
+  }
+
+  function onEditKey(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      abortEdit();
     }
   }
 
@@ -95,6 +159,15 @@
         bind:value={kind}
         disabled={adding}
       />
+      {#if nameable}
+        <input
+          class="ow-add-kind"
+          type="text"
+          placeholder="name (optional)"
+          bind:value={name}
+          disabled={adding}
+        />
+      {/if}
       <button type="submit" class="ow-add-go" disabled={adding}>{adding ? '…' : 'Add'}</button>
     </form>
     {#if error}<div class="ow-error">{error}</div>{/if}
@@ -106,16 +179,81 @@
     <ul class="ow-entries">
       {#each entries as e (e.url + e.added_at)}
         <li class="ow-entry">
-          <span class="ow-kind">{e.kind}</span>
-          <a class="ow-url" href={e.url} target="_blank" rel="noreferrer">{host(e.url)}</a>
-          {#if entryaction}
-            <button type="button" class="ow-entry-action" onclick={() => entryaction.fn(e)}>
-              {entryaction.label}
-            </button>
+          {#if onedit && editUrl === e.url}
+            <form class="ow-add" onsubmit={(ev) => commitEdit(ev, e)}>
+              <input
+                class="ow-add-kind"
+                type="text"
+                placeholder="kind"
+                bind:value={editKind}
+                onkeydown={onEditKey}
+                disabled={editBusy}
+              />
+              {#if nameable}
+                <input
+                  class="ow-add-kind"
+                  type="text"
+                  placeholder="name"
+                  bind:value={editName}
+                  onkeydown={onEditKey}
+                  disabled={editBusy}
+                />
+              {/if}
+              <button type="submit" class="ow-add-go" disabled={editBusy}>
+                {editBusy ? '…' : 'Save'}
+              </button>
+              <button type="button" class="ow-add-go" onclick={abortEdit} disabled={editBusy}>
+                ×
+              </button>
+            </form>
+            {#if editError}<div class="ow-error">{editError}</div>{/if}
+          {:else}
+            {#if onedit}
+              <button
+                type="button"
+                class="ow-kind ow-kind-editable"
+                title="click to edit kind{nameable ? ' / name' : ''}"
+                onclick={() => startEdit(e)}
+              >
+                {e.kind}
+              </button>
+            {:else}
+              <span class="ow-kind">{e.kind}</span>
+            {/if}
+            <a class="ow-url" href={e.url} target="_blank" rel="noreferrer">{e.name ?? host(e.url)}</a>
+            {#if onedit}
+              <button
+                type="button"
+                class="ow-entry-action"
+                title="edit kind{nameable ? ' / name' : ''}"
+                onclick={() => startEdit(e)}
+              >
+                ✎
+              </button>
+            {/if}
+            {#if entryaction}
+              <button type="button" class="ow-entry-action" onclick={() => entryaction.fn(e)}>
+                {entryaction.label}
+              </button>
+            {/if}
+            <span class="ow-date">{(e.added_at ?? '').slice(0, 10)}</span>
           {/if}
-          <span class="ow-date">{(e.added_at ?? '').slice(0, 10)}</span>
         </li>
       {/each}
     </ul>
   {/if}
 </section>
+
+<style>
+  .ow-kind-editable {
+    background: transparent;
+    border: 1px dashed transparent;
+    font: inherit;
+    color: inherit;
+    padding: 0;
+    cursor: pointer;
+  }
+  .ow-kind-editable:hover {
+    border-color: currentColor;
+  }
+</style>
