@@ -7,7 +7,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 tags:
   - Issue
   - Usability
@@ -15,7 +15,9 @@ tags:
   - Org-Workbench
   - Organizations
   - Candidate-Gate
-status: Open · Jotted
+status: Shipped
+date_first_published: 2026-07-24
+post_ship_note: "Shipped 2026-07-24 in 2864cf3 — '+ New organization' beside OrgSearch (answering the open question: standing ➕, not the empty-state), OrgCreateInline gate over resolver.candidates, create rides person.affiliate's org-only path with domain seeded + website as first link; resolveOrgRow's create-hits-existing-slug branch unions client_access. gh #29 closed."
 ---
 
 # Create an organization from the Org Workbench — behind the gate
