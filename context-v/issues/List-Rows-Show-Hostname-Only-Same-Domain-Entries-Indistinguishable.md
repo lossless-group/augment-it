@@ -7,7 +7,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 tags:
   - Issue
   - Usability
@@ -15,7 +15,9 @@ tags:
   - Org-Workbench
   - Pulse-Streams
   - Identity-Links
-status: Open
+status: Shipped
+date_first_published: 2026-07-24
+post_ship_note: "Shipped 2026-07-24 in 15c5cb8 — AdditiveList fallback display is host+path (60-char cap); every list inherits. gh #27 closed."
 ---
 
 # List rows show hostname only; paths hidden
