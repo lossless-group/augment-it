@@ -9,9 +9,13 @@
   let {
     client,
     onpick,
+    onquery,
   }: {
     client: string;
     onpick: (org: OrgSuggestion) => void;
+    // Lets the parent seed the gated-create form with what was searched —
+    // the no-results path usually IS the create path (issue #29 follow-up).
+    onquery?: (q: string) => void;
   } = $props();
 
   const DEBOUNCE_MS = 300;
@@ -26,6 +30,7 @@
     error = null;
     if (timer) clearTimeout(timer);
     const trimmed = q.trim();
+    onquery?.(trimmed);
     if (trimmed.length < 2) {
       suggestions = [];
       return;

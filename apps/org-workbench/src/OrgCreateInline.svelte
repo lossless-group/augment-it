@@ -14,16 +14,23 @@
 
   let {
     client,
+    initialName = '',
     onopen,
     oncancel,
   }: {
     client: string;
+    // Seeds the name field from the search box — the operator already typed
+    // the org they couldn't find; don't make them type it twice.
+    initialName?: string;
     // Called with the slug to load — an existing candidate OR the new org.
     onopen: (org_slug: string) => void;
     oncancel: () => void;
   } = $props();
 
-  let name = $state('');
+  // Seed-once by design: the form captures what was searched at open;
+  // continuing to type in the search box must not clobber a form in progress.
+  // svelte-ignore state_referenced_locally
+  let name = $state(initialName);
   let site = $state(''); // URL or bare domain, optional
   let phase = $state<'form' | 'gate' | 'writing'>('form');
   let candidates = $state<OrgCandidate[]>([]);

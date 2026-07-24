@@ -45,8 +45,10 @@
   }
 
   // Gated org creation (issue #29) — the ➕ opens OrgCreateInline; both a
-  // picked candidate and a fresh create land in the same loadOrg.
+  // picked candidate and a fresh create land in the same loadOrg. The form
+  // seeds from whatever was searched — no-results is the create path.
   let creating = $state(false);
+  let searchQuery = $state('');
 
   function onCreateOpen(org_slug: string) {
     creating = false;
@@ -110,7 +112,7 @@
       <span class="ow-ws status-{status}">{status}</span>
     </div>
     <div class="ow-search-row">
-      <OrgSearch {client} onpick={onPick} />
+      <OrgSearch {client} onpick={onPick} onquery={(q) => (searchQuery = q)} />
       <button
         type="button"
         class="ow-add-go"
@@ -121,7 +123,12 @@
       </button>
     </div>
     {#if creating}
-      <OrgCreateInline {client} onopen={onCreateOpen} oncancel={() => (creating = false)} />
+      <OrgCreateInline
+        {client}
+        initialName={searchQuery}
+        onopen={onCreateOpen}
+        oncancel={() => (creating = false)}
+      />
     {/if}
   </header>
 
