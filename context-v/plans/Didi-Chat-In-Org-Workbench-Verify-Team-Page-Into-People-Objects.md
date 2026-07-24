@@ -65,6 +65,10 @@ or alongside them; not yet slotted against a spec. -->
 
 1. Context plumbing: org-workbench broadcasts its active org
    (`augment-it:active-entity` or a workspace frame) → chat includes it.
+   **SHIPPED 2026-07-24 (014db0a, ahead of this plan):** the event +
+   localStorage broadcast, `focused_org_slug`/`focused_org_name` on every
+   chat_turn, the context slab's "this org" resolution, and bare
+   `/crawl-*` targeting the focused org.
 2. Verb: `org.team_page.scan` (propose-shaped) — surfaced to the operator
    as *"crawl for relevant team members"* (the third crawl target in
    [[../specs/Augment-From-DB-Flow]] §v1.2 — chat verb AND button). Input:
