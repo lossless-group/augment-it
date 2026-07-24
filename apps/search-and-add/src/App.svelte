@@ -128,7 +128,16 @@
 
   // A fresh envelope (mount-time localStorage read counts, via arrival 0 vs
   // firedArrival -1) seeds the term and auto-fires exactly once. Later
-  // operator edits + re-fires never re-trigger this.
+  // operator edits + re-fires never re-trigger this. When the envelope
+  // arrives at mount time the WS may still be connecting — invoke() would
+  // reject with "workspace not connected" — so the auto-fire waits for the
+  // socket via pendingAutoFire instead of racing it.
+  let pendingAutoFire = $state(false);
+
+  function autoFire() {
+    void (crawlMode ? crawl() : scanMode ? scan() : fire());
+  }
+
   $effect(() => {
     if (searchContext.arrival !== firedArrival || (firedArrival === -1 && req)) {
       firedArrival = searchContext.arrival;
@@ -136,8 +145,17 @@
         term = req.seed_term;
         results = [];
         firedVia = null;
-        void (crawlMode ? crawl() : scanMode ? scan() : fire());
+        fireError = null;
+        if (status === 'open') autoFire();
+        else pendingAutoFire = true;
       }
+    }
+  });
+
+  $effect(() => {
+    if (status === 'open' && pendingAutoFire) {
+      pendingAutoFire = false;
+      autoFire();
     }
   });
 
