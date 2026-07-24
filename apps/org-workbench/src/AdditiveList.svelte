@@ -1,6 +1,6 @@
 <script lang="ts">
   // Generic additive list — the org card's repeated organ. Renders shaped
-  // entries (kind badge · name-or-host · date) with an inline ➕ form that
+  // entries (kind badge · name-or-host+path · date) with an inline ➕ form that
   // hands the URL (+ optional kind, + optional name when nameable) to a
   // caller-supplied add function. Entries are additive: no delete — canonical
   // writes are append + dedup server-side. When the caller supplies onedit,
@@ -117,9 +117,16 @@
     }
   }
 
-  function host(u: string): string {
+  // Fallback display: host + path, not hostname alone — the path is what
+  // tells two entries on one domain apart (a blog_index IS its path). Capped
+  // so deep tracking-style URLs don't blow up the row.
+  function display(u: string): string {
     try {
-      return new URL(u).hostname.replace(/^www\./, '');
+      const parsed = new URL(u);
+      const host = parsed.hostname.replace(/^www\./, '');
+      const path = parsed.pathname.replace(/\/$/, '');
+      const full = path ? host + path : host;
+      return full.length > 60 ? `${full.slice(0, 57)}…` : full;
     } catch {
       return u;
     }
@@ -220,7 +227,7 @@
             {:else}
               <span class="ow-kind">{e.kind}</span>
             {/if}
-            <a class="ow-url" href={e.url} target="_blank" rel="noreferrer">{e.name ?? host(e.url)}</a>
+            <a class="ow-url" href={e.url} target="_blank" rel="noreferrer">{e.name ?? display(e.url)}</a>
             {#if onedit}
               <button
                 type="button"
