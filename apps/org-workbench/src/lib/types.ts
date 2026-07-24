@@ -58,6 +58,7 @@ export type AffiliatedPerson = {
   role: string | null;
   relevance: string | null;
   personal_links: ShapedLink[];
+  personal_corpus: ShapedLink[];
   personal_corpus_count: number;
 };
 

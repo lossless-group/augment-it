@@ -839,6 +839,7 @@ export type AffiliatedPerson = {
   role: string | null;      // the affiliation edge's `kind`
   relevance: string | null; // passes through as written by the rating loop
   personal_links: ShapedLink[];
+  personal_corpus: ShapedLink[];
   personal_corpus_count: number;
 };
 export type OrgAffiliationsResult = { ok: true; people: AffiliatedPerson[] };
@@ -858,6 +859,7 @@ export async function listOrgAffiliations(
     `SELECT kind, relevance,
             in.person_uuid AS person_uuid, in.name AS name, in.headline AS headline,
             in.personal_links AS personal_links,
+            in.personal_corpus ?? [] AS personal_corpus,
             array::len(in.personal_corpus ?? []) AS personal_corpus_count
        FROM affiliations
        WHERE out = $org;`,
@@ -873,6 +875,7 @@ export async function listOrgAffiliations(
       role: (r.kind as string) ?? null,
       relevance: (r.relevance as string) ?? null,
       personal_links: (r.personal_links as ShapedLink[]) ?? [],
+      personal_corpus: (r.personal_corpus as ShapedLink[]) ?? [],
       personal_corpus_count: Number(r.personal_corpus_count ?? 0),
     }))
     // relevance is a string ("90", "75", …) — numeric sort in JS, nulls last
