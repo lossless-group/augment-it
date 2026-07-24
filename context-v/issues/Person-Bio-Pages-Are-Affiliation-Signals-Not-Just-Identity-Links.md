@@ -1,0 +1,71 @@
+---
+title: "A person's bio page on another org's site is an affiliation signal, not just an identity link — the UI should offer the promotion"
+lede: "Jamie Merisotis has a bio on bipartisanpolicy.org — filed today as an 'other' identity link, full stop. But that URL is really three facts: a static profile (identity link — correct), evidence of an affiliation with an org we may not have yet (Bipartisan Policy Center), and an observation with a source. The card captures the first and silently drops the other two."
+date_created: 2026-07-24
+date_modified: 2026-07-24
+authors:
+  - Michael Staton
+augmented_with:
+  - Claude Code on Claude Fable 5
+semantic_version: 0.0.0.1
+tags:
+  - Issue
+  - Usability
+  - Augment-It
+  - Affiliations
+  - Persons
+  - Identity-Links
+  - Org-Workbench
+status: Open · Jotted
+---
+
+# Person bio pages are affiliation signals
+
+## The rule of thumb the operator already uses
+
+**If it's static, it goes in identity.** Profiles, bios, involvement pages
+→ `personal_links[]`. That instinct is right and stays.
+
+## What gets dropped today
+
+A bio hosted on *someone else's* org domain carries more than identity.
+The live case: Jamie Merisotis (Lumina Foundation card) has links to
+linkedin, luminafoundation.org, forbes.com, **bipartisanpolicy.org**, and
+wikipedia — every non-linkedin one badged `other`. The bipartisanpolicy.org
+link is really:
+
+1. an identity link (captured ✓)
+2. **evidence of an affiliation** with the Bipartisan Policy Center — an
+   organization worth its own record, which may not exist yet (dropped ✗)
+3. **an observation** — `affiliated_with`, source: that URL (dropped ✗)
+
+The schema handles all three today (`person.affiliate` is N-per-person and
+match-or-CREATES the org; observations ride along automatically). Only the
+UI path is missing: from a person's link row, there's no "this is also an
+affiliation" affordance.
+
+## Direction (jotted)
+
+- **A "promote to affiliation" action on person link rows** — takes the
+  link's domain as the org seed → org match-or-create (the
+  `AddPersonInline` gate pattern, inverted: person is fixed, org is being
+  resolved) → `person.affiliate` with optional role → observation cites
+  the bio URL as source. Three clicks, no retyping.
+- Composes with the existing candidate machinery: `resolver.search` by
+  domain (D4 already matches `domains[*].domain`) makes the org
+  suggestion nearly free.
+- Same promotion logic belongs in the search-and-add rail eventually —
+  a result row that IS a bio page could offer add-link *and*
+  promote-to-affiliation.
+- Sibling fact: those `other` badges show `inferLinkKind` needs richer
+  vocabulary (org-bio / press-profile / wikipedia), or the same
+  editable-kind treatment as [[Pulse-Streams-Need-Editable-Kind-And-User-Facing-Names]].
+
+## Open questions
+
+- [ ] Where does the affordance live — a per-row action on the person
+  card's link list, a didi-chat verb, or both?
+- [ ] When the org doesn't exist: create thin (name + domain from the
+  bio page) or route through a full org-resolution gate first?
+- [ ] Should the observation's free-text predicate distinguish
+  `has_bio_at` from `affiliated_with`, letting the human upgrade later?
