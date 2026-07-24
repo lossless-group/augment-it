@@ -2,16 +2,17 @@
 title: "Augment from DB — the Org Workbench + Search-and-Add flow: two new microfrontends over capabilities that mostly exist"
 lede: "Start from a canonical organization instead of a CSV row: smart-search to an org, see everything the DB knows (links, streams, corpus, people), and augment any list through provider-pluggable search with a one-click add — two small remotes, four new capabilities, one new connector."
 date_created: 2026-07-22
-date_modified: 2026-07-22
+date_modified: 2026-07-24
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.1.0.0
+semantic_version: 0.1.1.0
 date_first_published: 2026-07-22
 exploration_of_record: "[[../explorations/Augment-From-DB-Flow-Two-New-Microfrontends]]"
 post_ship_note: "All five phases implemented, proven, and pushed on 2026-07-22 (attempt(augment-from-db, …, step1–5)). Pending: the operator browser walk-throughs each phase plan names, and the parked open questions (fire-log persistence, pack-template seed terms, pinned-deploy env-configurable remote URLs). Deviations from the as-specced snippets are recorded in each phase plan's post_ship_note — notably organization.streams.add (a verb the spec missed), the localStorage-hardened D2 launch contract, and relevance as string|null."
 revisions:
+  - "2026-07-24 — v0.1.1.0: §v1.2 extensions added — the coverage roster recorded as shipped (OrgRoster + organization.roster, gh #32, un-deferring #20's layer 2), and the didi agent-crawl capability specified: 'crawl for relevant identity links / pulse streams' as chat verb AND list button (one implementation, two triggers), candidates-into-state never direct writes, driven by a per-workspace operator-editable relevance brief. Plan pending; composes with the didi-chat team-page plan."
   - "2026-07-22 — v0.1.0.0: status → Shipped. Phases 2–5 executed same day ([[../plans/Augment-From-DB-Phase-2-Org-Workbench-Remote]], [[../plans/Augment-From-DB-Phase-3-Search-And-Add-Remote]], [[../plans/Augment-From-DB-Phase-4-People-Reveal-And-Add-Person]], [[../plans/Augment-From-DB-Phase-5-Stream-Scan-Mode]]; changelog 2026-07-22_02 through _05). Both remotes live (:3014, :3016); stream-scan flip-test proven against Aspen's blog."
   - "2026-07-22 — v0.0.1.1: status → Implementing. Phase 1 executed and shipped same day ([[../plans/Augment-From-DB-Phase-1-Service-Capabilities]], changelog 2026-07-22_01) — all four capabilities live and proven over NATS; both flagged SurrealQL constructs worked without fallbacks. Phases 2–5 remain."
   - "2026-07-22 — v0.0.1.0: user sign-off. Narrative pass ran clean — the doc was written in one pass after the exploration settled, so structure and prose stand as drafted; no TBD markers existed. Next step per the spec→plan cascade: cut Phase 1 as the first plan in context-v/plans/."
@@ -29,6 +30,8 @@ tags:
   - Exa
   - Pulse-Streams
   - Affiliations
+  - Didi-Chat
+  - Coverage
 status: Shipped
 ---
 
@@ -568,6 +571,94 @@ Each phase becomes (or is treated as) a plan in `context-v/plans/`, per the spec
 **Scope:** `stream-scan.ts` in social-search: for `stream_kind` rss/blog_index/newsroom, drive the existing `entity-pulse` official-blog pack machinery (find-index → extract-posts); mark each item `already_in_corpus` by URL lookup against `content_items`; `organization.stream.scan` subscription + capability entries; "Scan a stream" mode in search-and-add (stream picker fed from the org card's `media_streams[]`, same ResultRow with the badge, ➕ → `organization.corpus.add`). Social walls (LinkedIn/Facebook) ride the same UI via their entity-pulse packs but are flagged experimental in the UI copy — no reliability commitment (Non-goal).
 **Success criteria:** scanning a known blog_index stream returns items with correct `already_in_corpus` flags; adding one flips its badge on re-scan; scanning the same stream twice adds nothing without operator clicks.
 **Risk:** medium-high on social walls (accepted, experimental), low on blog/RSS.
+
+## v1.2 extensions — the roster front-column (shipped) and agent-crawl with an editable relevance brief (specified)
+
+Two same-day extensions the first real workbench sessions demanded
+(2026-07-24). The first is already live and recorded here so the spec stays
+the source of truth; the second is specified here ahead of its plan.
+
+### The coverage roster — the column in front of the flow (SHIPPED 2026-07-24)
+
+The flow's original first move was the search box, which presumes the
+operator knows which org to work. The real first question is usually
+**"which orgs could and should have more corpus content?"** — so an
+`OrgRoster` column now fronts the flow: every org the workspace client can
+see (`client_access CONTAINS` the active client — the default filter IS the
+workspace), name/slug-filterable, sorted by corpus count ascending (toggle),
+zero-corpus in red, rows carrying `corpus · links · streams · people`
+counts, click → the card. One new read (`organization.roster` — counts via
+`array::len` + `count(<-affiliations)`, no arrays on the wire). gh #32,
+changelog `2026-07-24_05`; workspace-scope legibility follow-ups live in
+[[../plans/Workspace-Scope-Legibility-Empty-Workspace-And-Stale-Restore-Handling]].
+
+### Didi in the workbench — "crawl for relevant X", chat verb AND button
+
+The workbench gains agent actions, arriving through two equivalent doors:
+
+- **Chat**: the didi rail (integration owned by
+  [[../plans/Didi-Chat-In-Org-Workbench-Verify-Team-Page-Into-People-Objects]])
+  understands *"crawl for relevant identity links"* and *"crawl for relevant
+  pulse streams"* against the org in view.
+- **Button**: a `crawl` action on the org card's links and streams lists
+  fires the identical capability with zero typing — the chat verb and the
+  button are one implementation with two triggers.
+
+**Why an agent, why now:** identity links and pulse streams are exactly the
+shape web-search-equipped agents get mostly right, quickly — "official site,
+LinkedIn, X, YouTube, blog/newsroom index for ‹org›" is a solved retrieval
+problem. The expectation is the agent fills most of a thin org's lists in
+one crawl; the per-row accept gate exists for the tail (wrong org with a
+similar name, dead links, fan pages), not the norm. This inverts the manual
+🔍 flow's economics: the operator stops composing queries and starts
+adjudicating candidates.
+
+Behavior contract (both doors):
+
+1. The agent takes the org (name, domains, existing list entries) **plus the
+   relevance brief** (below) and drives the existing search/crawl substrate
+   (connector registry / packs — the manual 🔍 search-and-add's agentic
+   sibling: search-and-add is operator-term-driven; crawl is agent-driven,
+   multi-query, brief-informed).
+2. Results land as **candidates in state, never direct writes** — the same
+   staged-objects gate the team-page plan establishes. The operator accepts
+   per-row; accepts ride the existing verbs (`organization.links.add`,
+   `organization.streams.add`). Dedupe against existing entries by URL
+   before presenting (candidates the org already has are noise).
+3. Per [[Client-Tagging-on-Canonical-Writes]], accepted writes carry the
+   client; the crawl itself is read-only against the world.
+
+### The relevance brief — editable context held in state
+
+"Relevant" is not inferable from the org row alone — it's the operator's
+standing intent (e.g., reach-edu cares about US higher-ed / workforce
+funders and their education-adjacent publication streams). The brief is:
+
+- **A small editable context document** — plain prose, owned by the
+  operator, loaded into every crawl (and eventually every didi action in
+  this workbench). First-class UI: view + edit in place (a panel off the
+  workbench header; the State-Inspector issue's "what does the app
+  believe" ethos applied to agent context).
+- **Scoped per workspace client** (reach-edu's brief ≠ humain-vc's), with
+  per-org additions later if needed.
+- **Storage — open question**: localStorage is the v1 floor, but a brief
+  the agent reads server-side wants to live where the workspace service can
+  hand it to the model (a `clients`-table field in the canonical layer, or
+  a workspace-service-owned doc). Decide in the plan; lean server-side so
+  chat and button share one source of truth.
+
+### v1.2 open questions
+
+- [ ] Crawl substrate: drive `search.fire`/packs, or the Firecrawl/Tavily
+  connectors directly with agent-composed queries? (The packs already
+  encode per-target shapes; lean packs-first.)
+- [ ] Relevance brief storage (above) — localStorage floor vs
+  workspace-service-owned per-client doc. Lean server-side.
+- [ ] Does the crawl surface reuse search-and-add's ResultRow/candidate UI
+  (likely — same accept-per-row gate) or stage into the chat rail?
+- [ ] Chat rail placement: the didi-chat plan owns whether the rail is the
+  existing `apps/chat` remote or a workbench-embedded rail — this spec only
+  requires the capability be callable from both rail and button.
 
 ## Handoff notes (what makes >70% first-go likely)
 
