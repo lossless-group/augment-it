@@ -6,9 +6,10 @@
   // { person_uuid } so the reveal refetches.
 
   import AdditiveList from './AdditiveList.svelte';
+  import AddAffiliationInline from './AddAffiliationInline.svelte';
   import { addPersonLink, addPersonCorpus } from './lib/org-client';
   import { requestSearch } from './lib/search-request';
-  import type { AffiliatedPerson } from './lib/types';
+  import type { AffiliatedPerson, ShapedLink } from './lib/types';
 
   let {
     person,
@@ -21,6 +22,10 @@
   } = $props();
 
   const displayName = $derived(person.name ?? person.person_uuid);
+
+  // A bio page on another org's site is an affiliation signal, not just an
+  // identity link — the "→ affiliation" row action opens the promotion gate.
+  let promoteEntry = $state<ShapedLink | null>(null);
 
   function bump() {
     onchanged();
@@ -58,7 +63,22 @@
     kindHint="kind (auto: linkedin/x/…)"
     onadd={addLink}
     onsearch={searchFor('links', `"${displayName}" LinkedIn`)}
+    entryaction={{ label: '→ affiliation', fn: (entry) => (promoteEntry = entry) }}
   />
+
+  {#if promoteEntry}
+    <AddAffiliationInline
+      person_uuid={person.person_uuid}
+      personName={displayName}
+      entry={promoteEntry}
+      {client}
+      onadded={() => {
+        promoteEntry = null;
+        bump();
+      }}
+      oncancel={() => (promoteEntry = null)}
+    />
+  {/if}
 
   <AdditiveList
     title="Corpus items"

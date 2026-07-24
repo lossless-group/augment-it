@@ -135,20 +135,40 @@ export async function applyPerson(args: {
 
 export async function affiliatePerson(args: {
   person_uuid: string;
-  org_slug: string;
+  // Defaults to 'match' — AddPersonInline's org-pre-bound path. The bio-page
+  // promotion path (AddAffiliationInline) resolves the org side: 'create'
+  // takes org_name + org_domain (seeded into domains[] so the new org is
+  // reachable by D4 domain matching).
+  org_action?: 'match' | 'create';
+  org_slug?: string;
+  org_name?: string;
+  org_domain?: string;
   role?: string | null;
   client: string;
   source?: string;
-}): Promise<void> {
+}): Promise<{ org_slug: string; org_created: boolean; affiliation_created: boolean }> {
   const r = (await workspace.invoke('person.affiliate', {
     person_uuid: args.person_uuid,
-    org_action: 'match',
+    org_action: args.org_action ?? 'match',
     org_slug: args.org_slug,
+    org_name: args.org_name,
+    org_domain: args.org_domain,
     role: args.role ?? null,
     client: args.client,
     source: args.source ?? 'org-workbench',
-  })) as { ok: boolean; affiliation_created?: boolean; error?: string };
+  })) as {
+    ok: boolean;
+    org_slug?: string;
+    org_created?: boolean;
+    affiliation_created?: boolean;
+    error?: string;
+  };
   if (!r.ok) throw new Error(r.error || 'person.affiliate failed');
+  return {
+    org_slug: r.org_slug ?? args.org_slug ?? '',
+    org_created: r.org_created ?? false,
+    affiliation_created: r.affiliation_created ?? false,
+  };
 }
 
 type PersonAddArgs = { person_uuid: string; url: string; kind?: string; client: string };

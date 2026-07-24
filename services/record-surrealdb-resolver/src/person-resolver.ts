@@ -513,6 +513,9 @@ export type PersonAffiliateInput = {
   org_action: 'match' | 'create';
   org_slug?: string; // required for match
   org_name?: string; // required for create
+  // Optional on create — seeds domains[] so the new org is reachable by
+  // D4 domain matching (the bio-page promotion path supplies the bio's host).
+  org_domain?: string;
   role?: string | null;
   client: string;
   source?: string;
@@ -543,6 +546,7 @@ export async function applyPersonAffiliation(
     name: input.org_name ?? '',
     client: input.client,
     source,
+    domain: input.org_domain,
   });
 
   let affiliation_created = false;

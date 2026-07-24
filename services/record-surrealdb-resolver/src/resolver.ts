@@ -593,7 +593,16 @@ export async function opportunitiesForOrg(
 // match/create path an org-shaped record gets, not a parallel reimplementation.
 export async function resolveOrgRow(
   db: Surreal,
-  input: { action: 'match' | 'create'; org_slug?: string; name: string; client: string; source: string },
+  input: {
+    action: 'match' | 'create';
+    org_slug?: string;
+    name: string;
+    client: string;
+    source: string;
+    // Seeded into domains[] on create only — an org born from a bio-page
+    // promotion would otherwise be invisible to D4 domain matching forever.
+    domain?: string;
+  },
 ): Promise<{ org: OrgRow; created: boolean }> {
   if (input.action === 'match') {
     if (!input.org_slug) throw new Error('resolveOrgRow (match) requires org_slug');
@@ -607,15 +616,24 @@ export async function resolveOrgRow(
   const existing = await fetchOrgBySlug(db, slug);
   if (existing) return { org: existing, created: false };
   const completeName = input.name.trim();
+  const domain = input.domain?.trim().toLowerCase().replace(/^www\./, '');
   const createdRes = await db.query(
     `CREATE organizations SET
         id = rand::uuid::v7(), slug = $slug,
         complete_name = $complete_name, conventional_name = $conventional_name,
+        domains = $domains,
         source = $source, client_access = [$client],
         first_touched_by = $client, last_touched_by = $client,
         last_touched_at = time::now(), first_seen_at = time::now(), last_seen_at = time::now()
      RETURN ${ORG_FIELDS};`,
-    { slug, complete_name: completeName, conventional_name: completeName, source: input.source, client: input.client },
+    {
+      slug,
+      complete_name: completeName,
+      conventional_name: completeName,
+      domains: domain ? [{ domain }] : [],
+      source: input.source,
+      client: input.client,
+    },
   );
   const org = ((createdRes?.[0] as OrgRow[]) ?? [])[0] ?? null;
   if (!org) throw new Error('org create returned no row');
