@@ -92,7 +92,21 @@ export function createTransport(config: TransportConfig): Transport {
     ws.addEventListener('open', () => {
       backoff = RECONNECT_INITIAL_MS;
       config.onStatus?.('open');
+      // Frames still in the queue were never delivered — flush re-sends
+      // them as ordinary invokes. Pending entries NOT in the queue were
+      // delivered before a drop: re-attach to their (possibly finished)
+      // server-side work with claim frames (gh #41). The server answers a
+      // claim with the normal result frame — same id, same resolution path
+      // — or an explicit not-found error if it restarted meanwhile.
+      const queuedIds = new Set(
+        sendQueue.filter((fr) => fr.kind === 'invoke').map((fr) => fr.id),
+      );
       flushSendQueue();
+      for (const id of pending.keys()) {
+        if (!queuedIds.has(id)) {
+          ws!.send(JSON.stringify({ kind: 'claim', id }));
+        }
+      }
     });
 
     ws.addEventListener('message', (evt: MessageEvent) => {
@@ -137,17 +151,24 @@ export function createTransport(config: TransportConfig): Transport {
 
     ws.addEventListener('close', () => {
       config.onStatus?.('closed');
-      // Reject any in-flight invokes (already on the wire or still
-      // queued) — callers will receive a clean 'socket closed' and can
-      // retry. Clearing the sendQueue too keeps pending and queue in
-      // lockstep; a stray queued frame surviving a reconnect would
-      // produce a server reply that no longer has a pending entry to
-      // resolve, wasting server work.
-      for (const [, p] of pending) p.reject(new Error('socket closed'));
-      pending.clear();
+      // In-flight INVOKES survive the drop (gh #41): their pending entries
+      // stay put and the next 'open' re-attaches via claim frames — the
+      // server holds results for invokes whose socket died. Long-running
+      // work (didi crawls run minutes) no longer strands an eternal
+      // spinner because a container rebuild or network blip severed the
+      // socket. Chat turns stay fail-fast: cheap to resend, and the rail
+      // shows the error inline.
+      if (closing) {
+        for (const [, p] of pending) p.reject(new Error('socket closed'));
+        pending.clear();
+      }
       for (const [, p] of chatPending) p.reject(new Error('socket closed'));
       chatPending.clear();
+      // Keep undelivered invoke frames for re-send on reconnect; drop
+      // queued chat frames (their pending entries were just rejected).
+      const keep = sendQueue.filter((fr) => fr.kind === 'invoke' && pending.has(fr.id));
       sendQueue.length = 0;
+      sendQueue.push(...keep);
       if (!closing) scheduleReconnect();
     });
 

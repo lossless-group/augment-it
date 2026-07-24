@@ -19,6 +19,27 @@ import { dispatch } from './capabilities';
 import { dispatchChatTurn } from './chat';
 import { getNats } from './nats';
 
+// Invoke durability across reconnects (gh #41). Results for invokes whose
+// socket died before delivery are stashed here, keyed by invoke id, and
+// handed over when the reconnected client sends a `claim` frame. In-flight
+// dispatches are tracked so a claim can attach to work still running.
+// Process-local by design — a workspace restart loses both maps, and the
+// claim then fails fast with an explicit retry message instead of hanging.
+const inflightInvokes = new Map<string, Promise<string>>();
+const completedInvokes = new Map<string, { frame: string; expires: number }>();
+const INVOKE_RESULT_TTL_MS = 15 * 60_000;
+
+function stashResult(id: string, frame: string): void {
+  completedInvokes.set(id, { frame, expires: Date.now() + INVOKE_RESULT_TTL_MS });
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, entry] of completedInvokes) {
+    if (entry.expires < now) completedInvokes.delete(id);
+  }
+}, 60_000).unref();
+
 const BROADCAST_SUBJECTS = [
   'record_set.created',
   'record_set.deleted',
@@ -168,21 +189,76 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
       };
 
       // --- invoke frame: existing capability dispatch path. ---
+      // Long dispatches (didi crawls run minutes) must survive the caller's
+      // socket dropping mid-flight: the serialized result frame is tracked
+      // in-flight and, if the socket is gone when it lands, stashed for a
+      // post-reconnect `claim` frame (gh #41). A workspace restart still
+      // loses both maps — the claim then fails fast and explicit instead of
+      // hanging the caller forever.
       if (f.kind === 'invoke' && f.id && f.capability) {
-        try {
-          // Actor attribution envelope (build-order step 4) — the verified
-          // didi.sh identity rides beside the args into dispatch(), never
-          // client-asserted. See [[Workspaces-as-Tenant-Primitive]] §
-          // "Tenant-aware envelope" for the sibling client_id pattern.
-          const actor = session.didi
-            ? { didi_id: session.didi.didi_id, ...(f.via ? { via: f.via } : {}) }
-            : undefined;
-          const result = await dispatch(f.capability, f.args ?? {}, actor);
-          socket.send(JSON.stringify({ kind: 'result', id: f.id, ok: true, result }));
-        } catch (err: unknown) {
-          const error = err instanceof Error ? err.message : String(err);
-          socket.send(JSON.stringify({ kind: 'result', id: f.id, ok: false, error }));
+        const invokeId = f.id;
+        // Actor attribution envelope (build-order step 4) — the verified
+        // didi.sh identity rides beside the args into dispatch(), never
+        // client-asserted. See [[Workspaces-as-Tenant-Primitive]] §
+        // "Tenant-aware envelope" for the sibling client_id pattern.
+        const actor = session.didi
+          ? { didi_id: session.didi.didi_id, ...(f.via ? { via: f.via } : {}) }
+          : undefined;
+        const resultPromise = (async () => {
+          try {
+            const result = await dispatch(f.capability as string, f.args ?? {}, actor);
+            return JSON.stringify({ kind: 'result', id: invokeId, ok: true, result });
+          } catch (err: unknown) {
+            const error = err instanceof Error ? err.message : String(err);
+            return JSON.stringify({ kind: 'result', id: invokeId, ok: false, error });
+          }
+        })();
+        inflightInvokes.set(invokeId, resultPromise);
+        const resultFrame = await resultPromise;
+        inflightInvokes.delete(invokeId);
+        if (socket.readyState === 1 /* OPEN */) {
+          try {
+            socket.send(resultFrame);
+          } catch {
+            stashResult(invokeId, resultFrame);
+          }
+        } else {
+          stashResult(invokeId, resultFrame);
         }
+        return;
+      }
+
+      // --- claim frame: re-attach to an invoke after a reconnect. ---
+      if (f.kind === 'claim' && f.id) {
+        const claimId = f.id;
+        const done = completedInvokes.get(claimId);
+        if (done) {
+          completedInvokes.delete(claimId);
+          socket.send(done.frame);
+          return;
+        }
+        const inflight = inflightInvokes.get(claimId);
+        if (inflight) {
+          const resultFrame = await inflight;
+          // The original waiter may have stashed it between our lookup and
+          // resolution — drop any duplicate stash and deliver here.
+          completedInvokes.delete(claimId);
+          try {
+            socket.send(resultFrame);
+          } catch {
+            stashResult(claimId, resultFrame);
+          }
+          return;
+        }
+        socket.send(
+          JSON.stringify({
+            kind: 'result',
+            id: claimId,
+            ok: false,
+            error:
+              'invoke not found — the workspace service restarted while it was in flight; retry the action',
+          }),
+        );
         return;
       }
 

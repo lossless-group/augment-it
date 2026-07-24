@@ -309,8 +309,13 @@ export type ChatErrorFrame = {
   error: string;
 };
 
+// Re-attach to an invoke after a reconnect (gh #41) — the server replies
+// with the normal ResultFrame for that id (possibly stashed from before the
+// drop), or ok:false when it restarted and no longer knows the invoke.
+export type ClaimFrame = { kind: 'claim'; id: string };
+
 export type ServerFrame = ResultFrame | EventFrame | SessionFrame | ChatResponseFrame | ChatErrorFrame;
-export type ClientFrame = InvokeFrame | ChatTurnFrame;
+export type ClientFrame = InvokeFrame | ChatTurnFrame | ClaimFrame;
 
 // --- request-reviewer / response-reviewer surfaces ---
 // See context-v/specs/Request-Reviewer-Pre-Flight-Surface.md and
