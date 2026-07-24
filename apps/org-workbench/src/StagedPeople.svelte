@@ -4,13 +4,18 @@
   // discipline: no-candidate rows flow straight through person.apply(create)
   // + person.affiliate; ambiguous rows open the candidate gate (pick the
   // match or explicitly create). The team-page URL rides every write as the
-  // observation source. Skip discards a row; nothing persists until accept.
+  // observation source; the crawled LinkedIn/bio links land on CREATED
+  // persons via person.links.add (matched persons may already carry them —
+  // additive, not duplicative). An accepted row is CONSUMED — it leaves the
+  // staged list; the person appearing in the People list above is the
+  // confirmation (gh #37). Skip discards a row; nothing persists until accept.
   // Per context-v/plans/Didi-Crawl-Three-Targets-Relevance-Brief-And-Staged-Team-Ingest.md.
 
   import {
     fetchPersonCandidates,
     applyPerson,
     affiliatePerson,
+    addPersonLink,
     type CrawledPerson,
   } from './lib/org-client';
   import type { PersonCandidate } from './lib/types';
@@ -35,7 +40,7 @@
     onclear: () => void;
   } = $props();
 
-  type RowPhase = 'staged' | 'gate' | 'writing' | 'done';
+  type RowPhase = 'staged' | 'gate' | 'writing';
   type Row = {
     person: CrawledPerson;
     phase: RowPhase;
@@ -51,7 +56,7 @@
     people.map((person) => ({ person, phase: 'staged', candidates: [], error: null, skipped: false })),
   );
 
-  const remaining = $derived(rows.filter((r) => !r.skipped && r.phase !== 'done').length);
+  const remaining = $derived(rows.filter((r) => !r.skipped).length);
 
   function sourceFor(row: Row): string {
     return row.person.bio_url ?? source_urls[0] ?? 'didi-crawl';
@@ -100,7 +105,24 @@
         client,
         source: sourceFor(row),
       });
-      row.phase = 'done';
+      // The crawl's links ride the accept — created persons only (a matched
+      // person may already carry them). Soft-fail: person + affiliation are
+      // the core writes; a link hiccup shouldn't fail the accept.
+      if (applied.created) {
+        const links = [row.person.linkedin_url, row.person.bio_url].filter(
+          (u): u is string => Boolean(u),
+        );
+        for (const url of links) {
+          try {
+            await addPersonLink({ person_uuid: applied.person_uuid, url, client });
+          } catch {
+            /* soft */
+          }
+        }
+      }
+      // Consume the row — the person now shows in the People list above;
+      // a lingering staged copy is a double-save waiting to happen.
+      row.skipped = true;
       onchanged();
     } catch (err) {
       row.error = err instanceof Error ? err.message : String(err);
@@ -128,7 +150,7 @@
   <ul class="ow-staged-list">
     {#each rows as row (row.person.name)}
       {#if !row.skipped}
-        <li class="ow-staged-row" class:done={row.phase === 'done'}>
+        <li class="ow-staged-row">
           <div class="ow-staged-main">
             <span class="ow-person-name">{row.person.name}</span>
             {#if row.person.role}<span class="ow-person-role">{row.person.role}</span>{/if}
@@ -139,9 +161,7 @@
               <a class="ow-url" href={row.person.bio_url} target="_blank" rel="noreferrer">bio</a>
             {/if}
             <span class="ow-staged-actions">
-              {#if row.phase === 'done'}
-                <span class="ow-added">added ✓</span>
-              {:else if row.phase === 'writing'}
+              {#if row.phase === 'writing'}
                 <span class="ow-staged-busy">writing…</span>
               {:else}
                 <button type="button" class="ow-add-go" onclick={() => accept(row)}>Accept</button>

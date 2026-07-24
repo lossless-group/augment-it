@@ -7,7 +7,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 tags:
   - Issue
   - Usability
@@ -15,7 +15,9 @@ tags:
   - Didi-Crawl
   - Persons
   - Org-Workbench
-status: Open
+status: Shipped
+date_first_published: 2026-07-24
+post_ship_note: "Shipped 2026-07-24 — accept adds the crawled linkedin_url/bio_url via person.links.add on created persons (soft-fail), and the accepted row is consumed from the staged list. gh #37 closed."
 ---
 
 # Team-crawl accept: links dropped, row lingers
