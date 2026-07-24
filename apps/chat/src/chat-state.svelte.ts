@@ -41,7 +41,16 @@ class ChatState {
    * The propose / invoke branches don't auto-act — the surface renders
    * affordances and the user clicks to accept.
    */
-  async sendMessage(message: string, context?: { focused_prompt_id?: string; record_set_id?: string; client_id?: string }): Promise<void> {
+  async sendMessage(
+    message: string,
+    context?: {
+      focused_prompt_id?: string;
+      record_set_id?: string;
+      client_id?: string;
+      focused_org_slug?: string;
+      focused_org_name?: string;
+    },
+  ): Promise<void> {
     if (this.sending) return;
     if (!message.trim()) return;
     const id = `t_${Date.now().toString(36)}`;

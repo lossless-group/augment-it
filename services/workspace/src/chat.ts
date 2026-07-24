@@ -127,6 +127,7 @@ VERB RECOGNITION SHORTCUTS:
 - "/crawl-links <org-slug>" → chat_invoke organization.crawl with target "links".
 - "/crawl-streams <org-slug>" → chat_invoke organization.crawl with target "streams".
 - "/crawl-team <org-slug>" → chat_invoke organization.crawl with target "team".
+- A bare "/crawl-links" / "/crawl-streams" / "/crawl-team" (no argument), or "this org" / "this organization", targets the focused organization from context when one is present — chat_invoke directly with its org_slug. No focused org and no argument → ask.
 - Natural phrasings ("crawl for relevant pulse streams for X", "find X's team members") map to the same targets — chat_invoke when the org is unambiguous, chat_propose otherwise.
 `;
 
@@ -221,7 +222,14 @@ export const CHAT_TOOLS = [
 export type ChatTurnInput = {
   message: string;
   thread?: { role: 'user' | 'assistant'; content: string }[];
-  context?: { focused_prompt_id?: string; record_set_id?: string; client_id?: string };
+  context?: {
+    focused_prompt_id?: string;
+    record_set_id?: string;
+    client_id?: string;
+    // The org card open in the Org Workbench — "this org" resolves to it.
+    focused_org_slug?: string;
+    focused_org_name?: string;
+  };
   suggestions?: { capability: string; hint: string }[];
 };
 
@@ -262,6 +270,11 @@ function contextSlab(ctx?: ChatTurnInput['context']): string {
   }
   if (ctx?.focused_prompt_id) parts.push(`The user is currently looking at prompt: ${ctx.focused_prompt_id}`);
   if (ctx?.record_set_id) parts.push(`The user is currently in record set: ${ctx.record_set_id}`);
+  if (ctx?.focused_org_slug) {
+    parts.push(
+      `The user is currently viewing the organization "${ctx.focused_org_name ?? ctx.focused_org_slug}" (org_slug: ${ctx.focused_org_slug}) in the Org Workbench. "This org" / "this organization" refers to it — use this org_slug for organization.crawl and any org-scoped capability.`,
+    );
+  }
   return parts.join('\n') + '\n';
 }
 

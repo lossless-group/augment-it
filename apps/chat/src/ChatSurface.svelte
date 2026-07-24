@@ -119,6 +119,28 @@
     suggest(workspace.activeView, workspace.last_capability),
   );
 
+  // Focused entity — the org card open in the Org Workbench, broadcast via
+  // augment-it:active-entity + localStorage (race-hardened like the search
+  // envelope). Lets didi resolve "this org" without asking.
+  const ACTIVE_ENTITY_KEY = 'augment-it:active-entity';
+  type ActiveEntity = { type: 'organization'; org_slug: string; display_name?: string };
+  function readActiveEntity(): ActiveEntity | null {
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(ACTIVE_ENTITY_KEY) : null;
+      return raw ? (JSON.parse(raw) as ActiveEntity) : null;
+    } catch {
+      return null;
+    }
+  }
+  let activeEntity = $state<ActiveEntity | null>(readActiveEntity());
+  $effect(() => {
+    const onEntity = (e: Event) => {
+      activeEntity = ((e as CustomEvent).detail as ActiveEntity | null) ?? null;
+    };
+    window.addEventListener('augment-it:active-entity', onEntity);
+    return () => window.removeEventListener('augment-it:active-entity', onEntity);
+  });
+
   // Send context — what the user is looking at right now. The server
   // inlines this in the prompt so the model can pick a record_set_id
   // for prompt.draft without asking. `client_id` is the active workspace,
@@ -128,13 +150,24 @@
     focused_prompt_id?: string;
     record_set_id?: string;
     client_id?: string;
+    focused_org_slug?: string;
+    focused_org_name?: string;
   } | undefined>(
     (() => {
-      const ctx: { record_set_id?: string; client_id?: string } = {};
+      const ctx: {
+        record_set_id?: string;
+        client_id?: string;
+        focused_org_slug?: string;
+        focused_org_name?: string;
+      } = {};
       if (workspace.activeView.kind === 'record_set') {
         ctx.record_set_id = workspace.activeView.record_set_id;
       }
       if (workspace.active_client_id) ctx.client_id = workspace.active_client_id;
+      if (activeEntity?.type === 'organization') {
+        ctx.focused_org_slug = activeEntity.org_slug;
+        if (activeEntity.display_name) ctx.focused_org_name = activeEntity.display_name;
+      }
       return Object.keys(ctx).length ? ctx : undefined;
     })(),
   );

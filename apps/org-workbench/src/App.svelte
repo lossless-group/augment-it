@@ -20,6 +20,20 @@
   const WS_URL = 'ws://localhost:3001/ws';
   // Restore the last-worked org on remount (HMR, flow switch, tab reopen).
   const ACTIVE_ORG_KEY = 'augment-it:org-workbench:active-org';
+  // Cross-remote focused-entity broadcast — the chat rail includes it in
+  // every chat_turn so didi knows what "this org" means. Event + localStorage
+  // (the search-envelope race-hardening pattern, spec D2).
+  const ACTIVE_ENTITY_KEY = 'augment-it:active-entity';
+
+  function broadcastActiveEntity(
+    detail: { type: 'organization'; org_slug: string; display_name?: string } | null,
+  ) {
+    if (typeof localStorage !== 'undefined') {
+      if (detail) localStorage.setItem(ACTIVE_ENTITY_KEY, JSON.stringify(detail));
+      else localStorage.removeItem(ACTIVE_ENTITY_KEY);
+    }
+    window.dispatchEvent(new CustomEvent('augment-it:active-entity', { detail }));
+  }
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
   let client = $state<string>('reach-edu');
@@ -34,9 +48,15 @@
     try {
       org = await fetchOrgDetail(org_slug, client);
       if (typeof localStorage !== 'undefined') localStorage.setItem(ACTIVE_ORG_KEY, org_slug);
+      broadcastActiveEntity({
+        type: 'organization',
+        org_slug: org.slug,
+        display_name: org.complete_name ?? org.conventional_name ?? org.slug,
+      });
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
       org = null;
+      broadcastActiveEntity(null);
     } finally {
       loading = false;
     }
@@ -73,6 +93,7 @@
     // A different client sees a different slice of the canonical layer —
     // drop the card rather than show rows the new client may not access.
     org = null;
+    broadcastActiveEntity(null);
   }
 
   async function loadActiveClient() {

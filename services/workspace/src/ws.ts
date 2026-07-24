@@ -156,7 +156,13 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
         via?: string;
         message?: string;
         thread_id?: string;
-        context?: { focused_prompt_id?: string; record_set_id?: string; client_id?: string };
+        context?: {
+          focused_prompt_id?: string;
+          record_set_id?: string;
+          client_id?: string;
+          focused_org_slug?: string;
+          focused_org_name?: string;
+        };
         thread?: { role: 'user' | 'assistant'; content: string }[];
         suggestions?: { capability: string; hint: string }[];
       };

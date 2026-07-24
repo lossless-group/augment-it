@@ -269,7 +269,16 @@ export type ChatTurnFrame = {
    * the wire field is `client_id` (lived-with naming with the prior
    * substrate plan; the UI/spec word is "workspace").
    */
-  context?: { focused_prompt_id?: string; record_set_id?: string; client_id?: string };
+  context?: {
+    focused_prompt_id?: string;
+    record_set_id?: string;
+    client_id?: string;
+    // The org card open in the Org Workbench — broadcast via
+    // augment-it:active-entity (+ localStorage, same race-hardening as the
+    // search envelope) so didi's "this org" resolves without asking.
+    focused_org_slug?: string;
+    focused_org_name?: string;
+  };
 };
 
 // One workspace as discovered by the workspace-service. The directory
