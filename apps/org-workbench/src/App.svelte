@@ -11,6 +11,7 @@
   import OrgSearch from './OrgSearch.svelte';
   import OrgCard from './OrgCard.svelte';
   import OrgCreateInline from './OrgCreateInline.svelte';
+  import OrgRoster from './OrgRoster.svelte';
   import { fetchOrgDetail } from './lib/org-client';
   import type { OrgDetail, OrgSuggestion } from './lib/types';
 
@@ -132,18 +133,23 @@
     {/if}
   </header>
 
-  <main class="ow-body">
-    {#if loading}
-      <p class="ow-loading">loading…</p>
-    {:else if error}
-      <div class="ow-error">{error}</div>
-    {:else if org}
-      <OrgCard {org} {client} onchanged={refetch} />
-    {:else}
-      <p class="ow-empty-state">
-        Search for an organization above to open its card — links, pulse streams, corpus items,
-        and (soon) its people.
-      </p>
+  <div class="ow-columns">
+    {#if status === 'open'}
+      <OrgRoster {client} activeSlug={org?.slug ?? null} onpick={(slug) => void loadOrg(slug)} />
     {/if}
-  </main>
+    <main class="ow-body">
+      {#if loading}
+        <p class="ow-loading">loading…</p>
+      {:else if error}
+        <div class="ow-error">{error}</div>
+      {:else if org}
+        <OrgCard {org} {client} onchanged={refetch} />
+      {:else}
+        <p class="ow-empty-state">
+          Pick an organization from the coverage roster on the left (fewest corpus items first),
+          or search above — the card shows links, pulse streams, corpus items, and people.
+        </p>
+      {/if}
+    </main>
+  </div>
 </div>

@@ -21,6 +21,7 @@ import {
   addOrgCorpus,
   addOrgStream,
   updateOrgStream,
+  listOrgRoster,
   getOrgDetail,
   checkContentUrls,
   type NormRecord,
@@ -191,6 +192,23 @@ export function registerHandlers(nc: NatsConnection): void {
       try {
         const db = await getDb();
         const result = await addOrgStream(db, args);
+        if (msg.reply) msg.respond(JSON.stringify(result));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
+
+  // organization.roster — the coverage column: per-org counts for a client,
+  // fewest corpus first. Per gh #32.
+  (async () => {
+    const sub = nc.subscribe('organization.roster.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as { client: string };
+      try {
+        const db = await getDb();
+        const result = await listOrgRoster(db, args.client);
         if (msg.reply) msg.respond(JSON.stringify(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);

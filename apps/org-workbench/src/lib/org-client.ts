@@ -8,6 +8,7 @@ import type {
   OrgSuggestion,
   OrgDetail,
   OrgCandidate,
+  OrgRosterRow,
   AffiliatedPerson,
   ShapedLink,
   PersonCandidate,
@@ -22,6 +23,18 @@ export async function searchOrgs(q: string, client: string): Promise<OrgSuggesti
   };
   if (!r.ok) throw new Error(r.error || 'resolver.search failed');
   return r.candidates ?? [];
+}
+
+// The coverage roster — every org this client can see, with counts, fewest
+// corpus first.
+export async function fetchOrgRoster(client: string): Promise<OrgRosterRow[]> {
+  const r = (await workspace.invoke('organization.roster', { client })) as {
+    ok: boolean;
+    orgs?: OrgRosterRow[];
+    error?: string;
+  };
+  if (!r.ok) throw new Error(r.error || 'organization.roster failed');
+  return r.orgs ?? [];
 }
 
 // Scored candidates for the create gate — every signal the resolver knows

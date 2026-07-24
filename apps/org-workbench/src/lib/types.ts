@@ -67,6 +67,18 @@ export type AffiliatedPerson = {
   personal_corpus_count: number;
 };
 
+// One row of the coverage roster (organization.roster) — counts only, no
+// arrays; sorted server-side fewest-corpus-first.
+export type OrgRosterRow = {
+  slug: string;
+  complete_name: string | null;
+  conventional_name: string | null;
+  corpus_count: number;
+  link_count: number;
+  stream_count: number;
+  people_count: number;
+};
+
 // Scored org candidate (resolver.candidates) — the gate's evidence when the
 // operator wants to create an org: slug 100 · domain 90 · fuzzy name 60.
 export type OrgCandidate = {

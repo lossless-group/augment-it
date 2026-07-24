@@ -941,6 +941,49 @@ export async function updateOrgStream(
   return { ok: true, org_id: String(org.id), stream: patched };
 }
 
+// organization.roster — the coverage column in front of the workbench flow:
+// every org the client can see, with entity-list counts, sorted so the orgs
+// that could and should have more corpus surface first. Counts ride
+// array::len over the entity lists + a graph count over the affiliations
+// edges; no arrays cross the wire.
+// Per gh #32 (layer 2 of context-v/issues/Corpus-Items-Not-Visible-On-
+// Person-Cards-Coverage-Hard-To-Assess.md, promoted to its own build).
+
+export type OrgRosterRow = {
+  slug: string;
+  complete_name: string | null;
+  conventional_name: string | null;
+  corpus_count: number;
+  link_count: number;
+  stream_count: number;
+  people_count: number;
+};
+export type OrgRosterResult = { ok: true; orgs: OrgRosterRow[] };
+
+export async function listOrgRoster(db: Surreal, client: string): Promise<OrgRosterResult> {
+  const r = await db.query(
+    `SELECT slug, complete_name, conventional_name,
+            array::len(org_corpus ?? []) AS corpus_count,
+            array::len(org_links ?? []) AS link_count,
+            array::len(media_streams ?? []) AS stream_count,
+            count(<-affiliations) AS people_count
+       FROM organizations
+       WHERE client_access CONTAINS $client
+       ORDER BY corpus_count ASC;`,
+    { client },
+  );
+  const rows = ((r?.[0] as Record<string, unknown>[]) ?? []).map((o) => ({
+    slug: String(o.slug),
+    complete_name: (o.complete_name as string) ?? null,
+    conventional_name: (o.conventional_name as string) ?? null,
+    corpus_count: Number(o.corpus_count ?? 0),
+    link_count: Number(o.link_count ?? 0),
+    stream_count: Number(o.stream_count ?? 0),
+    people_count: Number(o.people_count ?? 0),
+  }));
+  return { ok: true, orgs: rows };
+}
+
 // ---------------------------------------------------------------------------
 // organization.detail — the full org card for the Augment-from-DB org
 // workbench: identity, all three additive lists, aliases + domains. Read
