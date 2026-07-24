@@ -43,7 +43,13 @@ type PersonRow = {
   email?: string | null;
 };
 
-const PERSON_FIELDS = 'id, person_uuid, name, headline, linkedin_profile_url, email';
+// `name ?? full_name` — the persons table has two generations of rows:
+// person.apply-born rows write `name`; the crawlbase/event-CSV import
+// scripts wrote `full_name` (+ first_name/surname) and no `name` at all.
+// Every read coalesces so both generations display; the durable fix on
+// data is the name backfill (fills `name` from `full_name` where missing).
+const PERSON_FIELDS =
+  'id, person_uuid, name ?? full_name AS name, headline, linkedin_profile_url, email';
 
 export type PersonCandidate = {
   // Wire-safe handle — NEVER the raw RecordId (SurrealDB RecordIds don't
@@ -176,8 +182,9 @@ export async function searchPersons(
   if (!trimmed || trimmed.length < 2) return { candidates: [] };
   await ensurePersonSchema(db);
   const r = await db.query(
-    `SELECT person_uuid, name, headline FROM persons
-       WHERE client_access CONTAINS $client AND string::lowercase(name) CONTAINS $q
+    `SELECT person_uuid, name ?? full_name AS name, headline FROM persons
+       WHERE client_access CONTAINS $client
+         AND string::lowercase(name ?? full_name ?? '') CONTAINS $q
        ORDER BY name ASC LIMIT 8`,
     { client, q: trimmed },
   );
@@ -734,7 +741,7 @@ export async function getAffiliationDetail(
   input: AffiliationDetailInput,
 ): Promise<AffiliationDetailResult> {
   const personRes = await db.query(
-    `SELECT id, person_uuid, name, personal_links, personal_corpus FROM persons WHERE person_uuid = $u LIMIT 1;`,
+    `SELECT id, person_uuid, name ?? full_name AS name, personal_links, personal_corpus FROM persons WHERE person_uuid = $u LIMIT 1;`,
     { u: input.person_uuid },
   );
   const person = ((personRes?.[0] as PersonDetailRow[]) ?? [])[0];
@@ -861,7 +868,7 @@ export async function listOrgAffiliations(
 
   const affRes = await db.query(
     `SELECT kind, relevance,
-            in.person_uuid AS person_uuid, in.name AS name, in.headline AS headline,
+            in.person_uuid AS person_uuid, in.name ?? in.full_name AS name, in.headline AS headline,
             in.personal_links AS personal_links,
             in.personal_corpus ?? [] AS personal_corpus,
             array::len(in.personal_corpus ?? []) AS personal_corpus_count
