@@ -48,6 +48,9 @@ export default defineConfig({
         affiliationRatingResolver: 'affiliationRatingResolver@http://localhost:3012/remoteEntry.js',
         orgWorkbench: 'orgWorkbench@http://localhost:3014/remoteEntry.js',
         searchAndAdd: 'searchAndAdd@http://localhost:3016/remoteEntry.js',
+        // 3018 — the spec said 3017, but strategy-curator had already
+        // claimed it by build time.
+        searchResults: 'searchResults@http://localhost:3018/remoteEntry.js',
       },
       // No `shared` block — sharing Svelte 5's reactive runtime and a
       // .svelte.ts singleton across federation has known issues with the

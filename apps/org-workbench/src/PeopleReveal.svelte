@@ -9,8 +9,8 @@
   import { onMount } from 'svelte';
   import PersonCard from './PersonCard.svelte';
   import AddPersonInline from './AddPersonInline.svelte';
-  import StagedPeople from './StagedPeople.svelte';
-  import { fetchOrgAffiliations, crawlTeam, type CrawledPerson } from './lib/org-client';
+  import { fetchOrgAffiliations } from './lib/org-client';
+  import { submitCrawl } from './lib/search-queue';
   import type { AffiliatedPerson } from './lib/types';
 
   let {
@@ -30,28 +30,21 @@
   let error = $state<string | null>(null);
   let expanded = $state<string | null>(null); // person_uuid
 
-  // didi's team crawl (v1.2) — staged candidates, never auto-written.
-  let crawling = $state(false);
+  // didi's team crawl — enqueued as an async job; candidates land as a card
+  // in the search-results rail (staging + accept gates live there now, per
+  // the Search-Results-Queue-Remote spec). The transient note is the only
+  // local feedback the door needs.
+  let queued = $state(false);
   let crawlError = $state<string | null>(null);
-  let crawlGen = $state(0); // bumps per crawl so StagedPeople remounts fresh
-  let staged = $state<{
-    people: CrawledPerson[];
-    filtered_note: string;
-    source_urls: string[];
-  } | null>(null);
 
   async function crawl() {
-    crawling = true;
     crawlError = null;
     try {
-      const r = await crawlTeam(org_slug, client);
-      staged = r;
-      crawlGen += 1;
-      if (!open) toggle();
+      await submitCrawl({ org_slug, display_name: orgName, target: 'team', client });
+      queued = true;
+      setTimeout(() => (queued = false), 5_000);
     } catch (err) {
       crawlError = err instanceof Error ? err.message : String(err);
-    } finally {
-      crawling = false;
     }
   }
 
@@ -74,10 +67,15 @@
   }
 
   function onEntityUpdated(e: Event) {
-    const detail = (e as CustomEvent).detail as { person_uuid?: string } | undefined;
-    if (detail?.person_uuid && loaded && people.some((p) => p.person_uuid === detail.person_uuid)) {
+    const detail = (e as CustomEvent).detail as { person_uuid?: string; org_slug?: string } | undefined;
+    if (!loaded) return;
+    if (detail?.person_uuid && people.some((p) => p.person_uuid === detail.person_uuid)) {
       void load();
+      return;
     }
+    // Org-shaped events cover the search rail's team accepts (TeamAccept
+    // writes person + affiliation, then broadcasts with the org_slug).
+    if (detail?.org_slug && detail.org_slug === org_slug) void load();
   }
 
   // A new org card means fresh people — reset and lazy-load on next reveal.
@@ -86,7 +84,6 @@
     people = [];
     loaded = false;
     expanded = null;
-    staged = null;
     crawlError = null;
     if (open) void load();
   });
@@ -108,15 +105,14 @@
       <button
         type="button"
         class="ow-plus"
-        title="didi: crawl the web for relevant team members (selection per the relevance brief)"
-        disabled={crawling}
+        title="didi: crawl the web for relevant team members (selection per the relevance brief) — lands in the search queue"
         onclick={crawl}
       >
-        {crawling ? '…' : '🤖'}
+        🤖
       </button>
     </span>
   </header>
-  {#if crawling}<p class="ow-empty">didi is crawling for team members — this takes a minute…</p>{/if}
+  {#if queued}<p class="ow-empty">team search queued — it lands in the 🔎 search rail when done; keep working</p>{/if}
   {#if crawlError}<div class="ow-error">{crawlError}</div>{/if}
 
   {#if open}
@@ -150,20 +146,6 @@
             </li>
           {/each}
         </ul>
-      {/if}
-      {#if staged}
-        {#key crawlGen}
-          <StagedPeople
-            {org_slug}
-            {orgName}
-            {client}
-            people={staged.people}
-            filtered_note={staged.filtered_note}
-            source_urls={staged.source_urls}
-            onchanged={load}
-            onclear={() => (staged = null)}
-          />
-        {/key}
       {/if}
       <AddPersonInline {org_slug} {orgName} {client} onadded={load} />
     {/if}

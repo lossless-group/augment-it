@@ -10,13 +10,15 @@ import {
   setActiveClientId,
   type WorkspaceSummary,
 } from './workspaces';
+import { dismissSearch, getSearchResults, listSearches, submitSearch } from './searches';
 
 // workspace.* capabilities are served locally by the workspace-service —
 // no NATS round-trip, no domain microservice owns them. The shape mirrors
 // the NATS-dispatched path so the browser sees one uniform invoke surface.
 // See [[Workspaces-as-Tenant-Primitive]] § "Toggle UI" + "Tenant-aware
-// envelope".
-const LOCAL_CAPABILITIES: Record<string, (args: unknown) => Promise<unknown>> = {
+// envelope". search.* registry ops are local too (spec D1: the registry
+// lives here); only the crawl dispatch inside execution rides NATS.
+const LOCAL_CAPABILITIES: Record<string, (args: unknown, actor?: Actor) => Promise<unknown>> = {
   'workspace.list': async () => {
     const workspaces = await listWorkspaces();
     // pinned: true → this instance was booted with ACTIVE_CLIENT_ID set
@@ -31,6 +33,14 @@ const LOCAL_CAPABILITIES: Record<string, (args: unknown) => Promise<unknown>> = 
     return { active: summary };
   },
   'workspace.active': async () => ({ active_client_id: getActiveClientId() }),
+  // The search-results queue (Search-Results-Queue-Remote spec). submit
+  // returns immediately; the executor in searches.ts dispatches the crawl
+  // and broadcasts search.updated on settle. Actor rides into the crawl
+  // request so attribution survives the async boundary.
+  'search.submit': (args, actor) => submitSearch(args, actor),
+  'search.list': (args) => listSearches(args),
+  'search.results': (args) => getSearchResults(args),
+  'search.dismiss': (args) => dismissSearch(args),
 };
 
 const CAPABILITY_TO_SUBJECT: Record<string, string> = {
@@ -343,7 +353,7 @@ export type Actor = { didi_id: string; via?: string };
 
 export async function dispatch(capability: string, args: unknown, actor?: Actor): Promise<unknown> {
   const local = LOCAL_CAPABILITIES[capability];
-  if (local) return local(args);
+  if (local) return local(args, actor);
   const subject = CAPABILITY_TO_SUBJECT[capability];
   if (!subject) throw new Error(`unknown capability: ${capability}`);
   const timeout = CAPABILITY_TIMEOUTS_MS[capability] ?? 5_000;

@@ -50,3 +50,6 @@ pnpm-debug.log*
 # Local agent + ad-hoc data backups
 .claude/
 .backups/
+
+# Playwright MCP browser-drive artifacts (session snapshots/logs)
+.playwright-mcp/

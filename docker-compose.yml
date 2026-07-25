@@ -25,6 +25,10 @@ services:
       # container rebuild reset the active workspace to the alphabetically
       # first slug and every surface followed it into the wrong tenant.
       ACTIVE_STORE_PATH: /data/active-workspace.json
+      # The search-results queue registry — agent searches as async jobs,
+      # surviving every client failure mode on the same durable volume.
+      # Per context-v/specs/Search-Results-Queue-Remote.md D1.
+      SEARCH_STORE_PATH: /data/searches.json
       PORT: "3001"
       # Workspace registry — each child of /clients is a workspace, per
       # [[Workspaces-as-Tenant-Primitive]]. ACTIVE_CLIENT_ID is optional;
