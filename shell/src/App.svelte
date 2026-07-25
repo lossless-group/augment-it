@@ -242,8 +242,9 @@
     const peekEach = neighbourCount ? Math.max(MIN_PEEK, remainder / neighbourCount) : 0;
 
     const slotKey = (s: Slot): string => (s.kind === 'remote' ? s.remote.id : s.composite.id);
+    // Hover-expand never applies mid-resize — the drag owns the geometry.
     const isHovered = (s: Slot): boolean =>
-      hoveredNeighborId !== null && slotKey(s) === hoveredNeighborId;
+      !resizing && hoveredNeighborId !== null && slotKey(s) === hoveredNeighborId;
     const widthOf = (s: Slot): number => (isHovered(s) ? HOVER_PCT : peekEach);
 
     const items: StageItem[] = [];
@@ -282,16 +283,27 @@
   }
 
   // ---- focused-panel edge resize (peek-flow) ------------------------------
-  function startResize(e: PointerEvent): void {
+  // The dragged edge's stage-relative position maps to the focused width
+  // according to which neighbours share the leftover: centred between two
+  // peeks → symmetric doubling; anchored at a stage edge (first/last step)
+  // → the edge position IS the width. The old centre-only math jumped on
+  // grab and tracked 2× at the rotation's ends. Pointer capture keeps the
+  // drag from feeding the peek overlays' hover-expand, which used to fight
+  // the resize mid-drag.
+  function startResize(e: PointerEvent, side: 'left' | 'right'): void {
     e.preventDefault();
     resizing = true;
+    hoveredNeighborId = null;
+    (e.currentTarget as HTMLElement | null)?.setPointerCapture?.(e.pointerId);
+    const i = layout.focusIndex;
+    const hasPrev = i > 0;
+    const hasNext = i < activeFlow.rotation.length - 1;
     const onMove = (ev: PointerEvent) => {
       if (!stageEl) return;
       const rect = stageEl.getBoundingClientRect();
-      // distance of the cursor from the stage centre, doubled, is the
-      // focused panel's width as a fraction of the stage.
-      const centre = rect.left + rect.width / 2;
-      const pct = (Math.abs(ev.clientX - centre) * 2) / rect.width * 100;
+      const p = ((ev.clientX - rect.left) / rect.width) * 100;
+      const pct =
+        hasPrev && hasNext ? Math.abs(p - 50) * 2 : side === 'right' ? p : 100 - p;
       layout.setFocusedWidth(pct);
     };
     const onUp = () => {
@@ -657,13 +669,19 @@
 
       {#if item.role === 'focused'}
         <!-- focused-panel resize edges — distinct pixels from the peek
-             overlays, so a resize-drag never fires a focus-commit. -->
-        <div class="resize-edge resize-edge-left"
-          onpointerdown={startResize}
-          role="separator" aria-label="Resize focused panel" tabindex="-1"></div>
-        <div class="resize-edge resize-edge-right"
-          onpointerdown={startResize}
-          role="separator" aria-label="Resize focused panel" tabindex="-1"></div>
+             overlays, so a resize-drag never fires a focus-commit. Only
+             sides that actually border a peek get one; the first/last
+             step's outer edge is the stage boundary, not a divider. -->
+        {#if layout.focusIndex > 0}
+          <div class="resize-edge resize-edge-left"
+            onpointerdown={(e) => startResize(e, 'left')}
+            role="separator" aria-label="Resize focused panel" tabindex="-1"></div>
+        {/if}
+        {#if layout.focusIndex < activeFlow.rotation.length - 1}
+          <div class="resize-edge resize-edge-right"
+            onpointerdown={(e) => startResize(e, 'right')}
+            role="separator" aria-label="Resize focused panel" tabindex="-1"></div>
+        {/if}
       {/if}
     </section>
   {/each}
