@@ -1,14 +1,16 @@
 <script lang="ts">
-  // Promote a bio-page link to an affiliation — AddPersonInline's gate
-  // pattern INVERTED: the person is fixed (the link row's owner), the ORG is
-  // being resolved. Seeded from the link's hostname, candidates come from
-  // resolver.search (whose D4 clause matches domains[*].domain), and the gate
-  // is ALWAYS shown: pick an existing org or explicitly create a thin one
-  // (name + the bio's domain, so it stays domain-matchable). The edge + its
-  // affiliated_with observation come from person.affiliate with the bio URL
-  // as source — the link row keeps its identity role; this adds the two
-  // facts it was silently dropping.
-  // Per context-v/issues/Person-Bio-Pages-Are-Affiliation-Signals-Not-Just-Identity-Links.md.
+  // Resolve an org and affiliate a fixed person with it — AddPersonInline's
+  // gate pattern INVERTED. Two doors share it:
+  //   1. Bio-link promotion (entry set): seeded from the link's hostname,
+  //      candidates via resolver.search's D4 domain clause, the bio URL as
+  //      the write's source. Per context-v/issues/Person-Bio-Pages-Are-
+  //      Affiliation-Signals-Not-Just-Identity-Links.md.
+  //   2. Manual re-affiliation (entry null): the "+ affiliate with another
+  //      org" action on the person card — no seed, the operator types the
+  //      org name and finds/creates. Per the Entity-Card-Edit-And-Remove-
+  //      Affordances spec's affiliation extension (the Marla Blow case).
+  // Either way the gate is ALWAYS shown: pick an existing org or explicitly
+  // create a thin, domain-matchable one.
 
   import { searchOrgs, affiliatePerson } from './lib/org-client';
   import type { OrgSuggestion, ShapedLink } from './lib/types';
@@ -16,14 +18,14 @@
   let {
     person_uuid,
     personName,
-    entry,
+    entry = null,
     client,
     onadded,
     oncancel,
   }: {
     person_uuid: string;
     personName: string;
-    entry: ShapedLink;
+    entry?: ShapedLink | null;
     client: string;
     onadded: () => void;
     oncancel: () => void;
@@ -37,7 +39,7 @@
     }
   }
 
-  const domain = $derived(hostOf(entry.url));
+  const domain = $derived(entry ? hostOf(entry.url) : '');
 
   let orgName = $state('');
   let role = $state('');
@@ -53,6 +55,7 @@
   });
 
   async function find(q: string) {
+    if (!q.trim()) return;
     error = null;
     try {
       candidates = await searchOrgs(q, client);
@@ -76,7 +79,7 @@
         org_domain: action === 'create' ? domain : undefined,
         role: role.trim() || null,
         client,
-        source: entry.url,
+        source: entry?.url ?? 'org-workbench-manual',
       });
       onadded(); // parent bumps + dispatches augment-it:entity-updated
     } catch (err) {
@@ -88,8 +91,12 @@
 
 <div class="ow-addperson">
   <p class="ow-gate-note">
-    Promote <strong>{domain || entry.url}</strong> to an affiliation for {personName} — pick the
-    org this bio lives on, or create it:
+    {#if entry}
+      Promote <strong>{domain || entry.url}</strong> to an affiliation for {personName} — pick the
+      org this bio lives on, or create it:
+    {:else}
+      Affiliate <strong>{personName}</strong> with another organization — find it by name, or create it:
+    {/if}
   </p>
 
   {#if phase === 'gate'}
@@ -105,8 +112,8 @@
         {/each}
       </ul>
     {:else if searched}
-      <p class="ow-gate-note">No existing org matches “{domain}”.</p>
-    {:else}
+      <p class="ow-gate-note">No existing org matches “{orgName.trim() || domain}”.</p>
+    {:else if entry}
       <p class="ow-gate-note">looking for orgs matching “{domain}”…</p>
     {/if}
 

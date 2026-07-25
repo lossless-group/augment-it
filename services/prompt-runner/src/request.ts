@@ -24,15 +24,25 @@ export const DEFAULT_MAX_TOKENS = Number(process.env.LLM_MAX_TOKENS ?? 4096);
 // request must equal the fired request — so the tool is cast through
 // ToolUnion rather than down-versioned here. Reconciling the web-search
 // tool version against the SDK is a separate decision.
-const WEB_SEARCH_TOOL = {
-  type: 'web_search_20260209',
-  name: 'web_search',
-} as unknown as Anthropic.ToolUnion;
+// max_uses bounds the per-request search count — without it a crawl
+// against a huge publisher can search open-endedly, and each search bills.
+// Observed live 2026-07-24: an uncapped NYT streams crawl ran 15+ minutes
+// and contributed to draining the account's credit top-up the same evening.
+function webSearchTool(maxUses?: number): Anthropic.ToolUnion {
+  return {
+    type: 'web_search_20260209',
+    name: 'web_search',
+    ...(maxUses && maxUses > 0 ? { max_uses: maxUses } : {}),
+  } as unknown as Anthropic.ToolUnion;
+}
 
 export type BuildRequestOptions = {
   model?: string;
   maxTokens?: number;
   tools?: string[];
+  /** Cap on server-side web searches per request. Unset = provider default
+   *  (unbounded) — existing callers keep their behavior. */
+  webSearchMaxUses?: number;
 };
 
 /**
@@ -49,6 +59,6 @@ export function buildRequest(
     model: options.model ?? DEFAULT_MODEL,
     max_tokens: options.maxTokens ?? DEFAULT_MAX_TOKENS,
     messages: [{ role: 'user', content: filledPrompt }],
-    ...(useWebSearch ? { tools: [WEB_SEARCH_TOOL] } : {}),
+    ...(useWebSearch ? { tools: [webSearchTool(options.webSearchMaxUses)] } : {}),
   };
 }

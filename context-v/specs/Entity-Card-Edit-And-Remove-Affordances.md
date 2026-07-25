@@ -7,14 +7,14 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.1.0
 tags:
   - Spec
   - Augment-It
   - Org-Workbench
   - Workspace
   - Canonical-Layer
-status: Draft
+status: Implemented (shipped 2026-07-24)
 ---
 
 # Entity-Card Edit & Remove Affordances
@@ -48,24 +48,32 @@ operator can remove.** Micro-buttons, in place, no other surface.
    name (rides the existing `resolver.update_org`, which the workbench
    never exposed), aliases (add ✕-chip removal), domains (same chip
    pattern).
-3. **Out of scope** — People rows (affiliation edges have their own
-   promotion/rating flows), and merge/dedupe (gh #30, its own surface).
+3. **Affiliation edges** *(same-day extension — the Marla Blow case:
+   accepted against the wrong org, no way to detach)* — the expanded
+   person card shows its affiliation ("role at OrgName") with × (
+   `person.unaffiliate`: edge delete + `affiliation_removed` observation;
+   person, org, and history all stay) and a "+ other org" door that
+   reuses the bio-promotion gate with no seeding entry.
+4. **Out of scope** — affiliation *rating* flows, and merge/dedupe
+   (gh #30, its own surface).
 
 ## Decisions
 
 - **D1 — Removal is a first-class capability, not a UI trick.** New
   verbs, mirroring the add pair shapes, all match-by-URL (the de-facto
   entry key everywhere — dedupe, scan, streams.update precedent):
-  `organization.links.remove` / `organization.links.update`,
-  `organization.streams.remove`, `organization.corpus.remove`,
-  and the person twins (`person.links.remove`, `person.corpus.remove`).
-  Served by record-surrealdb-resolver beside their add siblings; 30s
-  Cloud round-trip budget.
-- **D2 — URL edits are remove+re-add server-side, patch-shaped on the
-  wire.** `*.update {org_slug, url, patch: {url?, kind?, name?}, client}` —
-  the handler swaps the entry in place so `added_at` provenance survives
-  a typo fix. (`organization.streams.update` keeps its current shape;
-  the new verbs generalize it.)
+  `organization.links.update` / `organization.links.remove`,
+  `organization.streams.remove`, `organization.corpus.update` /
+  `organization.corpus.remove`, and the person twins
+  (`person.links.remove`, `person.corpus.remove`). Served by
+  record-surrealdb-resolver beside their add siblings; 30s Cloud
+  round-trip budget.
+- **D2 — Updates are flat-shaped, swap-in-place.** `*.update {org_slug,
+  url, new_url?, kind?, client}` (streams keep `name?` too) — the same
+  flat shape `organization.streams.update` established, which just gains
+  `new_url`. The handler patches the entry in place so `added_at`
+  provenance survives a typo fix; a corpus URL edit re-resolves the
+  entry's `content_id` so the ledger bond stays true.
 - **D3 — Corpus removes detach the entry, never delete content.**
   `organization.corpus.remove` pulls the entry off `org_corpus`; fetched
   markdown in the per-client corpus filesystem and `content_items` rows
@@ -100,13 +108,17 @@ operator can remove.** Micro-buttons, in place, no other surface.
    drive: add a wrong link, edit its kind, remove it, watch the card and
    roster counts refetch.
 
-## Open questions
+## Resolved questions
 
-- [ ] Does × on a stream that has corpus items scanned from it warn
-  ("this stream fed 12 corpus items — they stay")? Lean yes, same inline
-  note, no gate.
-- [ ] Alias/domain removal via `resolver.update_org` sparse patch or
-  dedicated verbs? Lean update_org — it already owns the identity block.
+- [x] **× on a stream that fed corpus items warns.** Operator confirmed
+  2026-07-24 ("Yah warn if it fed a corpus"). Implemented as a
+  domain-match approximation — corpus entries don't record their source
+  stream, so the confirm notes "this stream's domain fed N corpus items
+  — they stay". Exact stream→item lineage is a later refinement if scan
+  provenance ever lands on corpus entries.
+- [x] **Alias/domain removal rides `resolver.update_org`** — it already
+  owns the identity block; `aliases`/`domains` travel as full-array
+  replacements the chip editors compute client-side.
 
 ## Related
 

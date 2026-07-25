@@ -185,6 +185,19 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'person.corpus.add': 'person.corpus.add.requested',
   'organization.links.add': 'organization.links.add.requested',
   'organization.corpus.add': 'organization.corpus.add.requested',
+  // Entry ops — update/remove on entity-list entries, matched by URL. The
+  // correction half of the view-and-edit-in-place ruling. Per
+  // context-v/specs/Entity-Card-Edit-And-Remove-Affordances.md.
+  'organization.links.update': 'organization.links.update.requested',
+  'organization.links.remove': 'organization.links.remove.requested',
+  'organization.streams.remove': 'organization.streams.remove.requested',
+  'organization.corpus.update': 'organization.corpus.update.requested',
+  'organization.corpus.remove': 'organization.corpus.remove.requested',
+  'person.links.remove': 'person.links.remove.requested',
+  'person.corpus.remove': 'person.corpus.remove.requested',
+  // The inverse of person.affiliate — detach a person from one org (edge
+  // delete + affiliation_removed observation); person and org both stay.
+  'person.unaffiliate': 'person.unaffiliate.requested',
   'affiliation.detail': 'affiliation.detail.requested',
   // Augment from DB — the org-workbench reads (full org card; people reveal
   // over the affiliations edges). record-surrealdb-resolver is the consumer.
@@ -304,6 +317,17 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'person.corpus.add': 30_000,
   'organization.links.add': 30_000,
   'organization.corpus.add': 30_000,
+  // Entry ops — one org/person read + one list write (+ an observation on
+  // removes; corpus URL edits add one content_items round-trip). Same Cloud
+  // budget as their add siblings.
+  'organization.links.update': 30_000,
+  'organization.links.remove': 30_000,
+  'organization.streams.remove': 30_000,
+  'organization.corpus.update': 30_000,
+  'organization.corpus.remove': 30_000,
+  'person.links.remove': 30_000,
+  'person.corpus.remove': 30_000,
+  'person.unaffiliate': 30_000,
   // Two entity lookups + one edge lookup — same Cloud round-trip budget.
   'affiliation.detail': 30_000,
   // Augment from DB — one org read (detail) / one org read + one edge scan

@@ -17,6 +17,10 @@ import { buildRequest } from './request';
 // the Opus enrichment default. Overridable like CHAT_MODEL.
 const CRAWL_MODEL = process.env.CRAWL_MODEL ?? 'claude-sonnet-4-6';
 const CRAWL_MAX_TOKENS = Number(process.env.CRAWL_MAX_TOKENS ?? 4096);
+// Per-crawl web-search budget — each search bills; 8 is plenty for the
+// find-the-page + confirm pattern the crawl prompts describe. Uncapped,
+// a crawl of a huge publisher searched open-endedly (see request.ts).
+const CRAWL_MAX_WEB_SEARCHES = Number(process.env.CRAWL_MAX_WEB_SEARCHES ?? 8);
 
 export type CrawlTarget = 'links' | 'streams' | 'team';
 
@@ -210,6 +214,7 @@ async function handleCrawl(nc: NatsConnection, msg: CrawlMsg): Promise<void> {
       model: CRAWL_MODEL,
       maxTokens: CRAWL_MAX_TOKENS,
       tools: ['web_search'],
+      webSearchMaxUses: CRAWL_MAX_WEB_SEARCHES,
     });
     const text = await runPrompt(request);
     const parsed = extractJson(text);
