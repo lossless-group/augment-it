@@ -132,105 +132,143 @@ OUTPUT: respond with ONLY a JSON object (no prose, no markdown fence):
 At most ${max} people.`;
 }
 
+// Bounded parallelism. The search-results queue made concurrent crawls the
+// norm (N searches in flight across N orgs), and the old awaited-in-loop
+// consumer serialized them — a batch of five put the tail past the caller's
+// 600s ceiling (observed live 2026-07-24: both NYT crawls timed out behind
+// three others). Cap of 3 keeps parallel model turns modest for rate limits;
+// a released slot hands off directly to the next waiter.
+const MAX_CONCURRENT_CRAWLS = Number(process.env.MAX_CONCURRENT_CRAWLS ?? 3);
+let activeCrawls = 0;
+const crawlWaiters: (() => void)[] = [];
+
+function acquireCrawlSlot(): Promise<void> {
+  if (activeCrawls < MAX_CONCURRENT_CRAWLS) {
+    activeCrawls += 1;
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => crawlWaiters.push(resolve));
+}
+
+function releaseCrawlSlot(): void {
+  const next = crawlWaiters.shift();
+  if (next) next(); // the slot passes directly; activeCrawls stays counted
+  else activeCrawls -= 1;
+}
+
+type CrawlMsg = { json<T>(): T; reply?: string; respond(data: string): void };
+
 export function registerCrawlHandler(nc: NatsConnection): void {
   (async () => {
     const sub = nc.subscribe('organization.crawl.requested');
     for await (const msg of sub) {
-      const args = msg.json() as CrawlInput;
-      const started = Date.now();
-      console.log(JSON.stringify({ level: 'info', msg: 'crawl started', ...args }));
-      try {
-        if (!args.org_slug?.trim()) throw new Error('organization.crawl: org_slug is required');
-        if (!['links', 'streams', 'team'].includes(args.target)) {
-          throw new Error(`organization.crawl: unknown target ${String(args.target)}`);
+      // Spawn, don't await — the loop keeps consuming while crawls run.
+      void (async () => {
+        await acquireCrawlSlot();
+        try {
+          await handleCrawl(nc, msg as unknown as CrawlMsg);
+        } finally {
+          releaseCrawlSlot();
         }
-        const max = Math.min(Math.max(args.max_results ?? 12, 1), 25);
-
-        const detail = await natsJson<{ ok: boolean; org?: OrgDetail; error?: string }>(
-          nc,
-          'organization.detail.requested',
-          { org_slug: args.org_slug, client: args.client },
-        );
-        if (!detail.ok || !detail.org) throw new Error(detail.error || 'organization.detail failed');
-        const org = detail.org;
-
-        const briefReply = await natsJson<{ ok: boolean; brief?: string | null }>(
-          nc,
-          'client.brief.get.requested',
-          { client: args.client },
-        );
-        const brief = briefReply.ok ? (briefReply.brief ?? null) : null;
-
-        const existing =
-          args.target === 'streams'
-            ? (org.media_streams ?? []).map((e) => e?.url ?? '').filter(Boolean)
-            : (org.org_links ?? []).map((e) => e?.url ?? '').filter(Boolean);
-
-        const request = buildRequest(promptFor(args.target, org, existing, brief, max), {
-          model: CRAWL_MODEL,
-          maxTokens: CRAWL_MAX_TOKENS,
-          tools: ['web_search'],
-        });
-        const text = await runPrompt(request);
-        const parsed = extractJson(text);
-
-        if (args.target === 'team') {
-          const obj = (parsed ?? {}) as {
-            source_urls?: unknown[];
-            people?: Partial<CrawlPerson>[];
-            filtered_note?: string;
-          };
-          const people: CrawlPerson[] = (obj.people ?? [])
-            .filter((p) => typeof p?.name === 'string' && p.name.trim())
-            .slice(0, max)
-            .map((p) => ({
-              name: (p.name as string).trim(),
-              role: p.role?.toString().trim() || null,
-              headline: p.headline?.toString().trim() || null,
-              linkedin_url: p.linkedin_url?.toString().trim() || null,
-              bio_url: p.bio_url?.toString().trim() || null,
-            }));
-          const reply = {
-            ok: true,
-            people,
-            filtered_note: obj.filtered_note?.toString() ?? '',
-            source_urls: (obj.source_urls ?? []).map(String).filter(Boolean),
-          };
-          if (msg.reply) msg.respond(JSON.stringify(reply));
-        } else {
-          const have = new Set(existing.map((u) => u.trim()));
-          const seen = new Set<string>();
-          const results = ((Array.isArray(parsed) ? parsed : []) as Partial<CrawlLinkCandidate>[])
-            .filter((r) => typeof r?.url === 'string' && r.url.trim())
-            .map((r) => ({
-              url: (r.url as string).trim(),
-              kind: r.kind?.toString().trim() || undefined,
-              name: r.name?.toString().trim() || undefined,
-              title: r.title?.toString().trim() || (r.url as string).trim(),
-              content: r.content?.toString().trim() || '',
-            }))
-            .filter((r) => {
-              if (have.has(r.url) || seen.has(r.url)) return false;
-              seen.add(r.url);
-              return true;
-            })
-            .slice(0, max);
-          if (msg.reply) {
-            msg.respond(JSON.stringify({ ok: true, provider: 'didi-crawl', results }));
-          }
-        }
-        console.log(JSON.stringify({
-          level: 'info',
-          msg: 'crawl completed',
-          org_slug: args.org_slug,
-          target: args.target,
-          ms: Date.now() - started,
-        }));
-      } catch (err: unknown) {
-        const error = describeError(err);
-        console.error(JSON.stringify({ level: 'error', msg: 'crawl failed', error }));
-        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
-      }
+      })();
     }
   })();
+}
+
+async function handleCrawl(nc: NatsConnection, msg: CrawlMsg): Promise<void> {
+  const args = msg.json() as CrawlInput;
+  const started = Date.now();
+  console.log(JSON.stringify({ level: 'info', msg: 'crawl started', ...args }));
+  try {
+    if (!args.org_slug?.trim()) throw new Error('organization.crawl: org_slug is required');
+    if (!['links', 'streams', 'team'].includes(args.target)) {
+      throw new Error(`organization.crawl: unknown target ${String(args.target)}`);
+    }
+    const max = Math.min(Math.max(args.max_results ?? 12, 1), 25);
+
+    const detail = await natsJson<{ ok: boolean; org?: OrgDetail; error?: string }>(
+      nc,
+      'organization.detail.requested',
+      { org_slug: args.org_slug, client: args.client },
+    );
+    if (!detail.ok || !detail.org) throw new Error(detail.error || 'organization.detail failed');
+    const org = detail.org;
+
+    const briefReply = await natsJson<{ ok: boolean; brief?: string | null }>(
+      nc,
+      'client.brief.get.requested',
+      { client: args.client },
+    );
+    const brief = briefReply.ok ? (briefReply.brief ?? null) : null;
+
+    const existing =
+      args.target === 'streams'
+        ? (org.media_streams ?? []).map((e) => e?.url ?? '').filter(Boolean)
+        : (org.org_links ?? []).map((e) => e?.url ?? '').filter(Boolean);
+
+    const request = buildRequest(promptFor(args.target, org, existing, brief, max), {
+      model: CRAWL_MODEL,
+      maxTokens: CRAWL_MAX_TOKENS,
+      tools: ['web_search'],
+    });
+    const text = await runPrompt(request);
+    const parsed = extractJson(text);
+
+    if (args.target === 'team') {
+      const obj = (parsed ?? {}) as {
+        source_urls?: unknown[];
+        people?: Partial<CrawlPerson>[];
+        filtered_note?: string;
+      };
+      const people: CrawlPerson[] = (obj.people ?? [])
+        .filter((p) => typeof p?.name === 'string' && p.name.trim())
+        .slice(0, max)
+        .map((p) => ({
+          name: (p.name as string).trim(),
+          role: p.role?.toString().trim() || null,
+          headline: p.headline?.toString().trim() || null,
+          linkedin_url: p.linkedin_url?.toString().trim() || null,
+          bio_url: p.bio_url?.toString().trim() || null,
+        }));
+      const reply = {
+        ok: true,
+        people,
+        filtered_note: obj.filtered_note?.toString() ?? '',
+        source_urls: (obj.source_urls ?? []).map(String).filter(Boolean),
+      };
+      if (msg.reply) msg.respond(JSON.stringify(reply));
+    } else {
+      const have = new Set(existing.map((u) => u.trim()));
+      const seen = new Set<string>();
+      const results = ((Array.isArray(parsed) ? parsed : []) as Partial<CrawlLinkCandidate>[])
+        .filter((r) => typeof r?.url === 'string' && r.url.trim())
+        .map((r) => ({
+          url: (r.url as string).trim(),
+          kind: r.kind?.toString().trim() || undefined,
+          name: r.name?.toString().trim() || undefined,
+          title: r.title?.toString().trim() || (r.url as string).trim(),
+          content: r.content?.toString().trim() || '',
+        }))
+        .filter((r) => {
+          if (have.has(r.url) || seen.has(r.url)) return false;
+          seen.add(r.url);
+          return true;
+        })
+        .slice(0, max);
+      if (msg.reply) {
+        msg.respond(JSON.stringify({ ok: true, provider: 'didi-crawl', results }));
+      }
+    }
+    console.log(JSON.stringify({
+      level: 'info',
+      msg: 'crawl completed',
+      org_slug: args.org_slug,
+      target: args.target,
+      ms: Date.now() - started,
+    }));
+  } catch (err: unknown) {
+    const error = describeError(err);
+    console.error(JSON.stringify({ level: 'error', msg: 'crawl failed', error }));
+    if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+  }
 }
