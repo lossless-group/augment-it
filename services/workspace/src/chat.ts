@@ -131,8 +131,45 @@ VERB RECOGNITION SHORTCUTS:
 - Natural phrasings ("crawl for relevant pulse streams for X", "find X's team members") map to the same targets — chat_invoke when the org is unambiguous, chat_propose otherwise.
 `;
 
-// Slab 3 — active skills. Empty in v0.0.1; cache breakpoint reserved.
-const ACTIVE_SKILLS = '';
+// Slab 3 — active skills. First resident (2026-07-25): the condensed
+// operational form of context-v/agent-skills/triage-inbox-w-suggestions —
+// the inbox-triage discipline proven on the first co-pilot run (reach-edu
+// 141→4). Same pattern as CURATOR_CHAT_VERBS: the SKILL.md is the source
+// of truth, this slab is its always-loaded condensation; update together.
+const ACTIVE_SKILLS = `TRIAGE SKILL — corpus-inbox triage (condensed from agent-skills/triage-inbox-w-suggestions).
+
+Purpose: triage is INDEXING — every real actor in the space gets exactly one canonical home (a MECE knowledge graph), and every capture leaves inbox/ for a bucket, a domain, a stream, gated, or a deliberate park. The actor matters even when the page is thin.
+
+Additional capabilities for triage (use as the \`capability\` field in chat_propose / chat_invoke):
+
+organization.corpus.add — Register a URL as corpus content on an EXISTING organization.
+  args: { org_slug: string, url: string, client: string }
+
+resolver.search — Look up existing organizations by name/alias fragment. ALWAYS search before minting; the operator may have created the org in the UI already.
+  args: { q: string, client: string }
+
+resolver.apply — Mint a new organization row (action "create"). Long-form full-name slug (business-higher-education-forum, not bhef); stamps client_access.
+  args: { action: "create", record: { name: string, slug_hint: string, url: string }, client: string, source?: string }
+
+resolver.update_org — Enrich names right after ANY one-string create: complete_name (full formal name), conventional_name (what humans call it), aliases[] (greedy: acronyms, smushed forms, former names). Also renames slugs (old slug auto-preserved as alias).
+  args: { org_slug: string, new_slug?: string, complete_name?: string, conventional_name?: string, aliases?: string[], client: string }
+
+organization.streams.add — Register a rolling page as a pulse stream on an org. Kinds: "topic_stream" (topic/issues hub), "blog_index" (blog/news index), "initiative_hub" (a named initiative's hub page — also the lightweight answer for initiative-shaped pages while parent/child org modeling is unresolved).
+  args: { org_slug: string, url: string, kind: string, name: string, client: string }
+
+TRIAGE DECISION SEQUENCE (per item):
+1. First-party? The client's own content registers on the client's own org row — never mint a bucket for their own programs.
+2. Duplicate? Same URL already captured/filed → propose discarding the lesser capture. Page-vs-PDF of the same artifact are NOT dupes — both file.
+3. Rolling index page (topic hub / blog index / initiative hub) on a tracked org? → organization.streams.add, not corpus content. A one-time capture of a page that keeps pulsing is worthless.
+4. Fetch-blocked capture (403/CAPTCHA/paywall)? → gated, not discarded: the URL is still wanted. Discard is only for genuinely worthless content (404 bodies, nav-only pages, consent boilerplate).
+5. Destination: org-attributable content → the org (search first, mint via resolver.apply if truly absent, enrich names immediately); topical content → an existing domain via source.add (resolve the slug against "Existing corpora" — never fabricate); tool homepages / content marketing → the tools topic; a profile page on an identity-link site (Candid, Cause IQ, Charity Navigator, GrantForward…) → the org it profiles.
+6. Org role buckets on disk (funders / gov-entities / think-tanks / associations-networks / academic-institutions / data-services) and the disk half of a filing (canonical file moves, reference_of pointer files, binary siblings) are handled by operator-side sessions, not chat — register the DB side here and tell the operator the file placement runs in the triage session.
+
+TRIAGE DISCIPLINE:
+- Minting an org or a domain is chat_propose-grade unless the operator explicitly named it. Filing onto an existing, unambiguous org/domain is chat_invoke-grade.
+- Slugs: long-form full names; acronyms live in aliases and conventional_name. Government-initiated entities (state workforce agencies, federal programs, NGA/NACo-style bodies whose members ARE governments, multilaterals like IFC/OECD) are gov-entities; membership orgs and networks are associations-networks; nonprofit data utilities are data-services.
+- Never fabricate a slug or uuid; resolve against resolver.search and "Existing corpora". Tags are Train-Case with lowercase connector words.
+`;
 
 // Slab 4 — per-org reminders. Empty in v0.0.1; cache breakpoint reserved.
 const PER_ORG_REMINDERS = '';

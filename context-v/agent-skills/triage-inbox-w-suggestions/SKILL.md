@@ -1,6 +1,6 @@
 ---
 name: triage-inbox-w-suggestions
-description: The operator+agent discipline for draining a client's corpus inbox (clients/<client>/corpus/inbox/, 162 pending in reach-edu as of 2026-07-25) — agent scans each pending file, stamps a triage_suggestion, and proposes destinations in confidence-banded batches; the operator sweeps. Use whenever the user says "triage the inbox", "work through the inbox", "drain the inbox", "/triage-inbox", or asks to file/sort pending inbox captures. Encodes the destination model (funder org folder, person, or domain — with SurrealDB as the single canonical index and cheap reference .md copies fanned into any additionally-relevant folder), the six task lanes (TRIAGE/EXTRACT/ENRICH/DEDUPE/FLAG/DISCARD), the tagging convention (YAML array, Train-Case with lowercase connector words), and the batch/resume rhythm. Co-pilot phase: agent proposes, operator disposes; nothing files without an operator sweep.
+description: The operator+agent discipline for draining a client's corpus inbox (clients/<client>/corpus/inbox/) — agent scans each pending file, stamps a triage_suggestion, and proposes destinations in confidence-banded batches; the operator sweeps. Proven on the first co-pilot run (2026-07-25: reach-edu 141→4 in six batches); carries the run playbook, six-bucket org taxonomy, pointer/stream/gated routing, and reusable scripts/ helpers. Use whenever the user says "triage the inbox", "work through the inbox", "drain the inbox", "/triage-inbox", or asks to file/sort pending inbox captures. Encodes the destination model (funder org folder, person, or domain — with SurrealDB as the single canonical index and cheap reference .md copies fanned into any additionally-relevant folder), the six task lanes (TRIAGE/EXTRACT/ENRICH/DEDUPE/FLAG/DISCARD), the tagging convention (YAML array, Train-Case with lowercase connector words), and the batch/resume rhythm. Co-pilot phase: agent proposes, operator disposes; nothing files without an operator sweep.
 ---
 
 # Triage Inbox with Suggestions
@@ -23,6 +23,65 @@ for triage judgment:
 - **Relations complete the graph.** Pointer files, streams, and (pending)
   parent/child edges are how one fact serves multiple entities without
   breaking mutual exclusivity of the canonical home.
+
+## The run playbook (distilled from the first co-pilot run)
+
+Per batch of ~20 pending files: **scan → stamp → sweep → execute → log**.
+The per-item decision sequence, in order:
+
+1. **First-party check.** Is this the client's own content (reach-edu:
+   reach.edu, healthapprenticeship.org)? → first-party home, registered on
+   the client's own org row. Never propose a new bucket for the client's
+   own programs.
+2. **Duplicate check.** Same `exact_url` (or binary sha256) already
+   captured or filed? → DEDUPE (archive the lesser capture; page-vs-PDF of
+   the same artifact are NOT dupes — file both, Work-Trend-Index
+   precedent).
+3. **Stream check.** Rolling index page on a tracked org (topic hub, blog
+   index, initiative hub)? → STREAM lane: `organization.streams.add`, then
+   archive the capture.
+4. **Fetch-health check.** 403/451/CAPTCHA/paywall stub? → GATED — unless
+   the content is worth one ENRICH attempt now (Firecrawl recovers Forbes,
+   AP, Substack-public; `pdftotext` for local PDFs; web-search to identify
+   an unlabeled paper). A recovered wall-junk basename gets renamed to a
+   real one.
+5. **Destination.** Org-attributable → the org's role bucket (search
+   BEFORE minting; enrich names immediately after any create) with
+   `reference_of:` pointers fanned into relevant domain `sources/`.
+   Topical → domain via `source.add` + canonical merge. Tool homepage →
+   the tools topic. Profile page on an identity-link host → the org it
+   profiles. Operator may rule "article only for now" (Deloitte, WEF) —
+   file content to a domain, defer the org.
+6. **Stamp DB-side identity into frontmatter** (`content_uuid`/`source_uuid`,
+   `org_uuid`, `org_slug`), tags at filing time, `triaged_*` provenance,
+   manifest row with every uuid.
+
+**Calibration from run 1 (bands vs reality):** operator overrides were
+almost never about *aboutness* — the suggestion engine's destination reads
+held up — they were about *taxonomy* (new buckets minted mid-run: gated,
+streams, gov-entities, think-tanks, associations-networks,
+academic-institutions, data-services) and about *modeling* (parent/child,
+entity vs content). Auto-band (≥0.90) discards were overridden once,
+category-wide (discard→gated) — after which the corrected lane never
+missed. Implication: the ≥0.90 band can graduate to batch-confirm groups
+confidently; the human's attention belongs on new-entity and new-bucket
+proposals.
+
+### Reusable helpers (`scripts/` beside this SKILL.md)
+
+- `nats-req.mjs <subject> <json> [timeoutMs]` — one-shot capability call
+  over NATS (the whole wire runs through this).
+- `stamp-suggestions.mjs <spec.json> <inbox-dir>` — insert
+  `triage_suggestion:` blocks (skips already-stamped files).
+- `merge-canonical.mjs <mapping.json> [client]` — inbox-file-is-canonical
+  merge over a `source.add` stub: grafts registry keys, sets
+  status/fetched, appends the Extracts skeleton, moves binaries.
+- `org-move.mjs <mapping.json> [client]` — org-bucket filing: frontmatter
+  stamp (content/org uuids, funder_slug/org_slug, triaged_*), binary
+  sibling move, `reference_of:` pointer files.
+- `org-tag.mjs <org-uuid> <client> <Tag...>` — has_tag observations with
+  uuid-typed subjects (the direct-write stopgap; see the capability-gaps
+  issue).
 
 The inbox (per [[../../specs/Corpus-Inbox-Capture-and-Triage|Corpus-Inbox-Capture-and-Triage]])
 promised "capture first, triage later." Capture shipped 2026-06-09; *later* is
@@ -343,6 +402,19 @@ attention goes to the hard tail.
       `reference_of:` files before fanning references widely.
 - [ ] When (if ever) the ≥0.90 band graduates from batch-confirm to
       auto-apply-with-undo.
+
+## Agent-chat availability (since 2026-07-25)
+
+A condensed operational form of this skill ships in didi's chat as the
+**ACTIVE_SKILLS slab** in `services/workspace/src/chat.ts` (the Slab-3 spot
+reserved since v0.0.1), teaching the triage verbs
+(`organization.corpus.add`, `resolver.search`, `resolver.apply`,
+`resolver.update_org`, `organization.streams.add`) and the decision
+sequence above. Honest limit: chat-didi can register, resolve, mint, and
+stream — the *disk* half of a filing (canonical merge, pointer files,
+binary moves) still runs session-side via the scripts above, until a
+`corpus.triage.apply` capability exists. This SKILL.md remains the source
+of truth; the slab is its condensation — update both together.
 
 ## See also
 
