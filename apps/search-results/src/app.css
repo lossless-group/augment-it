@@ -8,7 +8,20 @@
   padding: 0.5rem 0.75rem 2rem;
   height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
   box-sizing: border-box;
+}
+
+/* Grid/flex children default to min-width:auto and refuse to shrink below
+   their content — a long nowrap title then pushes the whole card wider than
+   the rail and shoves the ➕ off-screen. Zero the min-width down the chain
+   so ellipsis/wrap rules actually get to do their jobs. */
+.srq-list > *,
+.srq-results > *,
+.srq-staged-list > *,
+.srq-gate-list > *,
+.srq-card-body {
+  min-width: 0;
 }
 
 .srq-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0 0.65rem; border-bottom: 1px solid var(--color-border, #2a2c33); position: sticky; top: 0; z-index: 2; background: var(--color-bg, #14151a); }
@@ -80,7 +93,7 @@
 .srq-row-host { color: var(--color-text-muted, #9aa0aa); font-size: 0.68rem; margin-left: 0.4rem; }
 .srq-kind { font-size: 0.64rem; padding: 0 5px; border-radius: 3px; background: var(--color-border, #2a2c33); color: var(--color-text-muted, #cfd3da); margin-left: 0.4rem; }
 .srq-row-name { color: var(--color-text-muted, #cfd3da); font-size: 0.72rem; margin-left: 0.4rem; }
-.srq-row-snippet { margin: 0.2rem 0 0; font-size: 0.72rem; color: var(--color-text-muted, #b7bcc5); line-height: 1.35; }
+.srq-row-snippet { margin: 0.2rem 0 0; font-size: 0.72rem; color: var(--color-text-muted, #b7bcc5); line-height: 1.35; overflow-wrap: anywhere; }
 .srq-add { flex-shrink: 0; width: 1.7rem; height: 1.7rem; border-radius: 5px; border: 1px solid var(--color-border, #2a2c33); background: var(--color-surface, #1c1e25); color: inherit; font-size: 0.95rem; line-height: 1; cursor: pointer; }
 .srq-add:hover:not(:disabled) { background: var(--color-border, #2a2c33); }
 .srq-add.added { border-color: var(--color-ok-text, #6ee7a8); color: var(--color-ok-text, #6ee7a8); cursor: default; }
