@@ -883,6 +883,56 @@ export const removePersonCorpus = (db: Surreal, input: PersonEntryRemoveInput) =
   removePersonListEntry(db, 'personal_corpus', input);
 
 // ---------------------------------------------------------------------------
+// Capability: person.unaffiliate — delete the affiliation edge(s) between one
+// person and one org. The inverse of person.affiliate, for the misfiled-person
+// case (accepted against the wrong org, or a crawl's wrong match). Deletes
+// the EDGE only — the person, the org, and every observation stay; one
+// `affiliation_removed` observation records the detachment.
+// Per context-v/specs/Entity-Card-Edit-And-Remove-Affordances.md (extended
+// to affiliation edges by operator request, 2026-07-24: the Marla Blow case).
+// ---------------------------------------------------------------------------
+
+export type PersonUnaffiliateInput = {
+  person_uuid: string;
+  org_slug: string;
+  client: string;
+  source?: string;
+};
+export type PersonUnaffiliateResult = { ok: true; removed: number };
+
+export async function removeAffiliation(
+  db: Surreal,
+  input: PersonUnaffiliateInput,
+): Promise<PersonUnaffiliateResult> {
+  const person = await fetchPersonByUuid(db, input.person_uuid);
+  if (!person) throw new Error(`person not found: ${input.person_uuid}`);
+  const orgIds = await db.query(
+    'SELECT VALUE id FROM organizations WHERE slug = $slug LIMIT 1;',
+    { slug: input.org_slug },
+  );
+  const orgId = (orgIds?.[0] as unknown[])?.[0];
+  if (!orgId) throw new Error(`organization not found: ${input.org_slug}`);
+  const existing = await db.query(
+    'SELECT VALUE id FROM affiliations WHERE in = $pid AND out = $oid;',
+    { pid: person.id, oid: orgId },
+  );
+  const ids = (existing?.[0] as unknown[]) ?? [];
+  if (ids.length === 0) return { ok: true, removed: 0 };
+  await db.query('DELETE affiliations WHERE in = $pid AND out = $oid;', {
+    pid: person.id,
+    oid: orgId,
+  });
+  await createObservation(db, {
+    subject: person.id,
+    predicate: 'affiliation_removed',
+    object: input.org_slug,
+    source: input.source || 'org-workbench',
+    client: input.client,
+  });
+  return { ok: true, removed: ids.length };
+}
+
+// ---------------------------------------------------------------------------
 // organization.affiliations — the people reveal for the Augment-from-DB org
 // workbench: every person RELATEd to one org, with role + relevance off the
 // edge and links/corpus-count off the person. Same two-query discipline as

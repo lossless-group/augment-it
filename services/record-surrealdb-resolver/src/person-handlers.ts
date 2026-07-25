@@ -21,6 +21,7 @@ import {
   addPersonCorpus,
   removePersonLink,
   removePersonCorpus,
+  removeAffiliation,
   getAffiliationDetail,
   listOrgAffiliations,
   type PersonNormRecord,
@@ -32,6 +33,7 @@ import {
   type PersonLinkAddInput,
   type PersonCorpusAddInput,
   type PersonEntryRemoveInput,
+  type PersonUnaffiliateInput,
   type AffiliationDetailInput,
   type OrgAffiliationsInput,
 } from './person-resolver';
@@ -205,6 +207,23 @@ export function registerPersonHandlers(nc: NatsConnection): void {
       }
     })();
   }
+
+  // person.unaffiliate — delete the person↔org affiliation edge(s); the
+  // inverse of person.affiliate, with an affiliation_removed observation.
+  (async () => {
+    const sub = nc.subscribe('person.unaffiliate.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as PersonUnaffiliateInput;
+      try {
+        const db = await getDb();
+        const result = await removeAffiliation(db, args);
+        if (msg.reply) msg.respond(JSON.stringify(result));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
 
   // affiliation.detail — current person/org links+corpus+relevance, fresh
   // (not a stale CSV-export snapshot). Per

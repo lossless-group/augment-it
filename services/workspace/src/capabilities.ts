@@ -195,6 +195,9 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'organization.corpus.remove': 'organization.corpus.remove.requested',
   'person.links.remove': 'person.links.remove.requested',
   'person.corpus.remove': 'person.corpus.remove.requested',
+  // The inverse of person.affiliate — detach a person from one org (edge
+  // delete + affiliation_removed observation); person and org both stay.
+  'person.unaffiliate': 'person.unaffiliate.requested',
   'affiliation.detail': 'affiliation.detail.requested',
   // Augment from DB — the org-workbench reads (full org card; people reveal
   // over the affiliations edges). record-surrealdb-resolver is the consumer.
@@ -324,6 +327,7 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'organization.corpus.remove': 30_000,
   'person.links.remove': 30_000,
   'person.corpus.remove': 30_000,
+  'person.unaffiliate': 30_000,
   // Two entity lookups + one edge lookup — same Cloud round-trip budget.
   'affiliation.detail': 30_000,
   // Augment from DB — one org read (detail) / one org read + one edge scan

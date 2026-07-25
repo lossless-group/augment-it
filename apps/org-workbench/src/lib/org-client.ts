@@ -314,3 +314,14 @@ async function personEntryOp(verb: string, args: PersonRemoveArgs): Promise<void
 
 export const removePersonLink = (args: PersonRemoveArgs) => personEntryOp('person.links.remove', args);
 export const removePersonCorpus = (args: PersonRemoveArgs) => personEntryOp('person.corpus.remove', args);
+
+// Detach a person from one org — the inverse of affiliatePerson. Edge-only:
+// person, org, and observation history all stay.
+export async function unaffiliatePerson(args: {
+  person_uuid: string;
+  org_slug: string;
+  client: string;
+}): Promise<void> {
+  const r = (await workspace.invoke('person.unaffiliate', args)) as { ok: boolean; error?: string };
+  if (!r.ok) throw new Error(r.error || 'person.unaffiliate failed');
+}

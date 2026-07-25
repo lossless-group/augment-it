@@ -7,16 +7,26 @@
 
   import AdditiveList from './AdditiveList.svelte';
   import AddAffiliationInline from './AddAffiliationInline.svelte';
-  import { addPersonLink, addPersonCorpus, removePersonLink, removePersonCorpus } from './lib/org-client';
+  import {
+    addPersonLink,
+    addPersonCorpus,
+    removePersonLink,
+    removePersonCorpus,
+    unaffiliatePerson,
+  } from './lib/org-client';
   import { requestSearch } from './lib/search-request';
   import type { AffiliatedPerson, ShapedLink } from './lib/types';
 
   let {
     person,
+    org_slug,
+    orgName,
     client,
     onchanged,
   }: {
     person: AffiliatedPerson;
+    org_slug: string;
+    orgName: string;
     client: string;
     onchanged: () => void;
   } = $props();
@@ -26,6 +36,31 @@
   // A bio page on another org's site is an affiliation signal, not just an
   // identity link — the "→ affiliation" row action opens the promotion gate.
   let promoteEntry = $state<ShapedLink | null>(null);
+  // The manual re-affiliation door — same gate, no seeding entry (the
+  // misfiled-person case: detach here, attach to the right org).
+  let affiliating = $state(false);
+
+  // Detach this person from THIS org — the edge only; the person and their
+  // history stay. Inline confirm, then the reveal's refetch drops the row.
+  let confirmDetach = $state(false);
+  let detachBusy = $state(false);
+  let detachError = $state<string | null>(null);
+  async function detach() {
+    detachBusy = true;
+    detachError = null;
+    try {
+      await unaffiliatePerson({ person_uuid: person.person_uuid, org_slug, client });
+      window.dispatchEvent(
+        new CustomEvent('augment-it:entity-updated', { detail: { org_slug } }),
+      );
+      onchanged();
+    } catch (err) {
+      detachError = err instanceof Error ? err.message : String(err);
+    } finally {
+      detachBusy = false;
+      confirmDetach = false;
+    }
+  }
 
   function bump() {
     onchanged();
@@ -66,6 +101,52 @@
 
 <div class="ow-person-card">
   {#if person.headline}<p class="ow-person-headline">{person.headline}</p>{/if}
+
+  <p class="ow-affiliation-row">
+    <span class="ow-gate-note ow-affiliation-label">
+      {person.role ?? 'affiliated'} at <strong>{orgName}</strong>
+    </span>
+    {#if confirmDetach}
+      <span class="ow-remove-confirm">
+        remove this affiliation? <em class="ow-remove-note">the person and their history stay</em>
+        <button type="button" class="ow-add-go ow-remove-yes" disabled={detachBusy} onclick={detach}>
+          {detachBusy ? '…' : 'yes'}
+        </button>
+        <button type="button" class="ow-add-go" disabled={detachBusy} onclick={() => (confirmDetach = false)}>
+          keep
+        </button>
+      </span>
+    {:else}
+      <button
+        type="button"
+        class="ow-entry-action ow-micro"
+        title="remove {displayName}'s affiliation with {orgName}"
+        onclick={() => (confirmDetach = true)}
+      >×</button>
+    {/if}
+    <button
+      type="button"
+      class="ow-entry-action"
+      title="affiliate {displayName} with another organization"
+      onclick={() => (affiliating = !affiliating)}
+    >
+      {affiliating ? '× cancel' : '+ other org'}
+    </button>
+  </p>
+  {#if detachError}<div class="ow-error">{detachError}</div>{/if}
+
+  {#if affiliating}
+    <AddAffiliationInline
+      person_uuid={person.person_uuid}
+      personName={displayName}
+      {client}
+      onadded={() => {
+        affiliating = false;
+        bump();
+      }}
+      oncancel={() => (affiliating = false)}
+    />
+  {/if}
 
   <AdditiveList
     title="Identity & social links"

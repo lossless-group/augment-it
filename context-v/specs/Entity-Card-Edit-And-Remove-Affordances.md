@@ -48,8 +48,14 @@ operator can remove.** Micro-buttons, in place, no other surface.
    name (rides the existing `resolver.update_org`, which the workbench
    never exposed), aliases (add ✕-chip removal), domains (same chip
    pattern).
-3. **Out of scope** — People rows (affiliation edges have their own
-   promotion/rating flows), and merge/dedupe (gh #30, its own surface).
+3. **Affiliation edges** *(same-day extension — the Marla Blow case:
+   accepted against the wrong org, no way to detach)* — the expanded
+   person card shows its affiliation ("role at OrgName") with × (
+   `person.unaffiliate`: edge delete + `affiliation_removed` observation;
+   person, org, and history all stay) and a "+ other org" door that
+   reuses the bio-promotion gate with no seeding entry.
+4. **Out of scope** — affiliation *rating* flows, and merge/dedupe
+   (gh #30, its own surface).
 
 ## Decisions
 

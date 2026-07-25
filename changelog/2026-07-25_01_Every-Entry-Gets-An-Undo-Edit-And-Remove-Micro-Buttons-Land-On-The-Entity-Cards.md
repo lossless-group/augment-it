@@ -68,6 +68,14 @@ domains are ✕-chips.
   `aliases`/`domains` full-array replacement for the chip editors.
 - **Micro-buttons rest invisible** — rows stay quiet; hover or keyboard
   focus reveals ✎/×, per the spec's D5.
+- **Affiliations too** *(same-evening extension)* — a person accepted
+  against the wrong org had no way out (the Marla Blow case: filed under
+  Aspen, actually CEO at Skoll). The expanded person card now shows its
+  affiliation with × (`person.unaffiliate` — edge delete plus an
+  `affiliation_removed` observation; the person and their history stay)
+  and a "+ other org" door reusing the bio-promotion gate without a
+  seeding entry. People rows also stopped overflowing narrow cards
+  (the same min-width:auto disease as the search rail).
 
 ## Under the Hood
 

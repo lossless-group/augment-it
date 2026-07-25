@@ -141,7 +141,7 @@
                 </span>
               </button>
               {#if expanded === p.person_uuid}
-                <PersonCard person={p} {client} onchanged={load} />
+                <PersonCard person={p} {org_slug} {orgName} {client} onchanged={load} />
               {/if}
             </li>
           {/each}
