@@ -1,0 +1,47 @@
+---
+title: "Tags Are Two Projections — Frontmatter `tags:` on Files, `has_tag` Observations in SurrealDB"
+lede: "Every file-facing surface (corpus markdown frontmatter, pointer files, domain tag arrays) uses plain `tags:` because Obsidian reads files and we always assume Obsidian. The DB's observations table expresses the same fact as a subject–predicate–object triple, and its predicate vocabulary is verb-shaped (`has_email`, `located_in`, `attended`) — so there it is `has_tag`. Same fact, two projections; neither name leaks into the other layer."
+date_created: 2026-07-25
+date_modified: 2026-07-25
+authors:
+  - Michael Staton
+augmented_with:
+  - Claude Code on Claude Fable 5
+status: Active
+tags:
+  - Augment-It
+  - Reminder
+  - Tags
+  - Observations
+  - Obsidian
+  - SurrealDB
+---
+
+# Tags are two projections of one fact
+
+Ruled 2026-07-25 during the first triage co-pilot run, after the operator asked
+"why has_tag? we use Obsidian — that's just tags."
+
+- **File layer (Obsidian-facing): `tags:`** — YAML inline arrays of quoted
+  Train-Case strings (`tags: ["Workforce-Development", "HNWI"]`), on corpus
+  markdown, pointer files, and domain records. Obsidian only ever sees files,
+  and files always say `tags`.
+- **DB layer (triple store): `has_tag`** — one observation row per tag:
+  `subject (record id) · predicate 'has_tag' · object 'Train-Case-Value'`,
+  plus `source`, `observed_at`, `client`. The predicate is verb-shaped to
+  match the rest of the vocabulary (`has_email`, `has_name`, `located_in`,
+  `attended`); a predicate literally named `tags` would break the sentence
+  grammar ("org *tags* Association"). 238 rows and at least two scripts
+  (`build-aspen-tags-relevance-report.mjs`, `surreal-add-person-tags.mjs`)
+  already depend on the name.
+
+**The contract:** frontmatter `tags: []` and `has_tag` observations are the
+same fact in two projections. Anything syncing between layers maps
+`tags[i]` ⇄ one `has_tag` row. Never write a `has_tag:` key into frontmatter;
+never mint a `tags` predicate in the DB. Tag values are Train-Case in both
+projections (connector words lowercase, acronyms uppercase).
+
+Subject typing gotcha for direct DB writes: org/person record ids are
+uuid-typed (`organizations:u"…"`) — a string-typed subject silently fails to
+join. Prefer the capability wire; see
+[[../issues/Capability-Gaps-Surfaced-by-First-Triage-Run|Capability-Gaps-Surfaced-by-First-Triage-Run]].

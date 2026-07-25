@@ -5,6 +5,25 @@ description: The operator+agent discipline for draining a client's corpus inbox 
 
 # Triage Inbox with Suggestions
 
+## Why (operator framing, 2026-07-25)
+
+Triage is not just filing content — it is **indexing all the actors and
+players in the space, peeling the onion toward a MECE knowledge graph**
+(mutually exclusive, collectively exhaustive: every real entity gets exactly
+one canonical home, and the buckets jointly cover the space). Consequences
+for triage judgment:
+
+- **The actor matters even when the page is thin.** A 2KB homepage is weak
+  *content*, but if it names a real player (TradesFutures, a state agency,
+  an employer network), mint the org row and file it — the entity is the
+  point, the page is just its first evidence.
+- **Bucket questions are taxonomy questions.** When a capture fits no
+  bucket (an operating provider, a nested initiative), that's a signal the
+  MECE partition is incomplete — surface it as a decision, don't force-fit.
+- **Relations complete the graph.** Pointer files, streams, and (pending)
+  parent/child edges are how one fact serves multiple entities without
+  breaking mutual exclusivity of the canonical home.
+
 The inbox (per [[../../specs/Corpus-Inbox-Capture-and-Triage|Corpus-Inbox-Capture-and-Triage]])
 promised "capture first, triage later." Capture shipped 2026-06-09; *later* is
 now — reach-edu's inbox sits at **162 pending files** and the flat list broke
@@ -37,6 +56,28 @@ genuinely-uncertain items staying `pending` is acceptable, forcing them is not.
     the domain type (`strategy`→`strategies`, `topic`→`topics`,
     `thesis`→`theses`, `category`→`categories`,
     `market-segment`→`market-segments`). reach-edu's domains are strategies.
+  - `gov-entities/<slug>/` — organizations clearly initiated by government,
+    or government itself (state workforce offices, federal programs, …).
+    Ruled 2026-07-25; same org-row + corpus-add wire as funders.
+  - `think-tanks/<slug>/` — think tanks and research institutions (Brookings,
+    Urban Institute, New America, …). Ruled 2026-07-25 in the same run. The
+    non-funder-org question is resolving into role-named sibling buckets
+    (funders / gov-entities / think-tanks) rather than one generic
+    `organizations/` folder; DB org rows stay undifferentiated, disk
+    placement carries the role.
+  - `associations/<slug>/` — membership and professional associations (BHEF,
+    NAWDP, …). Ruled 2026-07-25 later in the same run; fourth role-named
+    bucket. The org-attributable routing rule below applies to these too
+    (BHEF's ED559688 report: canonical in `associations/bhef/`, pointer in
+    workforce-development).
+    **Routing rule (ruled 2026-07-25):** think-tank reports/articles are often
+    topical too — when content is attributable to a single think tank, the
+    canonical file goes in the think tank's folder, and **pointer markdown
+    files** (`reference_of:` frontmatter) fan into every relevant domain's
+    `sources/` folder (`topics/<slug>/sources/`,
+    `strategies/<slug>/sources/`). Pointers are disk-only — no `source.add`
+    row is minted for them (that would double-register the content); the
+    double-count caution in Open decisions applies.
   - `inbox/` — the queue this skill drains.
   - `_discarded/` — created on first discard; plain visible folder, never
     dot-prefixed, never hard-delete.
@@ -74,6 +115,15 @@ Each pending item gets **one primary home** plus optional reference copies:
    workspace-wide decision), never silent — and file there. Examples from
    the live inbox: cross-funder sector reports, Work-Trend-Index-style
    industry PDFs, regulatory documents.
+4. **Identity-link hosts** (ruled 2026-07-25): Cause IQ, Charity Navigator,
+   GrantForward, Grant Bay — Crunchbase-like profile databases (roster also
+   effectively includes projects.propublica.org, instrumentl.com,
+   fconline.foundationcenter.org, grantable.co-style prospect pages seen in
+   funder folders). Routing: a *profile page* on one of these is a profile
+   OF an org → file it to the org it's about (these should eventually be
+   smartly handled by the UI as org identity links); the tool's own
+   homepage / content marketing → a topic (first instance:
+   `topics/grant-prospecting-tools/`, created this run).
 
 ## The suggestion pass (the scanning half)
 
@@ -114,9 +164,34 @@ Every file maps to exactly one lane (taxonomy from the exploration):
   never file a duplicate.
 - **FLAG** — high-signal, operator wants it surfaced but not filed yet;
   stays pending with the flag noted.
-- **DISCARD** — cookie walls, 404 bodies, consent boilerplate,
-  `content_length_bytes` tiny: move to `corpus/_discarded/` (archive, no
-  delete), `inbox_status: "discarded"`.
+- **STREAM** *(ruling, first co-pilot run 2026-07-25)* — a capture that is a
+  *rolling index page* on a tracked org's site (a topic hub, blog index,
+  issues page — Brookings' /topics/artificial-intelligence/, New America's
+  /issues/education-and-work/) is not corpus content and not a discard: it's
+  a **pulse stream**. Propose `organization.streams.add {org_slug, url,
+  kind, name, client}` on the org, then archive the capture file to
+  `_discarded/` with a superseded-by-stream note. The stream keeps pulsing;
+  a one-time capture of it is worthless. Known `kind` vocabulary (grows by
+  operator precedent):
+  - `topic_stream` — a topic/issues hub (Brookings AI, New America
+    Education & Work)
+  - `blog_index` — an org's blog/news index (BHEF Blog)
+  - `initiative_hub` — the hub page of a named org *initiative* — a program
+    with its own rolling identity inside the org (AEI's Workforce Futures
+    Initiative on `american-enterprise-institute`, added 2026-07-25). Also
+    the lightweight answer for initiative-shaped pages while the
+    parent-child org model is unresolved: a hub can be a stream on the
+    parent org without minting a child org.
+- **GATED** *(ruling, first co-pilot run 2026-07-25)* — fetch-blocked
+  captures (403 "Access Denied", CAPTCHA/"Just a moment" walls, paywall
+  stubs) are NOT discards: the URL is still wanted, only the fetch failed.
+  Move to `inbox/gated/` (plain visible folder), `inbox_status: "gated"`.
+  They stay parked for a later re-fetch attempt via a different fetcher;
+  a gated item whose URL later lands successfully becomes purgeable.
+- **DISCARD** — genuinely worthless captures: 404 bodies, consent
+  boilerplate, empty nav/index pages, `content_length_bytes` tiny with
+  nothing behind it. Move to `corpus/_discarded/` (archive, no delete),
+  `inbox_status: "discarded"`. Fetch-blocked pages go to GATED, not here.
 
 Drain order: auto-routable TRIAGE first, then suggested TRIAGE, EXTRACT,
 DEDUPE, DISCARD, then the uncertain residue. Easy buckets first; the human's
@@ -134,13 +209,62 @@ attention goes to the hard tail.
 5. Never clobber anything a human already filed — filing is additive;
    collisions become DEDUPE decisions.
 
-> **Open mechanics fork (resolve in the first co-pilot run, then record the
-> ruling here):** `source.add` fetches the URL fresh and writes its own file
-> under `sources/` — but the inbox file already holds a fetched body (and
-> sometimes a binary). Either (a) file via capability and treat the *inbox
-> file* as the moved/reference artifact, or (b) let the capability write its
-> file and demote the inbox original to a reference copy. Pick once, apply
-> uniformly.
+> **Mechanics fork RESOLVED (first co-pilot run, 2026-07-25): the inbox file
+> is canonical — option (a).** Call the capability first so the uuid + client
+> tag exist (`source.add` writes a metadata-only stub and returns
+> `source_uuid` + `corpus_path`), then **merge**: graft the stub's registry
+> keys (`source_uuid`, `url`, `normalized_url`, bib fields, `domains`) into
+> the inbox file's frontmatter, set `status: "fetched"` /
+> `content_pulled: true`, append the `# Extracts` skeleton, write the result
+> over the stub at `corpus_path`, delete the inbox original. PDF siblings
+> move too, **renamed to the destination basename** (and update
+> `binary_asset.filename`) — a binary is never left behind in the inbox.
+> ⚠️ Registry gotcha: the DB `sources`/`source_usages` rows still say
+> `metadata-only` after this — never run `source.fetch` on a merged source
+> (it would refetch and clobber the canonical body). Open follow-up: a
+> registry-status patch or a source.add variant accepting a provided body.
+>
+> **Funder/org filings (same run): SurrealDB is the source of truth.** A new
+> org folder REQUIRES an org row first — **but search before minting**:
+> `resolver.search {q, client}` / `organization.detail` first, because the
+> operator may have created the org in the UI in parallel (a duplicate
+> `bhef` row got minted this way and had to be consolidated). Then
+> `resolver.apply {action: "create", record: {name, slug_hint, url}, client}`
+> (stamps `client_access`), then `organization.corpus.add {org_slug, url,
+> client}` mints the `content_items` entry, then move the inbox file into
+> the org's folder (keep its inbox basename), stamping `content_uuid` +
+> `org_uuid` and swapping `funder_slug: "inbox"` → the real slug (or null
+> for non-funder buckets, with `org_slug` carrying the identity). Legacy
+> funder folders may be rowless (jff was) — mint the row on first filing.
+>
+> **Slug naming (ruled 2026-07-25): long-form full-name slugs** —
+> `business-higher-education-forum`, not `bhef`;
+> `national-association-of-workforce-development-professionals`, not
+> `nawdp`. The acronym/short form goes in `aliases` and `conventional_name`
+> (settable via `resolver.update_org`, which also does slug renames —
+> though conventional_name has no edit affordance in the app yet). Disk
+> folder always matches the DB slug. Legacy short slugs (`jff`) rename
+> lazily, folder + row together.
+>
+> **The org naming model (ratified on stanford-pacs, 2026-07-25).** Typed
+> name fields answer *rendering* ("what do I print here"); `aliases[]`
+> answers *resolution* ("what strings should find this entity"), like
+> Obsidian frontmatter aliases:
+> - `slug` — derived, never authored: long-form kebab of the conventional
+>   name; identity key; matches the disk folder.
+> - `conventional_name` — what humans call it ("Stanford PACS", "TWC",
+>   "CRS"); prose and chips.
+> - `complete_name` — the full formal name ("Stanford Center on
+>   Philanthropy and Civil Society"); documents and disambiguation.
+> - (`legal_name` — only if it ever diverges AND a surface needs it;
+>   until then it's just an alias.)
+> - `aliases[]` — greedy, additive, untyped: acronyms, smushed forms,
+>   hyphen variants, former names, misspellings — every form seen in the
+>   wild. Costs nothing; the resolver matches on it; slug renames
+>   auto-preserve the old slug here.
+> When any create flow (UI or agent) mints an org from one string, enrich
+> immediately with `resolver.update_org` — one string can't fill a
+> three-field model.
 
 ## Tagging convention
 
@@ -177,11 +301,30 @@ attention goes to the hard tail.
 
 ## Open decisions (co-pilot phase resolves these; record rulings in place)
 
-- [ ] The mechanics fork above (move-the-inbox-file vs capability-writes-
-      fresh + inbox file becomes reference).
-- [ ] **Non-funder organizations**: orgs worth collecting on that aren't
-      funders — sibling folder (`corpus/organizations/<slug>/`?) or the
-      funders folder with a DB flag distinction only?
+- [x] ~~The mechanics fork~~ — RESOLVED: inbox file is canonical; see the
+      ruling block in "Mechanics of one filing".
+- [x] ~~Discard vs fetch-blocked~~ — RESOLVED: GATED lane added; blocked
+      fetches park in `inbox/gated/`, discards are for genuinely worthless
+      content only.
+- [x] **Government entities** (ruled 2026-07-25): entities clearly initiated
+      by government, or government itself, get `corpus/gov-entities/<slug>/`
+      — clients (reach-edu certainly) want to track all kinds of
+      government-related entities. Same filing wire as funders (org row via
+      `resolver.apply action:create`, then `organization.corpus.add`, then
+      move the file); disk placement carries the gov distinction, DB-side
+      flagging is a follow-up. First filing: accelerate-ms.
+- [ ] **Non-funder, non-government organizations**: orgs worth collecting on
+      that are neither funders nor gov-initiated (membership forums like
+      BHEF, professional associations like NAWDP, employer networks like
+      Human Potential Network) — sibling folder
+      (`corpus/organizations/<slug>/`?) or something else? Still open;
+      captures accumulate pending in the inbox.
+- [ ] **Parent-child organizations** (raised in batch 1, 2026-07-25):
+      urban-institute is the parent org; upmobility-foundation is an
+      initiative of it. Operator ruling: do NOT file content into either
+      until the relationship is modeled. Full write-up + candidate shape:
+      [[../../issues/Parent-Child-Nested-Organizations-Not-Modeled|Parent-Child-Nested-Organizations-Not-Modeled]].
+      Affected captures stay pending in the inbox.
 - [ ] **Person-destined content**: `person.corpus.add` is DB-side; persons
       have no on-disk corpus folder today. Where does the markdown live?
 - [ ] **Reference-copy double-counting**: coverage lenses and
