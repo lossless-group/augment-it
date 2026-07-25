@@ -79,6 +79,25 @@
     ondismiss();
   }
 
+  // The collapsed-row × — dismiss THIS search without expanding (the header's
+  // "clear done" clears the whole queue; this is its per-card twin). One tap
+  // for failed/running/empty cards; a done card with candidates the operator
+  // never reviewed asks once (the ✓? step, auto-reset) — same conscience as
+  // the expanded Mark complete.
+  let quickConfirm = $state(false);
+  let quickConfirmTimer: ReturnType<typeof setTimeout> | undefined;
+  function quickDismiss() {
+    const unreviewed = results ? remaining : (card.result_summary?.count ?? 0);
+    if (card.status === 'done' && unreviewed > 0 && !quickConfirm) {
+      quickConfirm = true;
+      clearTimeout(quickConfirmTimer);
+      quickConfirmTimer = setTimeout(() => (quickConfirm = false), 4_000);
+      return;
+    }
+    clearTimeout(quickConfirmTimer);
+    ondismiss();
+  }
+
   // Retry (failed cards): resubmit the same entity + target, drop this card.
   async function retry() {
     retrying = true;
@@ -95,6 +114,7 @@
 </script>
 
 <li class="srq-card status-{card.status}">
+  <div class="srq-card-top">
   <button type="button" class="srq-card-row" onclick={toggle} aria-expanded={expanded}>
     <span class="srq-chip srq-chip-{card.target}">{TARGET_LABEL[card.target]}</span>
     <span class="srq-org" title={card.entity.org_slug}>{orgLabel}</span>
@@ -113,8 +133,24 @@
     {:else}
       <span class="srq-status srq-status-failed">failed</span>
     {/if}
-    <span class="srq-caret">{expanded ? '▾' : '▸'}</span>
   </button>
+  <span class="srq-card-side">
+    <button
+      type="button"
+      class="srq-quick-x"
+      class:confirming={quickConfirm}
+      title={quickConfirm
+        ? `${results ? remaining : (card.result_summary?.count ?? 0)} candidate${(results ? remaining : (card.result_summary?.count ?? 0)) === 1 ? '' : 's'} not reviewed — click again to dismiss`
+        : 'Dismiss this search'}
+      onclick={quickDismiss}
+    >
+      {quickConfirm ? '✓?' : '×'}
+    </button>
+    <button type="button" class="srq-caret-btn" onclick={toggle} aria-expanded={expanded} aria-label={expanded ? 'Collapse' : 'Expand'}>
+      {expanded ? '▾' : '▸'}
+    </button>
+  </span>
+  </div>
 
   {#if expanded}
     <div class="srq-card-body">
