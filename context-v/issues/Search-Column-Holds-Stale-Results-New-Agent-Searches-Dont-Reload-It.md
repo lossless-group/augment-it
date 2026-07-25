@@ -7,7 +7,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 tags:
   - Issue
   - Usability
@@ -15,7 +15,8 @@ tags:
   - Search-And-Add
   - Didi-Crawl
   - Org-Workbench
-status: Open · Jotted
+status: Superseded
+superseded_by: "[[Concurrent-Agent-Searches-Queue-Into-A-Search-Results-Column]]"
 ---
 
 # The search column doesn't follow the latest search
