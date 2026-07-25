@@ -12,6 +12,7 @@
   import {
     PAIRINGS,
     CHAT_REMOTE,
+    SEARCH_RESULTS_REMOTE,
     remoteById,
     slotById,
     type RemoteEntry,
@@ -58,6 +59,59 @@
       /* localStorage unavailable */
     }
   }
+
+  // Search-queue rail visibility — the chat rail's right-side mirror (spec
+  // D4 of Search-Results-Queue-Remote). Hidden by default until the first
+  // search fires (any door dispatches augment-it:search-submitted, which
+  // flips it visible) or the operator toggles it on.
+  const QUEUE_VISIBLE_KEY = 'augment-it:queue-rail-visible';
+  let queueVisible = $state<boolean>(
+    typeof localStorage === 'undefined' ? false : localStorage.getItem(QUEUE_VISIBLE_KEY) === 'true',
+  );
+  function setQueueVisible(next: boolean): void {
+    queueVisible = next;
+    try {
+      localStorage.setItem(QUEUE_VISIBLE_KEY, String(next));
+    } catch {
+      /* localStorage unavailable */
+    }
+  }
+
+  // Done-count badge on the header toggle — visible even while the rail is
+  // collapsed (D4: arrival is an event, not a discovery). The rail remote
+  // unmounts when hidden, so the SHELL tracks the count: refetch search.list
+  // on every search.updated broadcast (+ once per workspace resolution).
+  let queueDoneCount = $state(0);
+  async function refreshQueueCount(): Promise<void> {
+    const client = workspace.active_client_id;
+    if (!client) return;
+    try {
+      const r = (await workspace.invoke('search.list', { client })) as {
+        ok?: boolean;
+        searches?: { status: string }[];
+      };
+      queueDoneCount = (r.searches ?? []).filter((s) => s.status === 'done').length;
+    } catch {
+      /* badge is best-effort — the rail itself is the source of truth */
+    }
+  }
+  let lastQueueSeq = -1;
+  $effect(() => {
+    const ev = workspace.events[workspace.events.length - 1];
+    if (!ev || ev.seq <= lastQueueSeq) return;
+    lastQueueSeq = ev.seq;
+    if (ev.subject === 'search.updated') void refreshQueueCount();
+  });
+  $effect(() => {
+    if (workspace.active_client_id && workspace.workspaces_status === 'ready') {
+      void refreshQueueCount();
+    }
+  });
+  onMount(() => {
+    const onSearchSubmitted = () => setQueueVisible(true);
+    window.addEventListener('augment-it:search-submitted', onSearchSubmitted);
+    return () => window.removeEventListener('augment-it:search-submitted', onSearchSubmitted);
+  });
 
   // ---- pre-auth wall (Build-Order Step 7) --------------------------------
   // A single-tenant deploy sets DIDI_AUTH=required; the session frame
@@ -188,8 +242,9 @@
     const peekEach = neighbourCount ? Math.max(MIN_PEEK, remainder / neighbourCount) : 0;
 
     const slotKey = (s: Slot): string => (s.kind === 'remote' ? s.remote.id : s.composite.id);
+    // Hover-expand never applies mid-resize — the drag owns the geometry.
     const isHovered = (s: Slot): boolean =>
-      hoveredNeighborId !== null && slotKey(s) === hoveredNeighborId;
+      !resizing && hoveredNeighborId !== null && slotKey(s) === hoveredNeighborId;
     const widthOf = (s: Slot): number => (isHovered(s) ? HOVER_PCT : peekEach);
 
     const items: StageItem[] = [];
@@ -228,16 +283,27 @@
   }
 
   // ---- focused-panel edge resize (peek-flow) ------------------------------
-  function startResize(e: PointerEvent): void {
+  // The dragged edge's stage-relative position maps to the focused width
+  // according to which neighbours share the leftover: centred between two
+  // peeks → symmetric doubling; anchored at a stage edge (first/last step)
+  // → the edge position IS the width. The old centre-only math jumped on
+  // grab and tracked 2× at the rotation's ends. Pointer capture keeps the
+  // drag from feeding the peek overlays' hover-expand, which used to fight
+  // the resize mid-drag.
+  function startResize(e: PointerEvent, side: 'left' | 'right'): void {
     e.preventDefault();
     resizing = true;
+    hoveredNeighborId = null;
+    (e.currentTarget as HTMLElement | null)?.setPointerCapture?.(e.pointerId);
+    const i = layout.focusIndex;
+    const hasPrev = i > 0;
+    const hasNext = i < activeFlow.rotation.length - 1;
     const onMove = (ev: PointerEvent) => {
       if (!stageEl) return;
       const rect = stageEl.getBoundingClientRect();
-      // distance of the cursor from the stage centre, doubled, is the
-      // focused panel's width as a fraction of the stage.
-      const centre = rect.left + rect.width / 2;
-      const pct = (Math.abs(ev.clientX - centre) * 2) / rect.width * 100;
+      const p = ((ev.clientX - rect.left) / rect.width) * 100;
+      const pct =
+        hasPrev && hasNext ? Math.abs(p - 50) * 2 : side === 'right' ? p : 100 - p;
       layout.setFocusedWidth(pct);
     };
     const onUp = () => {
@@ -515,6 +581,15 @@
     >
       💬 chat
     </button>
+    <button
+      class="chat-toggle"
+      class:on={queueVisible}
+      onclick={() => setQueueVisible(!queueVisible)}
+      aria-pressed={queueVisible}
+      title={queueVisible ? 'Hide the search queue' : 'Show the search queue'}
+    >
+      🔎 queue{#if queueDoneCount > 0}<span class="queue-badge">{queueDoneCount}</span>{/if}
+    </button>
     <span class="muted">tiling host · :3100</span>
     <DidiBadge />
     <ModeToggle />
@@ -594,13 +669,19 @@
 
       {#if item.role === 'focused'}
         <!-- focused-panel resize edges — distinct pixels from the peek
-             overlays, so a resize-drag never fires a focus-commit. -->
-        <div class="resize-edge resize-edge-left"
-          onpointerdown={startResize}
-          role="separator" aria-label="Resize focused panel" tabindex="-1"></div>
-        <div class="resize-edge resize-edge-right"
-          onpointerdown={startResize}
-          role="separator" aria-label="Resize focused panel" tabindex="-1"></div>
+             overlays, so a resize-drag never fires a focus-commit. Only
+             sides that actually border a peek get one; the first/last
+             step's outer edge is the stage boundary, not a divider. -->
+        {#if layout.focusIndex > 0}
+          <div class="resize-edge resize-edge-left"
+            onpointerdown={(e) => startResize(e, 'left')}
+            role="separator" aria-label="Resize focused panel" tabindex="-1"></div>
+        {/if}
+        {#if layout.focusIndex < activeFlow.rotation.length - 1}
+          <div class="resize-edge resize-edge-right"
+            onpointerdown={(e) => startResize(e, 'right')}
+            role="separator" aria-label="Resize focused panel" tabindex="-1"></div>
+        {/if}
       {/if}
     </section>
   {/each}
@@ -617,6 +698,11 @@
     <div class="empty">no frontend to show</div>
   {/if}
   </main>
+  {#if queueVisible}
+    <aside class="queue-rail" aria-label="Search queue panel">
+      <MountHost remote={SEARCH_RESULTS_REMOTE} />
+    </aside>
+  {/if}
 </div>
 {/if}
 
@@ -699,6 +785,22 @@
     border-color: var(--color-accent);
     color: var(--color-accent);
   }
+  /* done-count on the 🔎 queue toggle — arrival stays visible while the
+     rail is collapsed (Search-Results-Queue-Remote spec D4). */
+  .queue-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.15em;
+    height: 1.15em;
+    margin-left: 0.35em;
+    padding: 0 0.25em;
+    border-radius: 999px;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    font-size: 10px;
+    font-weight: 700;
+  }
 
   /* ---- below-header: chat rail on the left, stage on the right ---- */
   .below-header {
@@ -729,6 +831,23 @@
     overflow: hidden;
     display: flex;
     justify-content: center;
+  }
+  /* Search-queue rail — the chat rail's right-side mirror. Order across
+     .below-header: flow-rail | chat-rail | stage | queue-rail. */
+  .queue-rail {
+    width: 340px;
+    min-width: 280px;
+    max-width: 440px;
+    flex-shrink: 0;
+    border-left: 1px solid var(--color-border);
+    background: var(--color-surface-raised, var(--color-background));
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .queue-rail :global(.mount-host) {
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   /* ---- the tiling stage ---- */

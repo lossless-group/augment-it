@@ -9,6 +9,7 @@
   import PeopleReveal from './PeopleReveal.svelte';
   import { addOrgLink, addOrgStream, updateOrgStream, addOrgCorpus } from './lib/org-client';
   import { requestSearch } from './lib/search-request';
+  import { submitCrawl } from './lib/search-queue';
   import type { OrgDetail, SearchRequestDetail, StreamEntry } from './lib/types';
 
   let {
@@ -59,16 +60,16 @@
       });
   }
 
-  // 🤖 — didi's crawl for a whole list (v1.2): same envelope, crawl flag on;
-  // search-and-add's crawl mode fires organization.crawl instead of a term.
+  // 🤖 — didi's crawl for a whole list, enqueued as an async job: the search
+  // lands as a card in the search-results rail (which the shell flips
+  // visible), no column hijack, no babysitting. Replaces the v1.2
+  // search-and-add crawl mode per the Search-Results-Queue-Remote spec.
   function makeCrawl(target: 'links' | 'streams') {
-    return () =>
-      requestSearch({
-        entity: { type: 'organization', org_slug: org.slug, display_name: displayName },
-        target,
-        seed_term: '',
-        crawl: true,
-      });
+    return () => {
+      void submitCrawl({ org_slug: org.slug, display_name: displayName, target, client }).catch(
+        (err) => console.warn('[org-workbench] search.submit failed', err),
+      );
+    };
   }
 </script>
 

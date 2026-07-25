@@ -69,6 +69,10 @@ const BROADCAST_SUBJECTS = [
   'source.updated',
   'source.removed',
   'extract.added',
+  // Search-results queue — the registry (searches.ts) publishes on submit,
+  // start, settle, and dismiss; the search-results rail refetches the
+  // registry on every event instead of polling (spec D3).
+  'search.updated',
 ];
 
 type Session = {

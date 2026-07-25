@@ -4,10 +4,14 @@ import { connectNats } from './nats';
 import { loadSessions } from './auth';
 import { registerWebsocket } from './ws';
 import { initWorkspaces, registerActiveQueryResponder, listWorkspaces, getActiveClientId } from './workspaces';
+import { loadSearches, startSearchSweep } from './searches';
 import { didiMode } from './didi';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 const SESSION_STORE_PATH = process.env.SESSION_STORE_PATH ?? './data/sessions.json';
+// The search registry — searches as async jobs, persisted like sessions.
+// See ./searches.ts and context-v/specs/Search-Results-Queue-Remote.md.
+const SEARCH_STORE_PATH = process.env.SEARCH_STORE_PATH ?? './data/searches.json';
 // Where to look for workspace directories. /clients in docker, repo-relative
 // for local dev. Each child dir == one workspace; see workspaces.ts.
 const CLIENTS_ROOT = process.env.CLIENTS_ROOT ?? '../../clients';
@@ -59,6 +63,12 @@ async function main(): Promise<void> {
 
   registerActiveQueryResponder();
   app.log.info('workspace.active.requested responder registered');
+
+  // After NATS: a stranded-entry mark on load never needs the connection,
+  // but everything the registry does from here on (execute, broadcast) does.
+  await loadSearches(SEARCH_STORE_PATH);
+  startSearchSweep();
+  app.log.info({ path: SEARCH_STORE_PATH }, 'search registry loaded');
 
   await registerWebsocket(app);
 

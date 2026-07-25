@@ -267,8 +267,23 @@ export const SEARCH_AND_ADD_REMOTE: RemoteEntry = {
   importMount: () => import('searchAndAdd/mount'),
 };
 
+// SEARCH_RESULTS_REMOTE — the queue where every agent search lands. Like
+// CHAT_REMOTE, a persistent rail companion (right side, chat's mirror), NOT
+// a rotation step or a pairing: searches fire from every flow, so the queue
+// must be reachable from every flow (spec D4). The shell owns its toggle
+// (🔎 queue) + visibility persistence.
+// See context-v/specs/Search-Results-Queue-Remote.md.
+export const SEARCH_RESULTS_REMOTE: RemoteEntry = {
+  id: 'searchResults',
+  label: 'Search queue',
+  description: 'Every agent search as a card — status, elapsed vs typical, expand to accept, dismiss when dealt with',
+  // @ts-expect-error — federation remote, type comes from the MF runtime
+  importMount: () => import('searchResults/mount'),
+};
+
 const EXTRA_REMOTES: RemoteEntry[] = [
   CHAT_REMOTE,
+  SEARCH_RESULTS_REMOTE,
   PACK_RUNNER_REMOTE,
   SORT_FILTER_LENS_REMOTE,
   PERSON_ENRICHMENT_REMOTE,

@@ -120,6 +120,7 @@ frontend_up() {
   echo "    pack-runner             http://localhost:3009"
   echo "    records-surface         http://localhost:3011"
   echo "    sort-filter-lens        http://localhost:3013"
+  echo "    search-results          http://localhost:3018"
   echo "  (Ctrl-C stops the frontend; the backend keeps running — './scripts/dev.sh down' to stop it)"
   pnpm --parallel --if-present \
     --filter './apps/*' --filter './shell' \

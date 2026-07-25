@@ -7,7 +7,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.1.0
 issue_of_record: "[[../issues/Concurrent-Agent-Searches-Queue-Into-A-Search-Results-Column]]"
 tags:
   - Spec
@@ -17,7 +17,7 @@ tags:
   - Microfrontends
   - Concurrency
   - Workspace
-status: Draft
+status: Implemented (Phases 1–3 shipped 2026-07-24; Phase 4 pending with #35)
 ---
 
 # Search-Results Queue — the `search-results` remote
@@ -135,7 +135,8 @@ chat-legal and untouched for direct use.
 ## Architecture — the new remote
 
 `apps/search-results/` (scaffold template: `apps/search-and-add`; port
-**3017**; federation name `searchResults`):
+**3018** — the spec first said 3017, but strategy-curator had already
+claimed it by build time; federation name `searchResults`):
 
 ```
 src/
@@ -195,7 +196,7 @@ card's progress line. Separately planned; the card reserves the slot.
   no shared runtime, remote owns its Svelte, theme.css before app.css,
   new remote = shell rebuild + fresh browser load.
 - `docker compose` frontends untouched (rsbuild dev servers); dev.sh gains
-  the :3017 line.
+  the :3018 line.
 
 ## Open questions (deliberately few)
 
