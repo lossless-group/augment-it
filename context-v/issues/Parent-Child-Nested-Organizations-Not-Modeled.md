@@ -57,6 +57,12 @@ why the relation model matters for a philanthropic-funding client: knowing that
 a grant from any arm is Koch-network money is analysis the flat model can't
 produce.
 
+**Academic institutions (added 2026-07-25, batch 5):** the new
+`academic-institutions/` bucket is nested by construction — Project on
+Workforce ⊂ Harvard Kennedy School ⊂ Harvard University. The org row minted
+(`project-on-workforce-at-harvard`) is the leaf; nothing expresses the chain.
+Operator flagged this explicitly when ruling the bucket.
+
 ## What's missing
 
 1. **DB shape.** `organizations` rows are flat. There is no edge or field

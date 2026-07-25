@@ -65,11 +65,22 @@ genuinely-uncertain items staying `pending` is acceptable, forcing them is not.
     (funders / gov-entities / think-tanks) rather than one generic
     `organizations/` folder; DB org rows stay undifferentiated, disk
     placement carries the role.
-  - `associations/<slug>/` — membership and professional associations (BHEF,
+  - `associations-networks/<slug>/` — membership associations AND networks
+    (renamed from `associations/` 2026-07-25 when WEF was identified as a
+    network — the bucket covers both) (BHEF,
     NAWDP, …). Ruled 2026-07-25 later in the same run; fourth role-named
     bucket. The org-attributable routing rule below applies to these too
     (BHEF's ED559688 report: canonical in `associations/bhef/`, pointer in
     workforce-development).
+  - `academic-institutions/<slug>/` — university research centers and
+    academic units (Project on Workforce at Harvard, …). Ruled 2026-07-25,
+    fifth role bucket; same org-row-first + routing rules. These are also
+    inherently NESTED (Project on Workforce ⊂ HKS ⊂ Harvard) — every filing
+    here feeds the parent/child issue.
+  - `data-services/<slug>/` — nonprofit data utilities (Credential Engine,
+    …). Ruled 2026-07-25, sixth role bucket. Distinct from the
+    grant-prospecting-tools TOPIC: the topic holds tool homepages as
+    content; this bucket holds data-infrastructure orgs as actors.
     **Routing rule (ruled 2026-07-25):** think-tank reports/articles are often
     topical too — when content is attributable to a single think tank, the
     canonical file goes in the think tank's folder, and **pointer markdown
