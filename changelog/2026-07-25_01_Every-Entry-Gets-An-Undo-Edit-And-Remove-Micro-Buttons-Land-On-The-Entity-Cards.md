@@ -17,7 +17,10 @@ files_changed:
   - apps/org-workbench/src/AdditiveList.svelte
   - apps/org-workbench/src/OrgCard.svelte
   - apps/org-workbench/src/PersonCard.svelte
+  - apps/org-workbench/src/AddAffiliationInline.svelte
+  - apps/org-workbench/src/PeopleReveal.svelte
   - apps/org-workbench/src/lib/org-client.ts
+  - apps/org-workbench/src/app.css
   - context-v/specs/Entity-Card-Edit-And-Remove-Affordances.md
 tags:
   - Org-Workbench
