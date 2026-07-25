@@ -21,6 +21,11 @@ import {
   addOrgCorpus,
   addOrgStream,
   updateOrgStream,
+  updateOrgLink,
+  updateOrgCorpusEntry,
+  removeOrgLink,
+  removeOrgStream,
+  removeOrgCorpusEntry,
   listOrgRoster,
   getClientBrief,
   setClientBrief,
@@ -35,6 +40,8 @@ import {
   type OrgCorpusAddInput,
   type OrgStreamAddInput,
   type OrgStreamUpdateInput,
+  type OrgEntryUpdateInput,
+  type OrgEntryRemoveInput,
 } from './resolver';
 
 export function registerHandlers(nc: NatsConnection): void {
@@ -269,6 +276,32 @@ export function registerHandlers(nc: NatsConnection): void {
       }
     }
   })();
+
+  // Entry ops — update/remove on the three org lists, matched by URL.
+  // Per context-v/specs/Entity-Card-Edit-And-Remove-Affordances.md.
+  const ENTRY_OPS: [string, (db: Awaited<ReturnType<typeof getDb>>, args: never) => Promise<unknown>][] = [
+    ['organization.links.update.requested', updateOrgLink],
+    ['organization.corpus.update.requested', updateOrgCorpusEntry],
+    ['organization.links.remove.requested', removeOrgLink],
+    ['organization.streams.remove.requested', removeOrgStream],
+    ['organization.corpus.remove.requested', removeOrgCorpusEntry],
+  ];
+  for (const [subject, fn] of ENTRY_OPS) {
+    (async () => {
+      const sub = nc.subscribe(subject);
+      for await (const msg of sub) {
+        const args = msg.json() as OrgEntryUpdateInput & OrgEntryRemoveInput;
+        try {
+          const db = await getDb();
+          const result = await fn(db, args as never);
+          if (msg.reply) msg.respond(JSON.stringify(result));
+        } catch (err: unknown) {
+          const error = err instanceof Error ? err.message : String(err);
+          if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+        }
+      }
+    })();
+  }
 
   // organization.detail — the full org card (identity + org_links +
   // media_streams + org_corpus) for the Augment-from-DB org workbench.

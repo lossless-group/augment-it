@@ -19,6 +19,8 @@ import {
   applyAffiliationRating,
   addPersonLink,
   addPersonCorpus,
+  removePersonLink,
+  removePersonCorpus,
   getAffiliationDetail,
   listOrgAffiliations,
   type PersonNormRecord,
@@ -29,6 +31,7 @@ import {
   type AffiliationRateInput,
   type PersonLinkAddInput,
   type PersonCorpusAddInput,
+  type PersonEntryRemoveInput,
   type AffiliationDetailInput,
   type OrgAffiliationsInput,
 } from './person-resolver';
@@ -179,6 +182,29 @@ export function registerPersonHandlers(nc: NatsConnection): void {
       }
     }
   })();
+
+  // person.links.remove / person.corpus.remove — URL-matched detach with an
+  // entry_removed observation trail. Per
+  // context-v/specs/Entity-Card-Edit-And-Remove-Affordances.md.
+  for (const [subject, fn] of [
+    ['person.links.remove.requested', removePersonLink],
+    ['person.corpus.remove.requested', removePersonCorpus],
+  ] as const) {
+    (async () => {
+      const sub = nc.subscribe(subject);
+      for await (const msg of sub) {
+        const args = msg.json() as PersonEntryRemoveInput;
+        try {
+          const db = await getDb();
+          const result = await fn(db, args);
+          if (msg.reply) msg.respond(JSON.stringify(result));
+        } catch (err: unknown) {
+          const error = err instanceof Error ? err.message : String(err);
+          if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+        }
+      }
+    })();
+  }
 
   // affiliation.detail — current person/org links+corpus+relevance, fresh
   // (not a stale CSV-export snapshot). Per

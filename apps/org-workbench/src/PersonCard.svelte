@@ -7,7 +7,7 @@
 
   import AdditiveList from './AdditiveList.svelte';
   import AddAffiliationInline from './AddAffiliationInline.svelte';
-  import { addPersonLink, addPersonCorpus } from './lib/org-client';
+  import { addPersonLink, addPersonCorpus, removePersonLink, removePersonCorpus } from './lib/org-client';
   import { requestSearch } from './lib/search-request';
   import type { AffiliatedPerson, ShapedLink } from './lib/types';
 
@@ -44,6 +44,16 @@
     bump();
   }
 
+  // × — the person-side correction affordance (spec: Entity-Card-Edit-And-
+  // Remove-Affordances). Person entries get removes in v1; kind edits stay
+  // org-side for now.
+  function makeRemove(fn: (args: { person_uuid: string; url: string; client: string }) => Promise<void>) {
+    return async (entry: ShapedLink) => {
+      await fn({ person_uuid: person.person_uuid, url: entry.url, client });
+      bump();
+    };
+  }
+
   function searchFor(target: 'links' | 'corpus', seed: string) {
     return () =>
       requestSearch({
@@ -62,6 +72,7 @@
     entries={person.personal_links}
     kindHint="kind (auto: linkedin/x/…)"
     onadd={addLink}
+    onremove={makeRemove(removePersonLink)}
     onsearch={searchFor('links', `"${displayName}" LinkedIn`)}
     entryaction={{ label: '→ affiliation', fn: (entry) => (promoteEntry = entry) }}
   />
@@ -85,6 +96,7 @@
     entries={person.personal_corpus}
     kindHint="kind (auto-detected from URL)"
     onadd={addCorpus}
+    onremove={makeRemove(removePersonCorpus)}
     onsearch={searchFor('corpus', `"${displayName}" interview OR profile`)}
   />
 </div>

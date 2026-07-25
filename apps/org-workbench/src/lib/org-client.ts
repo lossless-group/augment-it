@@ -144,11 +144,12 @@ export async function addOrgStream(args: AddArgs & { name?: string }): Promise<S
   return r.stream;
 }
 
-// Patch kind/name on one media_streams entry, matched by exact URL — the
+// Patch url/kind/name on one media_streams entry, matched by exact URL — the
 // first non-additive write on an entity list (updateOrg precedent).
 export async function updateOrgStream(args: {
   org_slug: string;
   url: string;
+  new_url?: string;
   kind?: string;
   name?: string;
   client: string;
@@ -160,6 +161,40 @@ export async function updateOrgStream(args: {
   };
   if (!r.ok || !r.stream) throw new Error(r.error || 'organization.streams.update failed');
   return r.stream;
+}
+
+// ---- Entry ops — the correction half of view-and-edit-in-place. Update
+// patches url/kind matched by current URL; remove detaches the entry (an
+// entry_removed observation keeps the trail server-side). Per
+// context-v/specs/Entity-Card-Edit-And-Remove-Affordances.md.
+
+type EntryUpdateArgs = { org_slug: string; url: string; new_url?: string; kind?: string; client: string };
+type EntryRemoveArgs = { org_slug: string; url: string; client: string };
+
+async function entryOp(verb: string, args: EntryUpdateArgs | EntryRemoveArgs): Promise<void> {
+  const r = (await workspace.invoke(verb, args)) as { ok: boolean; error?: string };
+  if (!r.ok) throw new Error(r.error || `${verb} failed`);
+}
+
+export const updateOrgLink = (args: EntryUpdateArgs) => entryOp('organization.links.update', args);
+export const removeOrgLink = (args: EntryRemoveArgs) => entryOp('organization.links.remove', args);
+export const removeOrgStream = (args: EntryRemoveArgs) => entryOp('organization.streams.remove', args);
+export const updateOrgCorpus = (args: EntryUpdateArgs) => entryOp('organization.corpus.update', args);
+export const removeOrgCorpus = (args: EntryRemoveArgs) => entryOp('organization.corpus.remove', args);
+
+// Identity-block edits — names, aliases, domains — ride resolver.update_org
+// (it already owns the identity fields; aliases/domains are full-array
+// replacements for the chip editors).
+export async function updateOrgIdentity(args: {
+  org_slug: string;
+  complete_name?: string;
+  conventional_name?: string;
+  aliases?: string[];
+  domains?: { domain?: string }[];
+  client: string;
+}): Promise<void> {
+  const r = (await workspace.invoke('resolver.update_org', args)) as { ok: boolean; error?: string };
+  if (!r.ok) throw new Error(r.error || 'resolver.update_org failed');
 }
 
 export async function addOrgCorpus(args: AddArgs): Promise<ShapedLink> {
@@ -268,3 +303,14 @@ export async function addPersonCorpus(args: PersonAddArgs): Promise<ShapedLink> 
   if (!r.ok || !r.entry) throw new Error(r.error || 'person.corpus.add failed');
   return r.entry;
 }
+
+// Person-side entry removes — the twins of the org entry ops above.
+type PersonRemoveArgs = { person_uuid: string; url: string; client: string };
+
+async function personEntryOp(verb: string, args: PersonRemoveArgs): Promise<void> {
+  const r = (await workspace.invoke(verb, args)) as { ok: boolean; error?: string };
+  if (!r.ok) throw new Error(r.error || `${verb} failed`);
+}
+
+export const removePersonLink = (args: PersonRemoveArgs) => personEntryOp('person.links.remove', args);
+export const removePersonCorpus = (args: PersonRemoveArgs) => personEntryOp('person.corpus.remove', args);

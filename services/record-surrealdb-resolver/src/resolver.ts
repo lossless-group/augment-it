@@ -426,6 +426,11 @@ export type UpdateOrgInput = {
   new_slug?: string;
   complete_name?: string;
   conventional_name?: string;
+  // Full-array replacement for the identity block's chip editors (alias/
+  // domain ✕ removal) — operator-driven, sparse-SET only when present.
+  // Per context-v/specs/Entity-Card-Edit-And-Remove-Affordances.md.
+  aliases?: string[];
+  domains?: { domain?: string }[];
   client: string;
 };
 
@@ -769,6 +774,16 @@ export async function updateOrg(db: Surreal, input: UpdateOrgInput): Promise<Upd
     vars.new_slug = wantSlug;
     vars.old_slug = org.slug;
   }
+  // Chip-editor replacements. Skipped on a rename in the same call (the
+  // union above owns aliases then) — the UI never combines the two anyway.
+  if (input.aliases && !renamed) {
+    sets.push('aliases = $aliases');
+    vars.aliases = input.aliases.map((a) => a.trim()).filter(Boolean);
+  }
+  if (input.domains) {
+    sets.push('domains = $domains');
+    vars.domains = input.domains.filter((d) => d?.domain?.trim());
+  }
   sets.push('client_access = array::union(client_access ?? [], [$client])');
   sets.push('last_touched_by = $client');
   sets.push('last_touched_at = time::now()');
@@ -905,6 +920,7 @@ export async function addOrgStream(db: Surreal, input: OrgStreamAddInput): Promi
 export type OrgStreamUpdateInput = {
   org_slug: string;
   url: string;
+  new_url?: string;
   kind?: string;
   name?: string;
   client: string;
@@ -919,13 +935,17 @@ export async function updateOrgStream(
   if (!org) throw new Error(`organization not found: ${input.org_slug}`);
   const kind = input.kind?.trim();
   const name = input.name?.trim();
-  if (!kind && !name) throw new Error('organization.streams.update requires kind and/or name');
+  const newUrl = input.new_url?.trim();
+  if (!kind && !name && !newUrl) {
+    throw new Error('organization.streams.update requires new_url, kind, and/or name');
+  }
   const target = input.url.trim();
   const streams = (org.media_streams ?? []) as ShapedStream[];
   const idx = streams.findIndex((s) => (s?.url ?? '').trim() === target);
   if (idx === -1) throw new Error(`stream not found on ${input.org_slug}: ${target}`);
   const patched: ShapedStream = {
     ...streams[idx],
+    ...(newUrl ? { url: newUrl, url_domain: urlDomain(newUrl) } : {}),
     ...(kind ? { kind } : {}),
     ...(name ? { name } : {}),
   };
@@ -940,6 +960,121 @@ export async function updateOrgStream(
   );
   return { ok: true, org_id: String(org.id), stream: patched };
 }
+
+// ---------------------------------------------------------------------------
+// Entry ops — update/remove on the three org entity lists, matched by URL
+// (the de-facto entry key everywhere: dedupe, scan, streams.update). Removal
+// is first-class but leaves a trail: one `entry_removed` observation per
+// remove, so canonical history keeps what-was-there-and-when without keeping
+// the wrong data live. Corpus removes DETACH the entry — content_items and
+// fetched corpus files stay (other records/clients may reference them).
+// Per context-v/specs/Entity-Card-Edit-And-Remove-Affordances.md.
+// ---------------------------------------------------------------------------
+
+type OrgListField = 'org_links' | 'media_streams' | 'org_corpus';
+
+export type OrgEntryUpdateInput = {
+  org_slug: string;
+  url: string; // current URL — the match key
+  new_url?: string;
+  kind?: string;
+  client: string;
+};
+export type OrgEntryUpdateResult = { ok: true; org_id: string; entry: ShapedLink };
+export type OrgEntryRemoveInput = { org_slug: string; url: string; client: string; source?: string };
+export type OrgEntryRemoveResult = { ok: true; org_id: string; removed: boolean };
+
+async function saveOrgList(
+  db: Surreal,
+  orgId: unknown,
+  field: OrgListField,
+  list: unknown[],
+  client: string,
+): Promise<void> {
+  await db.query(
+    `UPDATE $id SET
+        ${field}        = $list,
+        client_access   = array::union(client_access ?? [], [$client]),
+        last_touched_by = $client, last_touched_at = time::now();`,
+    { id: orgId, list, client },
+  );
+}
+
+async function recordEntryRemoval(
+  db: Surreal,
+  args: { subject: unknown; url: string; field: string; client: string; source: string },
+): Promise<void> {
+  await db.query(
+    `CREATE observations SET
+        id = rand::uuid::v7(), subject = $subject, predicate = 'entry_removed',
+        object = $url, list = $field, source = $source,
+        observed_at = time::now(), client = $client;`,
+    args,
+  );
+}
+
+async function updateOrgListEntry(
+  db: Surreal,
+  field: OrgListField,
+  capability: string,
+  input: OrgEntryUpdateInput,
+): Promise<OrgEntryUpdateResult> {
+  const org = await fetchOrgBySlug(db, input.org_slug);
+  if (!org) throw new Error(`organization not found: ${input.org_slug}`);
+  const kind = input.kind?.trim();
+  const newUrl = input.new_url?.trim();
+  if (!kind && !newUrl) throw new Error(`${capability} requires new_url and/or kind`);
+  const target = input.url.trim();
+  const list = ((org[field] ?? []) as (ShapedLink & { content_id?: unknown })[]).slice();
+  const idx = list.findIndex((e) => (e?.url ?? '').trim() === target);
+  if (idx === -1) throw new Error(`entry not found on ${input.org_slug} ${field}: ${target}`);
+  const patched = {
+    ...list[idx],
+    ...(newUrl ? { url: newUrl, url_domain: urlDomain(newUrl) } : {}),
+    ...(kind ? { kind } : {}),
+  };
+  // A corpus entry's content_id points at its URL's content_items row —
+  // a URL edit re-resolves it so the ledger bond stays true.
+  if (field === 'org_corpus' && newUrl) {
+    patched.content_id = await findOrCreateContent(db, patched.url, patched.kind, patched.url_domain);
+  }
+  list[idx] = patched;
+  await saveOrgList(db, org.id, field, list, input.client);
+  return { ok: true, org_id: String(org.id), entry: patched };
+}
+
+async function removeOrgListEntry(
+  db: Surreal,
+  field: OrgListField,
+  input: OrgEntryRemoveInput,
+): Promise<OrgEntryRemoveResult> {
+  const org = await fetchOrgBySlug(db, input.org_slug);
+  if (!org) throw new Error(`organization not found: ${input.org_slug}`);
+  const target = input.url.trim();
+  const list = (org[field] ?? []) as { url?: string }[];
+  const next = list.filter((e) => (e?.url ?? '').trim() !== target);
+  if (next.length === list.length) return { ok: true, org_id: String(org.id), removed: false };
+  await saveOrgList(db, org.id, field, next, input.client);
+  await recordEntryRemoval(db, {
+    subject: org.id,
+    url: target,
+    field,
+    client: input.client,
+    source: input.source || 'org-workbench',
+  });
+  return { ok: true, org_id: String(org.id), removed: true };
+}
+
+export const updateOrgLink = (db: Surreal, input: OrgEntryUpdateInput) =>
+  updateOrgListEntry(db, 'org_links', 'organization.links.update', input);
+export const updateOrgCorpusEntry = (db: Surreal, input: OrgEntryUpdateInput) =>
+  updateOrgListEntry(db, 'org_corpus', 'organization.corpus.update', input);
+export const removeOrgLink = (db: Surreal, input: OrgEntryRemoveInput) =>
+  removeOrgListEntry(db, 'org_links', input);
+export const removeOrgStream = (db: Surreal, input: OrgEntryRemoveInput) =>
+  removeOrgListEntry(db, 'media_streams', input);
+export const removeOrgCorpusEntry = (db: Surreal, input: OrgEntryRemoveInput) =>
+  removeOrgListEntry(db, 'org_corpus', input);
 
 // client.brief.get / client.brief.set — the relevance brief: a small
 // operator-editable prose document, scoped per workspace client, that didi

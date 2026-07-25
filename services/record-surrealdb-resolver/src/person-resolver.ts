@@ -834,6 +834,55 @@ export async function addPersonCorpus(
 }
 
 // ---------------------------------------------------------------------------
+// Capabilities: person.links.remove / person.corpus.remove — the person-side
+// twins of resolver.ts's org entry removes: match by URL, detach the entry,
+// leave one `entry_removed` observation as the trail. Corpus removes never
+// touch content_items or fetched files.
+// Per context-v/specs/Entity-Card-Edit-And-Remove-Affordances.md.
+// ---------------------------------------------------------------------------
+
+export type PersonEntryRemoveInput = {
+  person_uuid: string;
+  url: string;
+  client: string;
+  source?: string;
+};
+export type PersonEntryRemoveResult = { ok: true; person_uuid: string; removed: boolean };
+
+async function removePersonListEntry(
+  db: Surreal,
+  field: 'personal_links' | 'personal_corpus',
+  input: PersonEntryRemoveInput,
+): Promise<PersonEntryRemoveResult> {
+  const person = await fetchPersonByUuid(db, input.person_uuid);
+  if (!person) throw new Error(`person not found: ${input.person_uuid}`);
+  const target = input.url.trim();
+  const list = ((person as Record<string, unknown>)[field] ?? []) as { url?: string }[];
+  const next = list.filter((e) => (e?.url ?? '').trim() !== target);
+  if (next.length === list.length) return { ok: true, person_uuid: input.person_uuid, removed: false };
+  await db.query(
+    `UPDATE $id SET
+        ${field}        = $list,
+        client_access   = array::union(client_access ?? [], [$client]),
+        last_touched_by = $client, last_touched_at = time::now();`,
+    { id: person.id, list: next, client: input.client },
+  );
+  await createObservation(db, {
+    subject: person.id,
+    predicate: 'entry_removed',
+    object: target,
+    source: input.source || 'org-workbench',
+    client: input.client,
+  });
+  return { ok: true, person_uuid: input.person_uuid, removed: true };
+}
+
+export const removePersonLink = (db: Surreal, input: PersonEntryRemoveInput) =>
+  removePersonListEntry(db, 'personal_links', input);
+export const removePersonCorpus = (db: Surreal, input: PersonEntryRemoveInput) =>
+  removePersonListEntry(db, 'personal_corpus', input);
+
+// ---------------------------------------------------------------------------
 // organization.affiliations — the people reveal for the Augment-from-DB org
 // workbench: every person RELATEd to one org, with role + relevance off the
 // edge and links/corpus-count off the person. Same two-query discipline as

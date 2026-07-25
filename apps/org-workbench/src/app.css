@@ -139,3 +139,19 @@
 .ow-gate-pick:hover { background: var(--color-border, #2a2c33); }
 .ow-gate-headline { color: var(--color-text-muted, #9aa0aa); font-size: 0.75rem; }
 .ow-gate-score { margin-left: auto; color: var(--color-text-muted, #9aa0aa); font-size: 0.7rem; font-variant-numeric: tabular-nums; }
+
+/* Entity-card correction affordances — chips with ✕, name ✎, inline remove
+   confirms. Per context-v/specs/Entity-Card-Edit-And-Remove-Affordances.md.
+   (.ow-micro hover-reveal inside AdditiveList rows is component-scoped;
+   these cover the card header + identity block, whose reveal scopes are
+   the header row and the <dd>.) */
+.ow-chip { display: inline-flex; align-items: center; gap: 0.25rem; padding: 1px 8px; margin: 0 0.3rem 0.2rem 0; border-radius: 999px; border: 1px solid var(--color-border, #2a2c33); background: var(--color-bg, #14151a); font-size: 0.78rem; }
+.ow-chip-x { background: transparent; border: 0; color: var(--color-text-muted, #9aa0aa); font: inherit; line-height: 1; padding: 0 2px; cursor: pointer; }
+.ow-chip-x:hover { color: var(--color-error-text, #f3a3a3); }
+.ow-chip .ow-micro { opacity: 0; transition: opacity 0.1s ease; }
+.ow-chip:hover .ow-micro, .ow-chip:focus-within .ow-micro { opacity: 1; }
+.ow-card-head .ow-micro { opacity: 0; transition: opacity 0.1s ease; }
+.ow-card-head:hover .ow-micro, .ow-card-head:focus-within .ow-micro { opacity: 1; }
+.ow-chip-confirm { font-size: 0.78rem; color: var(--color-text-muted, #9aa0aa); display: flex; align-items: center; gap: 0.4rem; margin: 0.25rem 0 0; }
+.ow-remove-yes { border-color: var(--color-error-text, #f3a3a3) !important; color: var(--color-error-text, #f3a3a3) !important; }
+.ow-names-edit { flex: 1; }
