@@ -31,6 +31,7 @@ import {
   setClientBrief,
   type BriefSetInput,
   getOrgDetail,
+  listCorpusKinds,
   checkContentUrls,
   type NormRecord,
   type ApplyInput,
@@ -313,6 +314,23 @@ export function registerHandlers(nc: NatsConnection): void {
       try {
         const db = await getDb();
         const result = await getOrgDetail(db, args.org_slug, args.client);
+        if (msg.reply) msg.respond(JSON.stringify(result));
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
+      }
+    }
+  })();
+
+  // organization.corpus.kinds — distinct corpus kinds for the client's
+  // datalist (gh #57, the org-relations human-gate finding).
+  (async () => {
+    const sub = nc.subscribe('organization.corpus.kinds.requested');
+    for await (const msg of sub) {
+      const args = msg.json() as { client: string };
+      try {
+        const db = await getDb();
+        const result = await listCorpusKinds(db, args.client);
         if (msg.reply) msg.respond(JSON.stringify(result));
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);

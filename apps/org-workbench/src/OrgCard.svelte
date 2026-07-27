@@ -22,6 +22,7 @@
     addOrgTag,
     removeOrgTag,
     suggestTags,
+    fetchCorpusKinds,
   } from './lib/org-client';
   import { requestSearch } from './lib/search-request';
   import { submitCrawl } from './lib/search-queue';
@@ -107,6 +108,18 @@
   // Tags — has_tag observations per client (Initiative / Program / Funder…).
   // Datalist rides the shared per-client tag_vocab via tag.suggest; fetched
   // lazily when the add input opens.
+  // Corpus-kind vocabulary for the datalist (gh #57) — client-wide, refreshed
+  // per card load so a kind minted on one org suggests on the next.
+  let corpusKinds = $state<string[]>([]);
+  $effect(() => {
+    void org.slug;
+    fetchCorpusKinds(client)
+      .then((k) => (corpusKinds = k))
+      .catch(() => {
+        /* datalist is a convenience — the input works without it */
+      });
+  });
+
   let addingTag = $state(false);
   let tagDraft = $state('');
   let tagVocab = $state<string[]>([]);
@@ -360,6 +373,7 @@
       title="Corpus items"
       entries={org.org_corpus}
       kindHint="kind (optional)"
+      kindSuggestions={corpusKinds}
       onadd={makeAdd(addOrgCorpus)}
       onedit={makeEdit(updateOrgCorpus)}
       onremove={makeRemove(removeOrgCorpus)}

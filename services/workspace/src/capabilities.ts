@@ -226,6 +226,8 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'organization.relation.update': 'organization.relation.update.requested',
   'organization.tag.add': 'organization.tag.add.requested',
   'organization.tag.remove': 'organization.tag.remove.requested',
+  // Distinct corpus kinds for the kind-input datalist (gh #57).
+  'organization.corpus.kinds': 'organization.corpus.kinds.requested',
 
   // Domain catalog — the canonical typed-grouping graph behind apps/strategy-curator
   // (which is the type='strategy' view). Served by record-surrealdb-resolver
@@ -353,6 +355,7 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'organization.relation.update': 30_000,
   'organization.tag.add': 30_000,
   'organization.tag.remove': 30_000,
+  'organization.corpus.kinds': 30_000,
   'client.brief.get': 30_000,
   'client.brief.set': 30_000,
   // A crawl is one model turn with multiple server-side web searches (plus

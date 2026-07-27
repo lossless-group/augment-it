@@ -26,12 +26,17 @@
     onremove,
     removenote,
     entryaction,
+    kindSuggestions,
   }: {
     title: string;
     entries: Entry[];
     kindHint?: string;
     // Show a name input on the ➕ form (streams: "Today's Credentials").
     nameable?: boolean;
+    // Optional datalist for the kind inputs (add + edit) — autocomplete
+    // against kinds already in use; a non-match still creates whatever the
+    // operator typed (gh #57).
+    kindSuggestions?: string[];
     onadd: (url: string, kind?: string, name?: string) => Promise<void>;
     // Optional 🔍 — launches search-and-add pre-scoped to this list (Phase 3).
     onsearch?: () => void;
@@ -50,6 +55,9 @@
     // Optional per-entry action (Phase 5 — "scan" on pulse streams).
     entryaction?: { label: string; fn: (entry: Entry) => void };
   } = $props();
+
+  // One datalist per list instance — the id must be unique in the page.
+  const kindListId = $derived(`ow-kinds-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`);
 
   let adding = $state(false);
   let open = $state(false);
@@ -205,6 +213,7 @@
         class="ow-add-kind"
         type="text"
         placeholder={kindHint}
+        list={kindSuggestions?.length ? kindListId : undefined}
         bind:value={kind}
         disabled={adding}
       />
@@ -242,6 +251,7 @@
                 class="ow-add-kind"
                 type="text"
                 placeholder="kind"
+                list={kindSuggestions?.length ? kindListId : undefined}
                 bind:value={editKind}
                 onkeydown={onEditKey}
                 disabled={editBusy}
@@ -326,6 +336,12 @@
         </li>
       {/each}
     </ul>
+  {/if}
+
+  {#if kindSuggestions?.length}
+    <datalist id={kindListId}>
+      {#each kindSuggestions as k (k)}<option value={k}></option>{/each}
+    </datalist>
   {/if}
 </section>
 

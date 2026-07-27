@@ -1213,3 +1213,29 @@ export async function getOrgDetail(
     },
   };
 }
+
+// organization.corpus.kinds — the distinct corpus-item kinds already in use
+// across every org this client can see. Feeds the kind input's datalist so
+// vocabulary converges (report vs reports) without ever being enforced —
+// a non-match creates whatever the operator typed. Flattened in JS rather
+// than a [*].kind projection (version-sensitive SurrealQL, same caution as
+// D4's domains clause).
+export async function listCorpusKinds(
+  db: Surreal,
+  client: string,
+): Promise<{ ok: true; kinds: string[] }> {
+  const r = await db.query(
+    `SELECT VALUE org_corpus FROM organizations WHERE client_access CONTAINS $client;`,
+    { client },
+  );
+  const lists = (r?.[0] as { kind?: unknown }[][]) ?? [];
+  const kinds = Array.from(
+    new Set(
+      lists
+        .flat()
+        .map((e) => (typeof e?.kind === 'string' ? e.kind.trim() : ''))
+        .filter(Boolean),
+    ),
+  ).sort((a, b) => a.localeCompare(b));
+  return { ok: true, kinds };
+}

@@ -199,6 +199,18 @@ export async function updateOrgIdentity(args: {
   if (!r.ok) throw new Error(r.error || 'resolver.update_org failed');
 }
 
+// Distinct corpus kinds across the client's orgs — feeds the kind input's
+// datalist so vocabulary converges without being enforced (gh #57).
+export async function fetchCorpusKinds(client: string): Promise<string[]> {
+  const r = (await workspace.invoke('organization.corpus.kinds', { client })) as {
+    ok: boolean;
+    kinds?: string[];
+    error?: string;
+  };
+  if (!r.ok) throw new Error(r.error || 'organization.corpus.kinds failed');
+  return r.kinds ?? [];
+}
+
 export async function addOrgCorpus(args: AddArgs): Promise<ShapedLink> {
   const r = (await workspace.invoke('organization.corpus.add', args)) as {
     ok: boolean;

@@ -179,3 +179,15 @@ triage SKILL.md's parent-child open decision flips to **MODEL LANDED**,
 and the `initiative_hub` stream kind sheds its "while parent/child
 modeling is unresolved" caveat — it's now only for initiatives that don't
 merit their own org row.
+
+### Human-gate finding: corpus kinds stop drifting (#57)
+
+The operator's walk-through surfaced it in minutes: the Corpus items
+adder's free-text `kind` breeds near-duplicates (`report` vs `reports`).
+Fix: `organization.corpus.kinds` returns the distinct kinds already in use
+across the client's orgs — 19 in reach-edu on first fire (`annual_report`,
+`article`, `blog_post`, …) — and `AdditiveList` grew an optional
+`kindSuggestions` datalist on both the add and edit kind inputs.
+Autocomplete, never enforcement: a non-match creates exactly what the
+operator typed, the same open-vocabulary philosophy as relation kinds.
+Refreshed per card load, so a kind minted on one org suggests on the next.
