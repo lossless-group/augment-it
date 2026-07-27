@@ -11,14 +11,30 @@ augmented_with:
 files_changed:
   - context-v/plans/Org-Relations-Parent-Child-Peer-Plus-Org-Tags.md
   - context-v/loops/Implement-Feature-Loop.md
+  - context-v/issues/Parent-Child-Nested-Organizations-Not-Modeled.md
+  - context-v/agent-skills/triage-inbox-w-suggestions/SKILL.md
+  - services/record-surrealdb-resolver/src/org-relations.ts
+  - services/record-surrealdb-resolver/src/resolver.ts
+  - services/record-surrealdb-resolver/src/handlers.ts
+  - services/record-surrealdb-resolver/src/domains.ts
+  - services/record-surrealdb-resolver/src/server.ts
+  - services/workspace/src/capabilities.ts
+  - services/workspace/src/chat.ts
+  - apps/org-workbench/src/RelatedOrgs.svelte
+  - apps/org-workbench/src/OrgCard.svelte
+  - apps/org-workbench/src/App.svelte
+  - apps/org-workbench/src/AdditiveList.svelte
+  - apps/org-workbench/src/lib/types.ts
+  - apps/org-workbench/src/lib/org-client.ts
+  - scripts/prove-org-relations.mjs
 ---
 
 # Organizations Learn Their Family Tree
 
-> **Stub note:** this entry is being written *as the work lands*, per the
-> [[../context-v/loops/Implement-Feature-Loop|Implement-Feature-Loop]] (its
-> first run). `## What landed` accumulates a beat per closed ticket; the
-> polish pass happens at ship. Tickets: augment-it #49–#56.
+> Written beat-by-beat *as the work landed* — the first run of the
+> [[../context-v/loops/Implement-Feature-Loop|Implement-Feature-Loop]]
+> (tickets #49–#57, `init(feature, org-relations)` →
+> `ship(feature, org-relations)` in one day, human gate included).
 
 ## Why Care?
 
@@ -191,3 +207,33 @@ across the client's orgs — 19 in reach-edu on first fire (`annual_report`,
 Autocomplete, never enforcement: a non-match creates exactly what the
 operator typed, the same open-vocabulary philosophy as relation kinds.
 Refreshed per card load, so a kind minted on one org suggests on the next.
+
+### The pilot untangle — and the conflation confesses (#56)
+
+The acceptance test was the case that started it all:
+`funders/upmobility-foundation-urban-institute/`. Walking it through the
+live workbench produced the run's best finding: **the weld was never a
+parent and its initiative — it was two distinct entities.** UpMobility
+Foundation (upmobility.org, a nonprofit donor) and Urban Institute's
+*Upward Mobility* initiative (upward-mobility.urban.org) had been fused by
+a host-family match. The operator ruled them **peers** (`partners_with`
+edge), minted `urban-institute` (+`Think-Tank` tag) through the UI, and
+the 17-file sweep split the folder by aboutness: seven UpMobility captures
+into the renamed `funders/upmobility-foundation/`, six Urban files into
+`think-tanks/urban-institute/` (including the three captures parked since
+triage batch 1, now registered as `content_items`), two fetch-blocked
+profiles gated, two mis-packed third parties re-inboxed — and **zero
+`reference_of:` pointers**, because the DB edge itself is the connection.
+reach-edu commit `30e0453`.
+
+The issue's remaining welds (Truist↔LiftFund, Beacon, the Koch
+constellation edges, USDA↔Rural Development, the Harvard chain) untangle
+lazily at filing pressure, now with the tools this ship built.
+
+## What's next
+
+- The rest of the reconciliation worklist, case by case, in triage sessions.
+- Corpus roll-up lenses (child content surfacing on the parent) — deferred
+  until the edges earn it.
+- Multi-hop chains (Project on Workforce ⊂ HKS ⊂ Harvard) render one hop
+  today; walking is click-through.

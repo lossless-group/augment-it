@@ -7,9 +7,12 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.2
+semantic_version: 0.0.1.0
+date_first_published: 2026-07-27
 issue_reference: "[[../issues/Parent-Child-Nested-Organizations-Not-Modeled]]"
+post_ship_note: "Executed same day as authored, first run of [[../loops/Implement-Feature-Loop]] (tickets #49–#57, init 570d0b6 → ship). Proof script caught two real relation.update bugs; the browser drive caught a keyboard-unreachable affordance; the human gate added #57 (corpus-kind datalist) and a superseding pilot ruling — UpMobility Foundation and Urban Institute are DISTINCT entities, peer/partners_with, so the pilot needed no reference_of pointers at all."
 revisions:
+  - "2026-07-27 — v0.0.1.0 — Shipped. All four phases landed; pilot untangled with the peer ruling; #56 worklist tracked in the issue file."
   - "2026-07-27 — v0.0.0.2 — status → Implementing at loop start ([[../loops/Implement-Feature-Loop]] first run). Superseded by reality: `tag.suggest` / `tag.apply` verbs already exist (capabilities.ts:240-241, domains.ts) — §1.4's 'add a thin tags.vocab' is unnecessary; the UI datalist rides `tag.suggest`, and the org tag handlers reuse `ensureTagInVocab` + `toDashed` from domains.ts. (`tag.apply` itself is source_usages-scoped, not reusable for orgs.)"
 tags:
   - Plan
@@ -18,7 +21,7 @@ tags:
   - Canonical-Layer
   - Org-Workbench
   - Data-Modeling
-status: Implementing
+status: Shipped
 ---
 
 # Org Relations (parent/child/peer) + Org Tags

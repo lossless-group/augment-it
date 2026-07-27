@@ -7,8 +7,9 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.2
+semantic_version: 0.0.1.0
 revisions:
+  - 2026-07-27 — **Model shipped + pilot untangled (0.0.1.0).** Section C fully checked (edges in `affiliations`, six capabilities, workbench surface, triage step 5b); pilot case A-1 done with a superseding ruling — UpMobility Foundation and Urban Institute's Upward Mobility initiative are DISTINCT entities, related peer/`partners_with`, not initiative-of. All three parked captures filed. Remaining: worklist A-2..4 and B, untangled lazily at filing pressure per the standing ruling.
   - 2026-07-25 — Initial draft, written mid-triage-run when the Urban Institute event page (batch 1 item 18) was parked rather than filed into the conflated funder folder.
   - 2026-07-27 — **Reconciliation worklist added (0.0.0.2).** After the DB-slug-is-source-of-truth pass renamed every cleanly-renamable folder, the welded slugs are the last disk↔DB divergence — operator directed: build this in and track it. Full per-case inventory with current state and untangle steps; gh issue opened for the work trail.
 tags:
@@ -100,14 +101,19 @@ pointers across the seam, (4) re-home any parked inbox captures.
 
 ### A. Welded disk folders (4)
 
-- [ ] **`funders/upmobility-foundation-urban-institute/`** — Upward Mobility
-      Foundation (initiative) welded to Urban Institute (parent). Clean
-      `upmobility-foundation` row EXISTS (operator-created); `urban-institute`
-      row does not. Three inbox captures parked on this case (event page,
-      homepage, 2025 impact report). Untangle: mint `urban-institute`
-      (think-tank), edge `upmobility-foundation —initiative_of→
-      urban-institute`, split folder content by aboutness, file the three
-      parked captures. **The pilot case — do this one first.**
+- [x] **`funders/upmobility-foundation-urban-institute/`** — UNTANGLED
+      2026-07-27 (the pilot case, run through the live Org Workbench +
+      operator-confirmed sweep). **Ruling supersedes the original framing:**
+      the weld conflated two DISTINCT entities — UpMobility Foundation
+      (upmobility.org, a nonprofit donor) and Urban Institute's Upward
+      Mobility *initiative* (upward-mobility.urban.org). The operator ruled
+      the relation **peer / `partners_with`**, not initiative_of — the
+      initiative is Urban's, not the foundation's. `urban-institute` minted
+      via the workbench (+`Think-Tank` tag); edge live in `affiliations`;
+      folder split by aboutness (7 files → `funders/upmobility-foundation/`,
+      6 → `think-tanks/urban-institute/` incl. the three parked captures,
+      2 gated, 2 re-inboxed) with NO `reference_of:` pointers — the DB edge
+      carries the connection. reach-edu commit `30e0453`.
 - [ ] **`funders/truist-foundation-liftfund-us/`** — Truist Foundation welded
       to LiftFund (a CDFI grantee/partner, not a sub-org — the edge here is
       `funds`/`partners_with`, not `initiative_of`). Clean `truist-foundation`
@@ -142,23 +148,27 @@ pointers across the seam, (4) re-home any parked inbox captures.
 
 ### C. The build (what "model lands" means)
 
-- [ ] Ratify the edge shape: a typed `org_relations` RELATE edge
-      (`kind: initiative_of | fund_of | program_of | agency_of | chapter_of |
-      funds | partners_with`), queryable both directions.
-- [ ] Capabilities: `organization.relate` (+ list/remove) on the wire, so
-      edges never need direct writes.
-- [ ] Surface: entity card shows parent/children; corpus lenses can roll a
-      child's content up to the parent.
-- [ ] Triage integration: the skill's aboutness routing gains a "parent or
-      child?" step once edges exist; the four welded folders above get
-      untangled as the acceptance test.
+- [x] ~~Ratify the edge shape~~ — SHIPPED 2026-07-27, with one deliberate
+      deviation from the candidate shape: org→org edges live in the
+      existing **`affiliations`** table (`edge_type: 'org_org'`,
+      `rel: 'child_of' | 'peer'`, open-vocabulary `kind`, free-text
+      `description`, `client_access`), not a new `org_relations` table.
+      Per [[../plans/Org-Relations-Parent-Child-Peer-Plus-Org-Tags]].
+- [x] ~~Capabilities~~ — `organization.relate / relations / unrelate /
+      relation.update` + `organization.tag.add / tag.remove` live; proof
+      script `scripts/prove-org-relations.mjs` 22/22 green.
+- [x] ~~Surface~~ — Org Workbench card shows Part of / Contains / Peers
+      with click-through navigation + a Tags row. (Corpus roll-up lenses
+      deliberately deferred — named out-of-scope in the plan.)
+- [x] ~~Triage integration~~ — aboutness routing landed as step 5b in the
+      triage skill + didi's slabs; pilot untangle done (worklist A-1 above).
 
 ## Parked pending this issue
 
-- `inbox/2026-06-10_apprenticeship-industry-driven-made-to-scale.md` (Urban
-  Institute event; batch 1 #18)
-- `inbox/2026-06-10_driving-impact-by-equipping-changemakers-with-evidence-and-s.md`
-  (Urban Institute homepage; batch 2)
+~~All three parked captures filed 2026-07-27~~ (event page, homepage, AND
+the 2025 impact report) → `think-tanks/urban-institute/`, registered via
+`organization.corpus.add`, reach-edu commit `30e0453`. Nothing remains
+parked on this issue.
 
 ## See also
 
