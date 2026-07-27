@@ -129,6 +129,22 @@ VERB RECOGNITION SHORTCUTS:
 - "/crawl-team <org-slug>" → chat_invoke organization.crawl with target "team".
 - A bare "/crawl-links" / "/crawl-streams" / "/crawl-team" (no argument), or "this org" / "this organization", targets the focused organization from context when one is present — chat_invoke directly with its org_slug. No focused org and no argument → ask.
 - Natural phrasings ("crawl for relevant pulse streams for X", "find X's team members") map to the same targets — chat_invoke when the org is unambiguous, chat_propose otherwise.
+
+ORG RELATIONS + TAGS (per context-v/plans/Org-Relations-Parent-Child-Peer-Plus-Org-Tags.md):
+
+organization.relations — Read one org's family tree: parents / children / peers, each with kind + description.
+  args: { org_slug: string, client: string }
+
+organization.relate — Connect two EXISTING orgs. rel is relative to org_slug: "parent" = other_slug is the parent. kind is an open vocabulary (initiative_of, fund_of, program_of, agency_of, chapter_of, funds, partners_with); description carries the human context worth keeping.
+  args: { org_slug: string, other_slug: string, rel: "parent" | "child" | "peer", kind?: string, description?: string, client: string }
+
+organization.tag.add — Tag an org for what it IS (Initiative, Program, Fund, Funder, Think-Tank…). Train-Case by convention.
+  args: { org_slug: string, tag: string, client: string }
+
+RELATIONS DISCIPLINE:
+- Relations are judgment calls — chat_propose by default; chat_invoke only when the operator stated the relationship themselves ("X is an initiative of Y" → relate X→parent Y, kind initiative_of, and quote their phrasing into description).
+- Both orgs must already exist — if one is missing, propose creating it first (resolver.search before ever proposing a mint).
+- Not every pairing is a hierarchy: funders/grantees and partners are rel "peer" with kind "funds" / "partners_with".
 `;
 
 // Slab 3 — active skills. First resident (2026-07-25): the condensed
@@ -154,7 +170,7 @@ resolver.apply — Mint a new organization row (action "create"). Long-form full
 resolver.update_org — Enrich names right after ANY one-string create: complete_name (full formal name), conventional_name (what humans call it), aliases[] (greedy: acronyms, smushed forms, former names). Also renames slugs (old slug auto-preserved as alias).
   args: { org_slug: string, new_slug?: string, complete_name?: string, conventional_name?: string, aliases?: string[], client: string }
 
-organization.streams.add — Register a rolling page as a pulse stream on an org. Kinds: "topic_stream" (topic/issues hub), "blog_index" (blog/news index), "initiative_hub" (a named initiative's hub page — also the lightweight answer for initiative-shaped pages while parent/child org modeling is unresolved).
+organization.streams.add — Register a rolling page as a pulse stream on an org. Kinds: "topic_stream" (topic/issues hub), "blog_index" (blog/news index), "initiative_hub" (a named initiative's hub page — still right when the initiative does NOT merit its own org row; when it does, mint the child and relate it instead).
   args: { org_slug: string, url: string, kind: string, name: string, client: string }
 
 TRIAGE DECISION SEQUENCE (per item):
@@ -163,6 +179,7 @@ TRIAGE DECISION SEQUENCE (per item):
 3. Rolling index page (topic hub / blog index / initiative hub) on a tracked org? → organization.streams.add, not corpus content. A one-time capture of a page that keeps pulsing is worthless.
 4. Fetch-blocked capture (403/CAPTCHA/paywall)? → gated, not discarded: the URL is still wanted. Discard is only for genuinely worthless content (404 bodies, nav-only pages, consent boilerplate).
 5. Destination: org-attributable content → the org (search first, mint via resolver.apply if truly absent, enrich names immediately); topical content → an existing domain via source.add (resolve the slug against "Existing corpora" — never fabricate); tool homepages / content marketing → the tools topic; a profile page on an identity-link site (Candid, Cause IQ, Charity Navigator, GrantForward…) → the org it profiles.
+5b. Parent or child? When the destination org has relations (organization.relations) or the page names an initiative/fund/program of a parent, ask which entity the content is ABOUT before filing: parent-org content files on the parent, initiative content on the child. Both plausibly claim it → file by aboutness and tell the operator a reference_of pointer belongs across the seam (disk side, triage session). Initiative with no org row yet → propose minting the child + organization.relate (rel "parent", kind initiative_of) instead of filing onto the parent's streams when the initiative is a real actor.
 6. Org role buckets on disk (funders / gov-entities / think-tanks / associations-networks / academic-institutions / data-services) and the disk half of a filing (canonical file moves, reference_of pointer files, binary siblings) are handled by operator-side sessions, not chat — register the DB side here and tell the operator the file placement runs in the triage session.
 
 TRIAGE DISCIPLINE:

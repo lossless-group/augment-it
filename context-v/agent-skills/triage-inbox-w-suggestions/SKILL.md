@@ -389,12 +389,24 @@ attention goes to the hard tail.
       Human Potential Network) — sibling folder
       (`corpus/organizations/<slug>/`?) or something else? Still open;
       captures accumulate pending in the inbox.
-- [ ] **Parent-child organizations** (raised in batch 1, 2026-07-25):
-      urban-institute is the parent org; upmobility-foundation is an
-      initiative of it. Operator ruling: do NOT file content into either
-      until the relationship is modeled. Full write-up + candidate shape:
+- [x] **Parent-child organizations** — MODEL LANDED (2026-07-27): org↔org
+      relations are live (`organization.relate` / `.relations` /
+      `.unrelate` / `.relation.update` — parent/child/peer + kind +
+      free-text description, edges in the `affiliations` table) along with
+      org tags (`organization.tag.add` / `.remove` — Initiative, Program,
+      Fund…). Per
+      [[../../plans/Org-Relations-Parent-Child-Peer-Plus-Org-Tags|the plan]];
+      history in
       [[../../issues/Parent-Child-Nested-Organizations-Not-Modeled|Parent-Child-Nested-Organizations-Not-Modeled]].
-      Affected captures stay pending in the inbox.
+      **Aboutness routing (step 5b):** when a destination org has relations
+      or the page names an initiative/fund/program of a parent, ask which
+      entity the content is *about* before filing — parent content on the
+      parent, initiative content on the child, `reference_of:` pointer
+      across the seam when both want it. An initiative that is a real actor
+      but has no row yet → mint the child, relate it (`rel: parent`,
+      `kind: initiative_of`), tag it `Initiative`, and file there.
+      The parked upmobility/urban-institute captures are the pilot filing
+      (issue's worklist section A).
 - [x] **Person-destined content** (ruled 2026-07-27): individual funders
       keep normal `funders/<slug>/` folders (the funders corpus is the
       funder-to-strategy mapping substrate); DB identity is a **persons**
@@ -414,7 +426,9 @@ A condensed operational form of this skill ships in didi's chat as the
 **ACTIVE_SKILLS slab** in `services/workspace/src/chat.ts` (the Slab-3 spot
 reserved since v0.0.1), teaching the triage verbs
 (`organization.corpus.add`, `resolver.search`, `resolver.apply`,
-`resolver.update_org`, `organization.streams.add`) and the decision
+`resolver.update_org`, `organization.streams.add` — and, since 2026-07-27,
+the relations/tags verbs `organization.relations`, `organization.relate`,
+`organization.tag.add` with the step-5b aboutness routing) and the decision
 sequence above. Honest limit: chat-didi can register, resolve, mint, and
 stream — the *disk* half of a filing (canonical merge, pointer files,
 binary moves) still runs session-side via the scripts above, until a

@@ -163,3 +163,19 @@ the drive's click literally couldn't reach them. Now opacity-based with
 `:focus-within`, so Tab reveals them too. The drive proving the buttons
 *work* is exactly the rung that caught the button you couldn't Tab to;
 the human walk-through still judges whether the surface is *usable*.
+
+### didi learns the family tree, and triage learns to ask "parent or child?" (#55)
+
+`WORKBENCH_CHAT_VERBS` now carries `organization.relations / relate /
+tag.add` with the relations discipline: **propose by default** — a
+relation is a judgment call, so didi chat_invokes only when the operator
+stated the relationship themselves ("X is an initiative of Y"), quoting
+their phrasing into the edge's `description`. The triage slab gains
+**step 5b (aboutness routing)**: when a destination org has relations or
+the page names an initiative of a parent, ask which entity the content is
+*about* before filing — and an initiative that's a real actor with no row
+yet gets minted, related, and tagged `Initiative` instead of parked. The
+triage SKILL.md's parent-child open decision flips to **MODEL LANDED**,
+and the `initiative_hub` stream kind sheds its "while parent/child
+modeling is unresolved" caveat — it's now only for initiatives that don't
+merit their own org row.
