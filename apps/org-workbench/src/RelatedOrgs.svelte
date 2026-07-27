@@ -261,7 +261,9 @@
   .ro-kind { font-size: 0.72rem; padding: 0.05rem 0.4rem; border: 1px solid var(--color-border, #2a2c33); border-radius: 999px; opacity: 0.8; white-space: nowrap; }
   .ro-desc { font-size: 0.78rem; opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
   .ro-actions { margin-left: auto; display: inline-flex; gap: 0.25rem; }
-  .ro-row:not(:hover) .ro-actions { visibility: hidden; }
+  /* opacity, not visibility — the buttons stay focusable/clickable for
+     keyboard users and assistive tech; :focus-within reveals them on Tab */
+  .ro-row:not(:hover):not(:focus-within) .ro-actions { opacity: 0; }
   .ro-add { display: flex; flex-direction: column; gap: 0.25rem; }
   .ro-picked, .ro-edit-name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
 </style>

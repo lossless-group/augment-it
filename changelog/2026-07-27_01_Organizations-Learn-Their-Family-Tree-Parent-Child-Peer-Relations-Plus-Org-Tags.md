@@ -145,3 +145,21 @@ deliberately share one vocabulary). Tag removal rides its own verb rather
 than `resolver.update_org`, because tags are per-client observations, not
 fields on the shared org row. The row renders even when empty so the
 affordance is discoverable — an untagged org shows the ➕, not nothing.
+
+### The agent drove it before asking a human to (#54)
+
+Playwright drive against the live shell (`localhost:3100`, Augment-from-DB
+flow), throwaway `drive-proof-*` orgs only, accessibility snapshots
+throughout, deleted to zero residue after: relate via the ➕ form →
+**Part of** renders with kind badge + description → row click navigates
+the workbench to the parent → reverse projection shows **Contains** →
+tag add renders the chip → ✕-confirm removes it (empty row keeps its ➕)
+→ relation ✕-confirm removes the edge. Zero console errors across the
+whole drive.
+
+One finding, fixed live: the hover-revealed ✎/× used `visibility: hidden`,
+which also removed them from keyboard focus and the accessibility tree —
+the drive's click literally couldn't reach them. Now opacity-based with
+`:focus-within`, so Tab reveals them too. The drive proving the buttons
+*work* is exactly the rung that caught the button you couldn't Tab to;
+the human walk-through still judges whether the surface is *usable*.
