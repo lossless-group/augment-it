@@ -2,14 +2,15 @@
 title: "Parent-Child Nested Organizations Are Not Modeled — Initiatives, Funds, and Sub-Orgs Have Nowhere Canonical to Hang"
 lede: "Surfaced in the first triage-inbox co-pilot run (2026-07-25): an Urban Institute event page had no honest destination because upmobility-foundation-urban-institute conflates a parent org (Urban Institute) with an initiative of it (Upward Mobility Foundation). The operator ruled: don't file content into either until the parent/child relationship is actually modeled."
 date_created: 2026-07-25
-date_modified: 2026-07-25
+date_modified: 2026-07-27
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 revisions:
   - 2026-07-25 — Initial draft, written mid-triage-run when the Urban Institute event page (batch 1 item 18) was parked rather than filed into the conflated funder folder.
+  - 2026-07-27 — **Reconciliation worklist added (0.0.0.2).** After the DB-slug-is-source-of-truth pass renamed every cleanly-renamable folder, the welded slugs are the last disk↔DB divergence — operator directed: build this in and track it. Full per-case inventory with current state and untangle steps; gh issue opened for the work trail.
 tags:
   - Issue
   - Augment-It
@@ -88,6 +89,69 @@ Operator flagged this explicitly when ruling the bucket.
   `019eec87-f75e-7702-8adf-41a444fb1fc2`).
 - Existing welded slugs get untangled lazily, on first real filing pressure,
   not in a big-bang rename.
+
+## The reconciliation worklist (added 2026-07-27 — this is the tracked work)
+
+Everything cleanly renamable was renamed on 2026-07-27 (DB slug = source of
+truth). What remains is exactly the set this issue exists for. Untangling one
+case = (1) ensure BOTH entities have org rows, (2) create the typed relation
+edge, (3) split/rename the disk folder by aboutness with `reference_of:`
+pointers across the seam, (4) re-home any parked inbox captures.
+
+### A. Welded disk folders (4)
+
+- [ ] **`funders/upmobility-foundation-urban-institute/`** — Upward Mobility
+      Foundation (initiative) welded to Urban Institute (parent). Clean
+      `upmobility-foundation` row EXISTS (operator-created); `urban-institute`
+      row does not. Three inbox captures parked on this case (event page,
+      homepage, 2025 impact report). Untangle: mint `urban-institute`
+      (think-tank), edge `upmobility-foundation —initiative_of→
+      urban-institute`, split folder content by aboutness, file the three
+      parked captures. **The pilot case — do this one first.**
+- [ ] **`funders/truist-foundation-liftfund-us/`** — Truist Foundation welded
+      to LiftFund (a CDFI grantee/partner, not a sub-org — the edge here is
+      `funds`/`partners_with`, not `initiative_of`). Clean `truist-foundation`
+      row EXISTS. Untangle: decide LiftFund's own row + bucket, split folder.
+- [ ] **`funders/the-denver-foundation-beacon/`** — the Beacon fund OF the
+      Denver Foundation. Clean `denver-foundation` row EXISTS. The fund is the
+      thing reach-edu cares about; the community foundation is its host.
+      Untangle: `beacon-fund —fund_of→ denver-foundation`; folder probably
+      renames to the fund's own slug.
+- [ ] **`funders/alabama-state-legislature-appropriations-funds/`** — a
+      funding *mechanism* (state appropriations) welded to a gov body. NO row
+      exists for either. Untangle: mint `alabama-state-legislature`
+      (gov-entities); decide whether the appropriations channel is an edge
+      property, a stream, or its own entity.
+
+### B. Same-shape residue (not welded folders, same missing model)
+
+- [ ] **`funders/mandelblatt-foundation/`** — a donor fund hosted at a
+      community foundation (yourcommunityfoundation.org); no row. Same
+      fund-of shape as Beacon.
+- [ ] **Koch / Stand Together constellation** — rows exist
+      (`charles-koch-foundation`, `stand-together-trust`,
+      `stand-together-foundation`); the edges don't. See the constellation
+      note above.
+- [ ] **`us-department-of-agriculture` ↔ `usda-rural-development`** — both
+      rows exist as flat siblings; needs `agency_of` (and DOL/ETA has the
+      same shape waiting: TEGL/ETA content sits on `us-department-of-labor`).
+- [ ] **Academic chain** — `project-on-workforce-at-harvard` is a leaf with
+      no chain to HKS/Harvard (see the academic-institutions note above).
+- [ ] **DB dupe, non-destructive merge pending**: `donor-s-trust` vs
+      `donorstrust` (same recipe as bhef/jff merges).
+
+### C. The build (what "model lands" means)
+
+- [ ] Ratify the edge shape: a typed `org_relations` RELATE edge
+      (`kind: initiative_of | fund_of | program_of | agency_of | chapter_of |
+      funds | partners_with`), queryable both directions.
+- [ ] Capabilities: `organization.relate` (+ list/remove) on the wire, so
+      edges never need direct writes.
+- [ ] Surface: entity card shows parent/children; corpus lenses can roll a
+      child's content up to the parent.
+- [ ] Triage integration: the skill's aboutness routing gains a "parent or
+      child?" step once edges exist; the four welded folders above get
+      untangled as the acceptance test.
 
 ## Parked pending this issue
 
