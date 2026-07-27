@@ -115,3 +115,22 @@ First run caught two real bugs in `relation.update`:
    edge intact.
 
 Second run: 22/22 green, `cleanup: zero residue`.
+
+### The card grows a family-tree section (#52)
+
+`RelatedOrgs.svelte` sits on the org card above People: **Part of /
+Contains / Peers**, each row showing the related org, its `kind` badge,
+and the free-text description. The row itself is the navigation — click a
+related org and the workbench loads it (`onopen` → `OrgCard` →
+`App.loadOrg`, which already handles active-entity broadcast), so walking
+a constellation like Koch / Stand Together is edge-by-edge click-through.
+
+The ➕ opens an inline relate form: the existing `OrgSearch` picker, a
+plain-language rel select ("is the parent of this org / is a child of
+this org / is a peer"), a `kind` input with the seed-vocabulary datalist,
+and the description field. Relating is to **existing orgs only** — the
+no-match path routes through the header's gated `+ New organization`, so
+org creation keeps its single door. ✎ edits rel/kind/description in place
+(a parent↔child flip re-normalizes server-side); × uses the same
+inline-confirm as the alias chips, with the reassurance spelled out:
+*both orgs stay — only the edge goes*.

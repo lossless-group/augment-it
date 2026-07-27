@@ -34,6 +34,25 @@ export type OrgDetail = {
   org_corpus: (ShapedLink & { content_id?: unknown })[];
 };
 
+// Org↔org relations (organization.relations) — parent/child/peer projected
+// server-side relative to the queried org. Per
+// context-v/plans/Org-Relations-Parent-Child-Peer-Plus-Org-Tags.md.
+export type OrgRelKind = 'parent' | 'child' | 'peer';
+
+export type RelatedOrg = {
+  slug: string;
+  display_name: string;
+  rel: OrgRelKind;
+  kind: string | null;
+  description: string | null;
+};
+
+export type OrgRelations = {
+  parents: RelatedOrg[];
+  children: RelatedOrg[];
+  peers: RelatedOrg[];
+};
+
 // Phase 4 — add-person wire shapes (person-resolver.ts mirrors).
 export type PersonNormRecord = {
   name: string;

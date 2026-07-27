@@ -13,6 +13,8 @@ import type {
   ShapedLink,
   PersonCandidate,
   PersonNormRecord,
+  OrgRelations,
+  OrgRelKind,
 } from './types';
 
 export async function searchOrgs(q: string, client: string): Promise<OrgSuggestion[]> {
@@ -314,6 +316,60 @@ async function personEntryOp(verb: string, args: PersonRemoveArgs): Promise<void
 
 export const removePersonLink = (args: PersonRemoveArgs) => personEntryOp('person.links.remove', args);
 export const removePersonCorpus = (args: PersonRemoveArgs) => personEntryOp('person.corpus.remove', args);
+
+// ---- Org↔org relations — parent/child/peer edges in the affiliations table,
+// spoken relative to the focused org (the server normalizes direction). Per
+// context-v/plans/Org-Relations-Parent-Child-Peer-Plus-Org-Tags.md.
+
+export async function fetchOrgRelations(org_slug: string, client: string): Promise<OrgRelations> {
+  const r = (await workspace.invoke('organization.relations', { org_slug, client })) as {
+    ok: boolean;
+    parents?: OrgRelations['parents'];
+    children?: OrgRelations['children'];
+    peers?: OrgRelations['peers'];
+    error?: string;
+  };
+  if (!r.ok) throw new Error(r.error || 'organization.relations failed');
+  return { parents: r.parents ?? [], children: r.children ?? [], peers: r.peers ?? [] };
+}
+
+export async function relateOrg(args: {
+  org_slug: string;
+  other_slug: string;
+  rel: OrgRelKind;
+  kind?: string | null;
+  description?: string | null;
+  client: string;
+}): Promise<{ created: boolean }> {
+  const r = (await workspace.invoke('organization.relate', args)) as {
+    ok: boolean;
+    created?: boolean;
+    error?: string;
+  };
+  if (!r.ok) throw new Error(r.error || 'organization.relate failed');
+  return { created: r.created ?? false };
+}
+
+export async function unrelateOrg(args: {
+  org_slug: string;
+  other_slug: string;
+  client: string;
+}): Promise<void> {
+  const r = (await workspace.invoke('organization.unrelate', args)) as { ok: boolean; error?: string };
+  if (!r.ok) throw new Error(r.error || 'organization.unrelate failed');
+}
+
+export async function patchOrgRelation(args: {
+  org_slug: string;
+  other_slug: string;
+  rel?: OrgRelKind;
+  kind?: string | null;
+  description?: string | null;
+  client: string;
+}): Promise<void> {
+  const r = (await workspace.invoke('organization.relation.update', args)) as { ok: boolean; error?: string };
+  if (!r.ok) throw new Error(r.error || 'organization.relation.update failed');
+}
 
 // Detach a person from one org — the inverse of affiliatePerson. Edge-only:
 // person, org, and observation history all stay.

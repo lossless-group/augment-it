@@ -184,7 +184,7 @@
       {:else if error}
         <div class="ow-error">{error}</div>
       {:else if org}
-        <OrgCard {org} {client} onchanged={refetch} />
+        <OrgCard {org} {client} onchanged={refetch} onopen={(slug) => void loadOrg(slug)} />
       {:else}
         <p class="ow-empty-state">
           Pick an organization from the coverage roster on the left (fewest corpus items first),

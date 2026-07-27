@@ -7,6 +7,7 @@
 
   import AdditiveList from './AdditiveList.svelte';
   import PeopleReveal from './PeopleReveal.svelte';
+  import RelatedOrgs from './RelatedOrgs.svelte';
   import {
     addOrgLink,
     addOrgStream,
@@ -27,10 +28,13 @@
     org,
     client,
     onchanged,
+    onopen,
   }: {
     org: OrgDetail;
     client: string;
     onchanged: () => void;
+    // Navigate the workbench to another org — RelatedOrgs' click-through.
+    onopen: (slug: string) => void;
   } = $props();
 
   function bump() {
@@ -278,6 +282,8 @@
       onremove={makeRemove(removeOrgCorpus)}
       onsearch={makeSearch('corpus', (n) => `"${n}" news`)}
     />
+
+    <RelatedOrgs org_slug={org.slug} {client} {onopen} />
 
     <PeopleReveal org_slug={org.slug} orgName={displayName} {client} />
   </div>
