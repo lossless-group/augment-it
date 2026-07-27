@@ -395,8 +395,13 @@ attention goes to the hard tail.
       until the relationship is modeled. Full write-up + candidate shape:
       [[../../issues/Parent-Child-Nested-Organizations-Not-Modeled|Parent-Child-Nested-Organizations-Not-Modeled]].
       Affected captures stay pending in the inbox.
-- [ ] **Person-destined content**: `person.corpus.add` is DB-side; persons
-      have no on-disk corpus folder today. Where does the markdown live?
+- [x] **Person-destined content** (ruled 2026-07-27): individual funders
+      keep normal `funders/<slug>/` folders (the funders corpus is the
+      funder-to-strategy mapping substrate); DB identity is a **persons**
+      row affiliated to their org(s); folder files carry `person_uuid` +
+      `person_name` + `entity_kind: "person"` frontmatter. Also ruled: the
+      DB slug is the source of truth for folder names — rename folders, not
+      rows (welded parent/child slugs excepted, parked on that issue).
 - [ ] **Reference-copy double-counting**: coverage lenses and
       `corpus.list_for_record` walk the filesystem; teach them to skip
       `reference_of:` files before fanning references widely.
