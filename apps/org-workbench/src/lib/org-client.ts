@@ -371,6 +371,34 @@ export async function patchOrgRelation(args: {
   if (!r.ok) throw new Error(r.error || 'organization.relation.update failed');
 }
 
+// ---- Org tags — has_tag observations per client; vocabulary rides the
+// existing tag_vocab via tag.suggest (shared with source tags on purpose).
+
+export async function addOrgTag(args: { org_slug: string; tag: string; client: string }): Promise<string> {
+  const r = (await workspace.invoke('organization.tag.add', args)) as {
+    ok: boolean;
+    tag?: string;
+    error?: string;
+  };
+  if (!r.ok || !r.tag) throw new Error(r.error || 'organization.tag.add failed');
+  return r.tag;
+}
+
+export async function removeOrgTag(args: { org_slug: string; tag: string; client: string }): Promise<void> {
+  const r = (await workspace.invoke('organization.tag.remove', args)) as { ok: boolean; error?: string };
+  if (!r.ok) throw new Error(r.error || 'organization.tag.remove failed');
+}
+
+export async function suggestTags(client: string, prefix?: string): Promise<string[]> {
+  const r = (await workspace.invoke('tag.suggest', { client_slug: client, prefix })) as {
+    ok: boolean;
+    tags?: string[];
+    error?: string;
+  };
+  if (!r.ok) throw new Error(r.error || 'tag.suggest failed');
+  return r.tags ?? [];
+}
+
 // Detach a person from one org — the inverse of affiliatePerson. Edge-only:
 // person, org, and observation history all stay.
 export async function unaffiliatePerson(args: {

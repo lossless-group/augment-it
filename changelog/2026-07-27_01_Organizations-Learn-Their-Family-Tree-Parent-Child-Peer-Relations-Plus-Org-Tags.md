@@ -134,3 +134,14 @@ org creation keeps its single door. ✎ edits rel/kind/description in place
 (a parent↔child flip re-normalizes server-side); × uses the same
 inline-confirm as the alias chips, with the reassurance spelled out:
 *both orgs stay — only the edge goes*.
+
+### Tags join the identity block (#53)
+
+A **Tags** row now sits in the identity `<dl>` between Aliases and
+Domains: chips with the same ✕-inline-confirm the alias chips use, and a
+➕ that opens a one-field add with a datalist fed by the shared per-client
+`tag_vocab` (via the existing `tag.suggest` — org tags and source tags
+deliberately share one vocabulary). Tag removal rides its own verb rather
+than `resolver.update_org`, because tags are per-client observations, not
+fields on the shared org row. The row renders even when empty so the
+affordance is discoverable — an untagged org shows the ➕, not nothing.

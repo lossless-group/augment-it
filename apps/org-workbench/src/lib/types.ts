@@ -32,6 +32,9 @@ export type OrgDetail = {
   org_links: ShapedLink[];
   media_streams: StreamEntry[];
   org_corpus: (ShapedLink & { content_id?: unknown })[];
+  // Per-client has_tag observations (Initiative, Program, Funder, …) —
+  // dashed values, operator-owned casing.
+  tags: string[];
 };
 
 // Org↔org relations (organization.relations) — parent/child/peer projected

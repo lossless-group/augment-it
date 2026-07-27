@@ -19,6 +19,9 @@
     updateOrgCorpus,
     removeOrgCorpus,
     updateOrgIdentity,
+    addOrgTag,
+    removeOrgTag,
+    suggestTags,
   } from './lib/org-client';
   import { requestSearch } from './lib/search-request';
   import { submitCrawl } from './lib/search-queue';
@@ -99,7 +102,43 @@
   let convDraft = $state('');
   let identityBusy = $state(false);
   let identityError = $state<string | null>(null);
-  let pendingChip = $state<{ kind: 'alias' | 'domain'; value: string } | null>(null);
+  let pendingChip = $state<{ kind: 'alias' | 'domain' | 'tag'; value: string } | null>(null);
+
+  // Tags — has_tag observations per client (Initiative / Program / Funder…).
+  // Datalist rides the shared per-client tag_vocab via tag.suggest; fetched
+  // lazily when the add input opens.
+  let addingTag = $state(false);
+  let tagDraft = $state('');
+  let tagVocab = $state<string[]>([]);
+
+  async function openTagAdd() {
+    addingTag = !addingTag;
+    if (addingTag && tagVocab.length === 0) {
+      try {
+        tagVocab = await suggestTags(client);
+      } catch {
+        /* datalist is a convenience — the input works without it */
+      }
+    }
+  }
+
+  async function commitTagAdd(e: SubmitEvent) {
+    e.preventDefault();
+    const t = tagDraft.trim();
+    if (!t) return;
+    identityBusy = true;
+    identityError = null;
+    try {
+      await addOrgTag({ org_slug: org.slug, tag: t, client });
+      tagDraft = '';
+      addingTag = false;
+      bump();
+    } catch (err) {
+      identityError = err instanceof Error ? err.message : String(err);
+    } finally {
+      identityBusy = false;
+    }
+  }
 
   function startNamesEdit() {
     nameDraft = org.complete_name ?? '';
@@ -144,8 +183,19 @@
     if (!pendingChip) return;
     if (pendingChip.kind === 'alias') {
       void identityWrite({ aliases: org.aliases.filter((a) => a !== pendingChip!.value) });
-    } else {
+    } else if (pendingChip.kind === 'domain') {
       void identityWrite({ domains: org.domains.filter((d) => d.domain !== pendingChip!.value) });
+    } else {
+      // tag — rides its own verb, not resolver.update_org
+      identityBusy = true;
+      identityError = null;
+      void removeOrgTag({ org_slug: org.slug, tag: pendingChip.value, client })
+        .then(() => {
+          pendingChip = null;
+          bump();
+        })
+        .catch((err) => (identityError = err instanceof Error ? err.message : String(err)))
+        .finally(() => (identityBusy = false));
     }
   }
 
@@ -212,6 +262,39 @@
         {/each}
       </dd>
     {/if}
+    <dt>Tags</dt>
+    <dd>
+      {#each org.tags as tag (tag)}
+        <span class="ow-chip">
+          {tag}
+          <button
+            type="button"
+            class="ow-chip-x ow-micro"
+            title="remove tag"
+            onclick={() => (pendingChip = { kind: 'tag', value: tag })}
+          >×</button>
+        </span>
+      {/each}
+      <button type="button" class="ow-entry-action ow-micro" title="add a tag (Initiative / Program / Funder…)" onclick={() => void openTagAdd()}>
+        {addingTag ? '×' : '+'}
+      </button>
+      {#if addingTag}
+        <form class="ow-add ow-tag-add" onsubmit={commitTagAdd}>
+          <input
+            class="ow-add-kind"
+            type="text"
+            list="ow-tag-vocab"
+            placeholder="tag (Train-Case by convention)"
+            bind:value={tagDraft}
+            disabled={identityBusy}
+          />
+          <button type="submit" class="ow-add-go" disabled={identityBusy}>{identityBusy ? '…' : 'Tag'}</button>
+        </form>
+        <datalist id="ow-tag-vocab">
+          {#each tagVocab as t (t)}<option value={t}></option>{/each}
+        </datalist>
+      {/if}
+    </dd>
     {#if org.domains.length > 0}
       <dt>Domains</dt>
       <dd>
