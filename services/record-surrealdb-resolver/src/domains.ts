@@ -116,7 +116,7 @@ async function applyBibToRegistry(
   if (set.length) await db.query(`UPDATE sources SET ${set.join(', ')} WHERE source_uuid = $u;`, vars);
 }
 
-async function ensureTagInVocab(db: Surreal, client_slug: string, tag: string): Promise<void> {
+export async function ensureTagInVocab(db: Surreal, client_slug: string, tag: string): Promise<void> {
   if (!tag) return;
   const seen = first<{ tag: string }>(
     await db.query('SELECT tag FROM tag_vocab WHERE client_slug = $c AND tag = $tag LIMIT 1', { c: client_slug, tag }),

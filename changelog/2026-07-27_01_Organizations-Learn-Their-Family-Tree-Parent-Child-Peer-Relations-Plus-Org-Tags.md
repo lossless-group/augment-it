@@ -46,3 +46,50 @@ and the issue that demanded it,
 ## What landed
 
 <!-- one beat per closed ticket — step, code sample of the interesting part, gotchas -->
+
+### The capability slab: six new verbs, one new module (#49, #50)
+
+`services/record-surrealdb-resolver/src/org-relations.ts` is the whole
+backend: `organization.relate / relations / unrelate / relation.update`
+plus `organization.tag.add / tag.remove`, registered domains.ts-style and
+mapped through the workspace verb table. Org→org edges live in the same
+`affiliations` RELATE table as person→org edges, discriminated explicitly:
+
+```sql
+RELATE $child->affiliations->$parent SET
+    edge_type = 'org_org', rel = $rel, kind = $kind, description = $description,
+    client_access = [$client], added_at = time::now();
+```
+
+The parent/child/peer trichotomy the operator speaks is a read-time
+projection — canonical direction is always `in` = child, `out` = parent,
+and `projectRel()` names the edge from whichever org you're looking at:
+
+```ts
+function projectRel(edge: PairEdge, focused: unknown): OrgRelKind {
+  if (edge.rel === 'peer') return 'peer';
+  return String(edge.in) === String(focused) ? 'parent' : 'child';
+}
+```
+
+One relation per org pair (dedup scans both directions; an existing edge
+unions `client_access` and reports `created: false`, the `person.affiliate`
+precedent — not an error). A parent↔child flip in `relation.update`
+re-normalizes by delete + re-relate, because RELATE edges can't swap
+`in`/`out` in place.
+
+Org tags are `has_tag` observations (subject = org RecordId, per-client),
+never fields on the shared org row — the same multi-tenant rationale that
+put `relevance` on the affiliation edge. `organization.detail` now returns
+`tags: string[]`. Two gotchas worth recording: `tag.suggest`/`tag.apply`
+already existed (so no new vocab verb — the datalist rides `tag.suggest`,
+and the handlers reuse `ensureTagInVocab`, newly exported), and the house
+tag normalizer `toDashed` deliberately **preserves operator casing**
+("Impact of AI" → "Impact-of-AI"), so Train-Case lives in the vocabulary
+convention, not a forced normalizer.
+
+Verified: both services typecheck clean, resolver boots with the new
+registrations, and three live NATS checks pass (empty trichotomy read on
+`the-aspen-institute`, self-relation guard → localized `ok:false`,
+`detail.org.tags` present). Full write-path proof is the proof script's
+job (#51).

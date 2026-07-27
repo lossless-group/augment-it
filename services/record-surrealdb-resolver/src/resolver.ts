@@ -15,6 +15,7 @@
 //   CRM/pipeline cols → not written
 
 import type { Surreal } from 'surrealdb';
+import { listOrgTagsById } from './org-relations';
 
 export type RawLink = string | { url: string; kind?: string };
 
@@ -1176,6 +1177,9 @@ export type OrgDetailResult = {
     org_links: ShapedLink[];
     media_streams: (ShapedLink & { party?: string })[];
     org_corpus: (ShapedLink & { content_id?: unknown })[];
+    // Per-client has_tag observations — NOT a field on the shared org row
+    // (multi-tenant). See org-relations.ts.
+    tags: string[];
   };
 };
 
@@ -1192,6 +1196,7 @@ export async function getOrgDetail(
   );
   const row = ((r?.[0] as OrgRow[]) ?? [])[0];
   if (!row) throw new Error(`organization not found: ${org_slug}`);
+  const tags = await listOrgTagsById(db, row.id, client);
   return {
     ok: true,
     org: {
@@ -1204,6 +1209,7 @@ export async function getOrgDetail(
       org_links: (row.org_links as ShapedLink[]) ?? [],
       media_streams: (row.media_streams as (ShapedLink & { party?: string })[]) ?? [],
       org_corpus: (row.org_corpus as (ShapedLink & { content_id?: unknown })[]) ?? [],
+      tags,
     },
   };
 }

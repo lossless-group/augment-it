@@ -217,6 +217,15 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // Patch kind/name on one media_streams entry, matched by URL. Per
   // context-v/plans/Workbench-Usability-Sweep-Corpus-Visibility-Stream-Editing-Affiliation-Promotion.md.
   'organization.streams.update': 'organization.streams.update.requested',
+  // Org↔org relations (parent/child/peer) + org tags — served by
+  // record-surrealdb-resolver (org-relations.ts). Per
+  // context-v/plans/Org-Relations-Parent-Child-Peer-Plus-Org-Tags.md.
+  'organization.relate': 'organization.relate.requested',
+  'organization.relations': 'organization.relations.requested',
+  'organization.unrelate': 'organization.unrelate.requested',
+  'organization.relation.update': 'organization.relation.update.requested',
+  'organization.tag.add': 'organization.tag.add.requested',
+  'organization.tag.remove': 'organization.tag.remove.requested',
 
   // Domain catalog — the canonical typed-grouping graph behind apps/strategy-curator
   // (which is the type='strategy' view). Served by record-surrealdb-resolver
@@ -337,6 +346,13 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'organization.streams.add': 30_000,
   'organization.streams.update': 30_000,
   'organization.roster': 30_000,
+  // Org relations + tags — two entity lookups + one edge op, same budget.
+  'organization.relate': 30_000,
+  'organization.relations': 30_000,
+  'organization.unrelate': 30_000,
+  'organization.relation.update': 30_000,
+  'organization.tag.add': 30_000,
+  'organization.tag.remove': 30_000,
   'client.brief.get': 30_000,
   'client.brief.set': 30_000,
   // A crawl is one model turn with multiple server-side web searches (plus
