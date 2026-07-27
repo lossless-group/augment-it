@@ -283,14 +283,17 @@ export async function updateOrgRelation(
     String(edge.in) !== String(wantIn) || String(edge.out) !== String(wantOut);
 
   if (directionChanges || wantStoredRel !== edge.rel) {
-    const access = Array.from(new Set([...(edge.client_access ?? []), input.client]));
-    await db.query('DELETE $id;', { id: edge.id });
+    // $access is a protected SurrealDB variable — bind under another name.
+    // New edge first, old edge second: if the RELATE fails, the relation
+    // survives instead of vanishing.
+    const carried = Array.from(new Set([...(edge.client_access ?? []), input.client]));
     await db.query(
       `RELATE $child->affiliations->$parent SET
           edge_type = 'org_org', rel = $rel, kind = $kind, description = $description,
-          client_access = $access, added_at = time::now();`,
-      { child: wantIn, parent: wantOut, rel: wantStoredRel, kind, description, access },
+          client_access = $carried, added_at = time::now();`,
+      { child: wantIn, parent: wantOut, rel: wantStoredRel, kind, description, carried },
     );
+    await db.query('DELETE $id;', { id: edge.id });
   } else {
     await db.query('UPDATE $id SET kind = $kind, description = $description;', {
       id: edge.id,

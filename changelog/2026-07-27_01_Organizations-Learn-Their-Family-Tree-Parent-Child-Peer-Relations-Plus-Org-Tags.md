@@ -93,3 +93,25 @@ registrations, and three live NATS checks pass (empty trichotomy read on
 `the-aspen-institute`, self-relation guard → localized `ok:false`,
 `detail.org.tags` present). Full write-path proof is the proof script's
 job (#51).
+
+### The proof script — 22 checks, and it earned its keep immediately (#51)
+
+`scripts/prove-org-relations.mjs` mints three throwaway orgs under a
+throwaway client slug (invisible to every real workspace even mid-run),
+proves the full write path over NATS — relate/trichotomy-from-both-sides/
+duplicate-rejection/peer/flip/unrelate/tags — then runs the
+surrealdb-canonical-layer client-tagging audit (re-query **without** the
+client filter, inspect `client_access` on every row) and deletes down to
+zero residue.
+
+First run caught two real bugs in `relation.update`:
+
+1. **`$access` is a protected SurrealDB variable** — binding the carried
+   `client_access` under that name threw
+   `'access' is a protected variable and cannot be set`.
+2. **Destructive order** — the flip deleted the old edge *before* the
+   RELATE that then failed, silently destroying the relation. Reordered to
+   create-new-then-delete-old, so a failed RELATE now leaves the original
+   edge intact.
+
+Second run: 22/22 green, `cleanup: zero residue`.
