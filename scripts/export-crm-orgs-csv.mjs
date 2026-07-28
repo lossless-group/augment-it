@@ -153,6 +153,30 @@ const BUCKETS = ['funders', 'gov-entities', 'think-tanks', 'associations-network
 const CORPUS_ROOT = resolve(`clients/${args.client}/corpus`);
 const bucketOf = (slug) => BUCKETS.find((b) => existsSync(join(CORPUS_ROOT, b, slug))) ?? '';
 
+// 4b. Persons — pipeline prospects are allowed to BE people (operator
+// ruling 2026-07-28: "sometimes there are people who have several things
+// going on" — a Major Gift row attaches to the person, not a forced org).
+// Exact-normalized name match only; person names are too risky to fuzz.
+const persons = (await db.query(
+  `SELECT person_uuid, name, full_name FROM persons WHERE client_access CONTAINS $client;`,
+  { client: args.client },
+))?.[0] ?? [];
+const personByNorm = new Map();
+for (const p of persons) {
+  for (const cand of [p.name, p.full_name]) {
+    const n = normName(cand);
+    if (n && !personByNorm.has(n)) personByNorm.set(n, p);
+  }
+}
+const personMatch = (name) => {
+  const direct = personByNorm.get(normName(name));
+  if (direct) return direct;
+  // "Toolbox Family Fund (Joshua Biber)" — the parenthetical often names
+  // the person the deal actually anchors to.
+  const paren = /\(([^)]+)\)/.exec(String(name))?.[1];
+  return paren ? (personByNorm.get(normName(paren)) ?? null) : null;
+};
+
 // 5. Pipeline record set over NATS — newest record set whose name matches.
 const nc = await connect({ servers: process.env.NATS_URL ?? 'nats://localhost:4222' });
 const req = async (s, b, t = 30_000) =>
@@ -226,10 +250,17 @@ const resolved = pipelineRows.map((row) => {
   const name = row['Prospect / Organization'] ?? '';
   const exact = row.corpus_funder_slug && orgBySlug.has(row.corpus_funder_slug) ? row.corpus_funder_slug : null;
   const fuzzy = exact ? null : fuzzyMatch(name);
-  return { row, slug: exact ?? fuzzy ?? null, matched: exact ? 'exact' : fuzzy ? 'fuzzy' : 'none' };
+  const person = exact || fuzzy ? null : personMatch(name);
+  return {
+    row,
+    slug: exact ?? fuzzy ?? null,
+    person,
+    matched: exact ? 'exact' : fuzzy ? 'fuzzy' : person ? 'person' : 'none',
+  };
 });
 const matchedCount = resolved.filter((r) => r.slug).length;
-console.log(`pipeline rows matched to a canonical org: ${matchedCount}/${resolved.length}`);
+const personCount = resolved.filter((r) => r.person).length;
+console.log(`pipeline rows matched: ${matchedCount} org + ${personCount} person / ${resolved.length}`);
 
 // 7. Shape rows — canonical-enrichment column block for one org.
 const exported_at = new Date().toISOString();
@@ -272,14 +303,17 @@ if (args.scope === 'pipeline') {
   // The tracker's shape: one row per pipeline row, in tracker order,
   // enrichment blank where no canonical org matched. Rows with no match
   // ALSO land in the sidecar as the to-capture list.
-  outRows = resolved.map(({ row, slug, matched }) => ({
+  outRows = resolved.map(({ row, slug, person, matched }) => ({
     ...enrichmentFor(slug ? orgBySlug.get(slug) : null),
+    person_external_id: person?.person_uuid ?? '',
+    person_name: person ? (person.name ?? person.full_name ?? '') : '',
     pipeline_org_name: row['Prospect / Organization'] ?? '',
     pipeline_matched: matched,
     ...Object.fromEntries(PIPELINE_COLS.map((c) => [c, row[c] ?? ''])),
     exported_at,
   }));
-  unmatched = resolved.filter((r) => !r.slug).map((r) => r.row);
+  // Sidecar = rows matching NEITHER an org nor a person.
+  unmatched = resolved.filter((r) => !r.slug && !r.person).map((r) => r.row);
   // Operator-directed inclusions land after the pipeline rows.
   const already = new Set(outRows.map((r) => r.external_id).filter(Boolean));
   for (const slug of args.include ?? []) {
@@ -291,6 +325,8 @@ if (args.scope === 'pipeline') {
     }
     outRows.push({
       ...enrichmentFor(o),
+      person_external_id: '',
+      person_name: '',
       pipeline_org_name: '',
       pipeline_matched: 'manual',
       ...Object.fromEntries(PIPELINE_COLS.map((c) => [c, ''])),
@@ -309,6 +345,8 @@ if (args.scope === 'pipeline') {
     const p = pipelineByOrg.get(o.slug);
     return {
       ...enrichmentFor(o),
+      person_external_id: '',
+      person_name: '',
       pipeline_org_name: p?.row['Prospect / Organization'] ?? '',
       pipeline_matched: p?.matched ?? 'none',
       ...Object.fromEntries(PIPELINE_COLS.map((c) => [c, p?.row[c] ?? ''])),
@@ -323,6 +361,7 @@ if (args.scope === 'pipeline') {
 const HEADERS = [
   'external_id', 'name', 'conventional_name', 'aliases', 'domains', 'bucket', 'tags',
   ...Object.values(PROMOTED_KINDS), 'other_links', 'streams', 'stream_count', 'related_orgs',
+  'person_external_id', 'person_name',
   'pipeline_org_name', 'pipeline_matched', ...PIPELINE_COLS, 'exported_at',
 ];
 

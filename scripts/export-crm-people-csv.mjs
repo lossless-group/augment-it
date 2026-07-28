@@ -61,6 +61,7 @@ const rankOf = (r) => RELEVANCE_RANK[r ?? ''] ?? 2;
 
 // Minimal CSV parse (quoted multiline cells) — only to pull external_id.
 let includedSlugs = null;
+let includedPersons = null;
 if (args.orgsCsv) {
   const { readFileSync } = await import('node:fs');
   const text = readFileSync(resolve(args.orgsCsv), 'utf8');
@@ -80,7 +81,13 @@ if (args.orgsCsv) {
   const [h, ...data] = rows;
   const col = h.indexOf('external_id');
   includedSlugs = new Set(data.map((r) => r[col]).filter(Boolean));
-  console.log(`scoping to ${includedSlugs.size} orgs from ${args.orgsCsv}`);
+  // Person-anchored pipeline rows (operator ruling 2026-07-28: people are
+  // first-class prospects) — those persons export even with no org edge.
+  const pcol = h.indexOf('person_external_id');
+  if (pcol >= 0) {
+    includedPersons = new Set(data.map((r) => r[pcol]).filter(Boolean));
+  }
+  console.log(`scoping to ${includedSlugs.size} orgs + ${includedPersons?.size ?? 0} pipeline persons from ${args.orgsCsv}`);
 }
 
 const db = new Surreal();
@@ -123,8 +130,13 @@ const rows = persons.flatMap((p) => {
     .sort((a, b) =>
       (includedSlugs ? includedSlugs.has(b.org_slug) - includedSlugs.has(a.org_slug) : 0) ||
       rankOf(b.relevance) - rankOf(a.relevance));
-  // Scoped run: skip persons with no edge into the included org set.
-  if (includedSlugs && !my.some((e) => includedSlugs.has(e.org_slug))) return [];
+  // Scoped run: keep persons with an edge into the included org set OR
+  // named directly by a pipeline row (person-anchored deals).
+  if (
+    includedSlugs &&
+    !my.some((e) => includedSlugs.has(e.org_slug)) &&
+    !includedPersons?.has(String(p.person_uuid))
+  ) return [];
   const primary = my[0];
   const extras = my.slice(1);
   const links = p.personal_links ?? [];
