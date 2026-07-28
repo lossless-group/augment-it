@@ -7,8 +7,9 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.1.0
+semantic_version: 0.0.1.1
 revisions:
+  - "2026-07-28 — v0.0.1.1 — status → Implementing; loop run opened on branch feature/workspace-auth. Phase-0 code read surfaced a fourth gap: row-store is global-active-scoped by design (loads one clients/<active>/rows.json, swaps on workspace.active.changed) — see the new caveat; step 1's enforcement gates the row-store family rather than remapping it."
   - "2026-07-28 — v0.0.1.0 — REWRITTEN after rechecking the id-didi-sh spec of record (operator: 'the idea was it create an auth token that carried the workspace'). The spec confirms the intent: the token stays minimal (didi_id + sid) but /api/me supplies org memberships and augment-it is designed to map org ↔ workspace per session. The per-client-instance recommendation (v0.0.0.1's Option A) demoted to fallback; the designed org↔workspace session binding is now the plan."
 tags:
   - Plan
@@ -16,7 +17,7 @@ tags:
   - Deployment
   - Multi-Tenancy
   - Reach-Edu
-status: Draft
+status: Implementing
 ---
 
 # Open augment.didi.sh to reach-edu
@@ -117,6 +118,16 @@ plumbing (baked WS URLs). Prefer the designed path.
   plan's scope (three more static-asset services + registry entries).
 - **prompt-runner is shared** — one Anthropic key, one spend pool across
   tenants. Acceptable now; per-client keys are an Option-B-era concern.
+- **row-store is global-active-scoped by design** (found in the Phase-0 code
+  read): it loads exactly one `clients/<active>/rows.json` and swaps the
+  whole store on `workspace.active.changed` — there is no per-frame client
+  arg to enforce. Per-session tenancy therefore lands in two registers:
+  SurrealDB-backed capabilities (the workbench family, Stephenie's surface)
+  are fully session-scoped, while the row-store family (`row.*`,
+  `record_set.*`, `prompt.*`, `response.*`) is **gated** — served only to
+  sessions allowed on the instance's operator-parked active workspace, and
+  the global switch stays a superuser move. Contamination becomes a refusal,
+  not a remap; true per-session row-store scoping is a logged follow-up.
 
 ## Build order (when signed off)
 
