@@ -143,6 +143,14 @@ pointers across the seam, (4) re-home any parked inbox captures.
       same shape waiting: TEGL/ETA content sits on `us-department-of-labor`).
 - [ ] **Academic chain** — `project-on-workforce-at-harvard` is a leaf with
       no chain to HKS/Harvard (see the academic-institutions note above).
+- [x] **Schusterman dupe merged 2026-07-27**: operator ruled the official
+      long-form name wins — keeper
+      `charles-and-lynn-schusterman-family-foundation`;
+      `schusterman-family-philanthropies` folded in (4 links + 2 streams
+      unioned on normalized URLs, rebrand forms preserved as aliases,
+      `merged_from` observation, dupe row deleted — neither row had edges
+      or content_items). Disk: the two captures moved into the canonical
+      folder, dupe folder retired (reach-edu `be59891`).
 - [x] **DB dupe merged 2026-07-27**: operator ruled `donorstrust` the
       accurate slug (the brand is one word); `donor-s-trust` folded in
       non-destructively — links/corpus unioned by URL, both edges
