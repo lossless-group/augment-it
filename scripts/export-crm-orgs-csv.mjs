@@ -162,11 +162,14 @@ const persons = (await db.query(
   { client: args.client },
 ))?.[0] ?? [];
 const personByNorm = new Map();
+const personsBySurname = new Map(); // surname → persons[] (unique-only rule below)
 for (const p of persons) {
   for (const cand of [p.name, p.full_name]) {
     const n = normName(cand);
     if (n && !personByNorm.has(n)) personByNorm.set(n, p);
   }
+  const surname = normName((p.name ?? p.full_name ?? '').split(' ').slice(-1)[0]);
+  if (surname) personsBySurname.set(surname, [...(personsBySurname.get(surname) ?? []), p]);
 }
 const personMatch = (name) => {
   const direct = personByNorm.get(normName(name));
@@ -186,6 +189,12 @@ const personMatch = (name) => {
   for (let drop = 1; drop <= 3 && toks.length - drop >= 2; drop += 1) {
     const p = personByNorm.get(toks.slice(0, toks.length - drop).join(' '));
     if (p) return p;
+  }
+  // Bare-surname row ("Haslam") → the person, ONLY when the whole row name
+  // is one token, ≥5 chars, and exactly one person carries that surname.
+  if (toks.length === 1 && toks[0].length >= 5) {
+    const bySurname = personsBySurname.get(toks[0]) ?? [];
+    if (bySurname.length === 1) return bySurname[0];
   }
   return null;
 };
