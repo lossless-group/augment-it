@@ -20,15 +20,18 @@
     onopen: (slug: string) => void;
   } = $props();
 
-  // Open vocabulary — datalist suggestions, never enum-enforced.
+  // Open vocabulary — datalist suggestions, never enum-enforced. Kinds are
+  // orthogonal to rel: funder_of / agency_of ride PEER edges as readily as
+  // hierarchical ones (operator ruling 2026-07-27 — hierarchy is the
+  // special case, peer + a descriptive kind is the normal shape).
   const KIND_SUGGESTIONS = [
+    'funder_of',
+    'partners_with',
+    'agency_of',
     'initiative_of',
     'fund_of',
     'program_of',
-    'agency_of',
     'chapter_of',
-    'funds',
-    'partners_with',
   ];
 
   let relations = $state<OrgRelations>({ parents: [], children: [], peers: [] });

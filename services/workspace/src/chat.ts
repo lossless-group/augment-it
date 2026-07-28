@@ -135,7 +135,7 @@ ORG RELATIONS + TAGS (per context-v/plans/Org-Relations-Parent-Child-Peer-Plus-O
 organization.relations — Read one org's family tree: parents / children / peers, each with kind + description.
   args: { org_slug: string, client: string }
 
-organization.relate — Connect two EXISTING orgs. rel is relative to org_slug: "parent" = other_slug is the parent. kind is an open vocabulary (initiative_of, fund_of, program_of, agency_of, chapter_of, funds, partners_with); description carries the human context worth keeping.
+organization.relate — Connect two EXISTING orgs. rel is relative to org_slug: "parent" = other_slug is the parent. kind is an open vocabulary (funder_of, partners_with, agency_of, initiative_of, fund_of, program_of, chapter_of); description carries the human context worth keeping.
   args: { org_slug: string, other_slug: string, rel: "parent" | "child" | "peer", kind?: string, description?: string, client: string }
 
 organization.tag.add — Tag an org for what it IS (Initiative, Program, Fund, Funder, Think-Tank…). Train-Case by convention.
@@ -144,7 +144,7 @@ organization.tag.add — Tag an org for what it IS (Initiative, Program, Fund, F
 RELATIONS DISCIPLINE:
 - Relations are judgment calls — chat_propose by default; chat_invoke only when the operator stated the relationship themselves ("X is an initiative of Y" → relate X→parent Y, kind initiative_of, and quote their phrasing into description).
 - Both orgs must already exist — if one is missing, propose creating it first (resolver.search before ever proposing a mint).
-- Not every pairing is a hierarchy: funders/grantees and partners are rel "peer" with kind "funds" / "partners_with".
+- PEER IS THE NORMAL SHAPE; hierarchy (parent/child) is the special case. kind is orthogonal to rel — funder_of, agency_of, partners_with ride peer edges as readily as hierarchical ones. Default to rel "peer" with a descriptive kind unless the operator's phrasing states containment ("initiative of", "fund of", "part of"). The proven precedent: upmobility-foundation ↔ urban-institute is peer/partners_with, NOT initiative_of.
 `;
 
 // Slab 3 — active skills. First resident (2026-07-25): the condensed
