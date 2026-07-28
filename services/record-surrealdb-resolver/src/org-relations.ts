@@ -170,6 +170,18 @@ export type OrgRelationsResult = {
 
 type RelRow = Record<string, unknown>;
 
+// Directional kinds are authored from the edge's `in` side ("ballmer-group
+// funder_of nextladder"). Reading from the `out` side inverts the label so
+// each card tells the truth from its own perspective (operator catch
+// 2026-07-28: NextLadder's card said "ballmer-group (funder_of)" when it
+// meant funded_by). Storage is untouched — this is read-time projection,
+// like rel itself.
+const KIND_INVERSE: Record<string, string> = {
+  funder_of: 'funded_by',
+  funded_by: 'funder_of',
+  funds: 'funded_by',
+};
+
 function shapeRelated(
   r: RelRow,
   prefix: 'in' | 'out',
@@ -181,11 +193,17 @@ function shapeRelated(
     (r[`${prefix}_complete_name`] as string) ??
     (r[`${prefix}_conventional_name`] as string) ??
     String(slug);
+  // prefix names the side being DISPLAYED (the other org). When we display
+  // the `out` side, the focused org is `in` — the authored direction reads
+  // correctly. When we display the `in` side, the focused org is `out` —
+  // invert directional kinds.
+  const rawKind = (r.kind as string) ?? null;
+  const kind = prefix === 'in' && rawKind ? (KIND_INVERSE[rawKind] ?? rawKind) : rawKind;
   return {
     slug: String(slug),
     display_name: display,
     rel,
-    kind: (r.kind as string) ?? null,
+    kind,
     description: (r.description as string) ?? null,
   };
 }
