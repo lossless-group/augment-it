@@ -143,8 +143,16 @@ pointers across the seam, (4) re-home any parked inbox captures.
       same shape waiting: TEGL/ETA content sits on `us-department-of-labor`).
 - [ ] **Academic chain** — `project-on-workforce-at-harvard` is a leaf with
       no chain to HKS/Harvard (see the academic-institutions note above).
-- [ ] **DB dupe, non-destructive merge pending**: `donor-s-trust` vs
-      `donorstrust` (same recipe as bhef/jff merges).
+- [x] **DB dupe merged 2026-07-27**: operator ruled `donorstrust` the
+      accurate slug (the brand is one word); `donor-s-trust` folded in
+      non-destructively — links/corpus unioned by URL, both edges
+      re-pointed (RELATE fresh → delete old; in/out are immutable),
+      aliases gained `Donor's Trust` / `donor-s-trust` / `Donors Trust`,
+      `merged_from` observation on the keeper, dupe row deleted. **Flagged,
+      not fixed:** the merge surfaced a PERSON dupe — two `Peter Lipsett`
+      rows (one from the FreedomFest CSV with role Vice President/relevant,
+      one from person-enrichment with kind `primary`) now both visible on
+      the donorstrust card; person-dedupe is its own decision.
 
 ### C. The build (what "model lands" means)
 
