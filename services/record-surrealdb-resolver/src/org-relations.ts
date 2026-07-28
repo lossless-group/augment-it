@@ -361,6 +361,40 @@ export async function removeOrgTag(
   return { ok: true, removed: ids.length > 0 };
 }
 
+// --- organization.add_observation ------------------------------------------
+// person.add_observation's twin (gh #60): a free-form observation with an
+// ORG as subject. First consumer: the team-crawl search_synopsis (didi's
+// account of who the policy excluded), written once when the operator
+// first accepts from a card — the crawl itself still never writes.
+
+export type OrgAddObservationInput = {
+  org_slug: string;
+  predicate: string;
+  value: string;
+  client: string;
+  source?: string;
+};
+
+export async function addOrgObservation(
+  db: Surreal,
+  input: OrgAddObservationInput,
+): Promise<{ ok: true }> {
+  const org = await resolveOrgId(db, input.org_slug, input.client);
+  const predicate = input.predicate.trim();
+  const value = input.value.trim();
+  if (!predicate || !value) {
+    throw new Error('organization.add_observation requires both predicate and value');
+  }
+  await observe(db, {
+    subject: org,
+    predicate,
+    object: value,
+    source: input.source || 'org-workbench',
+    client: input.client,
+  });
+  return { ok: true };
+}
+
 // Read helper for getOrgDetail's tags extension — takes the already-resolved
 // org RecordId so detail doesn't resolve the slug twice.
 export async function listOrgTagsById(
@@ -408,4 +442,5 @@ export function registerOrgRelationHandlers(nc: NatsConnection): void {
   handle<OrgRelationUpdateInput>('organization.relation.update.requested', updateOrgRelation);
   handle<OrgTagInput>('organization.tag.add.requested', addOrgTag);
   handle<OrgTagInput>('organization.tag.remove.requested', removeOrgTag);
+  handle<OrgAddObservationInput>('organization.add_observation.requested', addOrgObservation);
 }

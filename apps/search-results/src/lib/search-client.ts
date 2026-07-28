@@ -138,6 +138,22 @@ export async function affiliatePerson(args: {
   if (!r.ok) throw new Error(r.error || 'person.affiliate failed');
 }
 
+// Free-form org observation — first consumer: the team-crawl
+// search_synopsis, written once per card on first accept (gh #60).
+export async function addOrgObservation(args: {
+  org_slug: string;
+  predicate: string;
+  value: string;
+  source?: string;
+  client: string;
+}): Promise<void> {
+  const r = (await workspace.invoke('organization.add_observation', args)) as {
+    ok: boolean;
+    error?: string;
+  };
+  if (!r.ok) throw new Error(r.error || 'organization.add_observation failed');
+}
+
 export async function addPersonLink(args: {
   person_uuid: string;
   url: string;

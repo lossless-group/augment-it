@@ -228,6 +228,8 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   'organization.tag.remove': 'organization.tag.remove.requested',
   // Distinct corpus kinds for the kind-input datalist (gh #57).
   'organization.corpus.kinds': 'organization.corpus.kinds.requested',
+  // Free-form org observation — person.add_observation's twin (gh #60).
+  'organization.add_observation': 'organization.add_observation.requested',
 
   // Domain catalog — the canonical typed-grouping graph behind apps/strategy-curator
   // (which is the type='strategy' view). Served by record-surrealdb-resolver
@@ -356,6 +358,7 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'organization.tag.add': 30_000,
   'organization.tag.remove': 30_000,
   'organization.corpus.kinds': 30_000,
+  'organization.add_observation': 30_000,
   'client.brief.get': 30_000,
   'client.brief.set': 30_000,
   // A crawl is one model turn with multiple server-side web searches (plus

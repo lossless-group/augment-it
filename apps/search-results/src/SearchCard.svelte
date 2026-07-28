@@ -169,6 +169,7 @@
           <TeamAccept
             people={results.people ?? []}
             source_urls={results.source_urls ?? []}
+            filtered_note={results.filtered_note ?? ''}
             org_slug={card.entity.org_slug}
             orgName={orgLabel}
             {client}

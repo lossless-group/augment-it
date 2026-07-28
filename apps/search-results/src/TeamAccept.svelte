@@ -9,6 +9,7 @@
   // broadcast refreshes the org card's People list. Skip discards a row.
 
   import {
+    addOrgObservation,
     addPersonLink,
     affiliatePerson,
     applyPerson,
@@ -19,6 +20,7 @@
   let {
     people,
     source_urls,
+    filtered_note = '',
     org_slug,
     orgName,
     client,
@@ -26,6 +28,10 @@
   }: {
     people: CrawledPerson[];
     source_urls: string[];
+    // didi's crawl synopsis (who the policy excluded and why) — persisted
+    // as a search_synopsis observation on the ORG the first time the
+    // operator accepts from this card (gh #60).
+    filtered_note?: string;
     org_slug: string;
     orgName: string;
     client: string;
@@ -53,6 +59,26 @@
 
   function sourceFor(row: Row): string {
     return row.person.bio_url ?? source_urls[0] ?? 'didi-crawl';
+  }
+
+  // Write-once: the first successful accept from this card also persists
+  // didi's synopsis on the org. Soft-fail — the synopsis is context, never
+  // a reason to fail the accept.
+  let synopsisWritten = $state(false);
+  async function persistSynopsis() {
+    if (synopsisWritten || !filtered_note) return;
+    synopsisWritten = true;
+    try {
+      await addOrgObservation({
+        org_slug,
+        predicate: 'search_synopsis',
+        value: filtered_note,
+        source: source_urls[0] ?? 'didi-crawl',
+        client,
+      });
+    } catch {
+      synopsisWritten = false; // retry on the next accept
+    }
   }
 
   async function accept(row: Row) {
@@ -115,6 +141,7 @@
         }
       }
       row.consumed = true;
+      void persistSynopsis();
       window.dispatchEvent(
         new CustomEvent('augment-it:entity-updated', { detail: { org_slug } }),
       );
