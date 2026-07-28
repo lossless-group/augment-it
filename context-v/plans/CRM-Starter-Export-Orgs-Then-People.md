@@ -144,6 +144,17 @@ guide: the `twenty-interface` skill (written against palmer-ai's
 instance; same self-describing REST + OpenAPI discipline, this
 instance's URL).
 
+> **Precondition found live (2026-07-27):** the stored key is EXPIRED —
+> `GET /rest/companies` returns 401 "Token has expired". It was almost
+> certainly a playground token (`type: PLAYGROUND`, 2h expiry — the trap
+> the connector docs name). Before Phase 3's live run the operator mints
+> a durable key in the reach-edu Twenty web app (**Settings → APIs**, not
+> the playground) and replaces `TWENTY_MCP_API_KEY` in
+> `client-stacks/reach-edu/twenty/.env`. The MCP connector wiring
+> (Phase 4 of the stack plan) is NOT required for this import — the
+> importer script talks REST with the bearer key directly. Phases 1–2
+> need no key at all.
+
 ## Phase 3 — import via Twenty's REST batch API
 
 CSV files remain the reviewable artifact (the operator eyeballs them
