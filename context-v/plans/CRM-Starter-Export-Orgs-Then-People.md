@@ -7,7 +7,9 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
+revisions:
+  - "2026-07-27 — v0.0.0.2 — Open decision 1 SETTLED: the target is reach-edu's own self-hosted Twenty (deployed 2026-07-24, v2.24.1). Phase 3 rewritten for the API-batch path; target-instance block added."
 tags:
   - Plan
   - Augment-It
@@ -128,28 +130,66 @@ Persons with **zero** affiliations still export (org columns blank) — the
 CRM decides whether orphan contacts import; we don't silently drop 39
 people (417 persons vs 378 edges).
 
-## Phase 3 — import order + verification
+## Target instance (settled 2026-07-27)
 
-1. Import `orgs.csv`. Map `external_id` to the CRM's external-id or a
-   custom field — this is the one non-negotiable mapping.
-2. Import `people.csv`, attaching company by `org_external_id` (CRMs that
-   only match companies by name fall back to `org_name` — which is why
-   both columns exist).
-3. **Verify per the canonical-layer discipline, adapted:** counts match
+**reach-edu's own self-hosted Twenty** — deployed 2026-07-24
+(`twentycrm/twenty:v2.24.1`), healthy at
+`https://twenty-server-production-7c98.up.railway.app`. Stack of record:
+`self-host-stack/client-stacks/reach-edu/` (stack.md + twenty/). The
+operator API key is already minted (2026-07-24) and lives as
+`TWENTY_MCP_API_KEY` in `client-stacks/reach-edu/twenty/.env` — the
+bearer-token channel that folder's `mcp-connector.md` designates as the
+OPERATOR/SCRIPTING channel, i.e. exactly this import's lane. Operating
+guide: the `twenty-interface` skill (written against palmer-ai's
+instance; same self-describing REST + OpenAPI discipline, this
+instance's URL).
+
+## Phase 3 — import via Twenty's REST batch API
+
+CSV files remain the reviewable artifact (the operator eyeballs them
+before anything writes); the import itself rides the API, driven by a
+third script — `scripts/import-crm-starter-to-twenty.mjs` — with
+`--dry-run` first, per the house import discipline
+(idempotent + additive + dry-run-first).
+
+1. **Custom fields first (one-time, via the metadata API):**
+   `augmentItSlug` (TEXT) on companies, `augmentItPersonUuid` (TEXT) on
+   people — the external-id landing spots. Twenty has no native
+   external-id field; a custom field is the correct home, and its
+   uniqueness is enforced by the importer's upsert logic.
+2. **Companies:** batch create/upsert from `orgs.csv`. Field mapping —
+   `name` → name, first domain → `domainName` (Twenty's natural company
+   key), `linkedin` → linkedinLink, `x` → xLink, `external_id` →
+   augmentItSlug; streams / other_links / tags / related_orgs /
+   pipeline Notes → a formatted **note attached to the company**
+   (Twenty notes attach to any record), keeping multi-valued data out of
+   scalar fields. Pipeline Stage/Owner/commitments map to fields or
+   opportunity records per the operator's Twenty workspace layout — a
+   mapping table the dry-run prints for sign-off before the live run.
+3. **People:** batch upsert from `people.csv` — name split, `emails`,
+   linkedinLink, jobTitle ← role, `companyId` resolved by
+   augmentItSlug lookup (fallback: company name), person_uuid →
+   augmentItPersonUuid. `additional_orgs` + relevance → an attached
+   note.
+4. **Verify per the canonical-layer discipline, adapted:** counts match
    (rows exported == records created + skips explained), spot-check five
-   orgs for link fidelity, spot-check three multi-affiliation people
-   attached to the right org, and confirm a re-import of the same file
-   updates rather than duplicates (the external-id round-trip proof).
+   companies for link fidelity, spot-check three multi-affiliation people
+   attached to the right company, and re-run the importer on the same
+   files — the external-id round-trip proof is that it updates, never
+   duplicates.
 
-## Open decisions (settle before Phase 3; Phases 1–2 are CRM-agnostic)
+Fallback path (no code): Twenty's in-app CSV importer consumes the same
+two files; the custom fields from step 1 still come first so
+external_id has somewhere to land.
 
-1. **Which CRM, and CSV-importer vs API batch?** The CSVs serve either
-   path. If the target is a Twenty instance, the house already has the
-   `twenty-interface` skill + MCP (`create_many_companies`,
-   `upsert_many_people` with company attach) and an API batch beats the
-   CSV importer; if it's something else, its importer's field-mapping
-   screen consumes these files as-is. Naming the CRM also settles where
-   `external_id` lands (native field vs custom).
+## Open decisions (remaining)
+
+1. ~~Which CRM~~ — SETTLED: reach-edu's self-hosted Twenty (above).
+   One sub-question survives for the dry-run sign-off: do pipeline
+   Stage/commitment columns land as company fields, or as Twenty
+   **opportunity** records per company (Twenty's native pipeline
+   object)? Recommendation: opportunities — that's what they are — but
+   the operator rules at dry-run review.
 2. **Org scope confirmation** — recommendation above is all-364 +
    filter-in-sheet; alternative is pre-filtering to `funders/` bucket
    (+ pipeline matches) if the CRM should only ever see funders.
