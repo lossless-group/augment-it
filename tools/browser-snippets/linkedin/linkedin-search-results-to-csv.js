@@ -14,9 +14,10 @@
 // ------------
 // Walks every result card visible on the current page, pulls
 //   { name, profile_url, headline, location }
-// for each, appends to a window-scoped accumulator (so re-running on
-// subsequent pages adds without losing earlier pages), de-dupes by
-// profile URL, and console.table()'s the running total.
+// for each, appends to a localStorage-backed accumulator (survives
+// LinkedIn's full-page-load pagination — re-running on subsequent pages
+// adds without losing earlier pages), de-dupes by profile URL, and
+// console.table()'s the running total.
 //
 // Call window.__liDownloadCsv() at any point to download the accumulated
 // rows as a CSV. Call window.__liClear() to start over.
@@ -64,15 +65,40 @@
   // default and the original snippet's console.info lines were invisible.)
   const log = (...args) => console.error('[li-scrape]', ...args);
 
-  // ---- ACCUMULATOR — SURVIVES ACROSS RE-RUNS ON LATER PAGES --------------
+  // ---- ACCUMULATOR — SURVIVES ACROSS RE-RUNS *AND* FULL PAGE LOADS -------
+  // Originally a bare window global, which only survives soft (SPA)
+  // navigations — but LinkedIn's Next pagination does a FULL page load,
+  // wiping window and restarting the table every run (observed 2026-07-27).
+  // localStorage survives reloads on the same origin; the window object is
+  // kept as a same-context mirror. __liClear() removes the stored copy.
+  const STORE_KEY = 'li-scrape-accumulator';
   if (!window.__liScrape) {
+    let stored = null;
+    try {
+      stored = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    } catch {
+      /* corrupt store → start fresh */
+    }
     window.__liScrape = {
-      rows: [],
-      seenUrls: new Set(),
-      pagesSeen: 0,
+      rows: stored?.rows ?? [],
+      seenUrls: new Set((stored?.rows ?? []).map((r) => r.profile_url)),
+      pagesSeen: stored?.pagesSeen ?? 0,
     };
+    if (stored?.rows?.length) {
+      log(`restored ${stored.rows.length} rows from a previous page load.`);
+    }
   }
   const acc = window.__liScrape;
+  const persist = () => {
+    try {
+      localStorage.setItem(
+        STORE_KEY,
+        JSON.stringify({ rows: acc.rows, pagesSeen: acc.pagesSeen }),
+      );
+    } catch (e) {
+      log('warning: could not persist accumulator —', e?.message);
+    }
+  };
 
   // ---- HELPERS -----------------------------------------------------------
   const cleanText = (s) =>
@@ -185,6 +211,7 @@
     acc.seenUrls.add(profile_url);
   }
   acc.pagesSeen += 1;
+  persist();
 
   // ---- REPORT ------------------------------------------------------------
   log(
@@ -227,7 +254,12 @@
   if (!window.__liClear) {
     window.__liClear = () => {
       window.__liScrape = { rows: [], seenUrls: new Set(), pagesSeen: 0 };
-      console.error('[li-scrape] accumulator cleared.');
+      try {
+        localStorage.removeItem('li-scrape-accumulator');
+      } catch {
+        /* nothing stored */
+      }
+      console.error('[li-scrape] accumulator cleared (memory + localStorage).');
     };
   }
 })();
