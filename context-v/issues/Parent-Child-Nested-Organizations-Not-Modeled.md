@@ -148,11 +148,16 @@ pointers across the seam, (4) re-home any parked inbox captures.
       non-destructively — links/corpus unioned by URL, both edges
       re-pointed (RELATE fresh → delete old; in/out are immutable),
       aliases gained `Donor's Trust` / `donor-s-trust` / `Donors Trust`,
-      `merged_from` observation on the keeper, dupe row deleted. **Flagged,
-      not fixed:** the merge surfaced a PERSON dupe — two `Peter Lipsett`
-      rows (one from the FreedomFest CSV with role Vice President/relevant,
-      one from person-enrichment with kind `primary`) now both visible on
-      the donorstrust card; person-dedupe is its own decision.
+      `merged_from` observation on the keeper, dupe row deleted. The merge
+      surfaced a PERSON dupe — two `Peter Lipsett` rows — **also merged
+      2026-07-27** (operator-directed): the richer gatsby-events row kept
+      (email, split name fields, 4 links, 4 corpus), the FreedomFest-CSV
+      row folded in — its operator-rated edge fields won (kind
+      `Vice President`, relevance `relevant`, replacing the machine-minted
+      `primary`), its `speaker_at`/`has_name`/`affiliated_with`
+      observations re-homed, `linkedin_profile_url` set on the keeper for
+      future dedupe keying, `merged_from` trail written. donorstrust card
+      now shows one Peter Lipsett.
 
 ### C. The build (what "model lands" means)
 
