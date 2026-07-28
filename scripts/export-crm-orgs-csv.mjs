@@ -174,7 +174,20 @@ const personMatch = (name) => {
   // "Toolbox Family Fund (Joshua Biber)" — the parenthetical often names
   // the person the deal actually anchors to.
   const paren = /\(([^)]+)\)/.exec(String(name))?.[1];
-  return paren ? (personByNorm.get(normName(paren)) ?? null) : null;
+  if (paren) {
+    const p = personByNorm.get(normName(paren));
+    if (p) return p;
+  }
+  // "James Patterson Philanthropy Advisor" — trailing role words after a
+  // person's full name. Progressive right-trim, EXACT full-name match only,
+  // never below two tokens (the first-name-prefix lesson from the org
+  // matcher applies double for people).
+  const toks = normName(name).split(' ');
+  for (let drop = 1; drop <= 3 && toks.length - drop >= 2; drop += 1) {
+    const p = personByNorm.get(toks.slice(0, toks.length - drop).join(' '));
+    if (p) return p;
+  }
+  return null;
 };
 
 // 5. Pipeline record set over NATS — newest record set whose name matches.
