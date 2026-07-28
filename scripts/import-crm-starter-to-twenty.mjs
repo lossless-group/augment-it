@@ -44,6 +44,7 @@ for (let i = 2; i < process.argv.length; i += 1) {
   else if (k === '--base-url') args.baseUrl = process.argv[++i];
   else if (k === '--live') args.live = true;
   else if (k === '--with-opportunities') args.withOpportunities = true;
+  else if (k === '--enrich-links') args.enrichLinks = true;
   else if (k === '--dry-run') args.live = false;
 }
 
@@ -117,8 +118,10 @@ const peopleRows = parseCsv(`${DIR}/people.csv`);
 
 // ---- shape companies (dedupe by external_id — multi-deal rows share one org)
 const companiesBySlug = new Map();
+const rawRowBySlug = new Map(); // full CSV row per slug — the links-enrichment pass reads it
 for (const r of orgRows) {
   if (!r.external_id || companiesBySlug.has(r.external_id)) continue;
+  rawRowBySlug.set(r.external_id, r);
   // Guard: the canonical layer contains at least one literal "unknown"
   // website value — bad URLs surface as blank domains, never crashes.
   let domain = (r.domains || '').split(' | ')[0];
@@ -345,6 +348,89 @@ for (const p of people) {
 }
 if (repaired) console.log(`attach-repair: ${repaired} people gained their company (null-only fill)`);
 console.log('\nVERIFY: spot-check five companies for link fidelity, three multi-affiliation people, then re-run this script — it should report 0 to create (the external-id round-trip proof).');
+// ---- 5b. Links enrichment (--enrich-links, operator ask 2026-07-28) ---------
+// The starter CSVs carry the full identity-link set + pulse streams; the v1
+// import mapped only domain + LinkedIn. This pass mints custom LINKS fields
+// (this instance's company object has NO native social fields) and fills
+// them per company — ONLY when the live field is empty (additive; a link
+// someone set in the app is never clobbered).
+if (args.enrichLinks) {
+  const companyObj2 = findObj('company');
+  const LINK_FIELDS = [
+    ['xLink', 'X'],
+    ['youtubeLink', 'YouTube'],
+    ['facebookLink', 'Facebook'],
+    ['instagramLink', 'Instagram'],
+    ['otherLinks', 'Other Links'],
+    ['pulseStreams', 'Pulse Streams'],
+  ];
+  for (const [name, label] of LINK_FIELDS) {
+    if (!hasField(companyObj2, name)) {
+      if (!args.live) { console.log(`  would create company LINKS field: ${name}`); continue; }
+      const r = await api('POST', '/rest/metadata/fields', {
+        objectMetadataId: companyObj2.id, name, label, type: 'LINKS',
+      });
+      console.log(`  custom field ${name}: ${r.status < 300 ? 'CREATED' : 'FAILED ' + r.status + ' ' + r.text.slice(0, 120)}`);
+      if (r.status >= 300) process.exit(1);
+    }
+  }
+
+  const parseMultiline = (cell, style) =>
+    String(cell ?? '').split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
+      const url = /(https?:\/\/\S+)/.exec(line)?.[1] ?? null;
+      if (!url) return null;
+      let label = line.replace(url, '').replace(/[—:()]+/g, ' ').replace(/\s+/g, ' ').trim();
+      if (style === 'streams') label = label || 'stream';
+      return { url, label: label.slice(0, 60) };
+    }).filter(Boolean);
+  const linksValue = (entries) => {
+    if (!entries.length) return null;
+    const [first, ...rest] = entries;
+    return {
+      primaryLinkUrl: first.url,
+      primaryLinkLabel: first.label ?? '',
+      secondaryLinks: rest.map((e) => ({ url: e.url, label: e.label ?? '' })),
+    };
+  };
+  const single = (url) => (url ? { primaryLinkUrl: url } : null);
+
+  // Fresh company fetch — the create pass may have just run.
+  const liveNow = await fetchAll('companies');
+  const liveBySlugNow = new Map(liveNow.filter((c) => c.augmentItSlug).map((c) => [c.augmentItSlug, c]));
+  let patched = 0, skippedFull = 0;
+  for (const [slug, row] of rawRowBySlug) {
+    const live = liveBySlugNow.get(slug);
+    if (!live) continue;
+    const want = {
+      xLink: single(row.x),
+      youtubeLink: single(row.youtube),
+      facebookLink: single(row.facebook),
+      instagramLink: single(row.instagram),
+      otherLinks: linksValue([
+        ...(row.wikipedia ? [{ url: row.wikipedia, label: 'wikipedia' }] : []),
+        ...(row.bluesky ? [{ url: row.bluesky, label: 'bluesky' }] : []),
+        ...(row.substack ? [{ url: row.substack, label: 'substack' }] : []),
+        ...(row.team_page ? [{ url: row.team_page, label: 'team page' }] : []),
+        ...parseMultiline(row.other_links, 'links'),
+      ]),
+      pulseStreams: linksValue(parseMultiline(row.streams, 'streams')),
+    };
+    const patch = {};
+    for (const [field, value] of Object.entries(want)) {
+      if (!value) continue;
+      const cur = live[field];
+      if (cur?.primaryLinkUrl) continue; // already set — never clobber
+      patch[field] = value;
+    }
+    if (Object.keys(patch).length === 0) { skippedFull += 1; continue; }
+    if (!args.live) { patched += 1; continue; }
+    const r = await api('PATCH', `/rest/companies/${live.id}`, patch);
+    if (r.status < 300) patched += 1;
+    else console.log(`  ✗ enrich ${slug}: ${r.status} ${r.text.slice(0, 140)}`);
+  }
+  console.log(`links enrichment: ${args.live ? 'patched' : 'would patch'} ${patched} companies, ${skippedFull} already complete/empty`);
+}
+
 // ---- 6. Opportunities (operator rulings 2026-07-28) -------------------------
 //   name: "Pipeline Export April 2026" for single-deal orgs; the tracker's
 //         own row name for multi-row orgs AND fully-unattached rows (an
