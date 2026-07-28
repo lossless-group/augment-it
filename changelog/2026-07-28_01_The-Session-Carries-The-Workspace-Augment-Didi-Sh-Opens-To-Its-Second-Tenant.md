@@ -117,3 +117,24 @@ impossible rather than merely unlikely. Chat gets the same treatment:
 a restricted session's `chat_turn` context has its `client_id`
 overwritten from the session before dispatch. Superuser and dev
 sessions bypass, byte-for-byte pre-tenancy behavior.
+
+### The contamination proof (#66)
+
+`scripts/prove-session-tenancy.mjs` — fully self-contained: it mints an
+EdDSA keypair, serves a fake id-plane (JWKS + `/api/me`) on a local port,
+boots a scratch workspace-service in `required` mode against it, and
+connects real WebSocket sessions as four personas (alice = humain.vc,
+stephenie = reach.edu, bob = both orgs, root = superuser). Twenty
+assertions, green on the first run:
+
+```
+✓ stephenie refused row.list (row.list is scoped to this instance's
+  operator-active workspace (humain-vc), which this session cannot access)
+✓ bob's second socket received his sid-scoped switch
+✓ alice's socket saw no workspace.active.changed at all
+```
+
+The script deliberately performs no global-active moves — the broadcast
+test rides bob, a two-org *client* user whose switches are per-sid only —
+so a dev row-store listening on the shared NATS is never flipped as a
+side effect of proving the feature.
