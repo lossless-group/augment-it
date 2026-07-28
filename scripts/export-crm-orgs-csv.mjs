@@ -47,6 +47,11 @@ for (let i = 2; i < process.argv.length; i += 1) {
   // row — the tracker's shape, enriched. Multi-deal orgs stay multi-row.
   // 'all': one row per canonical org (the event-based long tail included).
   else if (k === '--scope') args.scope = process.argv[++i];
+  // Operator-directed additions: canonical org slugs appended as rows even
+  // though no pipeline row names them (pipeline_matched: 'manual'). First
+  // use: raise-us — the org behind the person-anchored "Blair Miller" deal
+  // row (operator ruling 2026-07-28, in lieu of a person-name org alias).
+  else if (k === '--include') args.include = process.argv[++i].split(',').map((s) => s.trim()).filter(Boolean);
 }
 const today = new Date().toISOString().slice(0, 10);
 const OUT_DIR = resolve(args.outDir ?? `clients/${args.client}/outputs/${today}_crm-starter`);
@@ -275,6 +280,24 @@ if (args.scope === 'pipeline') {
     exported_at,
   }));
   unmatched = resolved.filter((r) => !r.slug).map((r) => r.row);
+  // Operator-directed inclusions land after the pipeline rows.
+  const already = new Set(outRows.map((r) => r.external_id).filter(Boolean));
+  for (const slug of args.include ?? []) {
+    if (already.has(slug)) continue;
+    const o = orgBySlug.get(slug);
+    if (!o) {
+      console.warn(`  ⚠ --include ${slug}: no canonical org with that slug — skipped`);
+      continue;
+    }
+    outRows.push({
+      ...enrichmentFor(o),
+      pipeline_org_name: '',
+      pipeline_matched: 'manual',
+      ...Object.fromEntries(PIPELINE_COLS.map((c) => [c, ''])),
+      exported_at,
+    });
+    console.log(`  + included ${slug} (manual)`);
+  }
 } else {
   // --scope all: one row per canonical org (first matching pipeline row
   // attached), the event-based long tail included.
