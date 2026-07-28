@@ -188,3 +188,26 @@ upgrade still closes `4401`. One found-in-production fix: the shell's
 Dockerfile never declared the three new build args, so the first bake
 silently kept localhost fallbacks — Docker only passes ARGs a Dockerfile
 names.
+
+### The human gate caught a zombie (#73, filed and fixed same hour)
+
+The operator's walk-through hit a wall that looked exactly like a dead
+database — empty roster, searches dying with *"the workspace did not
+reply"* — while the backend answered a freshly-minted session perfectly
+(441-org roster, instant search). Root cause: id-didi-sh's JWT lives
+~12h inside a 30-day cookie with a `/api/session/refresh` contract, and
+**nothing ever called it**. On expiry the UI stayed rendered from
+localStorage, the transport reconnect-looped on 4401 at ~2/sec (a
+literal reject storm in the production logs), and queued invokes
+blamed the server at their 120s deadline.
+
+The fix landed both halves in `packages/workspace`: every surface now
+refreshes the token hourly and on tab-focus (the endpoint re-mints even
+an expired JWT while the session row lives), and the transport treats
+close 4401/4403 as auth-death — failing all pending work instantly with
+an honest *"session expired — sign in again"*, emitting a new
+`auth_required` status that clears `user` so the SignInWall reappears
+over the stale UI, trying one silent refresh-then-reconnect (mid-flight
+expiry heals invisibly), and retrying at a glacial 30s instead of
+storming. Operator findings on the header chrome landed as a second
+issue (#72) for the polish pass.
