@@ -165,3 +165,26 @@ DEPLOYMENT.md gained the standing multi-tenant section: the
 single-tenant era (`REQUIRED_ORG_ID` and `ACTIVE_CLIENT_ID` both
 retired), the row-store caveat, and the full onboard-the-next-client-org
 recipe down to the Fly `~s(...)`/`\x20` quoting gotcha.
+
+### The door actually opens (#68, #69, #70 — live)
+
+With the operator approving each production mutation: org `reach.edu`
+("Reach University") created on the live id service, Stephenie's account
+and `editor` membership upserted (her membership verified resolving via
+`memberships_for`) — the invite email deliberately left for the operator
+to send. Production quoting lessons for the runbook: `\x20` does NOT
+survive the Fly transport (`List.to_string(codepoints)` does), and map
+literals need arrow syntax (`%{:key=>v}`) because `key: v` requires the
+space the transport eats.
+
+Railway grew three services — org-workbench, search-and-add,
+search-results — all built green on the first Dockerfile'd attempt and
+serving their `remoteEntry.js`. The workspace-service flipped to the
+mapped regime live: `WORKSPACE_ORG_MAP` set, `REQUIRED_ORG_ID` and
+`ACTIVE_CLIENT_ID` emptied, `ACTIVE_STORE_PATH` added (restart no longer
+resets the operator's active), startCommand seeding both workspace
+stubs. Deployed posture verified: `/config` still `required`, anonymous
+upgrade still closes `4401`. One found-in-production fix: the shell's
+Dockerfile never declared the three new build args, so the first bake
+silently kept localhost fallbacks — Docker only passes ARGs a Dockerfile
+names.
