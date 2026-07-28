@@ -63,3 +63,14 @@ and `workspacesForOrgs`. Because the deployed instance keeps `clients/` on
 a volume rather than in git, a `WORKSPACE_ORG_MAP` env fallback
 (`humain-vc=humain.vc,reach-edu=reach.edu`) covers production without
 volume surgery — the file wins when both exist.
+
+### The gate learns orgs, not one org (#63)
+
+`didi.ts` now fetches and caches the *memberships themselves*
+(`getMemberships`, per-session, failures cached too so reconnect storms
+don't hammer the id service) instead of a single boolean. Admission
+becomes regime-aware: when any workspace declares an `org_id`, you're
+admitted iff your memberships map onto at least one workspace on the
+instance (superuser anywhere still walks in); only when no workspace is
+org-mapped does the legacy binary `REQUIRED_ORG_ID` check apply. An id-
+service outage still fails closed.
