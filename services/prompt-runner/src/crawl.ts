@@ -17,10 +17,14 @@ import { buildRequest } from './request';
 // the Opus enrichment default. Overridable like CHAT_MODEL.
 const CRAWL_MODEL = process.env.CRAWL_MODEL ?? 'claude-sonnet-4-6';
 const CRAWL_MAX_TOKENS = Number(process.env.CRAWL_MAX_TOKENS ?? 4096);
-// Per-crawl web-search budget — each search bills; 8 is plenty for the
-// find-the-page + confirm pattern the crawl prompts describe. Uncapped,
-// a crawl of a huge publisher searched open-endedly (see request.ts).
-const CRAWL_MAX_WEB_SEARCHES = Number(process.env.CRAWL_MAX_WEB_SEARCHES ?? 8);
+// Per-crawl web-search budget — each search bills AND its results come back
+// as input tokens, so this cap is the crawl's main cost dial. Dropped 8 → 5
+// (operator ruling 2026-07-27, after $20 of credits went fast): the
+// find-the-page + confirm pattern rarely needs more, and a crawl that would
+// have needed 6+ is usually better served by the 🔍 search.fire door
+// (SearXNG/Exa, no Anthropic tokens). Uncapped, a crawl of a huge publisher
+// searched open-endedly (see request.ts).
+const CRAWL_MAX_WEB_SEARCHES = Number(process.env.CRAWL_MAX_WEB_SEARCHES ?? 5);
 
 export type CrawlTarget = 'links' | 'streams' | 'team';
 
