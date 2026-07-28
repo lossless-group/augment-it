@@ -231,11 +231,13 @@ const fuzzyMatch = (name) => {
     if (n) variants.add(n);
   }
   variants.add(normName(String(name).replace(/:.*$/, ''))); // ": 12/31/25"
-  // Progressive right-trim (up to 3 trailing tokens): "stand together
-  // foundation catalyst grant" → … → "stand together foundation".
+  // Progressive right-trim (up to 4 trailing tokens): "stand together
+  // foundation catalyst grant" → … → "stand together foundation";
+  // "ecmc 3 ncad rtc investment" → "ecmc". Safe because trimmed variants
+  // must EXACT-match an org name/alias — depth only widens the search.
   for (const v of Array.from(variants)) {
     const toks = v.split(' ');
-    for (let drop = 1; drop <= 3 && toks.length - drop >= 1; drop += 1) {
+    for (let drop = 1; drop <= 4 && toks.length - drop >= 1; drop += 1) {
       variants.add(toks.slice(0, toks.length - drop).join(' '));
     }
   }
