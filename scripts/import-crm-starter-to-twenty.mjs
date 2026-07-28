@@ -244,10 +244,11 @@ if (oppObj) {
     (s) => !liveOptions.some((o) => String(o).toLowerCase() === s.toLowerCase()),
   );
   console.log(`  opportunity.stage options live: [${liveOptions.join(', ')}]`);
+  // Operator ruling 2026-07-28: ALL imported opportunities land in the
+  // operator-created "Fully Introduced" stage; the tracker's own stage is
+  // preserved per-record in the pipelineStage custom field, NOT as options.
   if (missing.length) {
-    console.log(`  MISSING stage options (created ahead of opportunities when --live --with-opportunities): ${missing.join(' · ')}`);
-  } else {
-    console.log('  all tracker stages present as options');
+    console.log(`  tracker stages NOT mirrored as options (by ruling — preserved in pipelineStage): ${missing.join(' · ')}`);
   }
 }
 
@@ -344,6 +345,71 @@ for (const p of people) {
 }
 if (repaired) console.log(`attach-repair: ${repaired} people gained their company (null-only fill)`);
 console.log('\nVERIFY: spot-check five companies for link fidelity, three multi-affiliation people, then re-run this script — it should report 0 to create (the external-id round-trip proof).');
+// ---- 6. Opportunities (operator rulings 2026-07-28) -------------------------
+//   name: "Pipeline Export April 2026" for single-deal orgs; the tracker's
+//         own row name for multi-row orgs AND fully-unattached rows (an
+//         anonymous card with no company would be unfindable).
+//   amount: BLANK (explicit ruling). company: attached via augmentItSlug.
+//   pointOfContact: only person-anchored rows. stage: "Fully Introduced"
+//   (operator-created option) for ALL — the tracker's real stage survives
+//   in the pipelineStage custom TEXT field so deal-state isn't flattened
+//   away. Round-trip key: augmentItRowName (tracker row names are unique).
 if (args.withOpportunities) {
-  console.log('⚠ --with-opportunities: NOT implemented until the operator rules opportunities-vs-company-fields at dry-run review.');
+  const oppObj2 = findObj('opportunity');
+  const stageField = (oppObj2?.fields ?? []).find((f) => f.name === 'stage');
+  const fullyIntroduced = (stageField?.options ?? []).find((o) =>
+    /fully.?introduced/i.test(String(o.label ?? o.value)));
+  if (!fullyIntroduced) {
+    console.log('✗ stage option "Fully Introduced" not found on opportunity.stage — create it in the UI first. Aborting opportunities.');
+    process.exit(1);
+  }
+  console.log(`\nopportunities: stage → ${fullyIntroduced.label ?? fullyIntroduced.value} (value ${fullyIntroduced.value})`);
+
+  for (const [name, label] of [['augmentItRowName', 'Augment-It Row Name'], ['pipelineStage', 'Pipeline Stage (tracker)']]) {
+    if (!hasField(oppObj2, name)) {
+      const r = await api('POST', '/rest/metadata/fields', {
+        objectMetadataId: oppObj2.id, name, label, type: 'TEXT',
+      });
+      console.log(`  custom field ${name}: ${r.status < 300 ? 'CREATED' : 'FAILED ' + r.status + ' ' + r.text.slice(0, 120)}`);
+      if (r.status >= 300) process.exit(1);
+    }
+  }
+
+  // Person map for pointOfContact.
+  const livePeople2 = await fetchAll('people');
+  const personIdByUuid = new Map(livePeople2.filter((p) => p.augmentItPersonUuid).map((p) => [p.augmentItPersonUuid, p.id]));
+
+  // Existing opportunities by row-name key (idempotency).
+  const liveOpps = await fetchAll('opportunities');
+  const liveByRowName = new Set(liveOpps.map((o) => o.augmentItRowName).filter(Boolean));
+
+  // Multi-row orgs → row names.
+  const rowsPerSlug = new Map();
+  for (const o of opportunities) {
+    if (o.company_slug) rowsPerSlug.set(o.company_slug, (rowsPerSlug.get(o.company_slug) ?? 0) + 1);
+  }
+
+  let oCreated = 0, oFailed = 0, oSkipped = 0;
+  for (const o of opportunities) {
+    const rowKey = o.name; // tracker row name — unique across the 96
+    if (liveByRowName.has(rowKey)) { oSkipped += 1; continue; }
+    const multi = o.company_slug && (rowsPerSlug.get(o.company_slug) ?? 0) > 1;
+    const bare = !o.company_slug && !o.person_uuid;
+    const body = {
+      name: multi || bare ? o.name : 'Pipeline Export April 2026',
+      stage: fullyIntroduced.value,
+      companyId: o.company_slug ? (slugToId.get(o.company_slug) ?? undefined) : undefined,
+      pointOfContactId: o.person_uuid ? (personIdByUuid.get(o.person_uuid) ?? undefined) : undefined,
+      augmentItRowName: rowKey,
+      pipelineStage: o.stage || undefined,
+    };
+    const clean = Object.fromEntries(Object.entries(body).filter(([, v]) => v !== undefined));
+    const r = await api('POST', '/rest/opportunities', clean);
+    if (r.status < 300) oCreated += 1;
+    else {
+      oFailed += 1;
+      console.log(`  ✗ opportunity \"${rowKey}\": ${r.status} ${r.text.slice(0, 140)}`);
+    }
+  }
+  console.log(`opportunities: created ${oCreated}, failed ${oFailed}, pre-existing ${oSkipped}`);
 }
