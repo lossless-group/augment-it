@@ -1,13 +1,13 @@
 ---
 title: "Header polish — the FLOW label and shell suffix have outlived their jobs, and the chat toggle sits on the wrong side"
-lede: "Three operator findings from the workspace-auth human gate, all in the shell header: FLOW duplicates the Flows dropdown, the chat toggle lives center-right while the chat rail it controls is on the left, and 'augment-it · shell' still says shell."
+lede: "Four operator findings from the workspace-auth human gate: FLOW duplicates the Flows dropdown, the chat toggle lives center-right while the chat rail it controls is on the left, 'augment-it · shell' still says shell, and the chat rail can't collapse itself."
 date_created: 2026-07-28
 date_modified: 2026-07-28
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 tags:
   - Issue
   - Augment-It
@@ -17,7 +17,7 @@ tags:
 status: Active
 ---
 
-# Header polish — three findings from the first production walk-through
+# Header polish — findings from the first production walk-through
 
 ## The observations (operator, 2026-07-28, during the workspace-auth human gate)
 
@@ -34,10 +34,16 @@ status: Active
    was orientation scaffolding while the module-federation architecture
    was being stood up; with a second tenant's users arriving, the
    internal-architecture label reads as noise ("I get it ;)").
+4. **The chat rail needs its own obvious collapse button** — INSIDE the
+   chat surface, in its header, floated right. Today the only way to
+   dismiss the rail is the shell-header toggle sitting across the
+   screen; a rail you open should be closable from the rail itself,
+   with an affordance you can't miss.
 
-All three are shell-header concerns (`shell/src/App.svelte` and its
-header region — the wordmark, the flow strip, and the rail toggles), no
-remote or service surface involved.
+All four are shell/chat-rail chrome concerns (`shell/src/App.svelte`'s
+header region — wordmark, flow strip, rail toggles — plus the chat
+rail's own header bar for the collapse button), no service surface
+involved.
 
 ## Why now
 
@@ -55,6 +61,9 @@ client user trips on silently.
 - Move the chat toggle to the far left of the header, adjacent to where
   the chat rail mounts; keep `queue` on the right with its rail.
 - Wordmark becomes just `augment-it`.
+- Add a prominent collapse control inside the chat rail's header, float
+  right (`◀`/`✕`-grade obvious, not a subtle icon), wired to the same
+  visibility state as the shell-header toggle so the two stay in sync.
 
 Small enough to ride as a fix-ticket in the workspace-auth loop's human
 gate (per [[../loops/Implement-Feature-Loop]] — findings become
