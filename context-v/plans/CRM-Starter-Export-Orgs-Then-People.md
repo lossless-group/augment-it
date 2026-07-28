@@ -201,12 +201,15 @@ external_id has somewhere to land.
    **opportunity** records per company (Twenty's native pipeline
    object)? Recommendation: opportunities — that's what they are — but
    the operator rules at dry-run review.
-2. **Org scope confirmation** — recommendation above is all-364 +
-   filter-in-sheet; alternative is pre-filtering to `funders/` bucket
-   (+ pipeline matches) if the CRM should only ever see funders.
-3. **Person floor** — export all 417, or only persons with a rated
-   edge (`relevance` set)? Recommendation: all, with `relevance` as a
-   sheet-filterable column.
+2. ~~Org scope~~ — SETTLED (operator ruling 2026-07-27, overriding the
+   plan's all-364 recommendation): **pipeline rows only**. The export is
+   one row per PIPELINE row (96 — multi-deal orgs stay multi-row, exactly
+   like the tracker), enrichment joined where a canonical org matched.
+   Event-based org creations are kept in the DB but are noise for the
+   CRM; the all-roster shape survives behind `--scope all`.
+3. ~~Person floor~~ — SETTLED by the same ruling: people scope to the
+   imported orgs (`--orgs-csv` filter; primary attach always an included
+   org). The all-persons export remains available by omitting the flag.
 
 ## Out of scope
 

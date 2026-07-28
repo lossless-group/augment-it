@@ -37,12 +37,16 @@ const { Surreal } = requireScripts('surrealdb');
 const { connect } = requireServices('@nats-io/transport-node');
 
 // ---- args -------------------------------------------------------------------
-const args = { client: 'reach-edu', match: 'Master-Pipeline-Tracker' };
+const args = { client: 'reach-edu', match: 'Master-Pipeline-Tracker', scope: 'pipeline' };
 for (let i = 2; i < process.argv.length; i += 1) {
   const k = process.argv[i];
   if (k === '--client') args.client = process.argv[++i];
   else if (k === '--record-set-name-match') args.match = process.argv[++i];
   else if (k === '--out-dir') args.outDir = process.argv[++i];
+  // 'pipeline' (default, operator ruling 2026-07-27): one row per PIPELINE
+  // row — the tracker's shape, enriched. Multi-deal orgs stay multi-row.
+  // 'all': one row per canonical org (the event-based long tail included).
+  else if (k === '--scope') args.scope = process.argv[++i];
 }
 const today = new Date().toISOString().slice(0, 10);
 const OUT_DIR = resolve(args.outDir ?? `clients/${args.client}/outputs/${today}_crm-starter`);
@@ -161,47 +165,44 @@ console.log(`pipeline rows: ${pipelineRows.length}`);
 
 // 6. Join pipeline → orgs: exact by corpus_funder_slug, then name/alias.
 const orgBySlug = new Map(orgs.map((o) => [o.slug, o]));
-const byNorm = new Map(); // normalized name/alias → slug (first wins; collisions logged)
+const byNorm = new Map(); // normalized name/alias → slug (first wins)
 for (const o of orgs) {
   for (const cand of [o.complete_name, o.conventional_name, o.slug.replace(/-/g, ' '), ...(o.aliases ?? [])]) {
     const n = normName(cand);
     if (n && !byNorm.has(n)) byNorm.set(n, o.slug);
   }
 }
-const pipelineByOrg = new Map(); // slug → { row, matched }
-const unmatched = [];
-for (const row of pipelineRows) {
+// Per-PIPELINE-row resolution — multiple rows may share one org (multi-deal
+// orgs like Accelerate the Future); each keeps its own row, tracker-style.
+const resolved = pipelineRows.map((row) => {
   const name = row['Prospect / Organization'] ?? '';
   const exact = row.corpus_funder_slug && orgBySlug.has(row.corpus_funder_slug) ? row.corpus_funder_slug : null;
   const fuzzy = exact ? null : byNorm.get(normName(name));
-  const slug = exact ?? fuzzy;
-  if (!slug) {
-    unmatched.push(row);
-    continue;
-  }
-  if (!pipelineByOrg.has(slug)) {
-    pipelineByOrg.set(slug, { row, matched: exact ? 'exact' : 'fuzzy' });
-  } else {
-    console.warn(`  ⚠ second pipeline row also matches ${slug}: "${name}" — kept the first, this one goes to the sidecar`);
-    unmatched.push(row);
-  }
-}
-console.log(`pipeline matched: ${pipelineByOrg.size} (exact+fuzzy) · unmatched: ${unmatched.length}`);
+  return { row, slug: exact ?? fuzzy ?? null, matched: exact ? 'exact' : fuzzy ? 'fuzzy' : 'none' };
+});
+const matchedCount = resolved.filter((r) => r.slug).length;
+console.log(`pipeline rows matched to a canonical org: ${matchedCount}/${resolved.length}`);
 
-// 7. Shape org rows.
+// 7. Shape rows — canonical-enrichment column block for one org.
 const exported_at = new Date().toISOString();
-const outRows = orgs.map((o) => {
-  const links = o.org_links ?? [];
+const enrichmentFor = (o) => {
+  if (!o) {
+    return {
+      external_id: '', name: '', conventional_name: '', aliases: '', domains: '',
+      bucket: '', tags: '',
+      ...Object.fromEntries(Object.values(PROMOTED_KINDS).map((c) => [c, ''])),
+      other_links: '', streams: '', stream_count: '', related_orgs: '',
+    };
+  }
   const flat = {};
   const other = [];
-  for (const l of links) {
+  for (const l of o.org_links ?? []) {
     const col = PROMOTED_KINDS[l.kind];
     if (col && !flat[col]) flat[col] = l.url;
     else other.push(`${l.kind ?? 'other'}: ${l.url}`);
   }
   const streams = (o.media_streams ?? []).map((s) => `${s.name ? s.name + ' — ' : ''}${s.url}${s.kind ? ` (${s.kind})` : ''}`);
-  const p = pipelineByOrg.get(o.slug);
-  const row = {
+  return {
     external_id: o.slug,
     name: o.complete_name ?? o.conventional_name ?? o.slug,
     conventional_name: o.conventional_name ?? '',
@@ -214,17 +215,44 @@ const outRows = orgs.map((o) => {
     streams: streams.join('\n'),
     stream_count: streams.length,
     related_orgs: (relsByOrg.get(o.slug) ?? []).join('\n'),
-    pipeline_org_name: p?.row['Prospect / Organization'] ?? '',
-    pipeline_matched: p?.matched ?? 'none',
-    ...Object.fromEntries(PIPELINE_COLS.map((c) => [c, p?.row[c] ?? ''])),
-    exported_at,
   };
-  return row;
-});
+};
 
-// Pipeline-matched rows first (they're the review priority), then by name.
-outRows.sort((a, b) =>
-  (a.pipeline_matched === 'none') - (b.pipeline_matched === 'none') || a.name.localeCompare(b.name));
+let outRows;
+let unmatched = [];
+if (args.scope === 'pipeline') {
+  // The tracker's shape: one row per pipeline row, in tracker order,
+  // enrichment blank where no canonical org matched. Rows with no match
+  // ALSO land in the sidecar as the to-capture list.
+  outRows = resolved.map(({ row, slug, matched }) => ({
+    ...enrichmentFor(slug ? orgBySlug.get(slug) : null),
+    pipeline_org_name: row['Prospect / Organization'] ?? '',
+    pipeline_matched: matched,
+    ...Object.fromEntries(PIPELINE_COLS.map((c) => [c, row[c] ?? ''])),
+    exported_at,
+  }));
+  unmatched = resolved.filter((r) => !r.slug).map((r) => r.row);
+} else {
+  // --scope all: one row per canonical org (first matching pipeline row
+  // attached), the event-based long tail included.
+  const pipelineByOrg = new Map();
+  for (const r of resolved) {
+    if (r.slug && !pipelineByOrg.has(r.slug)) pipelineByOrg.set(r.slug, r);
+  }
+  outRows = orgs.map((o) => {
+    const p = pipelineByOrg.get(o.slug);
+    return {
+      ...enrichmentFor(o),
+      pipeline_org_name: p?.row['Prospect / Organization'] ?? '',
+      pipeline_matched: p?.matched ?? 'none',
+      ...Object.fromEntries(PIPELINE_COLS.map((c) => [c, p?.row[c] ?? ''])),
+      exported_at,
+    };
+  });
+  outRows.sort((a, b) =>
+    (a.pipeline_matched === 'none') - (b.pipeline_matched === 'none') || a.name.localeCompare(b.name));
+  unmatched = resolved.filter((r) => !r.slug).map((r) => r.row);
+}
 
 const HEADERS = [
   'external_id', 'name', 'conventional_name', 'aliases', 'domains', 'bucket', 'tags',
