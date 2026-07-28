@@ -138,3 +138,17 @@ The script deliberately performs no global-active moves — the broadcast
 test rides bob, a two-org *client* user whose switches are per-sid only —
 so a dev row-store listening on the shared NATS is never flipped as a
 side effect of proving the feature.
+
+### The frontends already follow (#67)
+
+The audit found no frontend changes needed — the surfaces were built
+against the capability contract, and the contract is what moved:
+the WorkspaceSwitcher renders the (now server-filtered) `workspace.list`;
+`pinned` folds in "only one workspace available," so single-workspace
+client sessions hide the switcher without new code; the localStorage-
+persisted workspace pick is honored only when it survives the filtered
+list, so a foreign slug left by a previous user on a shared machine
+silently drops to the server's session active; and every remote's
+`workspace.active` read rides the same cookie → same sid → same
+per-session state. svelte-check: org-workbench fully clean; the shell's
+two errors pre-date this run (untouched files).
