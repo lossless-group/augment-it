@@ -524,6 +524,11 @@ export type PersonAffiliateInput = {
   // D4 domain matching (the bio-page promotion path supplies the bio's host).
   org_domain?: string;
   role?: string | null;
+  // didi's per-candidate reasoning from a team crawl ("Leads thought
+  // leadership…") — persisted on the affiliation edge so Accept doesn't
+  // discard the judgment the crawl produced (gh #59). Edge-scoped like
+  // relevance: it's about the pairing, and client-tagged via the edge.
+  agent_search_rationale?: string | null;
   client: string;
   source?: string;
 };
@@ -566,8 +571,15 @@ export async function applyPersonAffiliation(
     if (!hasEdge) {
       await db.query(
         `RELATE $person->affiliations->$org SET
-            kind = $role, client_access = [$client], added_at = time::now();`,
-        { person: person.id, org: org.id, role: input.role ?? null, client: input.client },
+            kind = $role, client_access = [$client], added_at = time::now()
+            ${input.agent_search_rationale ? ', agent_search_rationale = $rationale' : ''};`,
+        {
+          person: person.id,
+          org: org.id,
+          role: input.role ?? null,
+          client: input.client,
+          ...(input.agent_search_rationale ? { rationale: input.agent_search_rationale } : {}),
+        },
       );
       affiliation_created = true;
       await createObservation(db, {
@@ -577,6 +589,14 @@ export async function applyPersonAffiliation(
         source,
         client: input.client,
       });
+    } else if (input.agent_search_rationale) {
+      // Existing edge: fill the rationale only if absent — additive
+      // enrichment, never clobbering an earlier accept's context.
+      await db.query(
+        `UPDATE affiliations SET agent_search_rationale = agent_search_rationale ?? $rationale
+           WHERE in = $person AND out = $org;`,
+        { person: person.id, org: org.id, rationale: input.agent_search_rationale },
+      );
     }
   }
 
@@ -948,6 +968,7 @@ export type AffiliatedPerson = {
   headline: string | null;
   role: string | null;      // the affiliation edge's `kind`
   relevance: string | null; // passes through as written by the rating loop
+  agent_search_rationale: string | null; // didi's crawl reasoning (gh #59)
   personal_links: ShapedLink[];
   personal_corpus: ShapedLink[];
   personal_corpus_count: number;
@@ -966,7 +987,7 @@ export async function listOrgAffiliations(
   if (!org) throw new Error(`organization not found: ${input.org_slug}`);
 
   const affRes = await db.query(
-    `SELECT kind, relevance,
+    `SELECT kind, relevance, agent_search_rationale,
             in.person_uuid AS person_uuid, in.name ?? in.full_name AS name, in.headline AS headline,
             in.personal_links AS personal_links,
             in.personal_corpus ?? [] AS personal_corpus,
@@ -984,6 +1005,7 @@ export async function listOrgAffiliations(
       headline: (r.headline as string) ?? null,
       role: (r.kind as string) ?? null,
       relevance: (r.relevance as string) ?? null,
+      agent_search_rationale: (r.agent_search_rationale as string) ?? null,
       personal_links: (r.personal_links as ShapedLink[]) ?? [],
       personal_corpus: (r.personal_corpus as ShapedLink[]) ?? [],
       personal_corpus_count: Number(r.personal_corpus_count ?? 0),

@@ -95,6 +95,9 @@
         person_uuid: applied.person_uuid,
         org_slug,
         role: row.person.role,
+        // The card's context line is didi's judgment — persist it on the
+        // edge instead of losing it at Accept (gh #59).
+        agent_search_rationale: row.person.headline ?? null,
         client,
         source: sourceFor(row),
       });

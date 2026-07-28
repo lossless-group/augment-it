@@ -84,6 +84,8 @@ export type AffiliatedPerson = {
   headline: string | null;
   role: string | null;
   relevance: string | null;
+  // didi's crawl reasoning, persisted on the edge at Accept (gh #59).
+  agent_search_rationale: string | null;
   personal_links: ShapedLink[];
   personal_corpus: ShapedLink[];
   personal_corpus_count: number;

@@ -120,6 +120,9 @@ export async function affiliatePerson(args: {
   person_uuid: string;
   org_slug: string;
   role?: string | null;
+  // didi's per-candidate reasoning — persisted on the affiliation edge as
+  // agent_search_rationale so Accept doesn't discard it (gh #59).
+  agent_search_rationale?: string | null;
   client: string;
   source?: string;
 }): Promise<void> {
@@ -128,6 +131,7 @@ export async function affiliatePerson(args: {
     org_action: 'match',
     org_slug: args.org_slug,
     role: args.role ?? null,
+    agent_search_rationale: args.agent_search_rationale ?? null,
     client: args.client,
     source: args.source ?? 'search-results',
   })) as { ok: boolean; error?: string };

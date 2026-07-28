@@ -101,6 +101,11 @@
 
 <div class="ow-person-card">
   {#if person.headline}<p class="ow-person-headline">{person.headline}</p>{/if}
+  {#if person.agent_search_rationale && person.agent_search_rationale !== person.headline}
+    <p class="ow-person-headline" title="didi's rationale from the team crawl that surfaced this person">
+      🤖 {person.agent_search_rationale}
+    </p>
+  {/if}
 
   <p class="ow-affiliation-row">
     <span class="ow-gate-note ow-affiliation-label">
