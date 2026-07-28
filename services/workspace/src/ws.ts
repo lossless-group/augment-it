@@ -201,6 +201,9 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
       // hanging the caller forever.
       if (f.kind === 'invoke' && f.id && f.capability) {
         const invokeId = f.id;
+        // Receipt log (gh #58 probe 2): "the frame never reached ws.ts" is
+        // now fact, not inference — grep for invoke_received.
+        app.log.info({ capability: f.capability, invoke_id: invokeId }, 'invoke_received');
         // Actor attribution envelope (build-order step 4) — the verified
         // didi.sh identity rides beside the args into dispatch(), never
         // client-asserted. See [[Workspaces-as-Tenant-Primitive]] §
@@ -223,11 +226,14 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
         if (socket.readyState === 1 /* OPEN */) {
           try {
             socket.send(resultFrame);
+            app.log.info({ capability: f.capability, invoke_id: invokeId }, 'invoke_result_sent');
           } catch {
             stashResult(invokeId, resultFrame);
+            app.log.warn({ capability: f.capability, invoke_id: invokeId }, 'invoke_result_stashed (send threw)');
           }
         } else {
           stashResult(invokeId, resultFrame);
+          app.log.warn({ capability: f.capability, invoke_id: invokeId, readyState: socket.readyState }, 'invoke_result_stashed (socket not open)');
         }
         return;
       }

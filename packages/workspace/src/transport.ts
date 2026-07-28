@@ -185,11 +185,35 @@ export function createTransport(config: TransportConfig): Transport {
     }, backoff);
   }
 
+  // Default client deadline (gh #58 probe 4): a lost invoke previously hung
+  // its pane FOREVER — no timeout anywhere client-side. Crawl/scan-shaped
+  // capabilities get the server dispatch ceiling (600s) plus headroom;
+  // everything else fails loud at 120s with the capability named, so the
+  // operator sees an error and can retry instead of a frozen spinner.
+  const DEADLINE_DEFAULT_MS = 120_000;
+  const DEADLINE_LONG_MS = 660_000;
+  const deadlineFor = (capability: string): number =>
+    /crawl|scan|pack\./.test(capability) ? DEADLINE_LONG_MS : DEADLINE_DEFAULT_MS;
+
   async function invoke(capability: string, args: unknown, via?: string): Promise<unknown> {
     const id = genId();
     const frame: InvokeFrame = { kind: 'invoke', id, capability, args, ...(via ? { via } : {}) };
     const promise = new Promise<unknown>((resolve, reject) => {
-      pending.set(id, { resolve, reject });
+      const ms = deadlineFor(capability);
+      const timer = setTimeout(() => {
+        if (!pending.has(id)) return;
+        pending.delete(id);
+        // Drop any still-queued copy so a later flush doesn't resend a
+        // frame whose caller already gave up.
+        const qi = sendQueue.findIndex((fr) => fr.kind === 'invoke' && fr.id === id);
+        if (qi >= 0) sendQueue.splice(qi, 1);
+        console.warn(`[workspace] invoke deadline (${ms}ms): ${capability} (${id})`);
+        reject(new Error(`${capability} timed out after ${Math.round(ms / 1000)}s — the workspace did not reply; retry the action`));
+      }, ms);
+      pending.set(id, {
+        resolve: (v) => { clearTimeout(timer); resolve(v); },
+        reject: (e) => { clearTimeout(timer); reject(e); },
+      });
     });
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(frame));
