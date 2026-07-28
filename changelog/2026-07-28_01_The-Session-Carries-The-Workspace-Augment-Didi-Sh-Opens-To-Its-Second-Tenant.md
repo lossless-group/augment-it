@@ -45,3 +45,21 @@ workbench deployed to production for her to land on.
 ## What landed
 
 <!-- appended per ticket during the loop; polished at ship -->
+
+### Workspaces declare their org (#62)
+
+Each workspace now carries its identity binding in a `workspace.json` next
+to its `.env` — committed in the client repo itself, so the map lives with
+the workspace:
+
+```json
+{ "org_id": "reach.edu" }
+```
+
+`WorkspaceConfig`/`WorkspaceSummary` gained `org_id`, plus three lookups
+the tenancy tickets build on: `getWorkspaceOrgId`, `hasOrgMappedWorkspaces`
+(the signal that the org-mapped gate applies vs the legacy binary check),
+and `workspacesForOrgs`. Because the deployed instance keeps `clients/` on
+a volume rather than in git, a `WORKSPACE_ORG_MAP` env fallback
+(`humain-vc=humain.vc,reach-edu=reach.edu`) covers production without
+volume surgery — the file wins when both exist.

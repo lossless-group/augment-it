@@ -41,13 +41,31 @@ export type WorkspaceSummary = {
   /** DEFAULT_DOMAIN_TYPE from this workspace's .env, or 'strategy' if unset.
    *  Per Build-Order step 5 — humain-vc reads 'thesis', reach-edu 'strategy'. */
   default_domain_type: string;
+  /** The id-didi-sh org this workspace belongs to (e.g. 'reach.edu'), or
+   *  null when unmapped. Session tenancy derives allowed workspaces from
+   *  this — see [[Open-Augment-Didi-Sh-To-Reach-Edu]] step 1. */
+  org_id: string | null;
 };
 
 export type WorkspaceConfig = {
   client_id: string;
   /** Frozen view of clients/<slug>/.env. Empty object if no .env present. */
   env: Readonly<Record<string, string>>;
+  /** From clients/<slug>/workspace.json (org_id), else the WORKSPACE_ORG_MAP
+   *  env fallback — the deployed instance keeps clients on a volume, so the
+   *  mapping must be settable without volume surgery. File wins. */
+  org_id: string | null;
 };
+
+// Env fallback for the org mapping: "humain-vc=humain.vc,reach-edu=reach.edu".
+// Parsed once; consulted only when the workspace has no workspace.json org_id.
+const ORG_MAP_FROM_ENV: ReadonlyMap<string, string> = new Map(
+  (process.env.WORKSPACE_ORG_MAP ?? '')
+    .split(',')
+    .map((pair) => pair.split('=').map((s) => s.trim()))
+    .filter((kv): kv is [string, string] => kv.length === 2 && Boolean(kv[0]) && Boolean(kv[1]))
+    .map(([k, v]) => [k, v] as const),
+);
 
 let CLIENTS_ROOT = '';
 const configs = new Map<string, WorkspaceConfig>();
@@ -104,7 +122,20 @@ async function loadConfigFor(client_id: string): Promise<WorkspaceConfig> {
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
   }
-  return { client_id, env: Object.freeze(env) };
+  let org_id: string | null = null;
+  try {
+    const raw = await readFile(join(CLIENTS_ROOT, client_id, 'workspace.json'), 'utf8');
+    const parsed = JSON.parse(raw) as { org_id?: unknown };
+    if (typeof parsed.org_id === 'string' && parsed.org_id) org_id = parsed.org_id;
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+      // Malformed JSON should not take the workspace down — an unmapped
+      // workspace is invisible to client sessions, which fails safe.
+      console.warn(`[workspaces] could not parse ${client_id}/workspace.json`, err);
+    }
+  }
+  org_id ??= ORG_MAP_FROM_ENV.get(client_id) ?? null;
+  return { client_id, env: Object.freeze(env), org_id };
 }
 
 // Where the operator's last workspace pick persists across restarts —
@@ -216,7 +247,31 @@ export async function listWorkspaces(): Promise<WorkspaceSummary[]> {
     display_name: titleCase(client_id),
     has_env: (configs.get(client_id)?.env && Object.keys(configs.get(client_id)!.env).length > 0) || false,
     default_domain_type: configs.get(client_id)?.env.DEFAULT_DOMAIN_TYPE || 'strategy',
+    org_id: configs.get(client_id)?.org_id ?? null,
   }));
+}
+
+/** The org a workspace is bound to, or null when unmapped/unknown. */
+export function getWorkspaceOrgId(client_id: string): string | null {
+  return configs.get(client_id)?.org_id ?? null;
+}
+
+/** Whether ANY workspace on this instance declares an org binding — the
+ *  signal that the org-mapped admission gate applies (vs the legacy
+ *  REQUIRED_ORG_ID binary check). */
+export function hasOrgMappedWorkspaces(): boolean {
+  for (const cfg of configs.values()) if (cfg.org_id) return true;
+  return false;
+}
+
+/** Workspace slugs a set of org memberships admits, sorted. */
+export function workspacesForOrgs(orgIds: readonly string[]): string[] {
+  const orgs = new Set(orgIds);
+  const out: string[] = [];
+  for (const cfg of configs.values()) {
+    if (cfg.org_id && orgs.has(cfg.org_id)) out.push(cfg.client_id);
+  }
+  return out.sort();
 }
 
 export function getActiveClientId(): string | null {
@@ -248,6 +303,7 @@ export function setActiveClientId(client_id: string): WorkspaceSummary {
     display_name: titleCase(client_id),
     has_env: Object.keys(configs.get(client_id)!.env).length > 0,
     default_domain_type: configs.get(client_id)!.env.DEFAULT_DOMAIN_TYPE || 'strategy',
+    org_id: configs.get(client_id)!.org_id,
   };
 }
 
