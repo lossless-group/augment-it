@@ -35,7 +35,7 @@
     window.dispatchEvent(new CustomEvent('augment-it:active-entity', { detail }));
   }
 
-  let status = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
+  let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
   let client = $state<string>('reach-edu');
 
   let org = $state<OrgDetail | null>(null);

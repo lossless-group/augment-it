@@ -27,7 +27,7 @@
   const ACTIVE_RECORD_SET_KEY = 'augment-it:active-record-set';
   const MAPPING_KEY_PREFIX = 'augment-it:affiliation-rating-resolver:mapping:';
 
-  let status = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
+  let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
   let client = $state<string>('reach-edu');
 
   let recordSets = $state<RecordSet[]>([]);

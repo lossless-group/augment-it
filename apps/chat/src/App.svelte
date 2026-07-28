@@ -19,7 +19,7 @@
     ((import.meta as { env?: Record<string, string> }).env?.PUBLIC_WS_URL as string | undefined) ||
     'ws://localhost:3001/ws';
 
-  let connectionStatus = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
+  let connectionStatus = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
 
   onMount(() => {
     const TOKEN_KEY = 'augment_it_session_token';
