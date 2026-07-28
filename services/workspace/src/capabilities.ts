@@ -3,12 +3,13 @@
 // whichever microservice subscribes to the relevant subject.
 
 import { getNats } from './nats';
-import { listWorkspaces, type WorkspaceSummary } from './workspaces';
+import { getActiveClientId, listWorkspaces, type WorkspaceSummary } from './workspaces';
 import {
   activateTenant,
   allowedClients,
   ANONYMOUS_TENANT,
   getTenantActive,
+  isClientAllowed,
   isEffectivelyPinned,
   type TenantCtx,
 } from './tenancy';
@@ -413,12 +414,63 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
 // envelope" for the sibling client_id pattern this mirrors.
 export type Actor = { didi_id: string; via?: string };
 
+// ── Server-side client enforcement (#65) ────────────────────────────────
+// The security-critical line of the multi-tenant build: the `client` arg
+// in a capability frame is CLIENT-SUPPLIED and therefore untrusted. For
+// restricted sessions (allowed !== 'all') every dispatched frame is
+// checked here, before any local handler or NATS subject sees it.
+//
+// Two registers, per the plan's row-store caveat:
+//  - Frame-scoped capabilities carry their tenant in args (three key
+//    spellings exist across services: client / client_id / client_slug) —
+//    each present key must name a workspace in the session's allowed set.
+//  - The records family (row-store + prompt-store + response-store and
+//    their surfaces) has NO per-frame tenant: those services follow the
+//    instance's GLOBAL active workspace. A restricted session may use
+//    them only while that global active is in its allowed set — refusal,
+//    not remap, so contamination is impossible.
+// Superuser and anonymous (dev) sessions bypass, preserving pre-tenancy
+// behavior exactly.
+
+const CLIENT_ARG_KEYS = ['client', 'client_id', 'client_slug'] as const;
+const GLOBAL_SCOPED_PREFIXES = [
+  'row.',
+  'record_set.',
+  'prompt.',
+  'response.',
+  'variant_family.',
+  'pipeline.',
+];
+
+function enforceTenant(capability: string, args: unknown, tenant: TenantCtx): void {
+  if (tenant.allowed === 'all') return;
+  if (GLOBAL_SCOPED_PREFIXES.some((p) => capability.startsWith(p))) {
+    const globalActive = getActiveClientId();
+    if (!globalActive || !isClientAllowed(tenant, globalActive)) {
+      throw new Error(
+        `${capability} is scoped to this instance's operator-active workspace` +
+          `${globalActive ? ` (${globalActive})` : ''}, which this session cannot access`,
+      );
+    }
+    return;
+  }
+  if (args && typeof args === 'object') {
+    for (const key of CLIENT_ARG_KEYS) {
+      const v = (args as Record<string, unknown>)[key];
+      if (typeof v === 'string' && v && !isClientAllowed(tenant, v)) {
+        throw new Error(`client not available to this session: ${v}`);
+      }
+    }
+  }
+}
+
 export async function dispatch(
   capability: string,
   args: unknown,
   actor?: Actor,
   tenant: TenantCtx = ANONYMOUS_TENANT,
 ): Promise<unknown> {
+  enforceTenant(capability, args, tenant);
   const local = LOCAL_CAPABILITIES[capability];
   if (local) return local(args, actor, tenant);
   const subject = CAPABILITY_TO_SUBJECT[capability];

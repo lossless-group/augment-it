@@ -100,3 +100,20 @@ one client user changing workspaces can no longer swap anyone else's
 data out from under them. The session frame now carries
 `allowed_clients` + `active_client_id` + `superuser` so the shell knows
 its tenancy at connect.
+
+### Every frame gets checked at the door (#65)
+
+The security-critical line. The `client` argument in a capability frame
+comes from the browser and was, until now, trusted verbatim. `dispatch()`
+now runs `enforceTenant()` before any handler or NATS subject sees the
+frame: for restricted sessions, every client-key spelling the services
+use (`client`, `client_id`, `client_slug`) must name a workspace in the
+session's allowed set, and the records family (`row.*`, `record_set.*`,
+`prompt.*`, `response.*`, `variant_family.*`, `pipeline.*`) — which has
+no per-frame tenant because row-store follows the instance's global
+active — is served only while that global active is in the session's
+allowed set. Refusal, not remap: contamination is structurally
+impossible rather than merely unlikely. Chat gets the same treatment:
+a restricted session's `chat_turn` context has its `client_id`
+overwritten from the session before dispatch. Superuser and dev
+sessions bypass, byte-for-byte pre-tenancy behavior.

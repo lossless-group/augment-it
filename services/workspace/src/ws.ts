@@ -306,6 +306,13 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
 
       // --- chat_turn frame: route through chat dispatch. ---
       if (f.kind === 'chat_turn' && f.id && f.message) {
+        // Restricted sessions never choose their chat tenant — the
+        // context's client_id is overwritten from the session (#65), the
+        // chat twin of dispatch()'s enforceTenant.
+        if (session.tenant.allowed !== 'all') {
+          const active = getTenantActive(session.tenant) ?? undefined;
+          f.context = { ...(f.context ?? {}), client_id: active };
+        }
         try {
           const result = await dispatchChatTurn({
             message: f.message,
