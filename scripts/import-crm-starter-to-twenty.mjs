@@ -58,19 +58,35 @@ function readKey() {
 }
 const KEY = readKey();
 
+// Twenty rate-limits at 100 requests / 60s (observed live 2026-07-28: the
+// first import run 429'd 77 people). Pace every call under the ceiling and
+// sit out the window on 429 — idempotency makes retries safe.
+const PACE_MS = 650;
+let lastCall = 0;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function api(method, path, body) {
-  const res = await fetch(`${args.baseUrl}${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const text = await res.text();
-  let json = null;
-  try { json = JSON.parse(text); } catch { /* leave null */ }
-  return { status: res.status, json, text };
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const wait = lastCall + PACE_MS - Date.now();
+    if (wait > 0) await sleep(wait);
+    lastCall = Date.now();
+    const res = await fetch(`${args.baseUrl}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const text = await res.text();
+    let json = null;
+    try { json = JSON.parse(text); } catch { /* leave null */ }
+    if (res.status === 429 && attempt < 3) {
+      console.log(`  … rate-limited, sitting out 61s (attempt ${attempt + 1})`);
+      await sleep(61_000);
+      continue;
+    }
+    return { status: res.status, json, text };
+  }
 }
 
 // ---- csv --------------------------------------------------------------------
@@ -113,7 +129,8 @@ for (const r of orgRows) {
     name: r.name || r.external_id,
     domainName: domain ? { primaryLinkUrl: `https://${domain}` } : undefined,
     linkedinLink: r.linkedin ? { primaryLinkUrl: r.linkedin } : undefined,
-    xLink: r.x ? { primaryLinkUrl: r.x } : undefined,
+    // NO xLink: this instance's company object has no such field (observed
+    // live 2026-07-28, 400s on 8 companies). X URLs stay in augment-it.
     augmentItSlug: r.external_id,
   });
 }
@@ -271,7 +288,15 @@ const slugToId = new Map([...liveCompanyBySlug.entries()].map(([s, c]) => [s, c.
 let created = 0, failed = 0;
 for (const c of newCompanies) {
   const body = Object.fromEntries(Object.entries(c).filter(([, v]) => v !== undefined));
-  const r = await api('POST', '/rest/companies', body);
+  let r = await api('POST', '/rest/companies', body);
+  // Domain collisions (the Koch siblings share standtogether.org) trip
+  // Twenty's duplicate detection — retry without the domain; the slug is
+  // the identity that matters.
+  if (r.status === 400 && /duplicate/i.test(r.text) && body.domainName) {
+    const { domainName, ...noDomain } = body;
+    console.log(`  … ${c.augmentItSlug}: duplicate on domain, retrying without domainName`);
+    r = await api('POST', '/rest/companies', noDomain);
+  }
   const rec = r.json?.data?.createCompany ?? r.json?.data ?? null;
   if (r.status < 300 && rec?.id) {
     slugToId.set(c.augmentItSlug, rec.id);
@@ -302,6 +327,22 @@ for (const p of newPeople) {
   }
 }
 console.log(`people: created ${pCreated}, failed ${pFailed}, pre-existing ${people.length - newPeople.length}, attach-misses ${pUnattached}`);
+
+// 5. Attach-repair: people created on an earlier run while their company's
+// create had failed sit with companyId null. Fill it ONLY when null —
+// additive, never clobbers an attach someone made in the app.
+let repaired = 0;
+for (const p of people) {
+  if (!p._org_slug) continue;
+  const live = livePersonByUuid.get(p.augmentItPersonUuid);
+  if (!live || live.companyId) continue;
+  const companyId = slugToId.get(p._org_slug) ?? liveCompanyByName.get((p._org_name ?? '').toLowerCase())?.id;
+  if (!companyId) continue;
+  const r = await api('PATCH', `/rest/people/${live.id}`, { companyId });
+  if (r.status < 300) repaired += 1;
+  else console.log(`  ✗ attach-repair ${p.name.firstName} ${p.name.lastName}: ${r.status} ${r.text.slice(0, 120)}`);
+}
+if (repaired) console.log(`attach-repair: ${repaired} people gained their company (null-only fill)`);
 console.log('\nVERIFY: spot-check five companies for link fidelity, three multi-affiliation people, then re-run this script — it should report 0 to create (the external-id round-trip proof).');
 if (args.withOpportunities) {
   console.log('⚠ --with-opportunities: NOT implemented until the operator rules opportunities-vs-company-fields at dry-run review.');
