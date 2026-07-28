@@ -7,7 +7,9 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.1.0
+revisions:
+  - "2026-07-28 — v0.0.1.0 — REWRITTEN after rechecking the id-didi-sh spec of record (operator: 'the idea was it create an auth token that carried the workspace'). The spec confirms the intent: the token stays minimal (didi_id + sid) but /api/me supplies org memberships and augment-it is designed to map org ↔ workspace per session. The per-client-instance recommendation (v0.0.0.1's Option A) demoted to fallback; the designed org↔workspace session binding is now the plan."
 tags:
   - Plan
   - Augment-It
@@ -32,39 +34,61 @@ single-tenant is the **door**: `DIDI_AUTH=required`,
 `REQUIRED_ORG_ID=humain.vc`, `ACTIVE_CLIENT_ID=humain-vc` on
 workspace-service.
 
-## The load-bearing constraint
+## What the identity spec actually designed (recheck, 2026-07-28)
 
-`ACTIVE_CLIENT_ID` pins the tenant PER-INSTANCE, not per-user-org.
-Relaxing `REQUIRED_ORG_ID` alone would authenticate reach.edu users into
-the humain-vc workspace. Safe multi-client therefore means either
-per-client instances (each with its own pin) or real org→client session
-binding (a feature in workspace-service). The house has a strong
-precedent for the former: every client already gets its own Twenty, its
-own hub, its own stack folder (`self-host-stack/client-stacks/<client>`).
+The id-didi-sh spec of record
+(`ai-labs/context-v/specs/Id-Didi-Sh-Identity-Service.md`) is explicit:
 
-## Recommended shape: a per-client instance (Option A)
+- The **token stays minimal** — `didi_id` + `session_id` only
+  ("Deliberately not in the token: orgs, roles, email").
+- **`GET /api/me`** supplies org memberships + roles; and the augment-it
+  integration is specified as: *"per-capability authorization consults
+  cached `/api/me` org-roles **mapped onto workspaces**"* — with
+  per-service authorization state named directly: *"for augment-it:
+  **org ↔ workspace** per Workspaces-as-Tenant-Primitive."*
 
-`reach.augment.didi.sh` — a sibling instance in the same Railway project,
-sharing the client-agnostic backends, pinning its own tenant:
+So the session is DESIGNED to carry its workspace(s), resolved through
+org membership. What's running today implemented only the binary gate
+(`REQUIRED_ORG_ID` membership yes/no) and papered over the mapping with
+the `ACTIVE_CLIENT_ID` instance pin. Two gaps make the current state
+single-tenant:
 
-| Piece | Action |
-|---|---|
-| `nats`, `record-surrealdb-resolver`, `content-ingest`, `prompt-runner` | SHARED — already client-agnostic (client rides every request; canonical writes carry `client_access`) |
-| `workspace-service-reach` | NEW service from the same Dockerfile. Env: `DIDI_AUTH=required`, `REQUIRED_ORG_ID=reach.edu`, `ACTIVE_CLIENT_ID=reach-edu`, own tiny `/data` volume (sessions + clients root), `PORT=3001` |
-| `shell-reach` | NEW build of the shell with its WS URL baked to `wss://ws.reach.augment.didi.sh/ws` (the WS URL is a build-time constant — see DEPLOYMENT.md gotchas) |
-| `chat` / `strategy-curator` remotes | SHARED if the shell's remote registry allows cross-origin asset URLs per instance (they're static assets); else thin per-instance builds |
-| DNS | `reach.augment` + `ws.reach.augment` CNAMEs per the custom-domain-cutover skill; both must stay on `*.didi.sh` for the shared `didi_session` cookie |
+1. **No org↔workspace map** — nothing says org `reach.edu` ⇒ workspace
+   `reach-edu`.
+2. **Active client is INSTANCE-GLOBAL** — `workspaces.ts` holds one
+   module-level `activeClientId`; `workspace.activate` switches it for
+   every connected session. Safe solo, catastrophic multi-user.
+3. (Corollary) capability args carry `client` from the UI **untrusted** —
+   with multiple orgs on one instance, the server must derive/validate
+   the client from the session, not accept it from the frame.
 
-Why A over org-mapping: zero new auth code in the hot path, blast-radius
-isolation (a reach-edu session cannot even express a humain-vc
-workspace), per-client kill switch, and it matches the per-client stack
-doctrine everywhere else.
+## Recommended shape: build the designed mapping (the spec's path)
 
-**Option B (logged, not chosen): org→client binding in workspace-service**
-— map didi org → allowed client(s) at session establishment, one domain
-serves all tenants. Less infra, more auth surface; becomes worth it
-around client #4 or when cross-client operators (us) want one login.
-Revisit then.
+One domain, `augment.didi.sh`, serving both tenants:
+
+1. **Workspace → org binding**: each workspace under `CLIENTS_ROOT`
+   declares its org (`clients/<id>/workspace.json` gains
+   `org_id: "reach.edu"` / `"humain.vc"`). The map lives with the
+   workspace, not in env.
+2. **Session-scoped tenancy** in workspace-service: at WS establishment,
+   `/api/me` memberships → allowed workspaces (superuser → all; this is
+   the operating-team fast path that keeps US cross-client). The session
+   record carries `allowed_clients` + its own `active_client`;
+   `workspace.activate` becomes per-session and validates against the
+   allowed set. `ACTIVE_CLIENT_ID` env survives only as a dev-mode
+   default.
+3. **Server-side client enforcement**: dispatch overrides/validates the
+   `client` arg in every capability frame against the session's allowed
+   set — the tenant-aware envelope the Workspaces spec already names.
+   This is the security-critical line of the build.
+4. `REQUIRED_ORG_ID` relaxes to "member of ANY org that maps to a
+   workspace on this instance."
+
+**Fallback (formerly Option A, demoted):** a per-client instance
+(`reach.augment.didi.sh` with its own pin) remains viable as a stopgap if
+Stephenie's onboarding must precede the session-tenancy build — but it
+contradicts the identity spec's architecture and doubles frontend
+plumbing (baked WS URLs). Prefer the designed path.
 
 ## Stephenie's onboarding (the identity half)
 
@@ -96,29 +120,42 @@ Revisit then.
 
 ## Build order (when signed off)
 
-1. Railway: mint `workspace-service-reach` (+ volume) and `shell-reach`
-   with baked WS URL; wire env; deploy from `rebuild/turbo-rsbuild`.
-2. DNS: `reach.augment` / `ws.reach.augment` CNAMEs; wait out cert
-   issuance per the cutover skill (including its stale-cache theater).
-3. Deploy the Augment-from-DB remotes (org-workbench, search-results,
-   search-and-add, person-* ) as static-asset services; register them in
-   shell-reach's remote registry.
-4. id-didi-sh: create org `reach.edu`, invite stesoro@reach.edu; verify
-   the unlock flow end-to-end (the OAuth pilot discipline from the
-   Twenty stacks applies: designed-but-unproven until she logs in).
-5. Browser drive against reach.augment.didi.sh (workbench loads, client
-   pin is reach-edu, a humain-vc org is NOT visible), then the human
-   walk-through: Stephenie's first login as the acceptance test.
-6. DEPLOYMENT.md gains the second-instance section; changelog entry.
+1. **workspace-service session tenancy** (the core): workspace org_id
+   config, `/api/me`-derived `allowed_clients` per session, per-session
+   `active_client`, `workspace.activate` validation, and server-side
+   `client` enforcement on every dispatched frame. Proof script: two
+   fake sessions with different orgs cannot see or write each other's
+   client — the multi-tenant twin of prove-org-relations' contamination
+   check.
+2. **Frontends follow the session**: the shell/remotes read
+   `workspace.active` per session (already do) — verify no surface
+   caches a global client across a session switch.
+3. id-didi-sh: create org `reach.edu`, invite **stesoro@reach.edu**
+   (invite-only by design — invites carry org_id + role; there is no
+   open signup). Verify the redeem→cookie→WS flow end-to-end.
+4. Deploy the Augment-from-DB remotes (org-workbench, search-results,
+   search-and-add, person-*) as static-asset services on the existing
+   instance; register in the shell's remote registry — this is the
+   surface Stephenie actually needs.
+5. Relax the deployed env: drop `ACTIVE_CLIENT_ID` pin +
+   `REQUIRED_ORG_ID` single-value in favor of the mapping; redeploy.
+6. Browser drive on augment.didi.sh: a reach.edu-org session sees ONLY
+   reach-edu (org list, roster, corpora), a humain.vc session sees only
+   humain-vc, a superuser sees both. Then the human walk-through:
+   Stephenie's first login as the acceptance test.
+7. DEPLOYMENT.md multi-tenant section; changelog entry.
 
 ## Open decisions
 
-1. Sign off Option A (per-client instance) vs holding for Option B.
+1. Sign off the session-tenancy build (the spec's designed path) — or
+   invoke the per-client-instance fallback if her onboarding can't wait
+   for it.
 2. Whether the Augment-from-DB remotes ship in this pass (recommended —
    they're the surface Stephenie actually needs) or the chat-first
    surface suffices for v1.
-3. Who sends Stephenie the invite + onboarding note (content drafted as
-   part of step 4).
+3. Stephenie's role in org reach.edu (`editor` seems right — writes with
+   attribution, no org admin), and who sends the invite + onboarding
+   note.
 
 ## See also
 
