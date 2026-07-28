@@ -152,3 +152,16 @@ silently drops to the server's session active; and every remote's
 `workspace.active` read rides the same cookie → same sid → same
 per-session state. svelte-check: org-workbench fully clean; the shell's
 two errors pre-date this run (untouched files).
+
+### The remotes learn to deploy; the runbook learns multi-tenancy (#69, #71)
+
+The Augment-from-DB surfaces — org-workbench, search-and-add,
+search-results, the workbench Stephenie actually needs — each gained a
+Dockerfile (the proven chat/strategy-curator shape) and an env-driven
+`output.assetPrefix`, and the shell's remote map went env-parameterized
+for all three with localhost fallbacks. All three production-build clean.
+DEPLOYMENT.md gained the standing multi-tenant section: the
+`workspace.json` / `WORKSPACE_ORG_MAP` binding, the env delta from the
+single-tenant era (`REQUIRED_ORG_ID` and `ACTIVE_CLIENT_ID` both
+retired), the row-store caveat, and the full onboard-the-next-client-org
+recipe down to the Fly `~s(...)`/`\x20` quoting gotcha.
