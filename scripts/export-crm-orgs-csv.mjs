@@ -172,12 +172,55 @@ for (const o of orgs) {
     if (n && !byNorm.has(n)) byNorm.set(n, o.slug);
   }
 }
+// Deal-decoration-tolerant fuzzy match. Tracker rows name DEALS, not orgs
+// ("Ballmer Group II", "ECMC-2", "Colorado League of Charter Schools:
+// 12/31/25", "Stand Together Foundation-catalyst grant"). Candidates tried
+// in order of confidence; everything found here is flagged 'fuzzy' for
+// operator review — false negatives beat false positives, so trimmed
+// variants must EXACT-match, and the last-resort prefix rule only fires
+// when it is unambiguous (exactly one org).
+const orgNorms = Array.from(byNorm.keys());
+const fuzzyMatch = (name) => {
+  const variants = new Set();
+  const base = normName(name);
+  if (base) variants.add(base);
+  for (const part of String(name).split('/')) {
+    const n = normName(part);
+    if (n) variants.add(n);
+  }
+  variants.add(normName(String(name).replace(/:.*$/, ''))); // ": 12/31/25"
+  // Progressive right-trim (up to 3 trailing tokens): "stand together
+  // foundation catalyst grant" → … → "stand together foundation".
+  for (const v of Array.from(variants)) {
+    const toks = v.split(' ');
+    for (let drop = 1; drop <= 3 && toks.length - drop >= 1; drop += 1) {
+      variants.add(toks.slice(0, toks.length - drop).join(' '));
+    }
+  }
+  for (const v of variants) {
+    if (byNorm.has(v)) return byNorm.get(v);
+  }
+  // Unique-prefix rescue: "bloomberg" → "bloomberg philanthropies" (only if
+  // exactly one org starts with the variant). Single-token variants need
+  // brand-length distinctiveness (≥8 chars) — a bare first name like
+  // "james" (5) prefix-matched james-and-judith-k-dimon-foundation on the
+  // first run (caught in the 2026-07-28 fuzzy audit); multi-token variants
+  // need ≥5 chars.
+  for (const v of variants) {
+    const minLen = v.includes(' ') ? 5 : 8;
+    if (v.length < minLen) continue;
+    const hits = orgNorms.filter((n) => n.startsWith(v + ' '));
+    if (hits.length === 1) return byNorm.get(hits[0]);
+  }
+  return null;
+};
+
 // Per-PIPELINE-row resolution — multiple rows may share one org (multi-deal
 // orgs like Accelerate the Future); each keeps its own row, tracker-style.
 const resolved = pipelineRows.map((row) => {
   const name = row['Prospect / Organization'] ?? '';
   const exact = row.corpus_funder_slug && orgBySlug.has(row.corpus_funder_slug) ? row.corpus_funder_slug : null;
-  const fuzzy = exact ? null : byNorm.get(normName(name));
+  const fuzzy = exact ? null : fuzzyMatch(name);
   return { row, slug: exact ?? fuzzy ?? null, matched: exact ? 'exact' : fuzzy ? 'fuzzy' : 'none' };
 });
 const matchedCount = resolved.filter((r) => r.slug).length;
