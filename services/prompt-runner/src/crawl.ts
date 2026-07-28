@@ -25,6 +25,12 @@ const CRAWL_MAX_TOKENS = Number(process.env.CRAWL_MAX_TOKENS ?? 4096);
 // (SearXNG/Exa, no Anthropic tokens). Uncapped, a crawl of a huge publisher
 // searched open-endedly (see request.ts).
 const CRAWL_MAX_WEB_SEARCHES = Number(process.env.CRAWL_MAX_WEB_SEARCHES ?? 5);
+// Per-request deadline for crawl model calls. The SDK default (10 min ×
+// 2 retries) let a stuck request eat the whole 600s dispatch ceiling and
+// then time out anyway (carnegie-foundation team crawl, 2026-07-28).
+// 240s × (1 retry + 1) ≈ 480s worst case — inside the ceiling, so the
+// operator sees a real error instead of a silent 10-minute hang.
+const CRAWL_REQUEST_TIMEOUT_MS = Number(process.env.CRAWL_REQUEST_TIMEOUT_MS ?? 240_000);
 
 export type CrawlTarget = 'links' | 'streams' | 'team';
 
@@ -220,7 +226,10 @@ async function handleCrawl(nc: NatsConnection, msg: CrawlMsg): Promise<void> {
       tools: ['web_search'],
       webSearchMaxUses: CRAWL_MAX_WEB_SEARCHES,
     });
-    const text = await runPrompt(request);
+    const text = await runPrompt(request, {
+      timeoutMs: CRAWL_REQUEST_TIMEOUT_MS,
+      maxRetries: 1,
+    });
     const parsed = extractJson(text);
 
     if (args.target === 'team') {

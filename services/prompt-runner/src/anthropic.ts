@@ -56,17 +56,33 @@ function extractText(content: Anthropic.ContentBlock[]): string {
  */
 export async function runPrompt(
   request: Anthropic.MessageCreateParamsNonStreaming,
-  options?: { signal?: AbortSignal },
+  options?: {
+    signal?: AbortSignal;
+    // Per-REQUEST deadline + retry override. Without it the SDK defaults
+    // apply (10-minute timeout, 2 retries) — observed live 2026-07-28: a
+    // carnegie-foundation team crawl held one connection the full 10
+    // minutes before "Request timed out". Callers with their own dispatch
+    // ceilings (crawls: 600s) pass a tighter budget so a stuck request
+    // fails fast and localizes. Each pause_turn continuation gets the same
+    // per-request budget — the cap is per round-trip, not per crawl.
+    timeoutMs?: number;
+    maxRetries?: number;
+  },
 ): Promise<string> {
-  const signal = options?.signal;
+  const { signal, timeoutMs, maxRetries } = options ?? {};
+  const reqOpts = {
+    signal,
+    ...(timeoutMs !== undefined ? { timeout: timeoutMs } : {}),
+    ...(maxRetries !== undefined ? { maxRetries } : {}),
+  };
   let messages: Anthropic.MessageParam[] = request.messages;
-  let response = await getClient().messages.create(request, { signal });
+  let response = await getClient().messages.create(request, reqOpts);
 
   let continuations = 0;
   while (response.stop_reason === 'pause_turn' && continuations < MAX_PAUSE_CONTINUATIONS) {
     continuations += 1;
     messages = [...messages, { role: 'assistant', content: response.content }];
-    response = await getClient().messages.create({ ...request, messages }, { signal });
+    response = await getClient().messages.create({ ...request, messages }, reqOpts);
   }
 
   return extractText(response.content);
