@@ -74,3 +74,29 @@ admitted iff your memberships map onto at least one workspace on the
 instance (superuser anywhere still walks in); only when no workspace is
 org-mapped does the legacy binary `REQUIRED_ORG_ID` check apply. An id-
 service outage still fails closed.
+
+### The active workspace becomes per-user (#64)
+
+The heart of the run: `tenancy.ts`. Tenant state is keyed by the didi
+**session id** — the shell and every remote open their own WebSocket, but
+they all ride the same `didi_session` cookie, so one user's tabs share one
+tenant state and two users never do. Each session carries
+`allowed_clients` (org-mapped; superuser → all) and its own
+`active_client`; `workspace.activate` validates against the allowed set
+and, for client users, moves only their session:
+
+```ts
+if (!isClientAllowed(ctx, client_id)) {
+  throw new Error(`workspace not available to this session: ${client_id}`);
+}
+```
+
+The old global active survives with a narrower meaning — it is the
+row-store family's scope and the anonymous/dev default, and only
+superuser (or anonymous) switches move it. Per-session switches broadcast
+`workspace.active.changed` stamped with the `sid`; ws.ts forwards those
+only to the same user's sockets, and row-store explicitly ignores them —
+one client user changing workspaces can no longer swap anyone else's
+data out from under them. The session frame now carries
+`allowed_clients` + `active_client_id` + `superuser` so the shell knows
+its tenancy at connect.

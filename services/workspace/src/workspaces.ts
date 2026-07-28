@@ -242,18 +242,32 @@ export async function listWorkspaces(): Promise<WorkspaceSummary[]> {
   for (const slug of slugs) {
     if (!configs.has(slug)) configs.set(slug, await loadConfigFor(slug));
   }
-  return slugs.map((client_id) => ({
-    client_id,
-    display_name: titleCase(client_id),
-    has_env: (configs.get(client_id)?.env && Object.keys(configs.get(client_id)!.env).length > 0) || false,
-    default_domain_type: configs.get(client_id)?.env.DEFAULT_DOMAIN_TYPE || 'strategy',
-    org_id: configs.get(client_id)?.org_id ?? null,
-  }));
+  return slugs.map((client_id) => buildSummary(client_id));
 }
 
 /** The org a workspace is bound to, or null when unmapped/unknown. */
 export function getWorkspaceOrgId(client_id: string): string | null {
   return configs.get(client_id)?.org_id ?? null;
+}
+
+/** All workspace slugs currently primed, sorted. Sync view of the config
+ *  map — freshly mkdir'd workspaces appear after the next listWorkspaces
+ *  walk primes them. */
+export function knownClientIds(): string[] {
+  return [...configs.keys()].sort();
+}
+
+/** One workspace's summary from the primed config. Throws on unknown slug. */
+export function buildSummary(client_id: string): WorkspaceSummary {
+  const cfg = configs.get(client_id);
+  if (!cfg) throw new Error(`unknown workspace: ${client_id}`);
+  return {
+    client_id,
+    display_name: titleCase(client_id),
+    has_env: Object.keys(cfg.env).length > 0,
+    default_domain_type: cfg.env.DEFAULT_DOMAIN_TYPE || 'strategy',
+    org_id: cfg.org_id,
+  };
 }
 
 /** Whether ANY workspace on this instance declares an org binding — the
@@ -298,13 +312,7 @@ export function setActiveClientId(client_id: string): WorkspaceSummary {
       console.warn('[workspaces] could not publish workspace.active.changed', err);
     }
   }
-  return {
-    client_id,
-    display_name: titleCase(client_id),
-    has_env: Object.keys(configs.get(client_id)!.env).length > 0,
-    default_domain_type: configs.get(client_id)!.env.DEFAULT_DOMAIN_TYPE || 'strategy',
-    org_id: configs.get(client_id)!.org_id,
-  };
+  return buildSummary(client_id);
 }
 
 /**

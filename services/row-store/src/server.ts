@@ -108,7 +108,13 @@ function subscribeToWorkspaceChanges(nc: NatsConnection): void {
     const sub = nc.subscribe('workspace.active.changed');
     for await (const msg of sub) {
       try {
-        const { client_id } = msg.json() as { client_id: string; previous?: string };
+        const { client_id, sid } = msg.json() as { client_id: string; previous?: string; sid?: string };
+        // sid-stamped events are one user's per-SESSION workspace switch
+        // (workspace-service tenancy) — the row-store's scope is the
+        // GLOBAL active only, which arrives sid-less. Ignoring these is
+        // what keeps one client user's switch from swapping every other
+        // user's row data.
+        if (sid) continue;
         const next = pathForClient(client_id);
         console.log(JSON.stringify({ level: 'info', msg: 'workspace switch', to: client_id, path: next }));
         await swap(next);
