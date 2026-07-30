@@ -7,8 +7,9 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
-status: Draft
+  - Claude Code on Claude Opus 4.8
+semantic_version: 0.0.0.2
+status: Draft · First Wave Landing
 tags:
   - Spec
   - Augment-It
@@ -35,6 +36,18 @@ The harness decisions live in
 here; ExUnit in id-didi-sh). This spec starts with the **corpora
 builder** and every system it must work in harmony with, because that's
 where the live pain is ([[Troubleshooting-Workspace-DB-State-Alignment]]).
+
+> **First wave landed 2026-07-30 — 9 tests green, and the first bug caught.**
+> Vitest is wired (`pnpm test` → the repo's turbo `test` task, per-package
+> `vitest run`). Implemented so far: **Group C** transport resilience (4),
+> **Group D** workspace registry (3), **Group H** chat corpora slab (2).
+> The Group C property test *"no invoke silently vanishes"* failed first —
+> as predicted — and the failure was a **real production bug**: the
+> transport's reconnect chain died on any *refused* connection (server
+> mid-restart), because Node's WebSocket signals that only via `error`,
+> never `close`, and only `close` scheduled a reconnect. Fixed in
+> `transport.ts`; the test now guards it. Groups A, B, E, F, G, I, J
+> remain Proposed.
 
 ## Why Care?
 
@@ -123,47 +136,66 @@ id-plane fixture. Seeded by converting `scripts/prove-session-tenancy.mjs`
 *Functionality lives in:* `packages/workspace/src/transport.ts` (queue,
 claim protocol, deadlines, auth-death handling, refresh cadence) and
 `state.svelte.ts`. *Tests live in:* `packages/workspace/*.test.ts`
-against a scripted fake workspace server that drops/reopens sockets at
+against a scripted test server (`test/workspace-socket-test-server.ts` —
+a hand-rolled RFC-6455 endpoint over `node:http`, ZERO runtime deps, the
+`ws` package deliberately stays out) that drops/reopens sockets at
 controlled moments. **This group encodes the live bugs** — suspects 0/2
 in [[Troubleshooting-Workspace-DB-State-Alignment]] and the open issue
-[[Search-And-Add-Invokes-Never-Reach-The-Workspace]].
+[[Search-And-Add-Invokes-Never-Reach-The-Workspace]]. **Implemented
+2026-07-30** in `packages/workspace/test/transport.test.ts` (4/4 green);
+the property test caught and drove the fix of a real reconnect bug (see
+the ⚑ note below). Timing seam added to `transport.ts` so deadlines/
+backoff are assertable in ms.
 
 - ✓ **no invoke silently vanishes — every invoke resolves or rejects within its deadline, across every socket-churn scenario**
   — Purpose: THE property test. Frames enqueued pre-OPEN, in-flight
-  during a drop, and mid-claim on reconnect must all terminate. This is
-  the harness whose loop-to-green fixes the lost-corpus-creations bug.
-  Status: Proposed — **expected to FAIL first**.
+  during a drop, and mid-claim on reconnect must all terminate.
+  Status: **Implemented** — failed first exactly as predicted, and the
+  failure was real. ⚑ **Bug found & fixed:** the transport only
+  scheduled a reconnect from the WebSocket `close` handler, but a
+  *refused* connection (server down / mid-restart) fires only `error`
+  on Node's native WebSocket — no `close`. So the reconnect chain died
+  on the first failed attempt and the surface wedged until a full page
+  reload. Fix: `error` on a never-opened socket now runs the same
+  reconnect tail, idempotently. This is a live production fix, not just
+  a test artifact — a plausible mechanism behind the zombie / lost-
+  creation symptoms.
 - ✓ **an invoke fired before the socket opens is delivered exactly once after open**
   — Purpose: the mount-time window (curator bootstrap, search pane
   auto-fire) is the observed failure site; pin the flush-on-open leg.
-  Status: Proposed — expected to fail first.
+  Status: **Implemented**.
 - ✓ **on close 4401 the transport fails all pending work immediately with "session expired"**
   — Purpose: auth-death is announced, never a 120-second mystery.
-  Guards the `9fc2543` zombie fix. Status: Proposed.
+  Guards the `9fc2543` zombie fix. Status: **Implemented**.
 - ✓ **after auth-death the transport tries one silent refresh-then-reconnect, then retries at 30 seconds — never a storm**
   — Purpose: mid-flight expiry heals invisibly; a dead session doesn't
-  hammer the server at 2/sec. Status: Proposed.
+  hammer the server at 2/sec. Status: **Implemented** (both phases:
+  refresh-succeeds-reconnects, refresh-fails-waits-no-storm).
 - ✓ **the hourly and on-focus token refresh actually fires and replaces the token**
   — Purpose: the proactive half of the zombie fix keeps sessions fresh
-  before expiry ever hits. Status: Proposed.
+  before expiry ever hits. Status: Proposed (lives in state.svelte.ts,
+  not the transport — next wave).
 
 ## Group D — Workspace registry & per-client config (services/workspace)
 
 *Functionality lives in:* `services/workspace/src/workspaces.ts`
 (clients/ scan, `.env` freeze, `default_domain_type`, `org_id`,
-`WORKSPACE_ORG_MAP` fallback). *Tests live in:*
-`services/workspace/*.test.ts`, unit tier with temp client dirs.
+`WORKSPACE_ORG_MAP` fallback). **Implemented 2026-07-30** in
+`services/workspace/test/workspaces.test.ts` (3/3 green) — unit tier,
+each test building a throwaway `clients/` root on disk and loading the
+module fresh (WORKSPACE_ORG_MAP parses once at import, so the env
+fallback needs module isolation).
 
 - ✓ **a workspace with DEFAULT_DOMAIN_TYPE=thesis reports default_domain_type "thesis"; one without reports "strategy"**
   — Purpose: suspect 1 — the humain-vc rail queries the right domain
   type only if this survives every env/volume permutation.
-  Status: Proposed.
+  Status: **Implemented**.
 - ✓ **workspace.json org_id wins over the WORKSPACE_ORG_MAP env fallback; either alone suffices**
   — Purpose: the file-vs-env precedence that production tenancy hangs
-  on. Status: Proposed.
+  on. Status: **Implemented**.
 - ✓ **a workspace directory with no .env still lists, flagged has_env false**
   — Purpose: a half-seeded volume degrades visibly, not invisibly.
-  Status: Proposed.
+  Status: **Implemented**.
 
 ## Group E — Corpora canonical CRUD (record-surrealdb-resolver)
 
@@ -246,15 +278,20 @@ workspace singleton.
 
 *Functionality lives in:* `services/workspace/src/chat.ts`
 (CURATOR_CHAT_VERBS, existingCorporaSlab, source.add / domain.create /
-corpus.inbox.add routing — the [[inbox-curation]] discipline). *Tests
-live in:* `services/workspace/*.test.ts`, service tier.
+corpus.inbox.add routing — the [[inbox-curation]] discipline).
+**Implemented 2026-07-30** in
+`services/workspace/test/chat-corpora-slab.test.ts` (2/2 green) — service
+tier with capability-dispatch + NATS mocked, so the slab's contract is
+pinned without a live bus. `existingCorporaSlab` was exported from
+`chat.ts` for the test (previously module-private).
 
 - ✓ **the chat prompt's "Existing corpora" slab lists every domain in the active workspace, all types**
   — Purpose: didi resolves names against reality, never fabricates a
-  corpus. Status: Proposed.
+  corpus. Status: **Implemented** (asserts the dispatch is UNFILTERED by
+  type — the load-bearing difference from the curator rail's typed query).
 - ✓ **when domain.list fails, the slab is omitted and the turn still completes**
   — Purpose: a resolver hiccup degrades chat gracefully instead of
-  killing the turn. Status: Proposed.
+  killing the turn. Status: **Implemented**.
 
 ## Group I — End-to-end harmony (Playwright, browser tier)
 

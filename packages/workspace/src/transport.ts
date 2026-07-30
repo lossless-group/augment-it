@@ -43,6 +43,17 @@ export type TransportConfig = {
    * [[Session-Expiry-Turns-The-App-Into-A-Zombie]].
    */
   refreshSession?: () => Promise<boolean>;
+  /**
+   * Timing overrides for tests. Production callers omit this — the
+   * defaults are the operating constants below. Tests shrink them so
+   * deadline/backoff behavior is assertable in milliseconds, not minutes.
+   */
+  timing?: {
+    reconnectInitialMs?: number;
+    authReconnectMs?: number;
+    invokeDeadlineMs?: number;
+    longInvokeDeadlineMs?: number;
+  };
 };
 
 export type ChatTurnReply = {
@@ -76,8 +87,10 @@ const RECONNECT_MAX_MS = 10_000;
 const AUTH_RECONNECT_MS = 30_000;
 
 export function createTransport(config: TransportConfig): Transport {
+  const reconnectInitialMs = config.timing?.reconnectInitialMs ?? RECONNECT_INITIAL_MS;
+  const authReconnectMs = config.timing?.authReconnectMs ?? AUTH_RECONNECT_MS;
   let ws: WebSocket | null = null;
-  let backoff = RECONNECT_INITIAL_MS;
+  let backoff = reconnectInitialMs;
   let closing = false;
   let authDead = false;
   let authRefreshTried = false;
@@ -111,8 +124,38 @@ export function createTransport(config: TransportConfig): Transport {
     config.onStatus?.('connecting');
     ws = new WebSocket(url);
 
+    // Per-attempt state. `opened` tells the error handler whether this was
+    // a refused connection (never opened) vs an error on a live socket.
+    // `disconnected` makes the reconnect tail idempotent: a refused
+    // connection fires only 'error' on Node but 'error'+'close' on some
+    // browsers — either path may run it, but the reconnect is scheduled
+    // exactly once.
+    let opened = false;
+    let disconnected = false;
+
+    // The normal (non-auth) disconnect tail: an established socket dropped,
+    // OR a connection attempt was refused. In-flight INVOKES survive (gh
+    // #41) — their pending entries stay put and the next 'open' re-attaches
+    // via claim frames. Chat turns fail fast (cheap to resend). Undelivered
+    // invoke frames are kept for re-send; queued chat frames are dropped.
+    // Then reconnect with backoff — this is the leg that keeps the surface
+    // self-healing across a workspace-service restart, when reconnect
+    // attempts hit a refused port that fires 'error' with no 'close'.
+    const handleDisconnect = () => {
+      if (closing || disconnected) return;
+      disconnected = true;
+      config.onStatus?.('closed');
+      for (const [, p] of chatPending) p.reject(new Error('socket closed'));
+      chatPending.clear();
+      const keep = sendQueue.filter((fr) => fr.kind === 'invoke' && pending.has(fr.id));
+      sendQueue.length = 0;
+      sendQueue.push(...keep);
+      scheduleReconnect();
+    };
+
     ws.addEventListener('open', () => {
-      backoff = RECONNECT_INITIAL_MS;
+      opened = true;
+      backoff = reconnectInitialMs;
       authDead = false;
       authRefreshTried = false;
       config.onStatus?.('open');
@@ -206,30 +249,31 @@ export function createTransport(config: TransportConfig): Transport {
         }
         return;
       }
-      config.onStatus?.('closed');
-      // In-flight INVOKES survive the drop (gh #41): their pending entries
-      // stay put and the next 'open' re-attaches via claim frames — the
-      // server holds results for invokes whose socket died. Long-running
-      // work (didi crawls run minutes) no longer strands an eternal
-      // spinner because a container rebuild or network blip severed the
-      // socket. Chat turns stay fail-fast: cheap to resend, and the rail
-      // shows the error inline.
+      // Deliberate close() from the caller: reject in-flight invokes (no
+      // reconnect coming to claim them) and stop. Long-running work that
+      // should survive a transient drop goes through handleDisconnect
+      // below, which keeps invokes pending for claim-based re-attach.
       if (closing) {
+        config.onStatus?.('closed');
         for (const [, p] of pending) p.reject(new Error('socket closed'));
         pending.clear();
+        for (const [, p] of chatPending) p.reject(new Error('socket closed'));
+        chatPending.clear();
+        return;
       }
-      for (const [, p] of chatPending) p.reject(new Error('socket closed'));
-      chatPending.clear();
-      // Keep undelivered invoke frames for re-send on reconnect; drop
-      // queued chat frames (their pending entries were just rejected).
-      const keep = sendQueue.filter((fr) => fr.kind === 'invoke' && pending.has(fr.id));
-      sendQueue.length = 0;
-      sendQueue.push(...keep);
-      if (!closing) scheduleReconnect();
+      handleDisconnect();
     });
 
     ws.addEventListener('error', () => {
       config.onStatus?.('error');
+      // A REFUSED connection (server down/restarting) fires 'error' with no
+      // following 'close' on Node's native WebSocket — so without this, the
+      // reconnect chain would die on the first failed attempt and the
+      // surface would wedge until a full page reload. Only treat error as a
+      // disconnect when the socket never opened; an error on a live socket
+      // is followed by 'close', which handles it (and stays idempotent via
+      // the `disconnected` guard).
+      if (!opened) handleDisconnect();
     });
   }
 
@@ -245,7 +289,7 @@ export function createTransport(config: TransportConfig): Transport {
     setTimeout(() => {
       if (closing) return;
       connect();
-    }, AUTH_RECONNECT_MS);
+    }, authReconnectMs);
   }
 
   // Default client deadline (gh #58 probe 4): a lost invoke previously hung
@@ -253,8 +297,8 @@ export function createTransport(config: TransportConfig): Transport {
   // capabilities get the server dispatch ceiling (600s) plus headroom;
   // everything else fails loud at 120s with the capability named, so the
   // operator sees an error and can retry instead of a frozen spinner.
-  const DEADLINE_DEFAULT_MS = 120_000;
-  const DEADLINE_LONG_MS = 660_000;
+  const DEADLINE_DEFAULT_MS = config.timing?.invokeDeadlineMs ?? 120_000;
+  const DEADLINE_LONG_MS = config.timing?.longInvokeDeadlineMs ?? 660_000;
   const deadlineFor = (capability: string): number =>
     /crawl|scan|pack\./.test(capability) ? DEADLINE_LONG_MS : DEADLINE_DEFAULT_MS;
 
