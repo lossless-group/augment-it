@@ -442,7 +442,7 @@ const GLOBAL_SCOPED_PREFIXES = [
   'pipeline.',
 ];
 
-function enforceTenant(capability: string, args: unknown, tenant: TenantCtx): void {
+export function enforceTenant(capability: string, args: unknown, tenant: TenantCtx): void {
   if (tenant.allowed === 'all') return;
   if (GLOBAL_SCOPED_PREFIXES.some((p) => capability.startsWith(p))) {
     const globalActive = getActiveClientId();
