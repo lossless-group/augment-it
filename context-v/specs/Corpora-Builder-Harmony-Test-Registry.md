@@ -2,14 +2,14 @@
 title: "Corpora Builder Harmony — the evolving test registry"
 lede: "Every proposed and implemented test guarding the corpora builder and the systems it must harmonize with — identity, workspace connector, transport, state, canonical layer, files — in human language, MECE, one ✓-phrase each."
 date_created: 2026-07-30
-date_modified: 2026-07-30
+date_modified: 2026-08-01
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
   - Claude Code on Claude Opus 4.8
-semantic_version: 0.0.0.2
-status: Draft · First Wave Landing
+semantic_version: 0.0.0.3
+status: Implementing · 9 of 10 Groups Landed
 tags:
   - Spec
   - Augment-It
@@ -37,17 +37,36 @@ here; ExUnit in id-didi-sh). This spec starts with the **corpora
 builder** and every system it must work in harmony with, because that's
 where the live pain is ([[Troubleshooting-Workspace-DB-State-Alignment]]).
 
-> **First wave landed 2026-07-30 — 9 tests green, and the first bug caught.**
-> Vitest is wired (`pnpm test` → the repo's turbo `test` task, per-package
-> `vitest run`). Implemented so far: **Group C** transport resilience (4),
-> **Group D** workspace registry (3), **Group H** chat corpora slab (2).
-> The Group C property test *"no invoke silently vanishes"* failed first —
-> as predicted — and the failure was a **real production bug**: the
-> transport's reconnect chain died on any *refused* connection (server
-> mid-restart), because Node's WebSocket signals that only via `error`,
-> never `close`, and only `close` scheduled a reconnect. Fixed in
-> `transport.ts`; the test now guards it. Groups A, B, E, F, G, I, J
-> remain Proposed.
+> **Status 2026-08-01 — 9 of 10 groups Implemented, 39 tests green.** This
+> table is authoritative; per-group ✓-phrase sub-labels below may lag.
+>
+> | Group | Area | Tests | Where |
+> |---|---|---|---|
+> | A | Identity contract (ExUnit) | 5 | `id-didi-sh/test/id_didi_sh_web/controllers/identity_contract_test.exs` |
+> | B | Session tenancy | 5 | `services/workspace/test/tenancy.test.ts` |
+> | C | Transport resilience | 4 | `packages/workspace/test/transport.test.ts` |
+> | D | Workspace registry | 3 | `services/workspace/test/workspaces.test.ts` |
+> | E | Canonical CRUD | 7 | `services/record-surrealdb-resolver/test/domains.test.ts` |
+> | F | Corpus file layer | 3 | `services/content-ingest/test/corpus-files.test.ts` |
+> | G | Curator state (runes) | 5 | `apps/strategy-curator/test/curation.test.ts` |
+> | H | Chat corpora slab | 2 | `services/workspace/test/chat-corpora-slab.test.ts` |
+> | I | End-to-end | — | **Deferred** — see Group I |
+> | J | Alignment audit | 5 | `services/record-surrealdb-resolver/test/alignment.test.ts` + `scripts/audit-corpora-alignment.mjs` |
+>
+> **Two bugs caught by the suite, not by a human:** (1) Group C's property
+> test *"no invoke silently vanishes"* exposed a real reconnect bug — the
+> transport's reconnect chain died on any *refused* connection because
+> Node's WebSocket signals that only via `error`, never `close`, and only
+> `close` scheduled a reconnect (fixed in `transport.ts`, now guarded).
+> (2) Group J's audit, on first run against live data, flagged two real
+> drifts: `strategy:rural-income-boosts` in the DB but not on humain-vc's
+> disk (the known mis-scope), and `strategy:upward-mobility` on reach-edu's
+> disk with no DB row (a new orphan-folder finding).
+>
+> **No new runtime dependencies** — only test libraries (vitest,
+> @sveltejs/vite-plugin-svelte, jsdom). The `ws` package stays out: the
+> transport tests use a hand-rolled RFC-6455 server, and Group B tests the
+> tenancy logic directly rather than over a cookie-bearing socket.
 
 ## Why Care?
 
@@ -295,9 +314,21 @@ pinned without a live bus. `existingCorporaSlab` was exported from
 
 ## Group I — End-to-end harmony (Playwright, browser tier)
 
-*Functionality:* the whole chain at once. *Tests live in:* a top-level
-`e2e/` suite against the local compose stack + fake id-plane; these
-double as the codified browser-drives per the anchor-root blueprint.
+*Functionality:* the whole chain at once. **Status: Deferred (2026-08-01)
+— a separate infrastructure effort, not a skip.** Every *layer* the E2E
+would traverse is now covered at the unit/contract tier: identity (A),
+tenancy (B), transport (C), registry (D), canonical CRUD (E), files (F),
+curator state (G), chat (H), alignment (J). What Group I adds on top is the
+full-chain walk as the operator lives it — and that requires standing up
+the frontend federation stack (shell + remotes via rsbuild), Playwright,
+and an auth path (real id.didi.sh or a fake id-plane serving a didi
+cookie). That's a CI-infrastructure project of its own, and until it's
+built the manual **browser-drive rung** (CLAUDE.md) covers the full walk.
+*What it would take:* a `docker compose` (or built-preview) bring-up of
+the shell + curator + workspace-service against a fake id-plane, Playwright
+wired as a top-level `e2e/` suite, and a seeded disposable canonical layer.
+*Tests would live in:* a top-level `e2e/` suite; these would double as the
+codified browser-drives per the anchor-root blueprint.
 
 - ✓ **sign in, land in your workspace, and see its corpora by name**
   — Purpose: the backstop for every suspect at once — asserts what the
