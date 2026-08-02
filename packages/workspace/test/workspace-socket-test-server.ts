@@ -5,7 +5,7 @@
 // it for tests). The client side is Node 22's native WebSocket — the
 // same API the transport uses in the browser.
 //
-// The invoke/claim contract mirrors services/workspace/src/ws.ts exactly:
+// The invoke/claim contract mirrors services/workspace/src/frame-router.ts exactly:
 //   - invoke → result frame (ok or error), same id
 //   - a result whose socket died is STASHED and handed over on `claim`
 //   - a claim with no stashed/in-flight work → explicit not-found error

@@ -45,7 +45,7 @@ Workspace Service  ← the gateway: auth + tenancy boundary
 - **Browser ↔ Workspace Service = WebSocket.** One socket per session,
   carrying `invoke` / `result` / `event` / `chat` frames. The client
   lives in `packages/workspace/src/transport.ts`; the server endpoint in
-  `services/workspace/src/ws.ts`.
+  `services/workspace/src/frame-router.ts`.
 - **Workspace Service ↔ domain services = NATS.** Every `services/*`
   speaks NATS; the workspace-service's `dispatch()` maps a capability
   verb onto a NATS subject and awaits the reply.

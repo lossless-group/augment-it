@@ -28,7 +28,7 @@ import { getNats } from './nats';
 // Subject for cross-service workspace-switch broadcast. Domain services
 // (row-store, prompt-store, response-store, content-ingest) subscribe and
 // re-scope their state when the operator toggles workspaces. Also added to
-// the browser-broadcast list in ws.ts so other tabs / remotes stay in sync.
+// the browser-broadcast list in frame-router.ts so other tabs / remotes stay in sync.
 export const WORKSPACE_ACTIVE_CHANGED_SUBJECT = 'workspace.active.changed';
 // One-shot request a domain service can fire on boot to discover the
 // currently-active workspace before subscribing to changes.

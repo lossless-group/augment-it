@@ -400,7 +400,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   };
 
   // Curator liveness — fire-and-forget broadcast after a mutation commits, so
-  // every connected browser session (ws.ts's BROADCAST_SUBJECTS) can refetch
+  // every connected browser session (frame-router.ts's BROADCAST_SUBJECTS) can refetch
   // the affected domain/source list without a manual refresh. See the
   // Build-Order plan's Step 6 and [[Workspaces-as-Tenant-Primitive]] §
   // "Tenant-aware envelope" for the actor field's provenance.

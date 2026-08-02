@@ -233,7 +233,7 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
       // hanging the caller forever.
       if (f.kind === 'invoke' && f.id && f.capability) {
         const invokeId = f.id;
-        // Receipt log (gh #58 probe 2): "the frame never reached ws.ts" is
+        // Receipt log (gh #58 probe 2): "the frame never reached frame-router.ts" is
         // now fact, not inference — grep for invoke_received.
         app.log.info({ capability: f.capability, invoke_id: invokeId }, 'invoke_received');
         // Actor attribution envelope (build-order step 4) — the verified

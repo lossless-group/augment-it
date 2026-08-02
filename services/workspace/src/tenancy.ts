@@ -98,7 +98,7 @@ export function getTenantActive(ctx: TenantCtx): string | null {
  * active — the row-store scope follows the operator, as before. Per-sid
  * switches broadcast workspace.active.changed WITH the sid so only the
  * same user's other tabs/remotes react (row-store ignores sid-scoped
- * events; ws.ts forwards them only to matching sessions).
+ * events; frame-router.ts forwards them only to matching sessions).
  */
 export function activateTenant(ctx: TenantCtx, client_id: string): WorkspaceSummary {
   if (!isClientAllowed(ctx, client_id)) {

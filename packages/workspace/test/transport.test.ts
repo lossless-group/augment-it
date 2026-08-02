@@ -2,7 +2,7 @@
 // Registry: context-v/specs/Corpora-Builder-Harmony-Test-Registry.md
 //
 // Test names are the registry's ✓-phrases, verbatim. The scripted test
-// server mirrors services/workspace/src/ws.ts's invoke/claim contract;
+// server mirrors services/workspace/src/frame-router.ts's invoke/claim contract;
 // the transport's timing seam shrinks minutes-scale deadlines to test
 // scale.
 
