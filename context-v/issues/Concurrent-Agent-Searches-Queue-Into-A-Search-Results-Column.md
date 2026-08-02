@@ -2,7 +2,7 @@
 title: "Concurrent agent searches queue into a search-results column — fire many, deal with them as they come"
 lede: "Agent searches take minutes, and today each one hijacks a single column the operator must babysit. Wanted: a search-results microfrontend on the far right — every fired search appends a collapsed card with status, progress, and expected wait; a signal fires when results land; expand to act, mark complete to clear. Run several at once, triage on arrival."
 date_created: 2026-07-24
-date_modified: 2026-07-24
+date_modified: 2026-08-02
 authors:
   - Michael Staton
 augmented_with:
@@ -16,7 +16,7 @@ tags:
   - Search-And-Add
   - Microfrontends
   - Concurrency
-status: Open · Jotted
+status: Resolved · Shipped 2026-07-24 via the queue rail (search-results remote :3018) · Live per-card progress frames + chat/manual-search doors deferred to #35
 ---
 
 # The search-results queue

@@ -7,8 +7,11 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.8
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 status: Active
+revisions:
+  - 2026-08-02 — **Batch A verified against shipped code (0.0.0.2).** Four fan-out agents read each issue's acceptance, the candidate changelog, and the live source. Concurrent-Searches → Resolved (fully); Parent-Child-Nested-Orgs → Partially-Resolved (core shipped, nesting/roll-up/reconciliation open); Search-And-Add-Invokes → Resolved-Pending-Confirmation (symptom fixed, root cause mitigated not pinned); Relation-Kinds-Inverse-Pairs → stays open (only the funder pair got an inverse). Issue frontmatter flipped to match.
+  - 2026-08-02 — Initial triaged snapshot (0.0.0.1).
 tags:
   - Backlog
   - Sprint
@@ -22,23 +25,28 @@ tags:
 
 Taken right after the `v3.1.0.0` tag ("Multi-Tenant, Canonical, and
 Tested") and the closure of three issues (test coverage, the
-zombie-session fix, the DB-state-alignment audit). **26 issues remain
-open.** This is the triaged list — grouped by *what to do with each*, not
-just by folder — so a sprint can start from decisions rather than a flat
-pile. Each item links its issue file; the "read" column is a first-pass
-assessment to confirm or correct, not a verdict.
+zombie-session fix, the DB-state-alignment audit). **26 issues remained
+open** at that tag. This is the triaged list — grouped by *what to do with
+each*, not just by folder — so a sprint can start from decisions rather
+than a flat pile. Each item links its issue file.
 
-## A · Confirm-and-close — probably resolved by shipped features
+**Batch A has now been verified against shipped code** (2026-08-02, four
+fan-out agents reading each issue's acceptance + the candidate changelog +
+the live source). One closes fully, two are partially resolved with their
+open remainder named, one stays open. Net open after this pass: **25** —
+one fully resolved, two demoted to their still-open tails, one unchanged.
 
-These likely map to work that already shipped; confirm, then flip to
-`Shipped`/`Resolved`.
+## A · Verified against shipped code — resolved / demoted
 
-| Issue | Read |
-|---|---|
-| [[Concurrent-Agent-Searches-Queue-Into-A-Search-Results-Column]] | **Almost certainly done** — the changelog `2026-07-24_07 Searches-Become-Async-Jobs-The-Queue-Rail-Lands` is exactly this. Safe to close. |
-| [[Parent-Child-Nested-Organizations-Not-Modeled]] | Org-relations shipped parent/child/peer (2026-07-27). Fully, or partially? |
-| [[Relation-Kinds-Are-Inverse-Pairs]] | Was logged "not fixed"; `84675e5` (directional kinds from the focused seat) partly addressed it. Still open? |
-| [[Search-And-Add-Invokes-Never-Reach-The-Workspace]] | The Group C reconnect fix targeted *refused* connections, not the mount-time hang this describes — **probably still open**; verify. |
+Each row below is now backed by a source read, not a guess. Issue
+frontmatter has been flipped to match.
+
+| Issue | Verdict (code-confirmed) | New status |
+|---|---|---|
+| [[Concurrent-Agent-Searches-Queue-Into-A-Search-Results-Column]] | **Shipped fully.** `services/workspace/src/searches.ts` async job registry + `apps/search-results/` remote (:3018) on the right rail; `apps/search-and-add` old crawl-column retired; `scripts/prove-search-queue.mjs` is the acceptance proof. Also dissolves its sibling [[Search-Column-Holds-Stale-Results-New-Agent-Searches-Dont-Reload-It]] (already `Superseded`). | ✅ **Resolved** — live progress frames + chat/manual-search doors deferred to #35 |
+| [[Parent-Child-Nested-Organizations-Not-Modeled]] | **Shipped partial.** Model (edges in `affiliations`, `edge_type=org_org`), six capabilities, `RelatedOrgs.svelte` surface, triage step 5b, pilot A-1 untangled — all code-confirmed. | 🟡 **Partially-Resolved** — open: multi-hop nesting renders one hop only, corpus roll-up lenses deferred, reconciliation worklist A-2..4 + B outstanding |
+| [[Relation-Kinds-Are-Inverse-Pairs]] | **Still open.** `84675e5` added `KIND_INVERSE` covering only the funder pair (`funder_of ↔ funded_by`); every other directional kind (`initiative_of`, the hierarchy family) still falls through to the raw stored string from the `out` seat. `99ffa96` logged it "not fixed"; none of the three design options landed. | 🔴 **Active** (unchanged) |
+| [[Search-And-Add-Invokes-Never-Reach-The-Workspace]] | **Shipped partial.** Eternal-spinner symptom structurally fixed (120s invoke deadline, `ce51eb7`); reconnect root cause mitigated (`899b144`). But the exact silent-frame-loss cause was mitigated + made grep-able, never pinned — and no test exercises the two-mount-invoke race. | 🟠 **Resolved-Pending-Confirmation** — needs one operator confirm on prod that the mount-time hang is gone |
 
 ## B · In-flight investigations — status already descriptive
 
@@ -81,9 +89,11 @@ The real sprint candidates. Ordered loosely by operator-visible pain.
 
 ## Decisions this hitlist is waiting on
 
-1. **Batch A:** which of the four are done? (Concurrent-searches is safe to close now.)
+1. ~~**Batch A:** which of the four are done?~~ ✅ **Resolved 2026-08-02** — verified against code (see Batch A table). Concurrent-Searches closed; Parent-Child + Search-And-Add demoted to their open tails; Relation-Kinds stays open. Two follow-ups fall out of this:
+   - **Split the two partials?** Parent-Child's open remainder (multi-hop nesting, corpus roll-up, reconciliation A-2..4 + B) and Search-And-Add's (operator prod-confirm) could each become their own tightly-scoped follow-up issue rather than living under a "Partially-Resolved" umbrella. Your call.
+   - **Confirm Search-And-Add on prod:** it's one operator walk-through away from fully closed — worth pairing with the production-connection sprint pick below since both live on the deployed surface.
 2. **Sprint pick from C:** the production connection issue is the highest external stakes; the rest are internal polish.
-3. **B:** bump any statuses, or leave the descriptive states?
+3. **B:** bump any statuses, or leave the descriptive states? (Left as-is this pass — all five carry accurate descriptive states; none contradicted by shipped code.)
 
 ## See also
 

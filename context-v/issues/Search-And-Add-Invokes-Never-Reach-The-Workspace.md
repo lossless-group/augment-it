@@ -2,7 +2,7 @@
 title: "Search & Add's invokes never reach the workspace — the pane hangs at 'searching…' while every backend rung is green"
 lede: "The 🔍 term-search pane stalls forever with a one-chip palette, yet SearXNG answers directly, search.fire answers over NATS, and the org card loads fine over the same workspace — the frame dies somewhere in the client transport, and tonight's commits are exonerated."
 date_created: 2026-07-28
-date_modified: 2026-07-28
+date_modified: 2026-08-02
 authors:
   - Michael Staton
 augmented_with:
@@ -14,7 +14,7 @@ tags:
   - Search-And-Add
   - Workspace-Transport
   - Debugging-Journey
-status: Active
+status: Resolved-Pending-Confirmation · Eternal-spinner symptom structurally fixed (120s invoke deadline, ce51eb7) + reconnect root-cause mitigated (899b144) · Silent-frame-loss cause mitigated + made grep-able, never pinned; needs an operator confirm on prod that the mount-time hang is gone
 ---
 
 # Search & Add invokes never reach the workspace

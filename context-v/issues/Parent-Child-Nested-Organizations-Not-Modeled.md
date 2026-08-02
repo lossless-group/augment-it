@@ -2,7 +2,7 @@
 title: "Parent-Child Nested Organizations Are Not Modeled — Initiatives, Funds, and Sub-Orgs Have Nowhere Canonical to Hang"
 lede: "Surfaced in the first triage-inbox co-pilot run (2026-07-25): an Urban Institute event page had no honest destination because upmobility-foundation-urban-institute conflates a parent org (Urban Institute) with an initiative of it (Upward Mobility Foundation). The operator ruled: don't file content into either until the parent/child relationship is actually modeled."
 date_created: 2026-07-25
-date_modified: 2026-07-27
+date_modified: 2026-08-02
 authors:
   - Michael Staton
 augmented_with:
@@ -19,7 +19,7 @@ tags:
   - Canonical-Layer
   - Corpus-Triage
   - Data-Modeling
-status: Active
+status: Partially-Resolved · Model + six capabilities + workbench surface + triage step 5b shipped and code-confirmed (2026-07-27) · Open: multi-hop nesting renders one hop only, corpus roll-up lenses deferred, bulk reconciliation worklist A-2..4 + B outstanding
 ---
 
 # Parent-Child Nested Organizations Are Not Modeled
