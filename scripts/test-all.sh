@@ -14,6 +14,18 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIDI="$ROOT/../id-didi-sh"
 fail=0
+total=0
+suites=0
+
+# Pull a passing-test count out of a suite's captured output. Handles both
+# Vitest ("Tests  N passed (N)") and ExUnit ("Result: N passed" / "N tests, …").
+extract_count() {
+  local f="$1" n
+  n=$(grep -oE 'Result: [0-9]+ passed' "$f" | grep -oE '[0-9]+' | tail -1)
+  [ -z "$n" ] && n=$(grep -oE 'Tests[[:space:]]+[0-9]+ passed \([0-9]+\)' "$f" | grep -oE '\([0-9]+\)' | tr -d '()' | tail -1)
+  [ -z "$n" ] && n=$(grep -oE '[0-9]+ tests?, [0-9]+ failures?' "$f" | grep -oE '^[0-9]+' | tail -1)
+  echo "${n:-0}"
+}
 
 run() {  # run <label> <dir> <cmd...>
   local label="$1" dir="$2"; shift 2
@@ -21,7 +33,12 @@ run() {  # run <label> <dir> <cmd...>
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo "  $label"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  if ( cd "$dir" && "$@" ); then :; else echo "✗ $label FAILED"; fail=1; fi
+  local tmp; tmp=$(mktemp)
+  ( cd "$dir" && "$@" ) 2>&1 | tee "$tmp"   # stream live AND capture for the tally
+  local rc=${PIPESTATUS[0]}
+  [ "$rc" -ne 0 ] && { echo "✗ $label FAILED"; fail=1; }
+  local n; n=$(extract_count "$tmp"); rm -f "$tmp"
+  total=$((total + n)); suites=$((suites + 1))
 }
 
 # Clear any leftovers from a previously-interrupted E2E run.
@@ -48,9 +65,9 @@ pkill -f "tsx src/server.ts" 2>/dev/null || true
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 if [ "$fail" -eq 0 ]; then
-  echo "  ✅ ALL SUITES PASSED"
+  echo "  ✅ ALL SUITES PASSED — ${total} tests across ${suites} suites"
 else
-  echo "  ❌ SOME SUITES FAILED (see ✗ markers above)"
+  echo "  ❌ SOME SUITES FAILED (see ✗ markers above) — ${total} tests counted across ${suites} suites"
 fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""

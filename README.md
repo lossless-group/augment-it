@@ -159,7 +159,9 @@ Run the whole suite — every package plus the id-didi-sh identity contract — 
 pnpm test:all
 ```
 
-That runs `scripts/test-all.sh`: each vitest package in turn, the end-to-end backend-chain integration, and (if `mix` is present) id-didi-sh's ExUnit suite in the sibling repo — with a pass/fail summary at the end. **43 tests across ten groups**, tracked in human language in [`context-v/specs/Corpora-Builder-Harmony-Test-Registry.md`](context-v/specs/Corpora-Builder-Harmony-Test-Registry.md) (each test's name is the ✓-phrase you see go green).
+That runs `scripts/test-all.sh`: each vitest package in turn, the end-to-end backend-chain integration, and (if `mix` is present) id-didi-sh's ExUnit suite in the sibling repo — ending with a grand-total tally (e.g. `✅ ALL SUITES PASSED — 67 tests across 7 suites`).
+
+Of that total, **43 tests across ten groups** are the corpora-builder coverage added in this effort — tracked in human language in [`context-v/specs/Corpora-Builder-Harmony-Test-Registry.md`](context-v/specs/Corpora-Builder-Harmony-Test-Registry.md), where each test's name is the ✓-phrase you see go green. The remainder is id-didi-sh's pre-existing suite, which `mix test` runs alongside this effort's Group A.
 
 Run a single group directly with `pnpm test` in its package:
 
