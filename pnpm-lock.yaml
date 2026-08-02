@@ -588,6 +588,12 @@ importers:
         specifier: ^3.2.7
         version: 3.2.7(@types/node@26.1.0)(jiti@2.4.2)(jsdom@30.0.1)(terser@5.48.0)(tsx@4.22.4)
 
+  e2e:
+    devDependencies:
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@26.1.0)(jiti@2.4.2)(jsdom@30.0.1)(terser@5.48.0)(tsx@4.22.4)
+
   packages/shared-ui:
     devDependencies:
       svelte:

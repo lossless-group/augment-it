@@ -8,8 +8,8 @@ authors:
 augmented_with:
   - Claude Code on Claude Fable 5
   - Claude Code on Claude Opus 4.8
-semantic_version: 0.0.0.3
-status: Implementing · 9 of 10 Groups Landed
+semantic_version: 0.0.0.4
+status: Implemented · All 10 Groups Landed
 tags:
   - Spec
   - Augment-It
@@ -37,7 +37,7 @@ here; ExUnit in id-didi-sh). This spec starts with the **corpora
 builder** and every system it must work in harmony with, because that's
 where the live pain is ([[Troubleshooting-Workspace-DB-State-Alignment]]).
 
-> **Status 2026-08-01 — 9 of 10 groups Implemented, 39 tests green.** This
+> **Status 2026-08-01 — all 10 groups Implemented, 43 tests green.** This
 > table is authoritative; per-group ✓-phrase sub-labels below may lag.
 >
 > | Group | Area | Tests | Where |
@@ -50,7 +50,7 @@ where the live pain is ([[Troubleshooting-Workspace-DB-State-Alignment]]).
 > | F | Corpus file layer | 3 | `services/content-ingest/test/corpus-files.test.ts` |
 > | G | Curator state (runes) | 5 | `apps/strategy-curator/test/curation.test.ts` |
 > | H | Chat corpora slab | 2 | `services/workspace/test/chat-corpora-slab.test.ts` |
-> | I | End-to-end | — | **Deferred** — see Group I |
+> | I | End-to-end integration (no browser) | 4 | `e2e/integration.test.ts` + `e2e/harness.mjs` |
 > | J | Alignment audit | 5 | `services/record-surrealdb-resolver/test/alignment.test.ts` + `scripts/audit-corpora-alignment.mjs` |
 >
 > **Two bugs caught by the suite, not by a human:** (1) Group C's property
@@ -314,21 +314,33 @@ pinned without a live bus. `existingCorporaSlab` was exported from
 
 ## Group I — End-to-end harmony (Playwright, browser tier)
 
-*Functionality:* the whole chain at once. **Status: Deferred (2026-08-01)
-— a separate infrastructure effort, not a skip.** Every *layer* the E2E
-would traverse is now covered at the unit/contract tier: identity (A),
-tenancy (B), transport (C), registry (D), canonical CRUD (E), files (F),
-curator state (G), chat (H), alignment (J). What Group I adds on top is the
-full-chain walk as the operator lives it — and that requires standing up
-the frontend federation stack (shell + remotes via rsbuild), Playwright,
-and an auth path (real id.didi.sh or a fake id-plane serving a didi
-cookie). That's a CI-infrastructure project of its own, and until it's
-built the manual **browser-drive rung** (CLAUDE.md) covers the full walk.
-*What it would take:* a `docker compose` (or built-preview) bring-up of
-the shell + curator + workspace-service against a fake id-plane, Playwright
-wired as a top-level `e2e/` suite, and a seeded disposable canonical layer.
-*Tests would live in:* a top-level `e2e/` suite; these would double as the
-codified browser-drives per the anchor-root blueprint.
+*Functionality:* the whole chain at once. **Implemented 2026-08-01** as a
+**no-browser integration test** (`e2e/integration.test.ts`, 4/4 green),
+after weighing it against a Playwright browser walk. The decision (operator
+call): a real browser needs a browser driver, and every driver (Playwright,
+Puppeteer) bundles `ws` internally — a test-only transitive dep, but this
+repo deliberately keeps `ws` out, so the browser walk was declined in favor
+of a dependency-free integration test that exercises the same chain.
+
+`e2e/harness.mjs` stands up the REAL backend against DISPOSABLE state — a
+throwaway docker NATS, an in-memory SurrealDB, and the resolver +
+workspace-service (anonymous mode) + content-ingest, all torn down after —
+and the test drives it over the platform-native WebSocket. The rendered
+pixels remain covered by the manual browser-drive rung (CLAUDE.md).
+
+- ✓ **the session frame declares the workspace’s tenancy at connect**
+  — anonymous admission + tenancy resolution end-to-end (allowed_clients,
+  active_client_id, didi_auth_mode). Status: **Implemented**.
+- ✓ **the workspace’s corpora load end-to-end — domain.list returns the seeded theses**
+  — the operator's "see corpora," proven through workspace-service → NATS
+  → resolver → SurrealDB. Status: **Implemented**.
+- ✓ **domain.list scoped to the workspace’s type returns only that type**
+  — the humain-vc symptom as integration: thesis returns theses, strategy
+  returns nothing (broken vs empty, distinguishable). Status: **Implemented**.
+- ✓ **a corpus created through the chain is durable — create, re-list, still there (with its index.md on disk)**
+  — the lost-creations bug as a passing test: the create round-trips the
+  full write chain (DB row via resolver, index.md via content-ingest) and
+  survives a fresh re-list. Status: **Implemented**.
 
 - ✓ **sign in, land in your workspace, and see its corpora by name**
   — Purpose: the backstop for every suspect at once — asserts what the

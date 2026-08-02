@@ -1,6 +1,6 @@
 ---
-title: "The test suite lands — nine of ten groups green, and the two bugs it caught"
-lede: "augment-it goes from zero automated tests to 39 across the whole corpora-builder chain — identity, tenancy, transport, canonical CRUD, corpus files, curator state, chat, alignment — spanning two repos and two languages. On the way it caught a real reconnect bug and two live data drifts that no human had flagged. The end-to-end capstone (Group I) is deferred as its own infrastructure effort; every layer under it is covered."
+title: "The test suite lands — all ten groups green, and the bugs it caught"
+lede: "augment-it goes from zero automated tests to 43 across the whole corpora-builder chain — identity, tenancy, transport, canonical CRUD, corpus files, curator state, chat, alignment, and a full backend-chain integration test — spanning two repos and two languages. On the way it caught a real reconnect bug and two live data drifts that no human had flagged."
 date_created: 2026-08-01
 date_modified: 2026-08-01
 publish: true
@@ -12,8 +12,10 @@ augmented_with:
 files_changed:
   - packages/workspace/src/transport.ts
   - services/workspace/src/capabilities.ts
-  - services/workspace/src/chat.ts
+  - services/workspace/src/frame-router.ts
   - scripts/audit-corpora-alignment.mjs
+  - e2e/integration.test.ts
+  - e2e/harness.mjs
   - context-v/specs/Corpora-Builder-Harmony-Test-Registry.md
 ---
 
@@ -24,7 +26,7 @@ files_changed:
 A week ago augment-it had **zero automated tests** — every agent rewrite
 rode on typechecks, builds, and the operator walking the surface. That
 debt came due as humain-vc's corpora quietly failed to load and creations
-went missing. This run pays it down: **39 tests across nine of the ten MECE
+went missing. This run pays it down: **43 tests across all ten MECE
 groups** in the [[Corpora-Builder-Harmony-Test-Registry]], spanning two
 repos (augment-it + id-didi-sh) and two languages (TypeScript/Vitest +
 Elixir/ExUnit), covering every layer of the corpora-builder chain.
@@ -34,7 +36,7 @@ own** — one in code, two in live data — that no human had caught. That is
 the whole argument for tests in an agent-built codebase: they are the
 memory that runs.
 
-## The nine groups
+## The ten groups
 
 | Group | Area | Tests |
 |---|---|---|
@@ -46,6 +48,7 @@ memory that runs.
 | F | Corpus file layer | 3 |
 | G | Curator surface state (Svelte 5 runes) | 5 |
 | H | Chat corpora slab | 2 |
+| I | End-to-end integration (no browser) | 4 |
 | J | Alignment audit (pure diff + runnable script) | 5 |
 
 Each test's name is the ✓-phrase you see turn green — the registry spec is
@@ -92,19 +95,26 @@ and touched nothing.
 - **Two exported test seams** (`existingCorporaSlab`, `enforceTenant`) and
   one timing seam on the transport — no behavior changes.
 
-## What's deferred, and why
+## Group I: integration, not a browser
 
-**Group I (end-to-end) is deferred** — as its own infrastructure effort,
-not a skip. Every *layer* the E2E would traverse is now covered at the
-unit/contract tier. What Group I adds is the full-chain walk as the
-operator lives it, which needs the frontend federation stack (shell +
-remotes) stood up, Playwright wired, and an auth path — a CI project of its
-own. Until it's built, the manual browser-drive rung (CLAUDE.md) covers the
-full walk. The registry names exactly what it would take.
+The end-to-end group landed as a **no-browser integration test**, after a
+deliberate call. A real browser walk needs a browser driver, and every
+driver (Playwright, Puppeteer) bundles `ws` internally — a test-only
+transitive dep, but this repo keeps `ws` out on principle. So rather than
+reintroduce it (even transitively, even test-only), Group I drives the
+**real backend chain against disposable state** over the platform-native
+WebSocket: a throwaway docker NATS, an in-memory SurrealDB, and the
+resolver + workspace-service (anonymous mode) + content-ingest, all stood
+up and torn down per run (`e2e/harness.mjs`). The four tests prove the
+session's tenancy at connect, corpora loading, type-scoping (thesis vs
+strategy), and — the lost-creations bug as a passing test — that a corpus
+created through the chain round-trips both stores (DB row + `index.md`) and
+survives a fresh re-list. The rendered pixels stay covered by the manual
+browser-drive rung (CLAUDE.md).
 
 ## See also
 
-- [[Corpora-Builder-Harmony-Test-Registry]] — the living registry, now 9/10 landed
+- [[Corpora-Builder-Harmony-Test-Registry]] — the living registry, all 10 landed
 - [[Test-Coverage-Harness-And-Regression-Floor]] — the harness plan this executed
 - [[Troubleshooting-Workspace-DB-State-Alignment]] — the bug hunt that started it
 - `changelog/2026-07-30_01_Test-Coverage-Begins…` — the first-wave beat
