@@ -341,7 +341,7 @@ function contextSlab(ctx?: ChatTurnInput['context']): string {
  * resolver hiccup degrades to an empty slab (didi falls back to
  * chat_propose per CORPUS-CURATION DISCIPLINE) rather than failing the turn.
  */
-async function existingCorporaSlab(clientSlug: string | null): Promise<string> {
+export async function existingCorporaSlab(clientSlug: string | null): Promise<string> {
   if (!clientSlug) return '';
   try {
     const result = (await dispatch('domain.list', { client_slug: clientSlug })) as {

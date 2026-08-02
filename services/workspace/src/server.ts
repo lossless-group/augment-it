@@ -2,7 +2,7 @@ import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
 import { connectNats } from './nats';
 import { loadSessions } from './auth';
-import { registerWebsocket } from './ws';
+import { registerWebsocket } from './frame-router';
 import { initWorkspaces, registerActiveQueryResponder, listWorkspaces, getActiveClientId } from './workspaces';
 import { loadSearches, startSearchSweep } from './searches';
 import { didiMode } from './didi';

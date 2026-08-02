@@ -15,7 +15,9 @@
     "dev": "turbo run dev",
     "start": "turbo run start",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "test": "turbo run test",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "test:all": "bash scripts/test-all.sh"
   },
   "devDependencies": {
     "@module-federation/enhanced": "^2.6.0",
