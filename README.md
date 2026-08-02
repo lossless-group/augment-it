@@ -151,6 +151,33 @@ pnpm preview      # Preview the production build
 
 The `scripts/dev.sh` script prints the full URL list on start.
 
+## Testing
+
+Run the whole suite — every package plus the id-didi-sh identity contract — with one command:
+
+```bash
+pnpm test:all
+```
+
+That runs `scripts/test-all.sh`: each vitest package in turn, the end-to-end backend-chain integration, and (if `mix` is present) id-didi-sh's ExUnit suite in the sibling repo — with a pass/fail summary at the end. **43 tests across ten groups**, tracked in human language in [`context-v/specs/Corpora-Builder-Harmony-Test-Registry.md`](context-v/specs/Corpora-Builder-Harmony-Test-Registry.md) (each test's name is the ✓-phrase you see go green).
+
+Run a single group directly with `pnpm test` in its package:
+
+| Group | Command (`cd` then `pnpm test`) | What it covers |
+|---|---|---|
+| C | `packages/workspace` | client transport resilience (the property test that caught the reconnect bug) |
+| B, D, H | `services/workspace` | session tenancy, workspace registry, chat corpora slab |
+| E, J | `services/record-surrealdb-resolver` | canonical CRUD + the alignment-audit diff |
+| F | `services/content-ingest` | corpus markdown files |
+| G | `apps/strategy-curator` | curator surface state (Svelte 5 runes) |
+| I | `e2e` | full backend chain over a real WebSocket |
+
+Notes:
+
+- **Nothing touches the shared cloud.** Canonical-layer tests spin a throwaway in-memory SurrealDB; temp dirs stand in for the clients volume. The only thing that reads the real cloud is the read-only **corpora-alignment audit** (`node scripts/audit-corpora-alignment.mjs`) — it flags DB↔disk drift and changes nothing; it's not part of `test:all`'s pass/fail.
+- **The E2E group (I)** stands up a disposable backend (throwaway Docker NATS + in-memory SurrealDB + the resolver, workspace-service, and content-ingest) and tears it down after — so it needs **Docker running** and the `surreal` CLI. It uses ports `3199`/`4223`; if an interrupted run leaves anything behind, clear it with `docker rm -f augment-e2e-nats` and `pkill -f "tsx src/server.ts"`.
+- **No `ws` package** — the transport tests run against a hand-rolled RFC-6455 server and every client uses the platform-native `WebSocket`.
+
 ## Deployment
 
 The humain-vc single-tenant instance runs live on **Railway** at
