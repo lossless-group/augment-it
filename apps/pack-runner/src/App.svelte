@@ -84,7 +84,7 @@
   const initialBundleId = readStored(BUNDLE_ID_KEY) ?? BUNDLES[0].bundle_id;
   const initialBundle = getBundle(initialBundleId) ?? BUNDLES[0];
 
-  let status = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
+  let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
   let recordSets = $state<RecordSet[]>([]);
   let selectedRecordSetId = $state<string | null>(
     readStored(ACTIVE_RECORD_SET_KEY) ?? readStored(LEGACY_RECORD_SET_KEY),

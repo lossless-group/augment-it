@@ -61,7 +61,7 @@
     if (typeof localStorage !== 'undefined') localStorage.setItem(VIEW_MODE_KEY, viewMode);
   });
 
-  let status = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
+  let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
 
   let responses = $state<ResponseRecord[]>([]);
   let promptsById = $state<Record<string, PromptTemplate>>({});

@@ -21,7 +21,7 @@
     type EnhancedRecord,
   } from './state.svelte';
 
-  let connectionStatus = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
+  let connectionStatus = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
   let loadedOnce = $state<boolean>(false);
 
   // ---- Connect + bootstrap data load ----

@@ -25,6 +25,11 @@ import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 // missing one.
 const STRATEGY_CURATOR_REMOTE = process.env.PUBLIC_STRATEGY_CURATOR_REMOTE || 'http://localhost:3017/remoteEntry.js';
 const CHAT_REMOTE = process.env.PUBLIC_CHAT_REMOTE || 'http://localhost:3006/remoteEntry.js';
+// Augment-from-DB remotes — deployed for the reach-edu opening (#69);
+// localhost fallbacks keep local dev unchanged.
+const ORG_WORKBENCH_REMOTE = process.env.PUBLIC_ORG_WORKBENCH_REMOTE || 'http://localhost:3014/remoteEntry.js';
+const SEARCH_AND_ADD_REMOTE = process.env.PUBLIC_SEARCH_AND_ADD_REMOTE || 'http://localhost:3016/remoteEntry.js';
+const SEARCH_RESULTS_REMOTE = process.env.PUBLIC_SEARCH_RESULTS_REMOTE || 'http://localhost:3018/remoteEntry.js';
 
 export default defineConfig({
   plugins: [
@@ -46,11 +51,11 @@ export default defineConfig({
         personDbResolver: 'personDbResolver@http://localhost:3010/remoteEntry.js',
         strategyCurator: `strategyCurator@${STRATEGY_CURATOR_REMOTE}`,
         affiliationRatingResolver: 'affiliationRatingResolver@http://localhost:3012/remoteEntry.js',
-        orgWorkbench: 'orgWorkbench@http://localhost:3014/remoteEntry.js',
-        searchAndAdd: 'searchAndAdd@http://localhost:3016/remoteEntry.js',
+        orgWorkbench: `orgWorkbench@${ORG_WORKBENCH_REMOTE}`,
+        searchAndAdd: `searchAndAdd@${SEARCH_AND_ADD_REMOTE}`,
         // 3018 — the spec said 3017, but strategy-curator had already
         // claimed it by build time.
-        searchResults: 'searchResults@http://localhost:3018/remoteEntry.js',
+        searchResults: `searchResults@${SEARCH_RESULTS_REMOTE}`,
       },
       // No `shared` block — sharing Svelte 5's reactive runtime and a
       // .svelte.ts singleton across federation has known issues with the

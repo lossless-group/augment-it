@@ -1,6 +1,6 @@
 # Deployment
 
-augment-it's single-tenant humain-vc instance runs on **Railway**, not the
+augment-it's instance runs on **Railway**, not the
 DigitalOcean droplet originally prepped for it (see [Why Railway, not
 DO](#why-railway-not-do)). This doc is the standing reference for how it's
 deployed; the narrative of *how it got this way* — including every bug hit
@@ -135,6 +135,82 @@ needing a CNAME + a one-time TXT ownership-verification record:
 **empty** in prod before this, meaning every cross-origin browser call to
 `id.didi.sh` had been silently failing since it first deployed. Add each
 new `*.didi.sh` consumer (decks, memos, …) to that list as it goes live.
+
+## Multi-tenancy — the session carries the workspace
+
+As of the `feature/workspace-auth` run (2026-07-28, plan:
+[`context-v/plans/Open-Augment-Didi-Sh-To-Reach-Edu.md`](context-v/plans/Open-Augment-Didi-Sh-To-Reach-Edu.md)),
+ONE instance serves multiple client orgs. The identity spec's designed
+org ↔ workspace mapping is live: a session's `/api/me` memberships resolve
+to the workspaces it may touch, `workspace.activate` is per-user-session,
+and every capability frame is validated server-side against the session's
+allowed set (`services/workspace/src/tenancy.ts` + `enforceTenant` in
+`capabilities.ts`). Proof: `node scripts/prove-session-tenancy.mjs`
+(self-contained; needs only a NATS on localhost).
+
+**Workspace → org binding.** Each workspace declares its org in
+`clients/<id>/workspace.json` (`{ "org_id": "reach.edu" }`) — committed in
+each client repo. Because the deployed `workspace-service` keeps
+`/data/clients` on a volume (self-seeded stubs, not git), production uses
+the env fallback instead:
+
+```
+WORKSPACE_ORG_MAP=humain-vc=humain.vc,reach-edu=reach.edu
+```
+
+The file wins when both exist. A workspace with no org binding is
+invisible to client sessions (fails safe); superusers see everything.
+
+**Env changes vs the single-tenant era** (on `workspace-service`):
+
+| Var | Single-tenant (before) | Multi-tenant (now) |
+|---|---|---|
+| `DIDI_AUTH` | `required` | `required` (unchanged) |
+| `REQUIRED_ORG_ID` | `humain.vc` | **removed** — admission = memberships map onto ≥1 workspace, or superuser |
+| `ACTIVE_CLIENT_ID` | `humain-vc` | **removed** — active is per-session; the global default derives from the persisted pick / first slug |
+| `WORKSPACE_ORG_MAP` | — | `humain-vc=humain.vc,reach-edu=reach.edu` |
+
+The startCommand also seeds the second workspace stub beside humain-vc's:
+
+```sh
+sh -c 'mkdir -p /data/clients/humain-vc /data/clients/reach-edu && echo DEFAULT_DOMAIN_TYPE=thesis > /data/clients/humain-vc/.env && echo DEFAULT_DOMAIN_TYPE=strategy > /data/clients/reach-edu/.env && npm start'
+```
+
+**The row-store caveat.** row-store (and the prompt/response stores behind
+the records surfaces) loads ONE `clients/<active>/rows.json` — the
+instance's *operator-active* workspace, moved only by superuser or
+anonymous switches. Client sessions get those capabilities only while the
+operator-active workspace is in their allowed set; otherwise dispatch
+refuses (`…operator-active workspace…`). SurrealDB-backed surfaces (the
+workbench family) are fully per-session. True per-session row-store
+scoping is a logged follow-up.
+
+**Onboarding the next client org** (the recipe reach-edu followed):
+
+1. id-didi-sh (Fly app `id-didi-sh` — `-C` splits on spaces / strips
+   double quotes, hence `~s(...)` + `\x20`):
+
+   ```bash
+   fly ssh console -a id-didi-sh -C '/app/bin/id_didi_sh rpc IO.inspect(IdDidiSh.Accounts.upsert_org(~s(<org.domain>),~s(Display\x20Name)))'
+   fly ssh console -a id-didi-sh -C '/app/bin/id_didi_sh rpc IO.inspect(IdDidiSh.Accounts.create_user(%{primary_email:~s(<email>),name:~s(First\x20Last)}))'
+   fly ssh console -a id-didi-sh -C '/app/bin/id_didi_sh rpc (u=IdDidiSh.Accounts.get_user_by_email(~s(<email>));IO.inspect(IdDidiSh.Accounts.upsert_membership(u.didi_id,~s(<org.domain>),~s(editor))))'
+   ```
+
+   Roles: `superuser | org_owner | org_admin | editor | viewer`. The user
+   then self-serves a magic link at `id.didi.sh` (or you send one).
+2. `clients/<slug>/workspace.json` in the client repo + append to
+   `WORKSPACE_ORG_MAP` + extend the startCommand's seeded stubs.
+3. Redeploy `workspace-service`.
+
+**The Augment-from-DB remotes** (`org-workbench`, `search-and-add`,
+`search-results`) deploy as three more static-asset services — same shape
+as `chat`/`strategy-curator`: repo-root build context, dockerfilePath
+`apps/<name>/Dockerfile`, no rootDirectory, build-time vars
+`PUBLIC_WS_URL` + `PUBLIC_<NAME>_ASSET_PREFIX=https://<own-domain>`, and
+three matching `PUBLIC_<NAME>_REMOTE=https://<domain>/remoteEntry.js`
+vars on `shell` (then rebuild shell — `PUBLIC_*` is baked at build).
+Person-* resolvers are deliberately NOT deployed: they ride the
+row-store-gated CSV flows.
 
 ## Deploying / redeploying
 

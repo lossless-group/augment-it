@@ -11,6 +11,10 @@ import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 //
 // Port 3018 — the spec said 3017, but strategy-curator had already claimed
 // it by build time.
+// Own-origin asset prefix for production (chat/strategy-curator pattern) —
+// sub-chunks resolve against the prefix baked at build, not the host page.
+const ASSET_PREFIX = process.env.PUBLIC_SEARCH_RESULTS_ASSET_PREFIX || 'http://localhost:3018';
+
 export default defineConfig({
   plugins: [
     pluginSvelte(),
@@ -29,6 +33,7 @@ export default defineConfig({
   output: {
     target: 'web',
     overrideBrowserslist: ['last 2 Chrome versions', 'last 2 Firefox versions', 'last 2 Safari versions'],
+    assetPrefix: ASSET_PREFIX,
   },
   tools: {
     swc: {

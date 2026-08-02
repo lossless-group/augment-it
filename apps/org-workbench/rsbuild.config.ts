@@ -9,6 +9,13 @@ import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 // by design: every read/write rides workspace.invoke → NATS →
 // record-surrealdb-resolver (spec decision D1).
 // See context-v/specs/Augment-From-DB-Flow.md.
+// Own-origin asset prefix for production (chat/strategy-curator pattern):
+// a remote's sub-chunks resolve against the assetPrefix BAKED AT BUILD, not
+// the host page's origin — without output.assetPrefix they 404 into the
+// shell's SPA-fallback HTML in production. dev.assetPrefix alone only
+// covers the local dev server.
+const ASSET_PREFIX = process.env.PUBLIC_ORG_WORKBENCH_ASSET_PREFIX || 'http://localhost:3014';
+
 export default defineConfig({
   plugins: [
     pluginSvelte(),
@@ -27,6 +34,7 @@ export default defineConfig({
   output: {
     target: 'web',
     overrideBrowserslist: ['last 2 Chrome versions', 'last 2 Firefox versions', 'last 2 Safari versions'],
+    assetPrefix: ASSET_PREFIX,
   },
   tools: {
     swc: {

@@ -7,7 +7,7 @@
   const TOKEN_KEY = 'augment-it:session-token';
   const WS_URL = 'ws://localhost:3001/ws';
 
-  let status = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
+  let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
 
   onMount(() => {
     workspace.connect({

@@ -3,13 +3,16 @@
 // whichever microservice subscribes to the relevant subject.
 
 import { getNats } from './nats';
+import { getActiveClientId, listWorkspaces, type WorkspaceSummary } from './workspaces';
 import {
-  getActiveClientId,
-  isPinned,
-  listWorkspaces,
-  setActiveClientId,
-  type WorkspaceSummary,
-} from './workspaces';
+  activateTenant,
+  allowedClients,
+  ANONYMOUS_TENANT,
+  getTenantActive,
+  isClientAllowed,
+  isEffectivelyPinned,
+  type TenantCtx,
+} from './tenancy';
 import { dismissSearch, getSearchResults, listSearches, submitSearch } from './searches';
 
 // workspace.* capabilities are served locally by the workspace-service —
@@ -18,21 +21,35 @@ import { dismissSearch, getSearchResults, listSearches, submitSearch } from './s
 // See [[Workspaces-as-Tenant-Primitive]] § "Toggle UI" + "Tenant-aware
 // envelope". search.* registry ops are local too (spec D1: the registry
 // lives here); only the crawl dispatch inside execution rides NATS.
-const LOCAL_CAPABILITIES: Record<string, (args: unknown, actor?: Actor) => Promise<unknown>> = {
-  'workspace.list': async () => {
-    const workspaces = await listWorkspaces();
-    // pinned: true → this instance was booted with ACTIVE_CLIENT_ID set
-    // (single-tenant deploy). The shell hides the WorkspaceSwitcher rather
-    // than offer a switch that doesn't apply. Build-Order Step 7.
-    return { workspaces, active_client_id: getActiveClientId(), pinned: isPinned() };
+const LOCAL_CAPABILITIES: Record<
+  string,
+  (args: unknown, actor: Actor | undefined, tenant: TenantCtx) => Promise<unknown>
+> = {
+  'workspace.list': async (_args, _actor, tenant) => {
+    // Session-scoped: a client user sees only the workspaces their orgs
+    // map onto; superuser/anonymous see everything (legacy behavior).
+    // pinned folds in "only one workspace available" — the shell hides
+    // the WorkspaceSwitcher rather than offer a switch that doesn't apply.
+    const all = await listWorkspaces();
+    const allowed = new Set(allowedClients(tenant));
+    const workspaces = all.filter((w) => allowed.has(w.client_id));
+    return {
+      workspaces,
+      active_client_id: getTenantActive(tenant),
+      pinned: isEffectivelyPinned(tenant),
+    };
   },
-  'workspace.activate': async (args: unknown) => {
+  'workspace.activate': async (args: unknown, _actor, tenant) => {
     const a = (args ?? {}) as { client_id?: string };
     if (!a.client_id) throw new Error('workspace.activate requires { client_id }');
-    const summary: WorkspaceSummary = setActiveClientId(a.client_id);
+    // Validated against the session's allowed set; per-sid for client
+    // users, global-moving for superuser/anonymous. See tenancy.ts.
+    const summary: WorkspaceSummary = activateTenant(tenant, a.client_id);
     return { active: summary };
   },
-  'workspace.active': async () => ({ active_client_id: getActiveClientId() }),
+  'workspace.active': async (_args, _actor, tenant) => ({
+    active_client_id: getTenantActive(tenant),
+  }),
   // The search-results queue (Search-Results-Queue-Remote spec). submit
   // returns immediately; the executor in searches.ts dispatches the crawl
   // and broadcasts search.updated on settle. Actor rides into the crawl
@@ -397,9 +414,65 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
 // envelope" for the sibling client_id pattern this mirrors.
 export type Actor = { didi_id: string; via?: string };
 
-export async function dispatch(capability: string, args: unknown, actor?: Actor): Promise<unknown> {
+// ── Server-side client enforcement (#65) ────────────────────────────────
+// The security-critical line of the multi-tenant build: the `client` arg
+// in a capability frame is CLIENT-SUPPLIED and therefore untrusted. For
+// restricted sessions (allowed !== 'all') every dispatched frame is
+// checked here, before any local handler or NATS subject sees it.
+//
+// Two registers, per the plan's row-store caveat:
+//  - Frame-scoped capabilities carry their tenant in args (three key
+//    spellings exist across services: client / client_id / client_slug) —
+//    each present key must name a workspace in the session's allowed set.
+//  - The records family (row-store + prompt-store + response-store and
+//    their surfaces) has NO per-frame tenant: those services follow the
+//    instance's GLOBAL active workspace. A restricted session may use
+//    them only while that global active is in its allowed set — refusal,
+//    not remap, so contamination is impossible.
+// Superuser and anonymous (dev) sessions bypass, preserving pre-tenancy
+// behavior exactly.
+
+const CLIENT_ARG_KEYS = ['client', 'client_id', 'client_slug'] as const;
+const GLOBAL_SCOPED_PREFIXES = [
+  'row.',
+  'record_set.',
+  'prompt.',
+  'response.',
+  'variant_family.',
+  'pipeline.',
+];
+
+function enforceTenant(capability: string, args: unknown, tenant: TenantCtx): void {
+  if (tenant.allowed === 'all') return;
+  if (GLOBAL_SCOPED_PREFIXES.some((p) => capability.startsWith(p))) {
+    const globalActive = getActiveClientId();
+    if (!globalActive || !isClientAllowed(tenant, globalActive)) {
+      throw new Error(
+        `${capability} is scoped to this instance's operator-active workspace` +
+          `${globalActive ? ` (${globalActive})` : ''}, which this session cannot access`,
+      );
+    }
+    return;
+  }
+  if (args && typeof args === 'object') {
+    for (const key of CLIENT_ARG_KEYS) {
+      const v = (args as Record<string, unknown>)[key];
+      if (typeof v === 'string' && v && !isClientAllowed(tenant, v)) {
+        throw new Error(`client not available to this session: ${v}`);
+      }
+    }
+  }
+}
+
+export async function dispatch(
+  capability: string,
+  args: unknown,
+  actor?: Actor,
+  tenant: TenantCtx = ANONYMOUS_TENANT,
+): Promise<unknown> {
+  enforceTenant(capability, args, tenant);
   const local = LOCAL_CAPABILITIES[capability];
-  if (local) return local(args, actor);
+  if (local) return local(args, actor, tenant);
   const subject = CAPABILITY_TO_SUBJECT[capability];
   if (!subject) throw new Error(`unknown capability: ${capability}`);
   const timeout = CAPABILITY_TIMEOUTS_MS[capability] ?? 5_000;

@@ -15,6 +15,7 @@ import type { WebSocket } from '@fastify/websocket';
 import { type Subscription } from '@nats-io/transport-node';
 import { isValid, mint } from './auth';
 import { verifyDidiCookie, didiMode, checkMembership, type DidiIdentity } from './didi';
+import { allowedClients, getTenantActive, resolveTenantCtx, type TenantCtx } from './tenancy';
 import { dispatch } from './capabilities';
 import { dispatchChatTurn } from './chat';
 import { getNats } from './nats';
@@ -81,6 +82,9 @@ type Session = {
   seq: number;
   /** didi.sh identity, when a valid didi_session cookie rode the upgrade. */
   didi?: DidiIdentity;
+  /** Session tenancy — allowed workspaces + per-sid active. Resolved once
+   *  at upgrade from /api/me memberships (see tenancy.ts). */
+  tenant: TenantCtx;
 };
 
 const sessions = new Set<Session>();
@@ -95,7 +99,24 @@ function startBroadcastForwarder(): void {
     (async () => {
       for await (const msg of sub) {
         const payload = msg.json();
+        // workspace.active.changed carries tenancy scope: a sid-stamped
+        // event is one user's per-session switch — deliver it only to that
+        // user's sessions. A sid-less event is the legacy global switch —
+        // deliver it only to sessions without a didi identity (didi'd
+        // sessions are per-sid scoped and must not follow the operator's
+        // global moves). All other subjects broadcast to everyone.
+        const sid =
+          subject === 'workspace.active.changed' &&
+          payload &&
+          typeof payload === 'object' &&
+          'sid' in payload
+            ? String((payload as { sid: unknown }).sid)
+            : null;
         for (const session of sessions) {
+          if (subject === 'workspace.active.changed') {
+            const sessionSid = session.didi?.session_id ?? null;
+            if (sid !== null ? sessionSid !== sid : sessionSid !== null) continue;
+          }
           session.seq += 1;
           const frame = {
             kind: 'event' as const,
@@ -141,7 +162,10 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
       }
     }
 
-    const session: Session = { token, socket, seq: 0, didi };
+    // Tenancy rides the same /api/me fetch admission used (cached).
+    const tenant = await resolveTenantCtx(didi, req.headers.cookie);
+
+    const session: Session = { token, socket, seq: 0, didi, tenant };
     sessions.add(session);
 
     socket.send(
@@ -150,12 +174,20 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
         token,
         didi_id: didi?.didi_id ?? null,
         didi_auth_mode: didiMode(),
+        // The shell learns its tenancy at connect instead of a follow-up
+        // workspace.list round-trip. allowed_clients resolves 'all' to the
+        // concrete slugs so the wire shape is uniform.
+        allowed_clients: allowedClients(tenant),
+        active_client_id: getTenantActive(tenant),
+        superuser: tenant.superuser,
       }),
     );
     app.log.info(
       {
         token: token.slice(0, 8) + '…',
         didi_id: didi?.didi_id ?? null,
+        allowed_clients: tenant.allowed === 'all' ? 'all' : tenant.allowed,
+        active_client: getTenantActive(tenant),
         sessions: sessions.size,
       },
       'ws connect',
@@ -213,7 +245,7 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
           : undefined;
         const resultPromise = (async () => {
           try {
-            const result = await dispatch(f.capability as string, f.args ?? {}, actor);
+            const result = await dispatch(f.capability as string, f.args ?? {}, actor, session.tenant);
             return JSON.stringify({ kind: 'result', id: invokeId, ok: true, result });
           } catch (err: unknown) {
             const error = err instanceof Error ? err.message : String(err);
@@ -274,6 +306,13 @@ export async function registerWebsocket(app: FastifyInstance): Promise<void> {
 
       // --- chat_turn frame: route through chat dispatch. ---
       if (f.kind === 'chat_turn' && f.id && f.message) {
+        // Restricted sessions never choose their chat tenant — the
+        // context's client_id is overwritten from the session (#65), the
+        // chat twin of dispatch()'s enforceTenant.
+        if (session.tenant.allowed !== 'all') {
+          const active = getTenantActive(session.tenant) ?? undefined;
+          f.context = { ...(f.context ?? {}), client_id: active };
+        }
         try {
           const result = await dispatchChatTurn({
             message: f.message,

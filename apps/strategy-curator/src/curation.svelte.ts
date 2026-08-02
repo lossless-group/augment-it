@@ -46,7 +46,7 @@ export function toDashed(s: string): string {
     .join('-');
 }
 
-type ConnStatus = 'idle' | 'connecting' | 'open' | 'closed' | 'error';
+type ConnStatus = 'idle' | 'connecting' | 'open' | 'closed' | 'error' | 'auth_required';
 
 class CurationState {
   connection: ConnStatus;

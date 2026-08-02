@@ -24,6 +24,32 @@ import type { ActiveView, JobEvent, PromptTemplate, RecordSet, Row, ServerFrame,
 const ACTIVE_CLIENT_KEY = 'augment-it:active-client-id';
 export const WORKSPACE_CHANGED_EVENT = 'augment-it:workspace-changed';
 
+// ── didi session keep-fresh ──────────────────────────────────────────────
+// The didi_session cookie lives ~30 days but the JWT inside expires ~12h
+// after mint; POST /api/session/refresh re-mints it (accepting an EXPIRED
+// token) as long as the server session row is live. Same PUBLIC_ID_BASE
+// convention as the shell's DidiBadge — rsbuild bakes it per surface;
+// localhost:4000 is the dev id service. Failures return false quietly: an
+// unreachable id service in DIDI_AUTH=off dev is normal, and in required
+// mode the transport's auth-death path handles the consequence.
+// See [[Session-Expiry-Turns-The-App-Into-A-Zombie]].
+const ID_BASE =
+  ((import.meta as { env?: Record<string, string> }).env?.PUBLIC_ID_BASE as string | undefined) ??
+  'http://localhost:4000';
+const SESSION_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
+
+async function refreshDidiSession(): Promise<boolean> {
+  try {
+    const res = await fetch(`${ID_BASE}/api/session/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 class AugmentItWorkspace {
   activeView: ActiveView;
   record_sets: Record<string, RecordSet>;
@@ -60,7 +86,7 @@ class AugmentItWorkspace {
    * render visible feedback when the socket is down. Connect handlers in
    * each remote forward into this.
    */
-  connection_status: 'idle' | 'connecting' | 'open' | 'closed' | 'error';
+  connection_status: 'idle' | 'connecting' | 'open' | 'closed' | 'error' | 'auth_required';
   /**
    * The instance's DIDI_AUTH posture, carried on the session frame. Null
    * until the first session frame arrives. The shell's pre-auth wall
@@ -77,6 +103,8 @@ class AugmentItWorkspace {
 
   private transport: Transport | null = null;
   private lastSeenSeq = -1;
+  private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private onVisible: (() => void) | null = null;
 
   constructor() {
     this.activeView = $state<ActiveView>({ kind: 'idle' });
@@ -92,7 +120,7 @@ class AugmentItWorkspace {
     this.workspaces = $state<WorkspaceSummary[]>([]);
     this.workspaces_status = $state<'idle' | 'loading' | 'ready' | 'error'>('idle');
     this.workspaces_error = $state<string | null>(null);
-    this.connection_status = $state<'idle' | 'connecting' | 'open' | 'closed' | 'error'>('idle');
+    this.connection_status = $state<'idle' | 'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('idle');
     this.didi_auth_mode = $state<'off' | 'optional' | 'required' | null>(null);
     this.pinned = $state<boolean>(false);
     // Read the persisted pick eagerly so the chat surface has a value to
@@ -234,19 +262,47 @@ class AugmentItWorkspace {
     const userOnStatus = config.onStatus;
     this.transport = createTransport({
       ...config,
+      refreshSession: config.refreshSession ?? refreshDidiSession,
       onStatus: (s) => {
         console.info('[workspace] transport status', s);
         this.connection_status = s as typeof this.connection_status;
+        // Auth-death: the session frame's user is now a lie — clear it so
+        // the shell's SignInWall condition (required && no didi_id) fires
+        // over the stale UI instead of leaving a zombie surface. See
+        // [[Session-Expiry-Turns-The-App-Into-A-Zombie]].
+        if (s === 'auth_required') this.user = null;
         userOnStatus?.(s);
       },
       onFrame: (frame) => this.handleFrame(frame),
     });
+    // Keep the didi JWT fresh for the tab's whole life: the token inside
+    // the 30d cookie expires ~12h after mint, and /api/session/refresh
+    // re-mints it (even when already expired) as long as the server
+    // session row is live. Hourly interval + on tab-focus covers both the
+    // long-lived tab and the laptop that slept past the cliff. Every
+    // surface runs its own timer (no shared singleton across remotes);
+    // the refresh is idempotent and cookie-wide, so overlap is free.
+    if (typeof window !== 'undefined' && !this.refreshTimer) {
+      this.refreshTimer = setInterval(() => void refreshDidiSession(), SESSION_REFRESH_INTERVAL_MS);
+      this.onVisible = () => {
+        if (document.visibilityState === 'visible') void refreshDidiSession();
+      };
+      document.addEventListener('visibilitychange', this.onVisible);
+    }
   }
 
   disconnect(): void {
     if (!this.transport) return;
     this.transport.close();
     this.transport = null;
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+    if (this.onVisible) {
+      document.removeEventListener('visibilitychange', this.onVisible);
+      this.onVisible = null;
+    }
   }
 
   rowsFor(record_set_id: string): Row[] {

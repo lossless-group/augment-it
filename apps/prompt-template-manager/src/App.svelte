@@ -6,7 +6,7 @@
   const WS_URL = 'ws://localhost:3001/ws';
   const TOKEN_RE = /\{\{\s*([^{}]+?)\s*\}\}/g;
 
-  let status = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
+  let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
 
   // editor state — selectedPromptId null means "new, unsaved"
   let selectedPromptId = $state<string | null>(null);

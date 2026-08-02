@@ -44,7 +44,7 @@
   // on explicit jumps.
   const IDX_KEY_PREFIX = 'augment-it:person-db-resolver:idx:';
 
-  let status = $state<'connecting' | 'open' | 'closed' | 'error'>('connecting');
+  let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
   let client = $state<string>('reach-edu');
 
   let recordSets = $state<RecordSet[]>([]);
