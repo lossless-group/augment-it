@@ -2,12 +2,12 @@
 title: "No test coverage — TDD keeps getting deferred, despite being exactly the right fit for agentic development"
 lede: "Huge amounts of code get written, refactored, and rebuilt by agents with zero automated tests guarding key functionality. TDD is unusually well-suited to this codebase's working style — agents iterate until green, and tests are the durable spec of 'still works' across rewrites — but we've procrastinated it. Needs: pick the test environment for this stack, then climb incrementally to full coverage and full passing."
 date_created: 2026-07-24
-date_modified: 2026-07-24
+date_modified: 2026-08-02
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 tags:
   - Issue
   - Oversight
@@ -15,7 +15,9 @@ tags:
   - Testing
   - TDD
   - Agentic-Development
-status: Open · Jotted
+status: Shipped
+date_first_published: 2026-08-02
+post_ship_note: "Resolved by the corpora-builder test suite — 43 tests across ten MECE groups (augment-it Vitest + id-didi-sh ExUnit), merged via PR #75. Vitest chosen for TS/Svelte, ExUnit for the identity service. See [[Corpora-Builder-Harmony-Test-Registry]]. One command: pnpm test:all."
 ---
 
 # No test coverage — the deferred TDD debt

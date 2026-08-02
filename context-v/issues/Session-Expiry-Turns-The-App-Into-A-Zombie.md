@@ -2,12 +2,12 @@
 title: "Session expiry turns the app into a zombie — the 12h JWT dies mid-use, the UI stays up, and every invoke times out"
 lede: "The didi_session cookie lives 30 days but the JWT inside lives ~12h, and nothing in the shell ever calls /api/session/refresh — so a working session silently crosses the cliff, the transport 4401-loops at 2/sec, and the operator diagnoses a dead database."
 date_created: 2026-07-28
-date_modified: 2026-07-28
+date_modified: 2026-08-02
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 tags:
   - Issue
   - Augment-It
@@ -15,7 +15,9 @@ tags:
   - Workspace-Transport
   - Shell
   - Session-Expiry
-status: Active
+status: Shipped
+date_first_published: 2026-07-28
+post_ship_note: "The fix landed in `9fc2543` (hourly + on-focus token refresh; transport treats 4401/4403 as auth-death — fail fast, one silent refresh, glacial retry) and is now guarded by the Group C transport tests. CAVEAT: this is the CODE fix; whether production augment.didi.sh was redeployed to carry it is a separate open question — see [[Workspace-And-Corpora-Connection-Slow-To-Hanging-And-Auth-Wont-Persist]]."
 ---
 
 # Session expiry turns the app into a zombie

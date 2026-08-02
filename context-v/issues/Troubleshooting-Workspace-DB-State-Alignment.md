@@ -2,12 +2,12 @@
 title: "Troubleshooting workspace ↔ DB state alignment — humain-vc's corpora don't load, and the canonical layer holds fewer than the operator created"
 lede: "The humain-vc workspace renders empty-or-wrong corpora while the canonical layer itself holds fewer humain-vc domains than the operator remembers creating — four suspects, each with a discriminating signature."
 date_created: 2026-07-30
-date_modified: 2026-07-30
+date_modified: 2026-08-02
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Fable 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.0.2
 tags:
   - Issue
   - Augment-It
@@ -15,7 +15,9 @@ tags:
   - Strategy-Curator
   - Canonical-Layer
   - Debugging-Journey
-status: Active
+status: Resolved
+date_first_published: 2026-08-02
+post_ship_note: "The DB-state question is answered and tooled: the alignment invariant became Group J (a pure diff + the read-only `scripts/audit-corpora-alignment.mjs`), which caught two real drifts — both reconciled 2026-08-02 (rural-income-boosts de-scoped from humain-vc; upward-mobility's missing DB row backfilled). Audit now reports ALIGNED for both clients. The residual 'corpora slow to load' symptom traced to production/Zen, tracked separately in [[Workspace-And-Corpora-Connection-Slow-To-Hanging-And-Auth-Wont-Persist]]."
 ---
 
 # Troubleshooting workspace ↔ DB state alignment
