@@ -180,6 +180,34 @@ Notes:
 - **The E2E group (I)** stands up a disposable backend (throwaway Docker NATS + in-memory SurrealDB + the resolver, workspace-service, and content-ingest) and tears it down after — so it needs **Docker running** and the `surreal` CLI. It uses ports `3199`/`4223`; if an interrupted run leaves anything behind, clear it with `docker rm -f augment-e2e-nats` and `pkill -f "tsx src/server.ts"`.
 - **No `ws` package** — the transport tests run against a hand-rolled RFC-6455 server and every client uses the platform-native `WebSocket`.
 
+## Observability
+
+At current scale (single operator) there is **no metrics/tracing platform** —
+that would be over-engineering. Log viewing is handled by
+[**gonzo**](https://github.com/control-theory/gonzo), a k9s-style real-time
+log-analysis TUI (streaming charts, pattern detection, filtering, an optional
+OTLP receiver). Install it with:
+
+```bash
+brew install gonzo
+# or, from the monorepo dev shell: nix run github:control-theory/gonzo
+```
+
+Gonzo reads stdin/pipes, files, or OTLP — so point any service log stream at it:
+
+```bash
+docker compose logs -f | gonzo          # the whole local backend stack, live
+railway logs --service workspace-service | gonzo   # a deployed service
+gonzo -f ./some-service.log --follow    # a captured file
+```
+
+This is the tooling home for the boot-latency work in
+[`context-v/issues/Refactoring-for-API-Speed.md`](context-v/issues/Refactoring-for-API-Speed.md):
+watch the cross-service handshake (workspace-service → resolver → content-ingest)
+in one pane while the frontend prints its own `performance.now()` boot timings in
+the browser console. Gonzo's OTLP receiver (`--otlp-enabled`) is the bridge if we
+ever add tracing — but that's deferred until team scale, not one user.
+
 ## Deployment
 
 The humain-vc single-tenant instance runs live on **Railway** at

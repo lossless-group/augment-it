@@ -95,7 +95,20 @@ below is gated on what it shows. Pair it with the browser Network waterfall
 (free) and, if cross-service correlation is needed, a request_id threaded
 shell → workspace-service → resolver (deferred until tier-1 proves insufficient).
 
-A full observability stack (OTel/Prometheus/dashboards) is **explicitly not
+For the **server side** of the same picture, view the service logs with
+[**gonzo**](https://github.com/control-theory/gonzo) — a k9s-style real-time
+log-analysis TUI (`brew install gonzo`, or `nix run github:control-theory/gonzo`
+from the monorepo dev shell). Pipe the cross-service handshake into one pane
+while the browser prints its boot timings:
+
+```bash
+docker compose logs -f | gonzo                       # local backend stack
+railway logs --service workspace-service | gonzo     # a deployed service
+```
+
+Gonzo's OTLP receiver (`--otlp-enabled`, gRPC 4317 / HTTP 4318) is the bridge if
+tier-1 timings + logs prove insufficient and we add real tracing. A full
+observability stack (OTel pipelines/Prometheus/dashboards) is **explicitly not
 needed** at one user — same right-sizing thesis. Boot instrumentation lives near
 [[No-User-Visibility-Into-State-Needs-A-State-Inspector]] / the live-not-live
 indicator work.
