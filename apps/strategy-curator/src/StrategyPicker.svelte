@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { curation, slugify, toDashed } from './curation.svelte';
+  import { curation, slugify, splitTags } from './curation.svelte';
 
   // Mirrors content-ingest's DOMAIN_FOLDERS (services/content-ingest/src/
   // corpus.ts) so the "writes to" preview below matches the actual folder
@@ -32,8 +32,10 @@
     slug = slugify(v);
   }
   function addTag(t: string): void {
-    const tt = toDashed(t);
-    if (tt && !pendingTags.includes(tt)) pendingTags = [...pendingTags, tt];
+    // Commas split into multiple tags; append each new one, deduped.
+    for (const tt of splitTags(t)) {
+      if (!pendingTags.includes(tt)) pendingTags = [...pendingTags, tt];
+    }
     tagInput = '';
   }
   function removeTag(t: string): void {

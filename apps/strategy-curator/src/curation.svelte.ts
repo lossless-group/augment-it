@@ -46,6 +46,18 @@ export function toDashed(s: string): string {
     .join('-');
 }
 
+// Split a raw tag entry into one-or-more dashed tags. Commas and newlines are
+// tag SEPARATORS; spaces within a segment stay word-joiners (handled by
+// toDashed). "Quantum Computing, Computational Biology" →
+// ["Quantum-Computing", "Computational-Biology"]. A single token (e.g. a
+// suggestion click) returns a one-element array unchanged.
+export function splitTags(raw: string): string[] {
+  return raw
+    .split(/[,\n]+/)
+    .map(toDashed)
+    .filter(Boolean);
+}
+
 type ConnStatus = 'idle' | 'connecting' | 'open' | 'closed' | 'error' | 'auth_required';
 
 class CurationState {
@@ -447,11 +459,14 @@ class CurationState {
 
   async applyTag(raw: string): Promise<void> {
     const f = this.focused;
-    const tag = toDashed(raw);
-    if (!f || !tag) return;
-    await this.call('tag.apply', { source_uuid: f.source_uuid, domain_type: this.domainType, domain_slug: this.activeSlug, client_slug: this.clientSlug, tag, op: 'add' });
-    f.tags = Array.from(new Set([...(f.tags ?? []), tag]));
-    if (!this.tagVocab.includes(tag)) this.tagVocab = [...this.tagVocab, tag];
+    if (!f) return;
+    // Commas split into multiple tags; add each new one, deduped, in order.
+    for (const tag of splitTags(raw)) {
+      if ((f.tags ?? []).includes(tag)) continue;
+      await this.call('tag.apply', { source_uuid: f.source_uuid, domain_type: this.domainType, domain_slug: this.activeSlug, client_slug: this.clientSlug, tag, op: 'add' });
+      f.tags = Array.from(new Set([...(f.tags ?? []), tag]));
+      if (!this.tagVocab.includes(tag)) this.tagVocab = [...this.tagVocab, tag];
+    }
   }
 
   async removeTag(tag: string): Promise<void> {
