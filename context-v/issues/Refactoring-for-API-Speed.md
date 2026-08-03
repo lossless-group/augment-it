@@ -75,15 +75,32 @@ fix is to **right-size the architecture to actual scale** — reserve the mesh f
 when concurrency demands it, and until then collapse boundaries so calls are
 in-process and boot is deterministic.
 
-## Design space (measure first, then pick)
+## First default step — frontend boot timing (do this BEFORE anything else)
 
-**Step 0 — MEASURE, don't guess.** Instrument the boot path end to end (WS
-upgrade, auth verify, /api/me, workspace.list, workspace.active, per-remote
-connect) with timestamps. Confirm the minute is the retry race before
-refactoring anything. A [[No-User-Visibility-Into-State-Needs-A-State-Inspector]]
-surface / the live/not-live indicator work is the natural home for this.
+**Measure, don't guess.** The wall-clock the operator feels lives in the
+browser, and the shell isn't timing itself. Add a dozen `performance.now()`
+stamps at each boot milestone and dump elapsed ms to the console:
 
-Then, by leverage:
+1. WS connect **start**
+2. WS **open**
+3. **auth verified** (session frame accepted)
+4. `workspace.list` **sent** → **returned**
+5. `workspace.active` **sent** → **returned**
+6. each **remote connected**
+
+No library, no platform. This turns "it's slow" into "`workspace.active` took
+58s and everything else was 300ms" — and decides whether this is a one-day
+readiness fix or a real refactor. It is the **default first move**; every lever
+below is gated on what it shows. Pair it with the browser Network waterfall
+(free) and, if cross-service correlation is needed, a request_id threaded
+shell → workspace-service → resolver (deferred until tier-1 proves insufficient).
+
+A full observability stack (OTel/Prometheus/dashboards) is **explicitly not
+needed** at one user — same right-sizing thesis. Boot instrumentation lives near
+[[No-User-Visibility-Into-State-Needs-A-State-Inspector]] / the live-not-live
+indicator work.
+
+## Design space (gated on what Step 0 shows), by leverage:
 
 - **Kill retry-as-readiness.** Make services signal ready and the shell's first
   call succeed deterministically (or a fast, bounded wait) — turns 60s into ms.
