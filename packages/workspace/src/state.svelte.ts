@@ -15,6 +15,7 @@
 // rule in https://svelte.dev/e/state_invalid_placement.
 
 import { createTransport, type ChatTurnReply, type ChatTurnRequest, type Transport, type TransportConfig } from './transport';
+import { bootMark, bootSummary } from './boot-timing';
 import type { ActiveView, JobEvent, PromptTemplate, RecordSet, Row, ServerFrame, UserContext, WorkspaceSummary } from './types';
 
 // Where the browser stashes the operator's active workspace pick. Survives
@@ -178,11 +179,13 @@ class AugmentItWorkspace {
     this.workspaces_error = null;
     try {
       console.info('[workspace] loadWorkspaces → workspace.list');
+      bootMark('workspace.list:sent');
       const result = (await this.invoke('workspace.list', {})) as {
         workspaces: WorkspaceSummary[];
         active_client_id: string | null;
         pinned?: boolean;
       };
+      bootMark('workspace.list:returned');
       console.info('[workspace] workspace.list returned', result);
       this.workspaces = result.workspaces;
       this.pinned = result.pinned ?? false;
@@ -198,12 +201,15 @@ class AugmentItWorkspace {
       // split-brain (browser shows one tenant, domain services scope to
       // another) until the operator manually re-picks in the switcher.
       if (resolved && resolved !== result.active_client_id) {
+        bootMark('workspace.activate:sent');
         await this.invoke('workspace.activate', { client_id: resolved });
+        bootMark('workspace.activate:returned');
       }
       if (resolved !== persisted) {
         this.setActiveClientId(resolved);
       }
       this.workspaces_status = 'ready';
+      bootSummary('workspaces:ready');
       return resolved;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

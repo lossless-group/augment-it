@@ -1,4 +1,5 @@
 export { workspace, WORKSPACE_CHANGED_EVENT } from './state.svelte';
+export { bootMark, bootSummary } from './boot-timing';
 export { createAdapter } from './adapter';
 export { createTransport } from './transport';
 export { suggest } from './anticipation';

@@ -8,7 +8,7 @@
   import SignInWall from './SignInWall.svelte';
   import JumboPopdown, { type PopdownItem } from './JumboPopdown.svelte';
   import ToggleHeader from '@augment-it/shared-ui/ToggleHeader__PromptOrPackage--Icons.svelte';
-  import { workspace } from '@augment-it/workspace';
+  import { workspace, bootMark } from '@augment-it/workspace';
   import {
     PAIRINGS,
     CHAT_REMOTE,
@@ -357,6 +357,7 @@
   // on the singleton, so if a remote raced us and connected first the
   // second call is a no-op.
   onMount(() => {
+    bootMark('shell:mount'); // T0 for the boot timeline — see Refactoring-for-API-Speed
     const TOKEN_KEY = 'augment_it_session_token';
     // Fire BEFORE/alongside connect(), not after — an anonymous WS upgrade
     // against a DIDI_AUTH=required instance is rejected (4401) before any

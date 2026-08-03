@@ -26,6 +26,7 @@ import type {
   ResultFrame,
   ServerFrame,
 } from './types';
+import { bootMark } from './boot-timing';
 
 export type TransportConfig = {
   url: string;                              // e.g. 'ws://localhost:3001/ws'
@@ -121,6 +122,7 @@ export function createTransport(config: TransportConfig): Transport {
       ? `${config.url}?token=${encodeURIComponent(token)}`
       : config.url;
 
+    bootMark('ws:connect-start');
     config.onStatus?.('connecting');
     ws = new WebSocket(url);
 
@@ -158,6 +160,7 @@ export function createTransport(config: TransportConfig): Transport {
       backoff = reconnectInitialMs;
       authDead = false;
       authRefreshTried = false;
+      bootMark('ws:open');
       config.onStatus?.('open');
       // Frames still in the queue were never delivered — flush re-sends
       // them as ordinary invokes. Pending entries NOT in the queue were
@@ -185,6 +188,7 @@ export function createTransport(config: TransportConfig): Transport {
       }
 
       if (frame.kind === 'session') {
+        bootMark('ws:session-verified');
         config.saveToken(frame.token);
       } else if (frame.kind === 'result') {
         const p = pending.get(frame.id);
