@@ -1,0 +1,21 @@
+# Keep the Railway upload tarball to SOURCE only — the Dockerfile installs deps
+# and builds inside the image, so none of this belongs in the build context.
+.git
+node_modules
+**/node_modules
+**/dist
+**/.astro
+**/.turbo
+
+# Client submodules (corpus + LFS PDFs) — only content-ingest's volume needs
+# these, never a frontend/service build.
+clients
+
+# Local secrets + scratch — build args come from Railway service variables.
+.env
+.env.*
+*.log
+history.txt
+scratchpad
+ogimage-archive
+ideogram-candidates
