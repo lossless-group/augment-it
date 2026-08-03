@@ -665,10 +665,13 @@ export async function fetchSourceContent(
   args: FetchSourceArgs,
 ): Promise<{ corpus_path: string; source_slug: string; title: string; content_pulled: boolean; via: string; binary_filename: string | null; publisher?: string; published_date?: string; authors?: string[] }> {
   const jr = await fetchViaJina(args.url, { noCache: args.no_cache });
-  const title = jr.ok ? jr.title || args.url : args.url;
   const fullMd = jr.ok ? jr.markdown.trim() : '';
   const bib = jr.ok ? bibFromExtra(jr.extra) : {};
-  const source_slug = args.source_slug || slugify(title) || slugify(args.url) || args.source_uuid.slice(0, 8);
+  // Jina's title is only a FALLBACK — the operator's saved title wins (read below).
+  const jinaTitle = jr.ok ? jr.title || args.url : args.url;
+  // Stable existing slug wins so a re-fetch never renames the file; only a
+  // brand-new source (no source_slug yet) derives its slug from the title.
+  const source_slug = args.source_slug || slugify(jinaTitle) || slugify(args.url) || args.source_uuid.slice(0, 8);
   const dir = join(CLIENTS_ROOT, args.client_slug, 'corpus', domainFolder(args.domain_type), args.domain_slug, 'sources');
   await mkdir(dir, { recursive: true });
   const target = join(dir, `${source_slug}.md`);
@@ -687,12 +690,14 @@ export async function fetchSourceContent(
   // analyst may have hand-corrected, across the rewrite
   let extractsSection = EXTRACTS_SKELETON;
   let existingTags: string[] = [];
+  let existingTitle: string | undefined;
   const existingBib: { publisher?: string; published_date?: string; authors?: string[] } = {};
   try {
     const existing = await readFile(target, 'utf8');
     const idx = existing.indexOf('# Extracts');
     if (idx >= 0) extractsSection = existing.slice(idx);
     existingTags = parseTagsFromFrontmatter(existing);
+    existingTitle = parseFmScalar(existing, 'title');
     existingBib.publisher = parseFmScalar(existing, 'publisher');
     existingBib.published_date = parseFmScalar(existing, 'published_date');
     const ea = parseListFromFrontmatter(existing, 'authors');
@@ -701,11 +706,13 @@ export async function fetchSourceContent(
     // fresh — use the skeleton
   }
 
-  // Jina's fresh metadata wins; fall back to whatever was already on the file.
+  // The operator's saved metadata is authoritative — enrichment is ADDITIVE:
+  // Jina only FILLS fields the operator left empty, and never overwrites them.
+  const title = existingTitle?.trim() || jinaTitle;
   const merged = {
-    publisher: bib.publisher ?? existingBib.publisher,
-    published_date: bib.published_date ?? existingBib.published_date,
-    authors: bib.authors ?? existingBib.authors,
+    publisher: existingBib.publisher ?? bib.publisher,
+    published_date: existingBib.published_date ?? bib.published_date,
+    authors: existingBib.authors?.length ? existingBib.authors : bib.authors,
   };
 
   const fm = buildSourceFrontmatter({

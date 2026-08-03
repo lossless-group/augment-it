@@ -293,9 +293,18 @@ class CurationState {
       this.saveStatus = this.lastError ?? 'fetch failed';
       return;
     }
-    // merge so we keep fields the fetch result doesn't echo back (e.g. tags)
-    this.replaceSource({ ...source, ...r.source });
-    this.saveStatus = 'fetched';
+    // Enrichment is additive: the fetch supplies content + status, but must NEVER
+    // overwrite bibliographic fields the operator set. Keep the operator's title,
+    // authors, publisher, and date; let the fetch fill only what was left empty.
+    this.replaceSource({
+      ...source,
+      ...r.source,
+      title: source.title || r.source.title,
+      authors: source.authors?.length ? source.authors : r.source.authors,
+      publisher: source.publisher || r.source.publisher,
+      published_date: source.published_date || r.source.published_date,
+    });
+    this.saveStatus = r.source.content_pulled ? 'fetched' : 'fetch failed — could not read the URL';
   }
 
   // retry — re-fetch with a Jina cache bypass (for stale/interstitial results)
