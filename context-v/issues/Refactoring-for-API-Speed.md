@@ -20,7 +20,37 @@ status: Open · Diagnosed · Refactor Backlog
 
 # Refactoring for API Speed
 
-## Why Care?
+## MEASURED — 2026-08-03 (the refactor premise was WRONG)
+
+Step 0 ran (boot instrumentation shipped, shell redeployed, operator refreshed).
+The result overturns the diagnosis below:
+
+- **The backend is fast.** `shell:mount → workspaces:ready = ~543ms` total:
+  `ws:open` 430ms, `workspace.list:returned` +110ms (2 workspaces, humain-vc
+  active). **There is no 60s retry race. The API/mesh is not the problem.**
+- **The perceived minute had two real causes, neither architectural:**
+  1. **A stale shell deploy.** The live build was from 2026-07-28; a fresh
+     rebuild + redeploy alone made it "way faster" per the operator.
+  2. **A dozen undeployed federation remotes falling back to `localhost:3XXX`.**
+     The shell eagerly loads `http://localhost:3002…3015/remoteEntry.js` for
+     remotes that aren't deployed (record-collector, PTM, response-reviewer,
+     pack-runner, the resolvers, …); those fetches fail — and on some networks
+     **hang on a TCP connect timeout**, which is where a minute can come from.
+     The *deployed* remotes (chat 3006, org-workbench 3014, search-and-add 3016,
+     strategy-curator 3017) load fine and were never in the failure list.
+
+**So the mesh-refactor design space below is RETRACTED as the cause.** The
+remaining, much smaller work is a **build/federation-config cleanup**: prune the
+prod federation manifest to deployed remotes only, and/or lazy-load remotes
+(fetch `remoteEntry.js` on demand when a Flow opens, not eagerly at boot) so no
+boot ever waits on a doomed `localhost` fetch. Tracked as its own follow-up.
+
+The design space below is kept for the record — it is what we would have wasted
+days on without Step 0.
+
+---
+
+## Why Care? (original hypothesis — superseded by the measurement above)
 
 On refresh, the workspaces the operator is logged into take **60s+** to appear.
 Interactions wait on microfrontends and microservices responding to — and
