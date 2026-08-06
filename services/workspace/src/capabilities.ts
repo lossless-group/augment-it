@@ -14,6 +14,7 @@ import {
   type TenantCtx,
 } from './tenancy';
 import { dismissSearch, getSearchResults, listSearches, submitSearch } from './searches';
+import type { Actor } from './types';
 
 // workspace.* capabilities are served locally by the workspace-service —
 // no NATS round-trip, no domain microservice owns them. The shape mirrors
@@ -406,13 +407,10 @@ const CAPABILITY_TIMEOUTS_MS: Record<string, number> = {
   'tag.apply': 30_000,
 };
 
-// Actor attribution envelope (build-order step 4) — the verified didi.sh
-// identity, when the session has one. Rides beside args on every
-// NATS-dispatched capability so domain services can stamp created_by /
-// updated_by. workspace.* local capabilities have no domain data to stamp
-// and ignore it. See [[Workspaces-as-Tenant-Primitive]] § "Tenant-aware
-// envelope" for the sibling client_id pattern this mirrors.
-export type Actor = { didi_id: string; via?: string };
+// Actor now lives in ./types so searches.ts can import it without pointing
+// back at this module — see that file for the cycle it broke. Re-exported
+// here because this was its public home and callers import it from here.
+export type { Actor };
 
 // ── Server-side client enforcement (#65) ────────────────────────────────
 // The security-critical line of the multi-tenant build: the `client` arg
