@@ -1,6 +1,7 @@
 {
   "_comment": [
-    "Shared TypeScript config for every federated member under apps/.",
+    "Shared TypeScript config for every federated member under apps/, plus the",
+    "federation host in shell/.",
     "Before this file the 17 apps carried three byte-distinct tsconfig.json",
     "variants in an 8/7/2 split \u2014 drift, not intent. The two differences were",
     "an extra 'src/**/*.d.ts' include (kept, it picks up css.d.ts) and a",

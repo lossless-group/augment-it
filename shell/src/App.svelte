@@ -196,7 +196,9 @@
 
   // ---- transient interaction state (never persisted) ----------------------
   let hoveredNeighborId = $state<string | null>(null);
-  let stageEl = $state<HTMLDivElement | undefined>(undefined);
+  // HTMLElement, not HTMLDivElement — this binds to <main class="stage">, and
+  // only getBoundingClientRect() is ever called on it.
+  let stageEl = $state<HTMLElement | undefined>(undefined);
   let resizing = $state<boolean>(false);
   let splitting = $state<boolean>(false);
 
