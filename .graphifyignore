@@ -1,0 +1,9 @@
+# graphify corpus scope for the augment-it architecture graph.
+# Outputs land in graphify-out/ (GRAPH_REPORT.md, graph.json, graph.html).
+#
+# clients/ is 2,106 of the repo's 2,910 detected files (~72% of the corpus):
+# reach-edu and humain-vc client content — voice-note transcripts, research
+# markdown, and 316 PDFs. It is a *content* corpus, not an architecture one.
+# Left in, it dominates community detection and buries the code structure the
+# graph exists to expose. Each client corpus should get its own graph instead.
+clients/

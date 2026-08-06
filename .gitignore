@@ -53,3 +53,8 @@ pnpm-debug.log*
 
 # Playwright MCP browser-drive artifacts (session snapshots/logs)
 .playwright-mcp/
+
+# graphify knowledge-graph output (~7MB generated: graph.html, graph.json,
+# GRAPH_REPORT.md, AST cache, manifest). Rebuild with `graphify --update`.
+# Corpus scope is committed in .graphifyignore, not here.
+graphify-out/
