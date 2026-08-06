@@ -31,7 +31,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 // (the filesystem can only carry one folder; the DB/graph carries both).
 const FIRST_PARTY = 'reach-edu-first-party';
 const MANIFEST = [
-  { url: 'https://reach.edu/blog/reach-university-secures-2m-grant-carnegie-corporation-of-new-york', bucket: 'carnegie-corporation', related_funder_slug: 'carnegie-corporation' },
+  { url: 'https://reach.edu/blog/reach-university-secures-2m-grant-carnegie-corporation-of-new-york', bucket: 'carnegie-foundation', related_funder_slug: 'carnegie-foundation' },
   { url: 'https://reach.edu/blog/inside-higher-ed-a-college-for-health-care-apprentices', bucket: FIRST_PARTY },
   { url: 'https://reach.edu/blog/work-shift-a-pioneer-of-apprenticeship-degrees-steps-into-healthcare', bucket: FIRST_PARTY },
   { url: 'https://reach.edu/blog/philanthropy-roundtable-turning-the-workplace-into-the-new-learning-place-with-reach-university', bucket: FIRST_PARTY, related_funder_slug: 'stand-together-trust' },

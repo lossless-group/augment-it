@@ -35,9 +35,19 @@ const step = (msg) => console.log(`\n\x1b[1m== ${msg}\x1b[0m`);
 
 // ── RETYPE MODE — one-off domain.retype invocation ─────────────────────────
 // Moves a domain from one type to another (DB + filesystem, all clients on
-// the row). Usage:
+// the row).
+//
+// Local dev (id service in dev mode auto-issues the magic link):
 //   RETYPE=1 RETYPE_SLUG=consumer-immunology RETYPE_FROM=strategy \
 //     RETYPE_TO=thesis node scripts/prove-didi-auth.mjs mpstaton@gmail.com
+//
+// Against a DEPLOYED stack (prod id.didi.sh emails the link — it won't hand
+// back a dev_token — so pass a real didi_session cookie grabbed from the
+// browser via DIDI_SESSION, and point WS_URL at the deployed workspace so the
+// FILE MOVE happens on that deployment's volume, not localhost):
+//   RETYPE=1 RETYPE_SLUG=wearables-and-somatic-markers RETYPE_FROM=strategy \
+//     RETYPE_TO=thesis WS_URL=wss://ws.augment.didi.sh/ws \
+//     DIDI_SESSION='<paste didi_session JWT>' node scripts/prove-didi-auth.mjs
 if (process.env.RETYPE === '1') {
   const slug = process.env.RETYPE_SLUG;
   const from_type = process.env.RETYPE_FROM;
@@ -45,7 +55,10 @@ if (process.env.RETYPE === '1') {
   if (!slug || !from_type || !to_type) fail('RETYPE_SLUG, RETYPE_FROM, RETYPE_TO are all required');
 
   step(`RETYPE 1. sign in`);
-  const jwt = await signInAs(EMAIL);
+  // Prefer a directly-supplied session cookie (the only way to auth against a
+  // prod id service, which does not return dev_tokens); fall back to the
+  // dev-mode magic-link flow when DIDI_SESSION is unset.
+  const jwt = process.env.DIDI_SESSION ?? (await signInAs(EMAIL));
 
   step(`RETYPE 2. domain.retype ${from_type}:${slug} → ${to_type}`);
   const frame = await wsInvoke(
