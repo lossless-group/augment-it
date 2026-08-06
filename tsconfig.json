@@ -1,25 +1,59 @@
 {
-    "compilerOptions": {
-      "lib": ["DOM", "ES2020"],
-      "jsx": "react-jsx",
-      "target": "ES2020",
-      "noEmit": true,
-      "skipLibCheck": true,
-      "useDefineForClassFields": true,
-      "module": "ESNext",
-      "verbatimModuleSyntax": true,
-      "resolveJsonModule": true,
-      "moduleResolution": "bundler",
-      "allowImportingTsExtensions": true,
-      "strict": true,
-      "noUnusedLocals": true,
-      "noUnusedParameters": true,
-      "paths": {
-        "@/*": ["./src/*"],
-        "@packages/*": ["./packages/*/src"],
-        "@apps/*": ["./apps/*/src"]
-      }
-    },
-    "include": ["**/*.ts", "**/*.tsx"],
-    "exclude": ["node_modules", "dist"]
-  }
+  "_comment": [
+    "Root fallback config. Every app, service and package that matters carries",
+    "its own tsconfig.json (apps/* extend tsconfig.base.json); this one only",
+    "governs the leftovers and gives editors something to resolve against for",
+    "files no other project claims.",
+    "",
+    "That is currently ONE file — packages/theme/mode-switcher.ts. scripts/ and",
+    "tools/ are .mjs, and packages/shared-ui is .svelte only. Kept rather than",
+    "deleted because a monorepo root without a tsconfig degrades editor",
+    "resolution for loose files, and the next stray .ts lands here by default.",
+    "",
+    "NO REACT, NO JSX RUNTIME. This file used to set jsx: 'react-jsx' — the",
+    "single React reference anywhere in the repository, against a hard",
+    "prohibition (see the astro-knots skill: Astro + Svelte for interactivity,",
+    "never React). There has never been a .tsx or .jsx file here and react has",
+    "never been a dependency, so it was pure vestige from a scaffold.",
+    "",
+    "jsx: 'preserve' keeps .tsx syntactically legal without binding any",
+    "runtime — TypeScript type-checks it and emits the JSX untouched for a",
+    "bundler to handle. TSX as a file format is fine; React is not.",
+    "",
+    "Target raised ES2020 -> ES2022 to match every other config in the repo.",
+    "The old value was wrong for the code it nominally covers: services use",
+    "Object.hasOwn and logical-assignment operators, which are ES2022.",
+    "",
+    "The @/*, @packages/* and @apps/* path aliases were removed — verified",
+    "unused by every .ts, .svelte and .mjs file in the repo. Workspace imports",
+    "go through the @augment-it/* package names instead."
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "jsx": "preserve",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "useDefineForClassFields": true,
+    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "apps",
+    "services",
+    "shell",
+    "e2e",
+    "splash",
+    "packages/federation",
+    "packages/workspace"
+  ]
+}
