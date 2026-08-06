@@ -48,6 +48,9 @@ importers:
 
   apps/affiliation-rating-resolver:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -79,6 +82,9 @@ importers:
 
   apps/chat:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -110,6 +116,9 @@ importers:
 
   apps/enhanced-records-list:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -141,6 +150,9 @@ importers:
 
   apps/org-workbench:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -172,6 +184,9 @@ importers:
 
   apps/pack-runner:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -203,6 +218,9 @@ importers:
 
   apps/person-db-resolver:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -234,6 +252,9 @@ importers:
 
   apps/person-enrichment:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -268,6 +289,9 @@ importers:
 
   apps/prompt-template-manager:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -299,6 +323,9 @@ importers:
 
   apps/record-collector:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -330,6 +357,9 @@ importers:
 
   apps/record-db-resolver:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -361,6 +391,9 @@ importers:
 
   apps/records-surface:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -392,6 +425,9 @@ importers:
 
   apps/request-reviewer:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -423,6 +459,9 @@ importers:
 
   apps/response-reviewer:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/shared-ui':
         specifier: workspace:*
         version: link:../../packages/shared-ui
@@ -457,6 +496,9 @@ importers:
 
   apps/search-and-add:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -488,6 +530,9 @@ importers:
 
   apps/search-results:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -519,6 +564,9 @@ importers:
 
   apps/sort-filter-lens:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -550,6 +598,9 @@ importers:
 
   apps/strategy-curator:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -593,6 +644,19 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@26.1.0)(jiti@2.4.2)(jsdom@30.0.1)(terser@5.48.0)(tsx@4.22.4)
+
+  packages/federation:
+    dependencies:
+      '@augment-it/theme':
+        specifier: workspace:*
+        version: link:../theme
+    devDependencies:
+      svelte:
+        specifier: ^5.56.4
+        version: 5.56.4
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
 
   packages/shared-ui:
     devDependencies:

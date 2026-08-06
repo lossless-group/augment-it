@@ -10,6 +10,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
+    "@augment-it/federation": "workspace:*",
     "@augment-it/shared-ui": "workspace:*",
     "@augment-it/theme": "workspace:*",
     "@augment-it/workspace": "workspace:*",

@@ -1,28 +1,12 @@
-// Federation-exposed mount function. The shell calls this against a
-// host-provided div; the component runs inside this remote's own Svelte
-// runtime. Same pattern as the other remotes — see the 2026-05-21_03
-// changelog for why a mount function (not a component) is the right shape
-// across the federation boundary.
-//
-// theme.css + ./app.css are imported as side effects so the bundler's CSS
-// pipeline injects them — Svelte's append_styles doesn't fire reliably
-// across the federation chunk boundary. theme.css first so its :root
-// tokens exist before app.css's var() refs resolve.
+// Federation-exposed mount. The shared body lives in @augment-it/federation,
+// which also carries the theme.css import — see that module for why the
+// ordering below (federation first, ./app.css second) is load-bearing.
 
-import '@augment-it/theme/theme.css';
+import { makeMount } from '@augment-it/federation';
 import './app.css';
-import { mount, unmount, type Component } from 'svelte';
+import type { Component } from 'svelte';
 import App from './App.svelte';
 
-export type MountResult = {
-  destroy: () => void;
-};
+export type { MountResult } from '@augment-it/federation';
 
-export function mountResponseReviewer(target: HTMLElement): MountResult {
-  const component = mount(App as Component, { target });
-  return {
-    destroy: () => {
-      unmount(component);
-    },
-  };
-}
+export const mountResponseReviewer = makeMount(App as Component);
