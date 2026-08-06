@@ -7,8 +7,9 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 5
-semantic_version: 0.0.0.1
-status: Draft
+semantic_version: 0.0.1.0
+status: Partially-Shipped
+date_first_published: 2026-08-06
 tags:
   - Refactor
   - Augment-It
@@ -272,6 +273,51 @@ area, since it makes every future search across the tree ambiguous.
 Items 1–4 are afternoon-sized and independent. Item 6 is the actual project.
 
 ---
+
+## Remaining work (as of 2026-08-06)
+
+Tiers 1, 2 and 5 shipped the same day this document was written, on
+`refactor/deadweight-and-mount-collapse`. Net **−466 lines across 65 files**,
+verified by 19 packages building, 1,494 files svelte-check clean with zero
+errors, and every non-Docker test suite passing.
+
+| Item | State |
+|---|---|
+| 1.1 — collapse 17 `mount.ts` | ✅ shipped — new `@augment-it/federation`, 406 lines → 12 each |
+| 1.2 — hoist app `package.json` | ⏸️ **deferred, deliberately** — see below |
+| 1.3 — converge tsconfigs | ✅ shipped — `tsconfig.base.json`, 20 lines → 4 per app |
+| 2.1 — `OrgCreate.svelte` | ✅ deleted |
+| 2.2 — two orphaned `bundles.ts` | ✅ deleted, stale comment corrected |
+| 3 — utility consolidation | ⬜ not started (and see the services caveat below) |
+| 4 — design system | ⬜ not started — the actual project |
+| 5 — `Actor` import cycle | ✅ shipped — moved to `services/workspace/src/types.ts` |
+| 5 — rename three `registerHandlers()` | ⬜ not started |
+
+**Why 1.2 was deferred rather than done.** "Hoist the identical deps to the
+root" is the wrong fix under pnpm. pnpm's strict resolution means a package
+that imports `svelte` must *declare* `svelte`, or it will not resolve — the
+duplication across the 14 identical `package.json` files is a correctness
+requirement, not sloppiness. The right tool is a **pnpm catalog**
+(`catalog:` protocol, available on the pinned pnpm 10.15), which centralises
+the *versions* while leaving the declarations in place. That regenerates the
+lockfile and touches all 17 manifests, so it wants its own commit and its own
+verification pass — and it collides with the root `package.json` change in the
+stranded design-system work (see below).
+
+**Two things shipped that this document did not originally list:** removing
+`turbo.json` and repointing the root scripts at `pnpm -r`, which made
+`pnpm build` work for the first time in the repo's history (reasoning in
+[[Why-This-Monorepo-Does-Not-Need-Turbo]]); and flagging the root
+`tsconfig.json` as vestigial — it sets `jsx: "react-jsx"` in a repo where React
+is prohibited and nothing extends it. Removing it is a separate decision.
+
+**Conflict surface with the stranded design-system work.** Phase 0 adds
+`design:drift` / `design:contrast` to the root `package.json`, which this work
+rewrote. Trivial to resolve, but whoever merges second resolves it. The
+`mount.ts` collapse is *complementary* to Phase 1b rather than competing:
+centralising the `theme.css` import turns the F10 migration into one deletion
+instead of fourteen. See
+[[Federated-Design-System-Phases-0-and-1-Shipped-Nothing-Seen]] and issue #81.
 
 ## Caveats on this analysis
 
