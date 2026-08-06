@@ -1,6 +1,6 @@
 import { connect } from '@nats-io/transport-node';
 import { load } from './store';
-import { registerHandlers } from './handlers';
+import { registerPromptStoreHandlers } from './handlers';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 const PROMPT_STORE_PATH = process.env.PROMPT_STORE_PATH ?? './data/prompts.json';
@@ -12,7 +12,7 @@ async function main(): Promise<void> {
   const nc = await connect({ servers: NATS_URL, name: 'prompt-store-service' });
   console.log(JSON.stringify({ level: 'info', msg: 'nats connected', url: NATS_URL }));
 
-  registerHandlers(nc);
+  registerPromptStoreHandlers(nc);
   console.log(JSON.stringify({ level: 'info', msg: 'prompt-store-service ready' }));
 }
 

@@ -25,7 +25,7 @@ import {
   type RecordSetContext,
 } from './store';
 
-export function registerHandlers(nc: NatsConnection): void {
+export function registerPromptStoreHandlers(nc: NatsConnection): void {
   // prompt.list.requested
   (async () => {
     const sub = nc.subscribe('prompt.list.requested');

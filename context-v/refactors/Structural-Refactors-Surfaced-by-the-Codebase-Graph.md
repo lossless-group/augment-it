@@ -291,7 +291,7 @@ errors, and every non-Docker test suite passing.
 | 3 — utility consolidation | ⬜ not started (and see the services caveat below) |
 | 4 — design system | ⬜ not started — the actual project |
 | 5 — `Actor` import cycle | ✅ shipped — moved to `services/workspace/src/types.ts` |
-| 5 — rename three `registerHandlers()` | ⬜ not started |
+| 5 — rename `registerHandlers()` | ✅ shipped — **five**, not three; one per service |
 
 **Why 1.2 was deferred rather than done.** "Hoist the identical deps to the
 root" is the wrong fix under pnpm. pnpm's strict resolution means a package
@@ -304,12 +304,34 @@ lockfile and touches all 17 manifests, so it wants its own commit and its own
 verification pass — and it collides with the root `package.json` change in the
 stranded design-system work (see below).
 
-**Two things shipped that this document did not originally list:** removing
-`turbo.json` and repointing the root scripts at `pnpm -r`, which made
-`pnpm build` work for the first time in the repo's history (reasoning in
-[[Why-This-Monorepo-Does-Not-Need-Turbo]]); and flagging the root
-`tsconfig.json` as vestigial — it sets `jsx: "react-jsx"` in a repo where React
-is prohibited and nothing extends it. Removing it is a separate decision.
+**Four things shipped that this document did not originally list:**
+
+1. **`turbo.json` removed**, root scripts repointed at `pnpm -r`, which made
+   `pnpm build` work for the first time in the repo's history. Reasoning in
+   [[Why-This-Monorepo-Does-Not-Need-Turbo]].
+2. **React evicted.** The root `tsconfig.json` set `jsx: "react-jsx"` — the
+   only React reference anywhere in the repo, against a hard prohibition, with
+   zero `.tsx` files and no `react` dependency to justify it. Now
+   `jsx: "preserve"`: TSX stays legal, no runtime is bound. Target also raised
+   ES2020 → ES2022 and three dead path aliases removed.
+3. **The shell's typecheck fixed** — it had *never* passed. A missing
+   `css.d.ts` shim, compounded by a tsconfig that omitted `src/**/*.d.ts` from
+   `include` so the shim would have been ignored anyway; plus a real type error
+   (`stageEl` typed `HTMLDivElement` while bound to a `<main>`). This also
+   revealed the shell as the **eighteenth** copy of the converged tsconfig.
+4. **`registerHandlers()` renamed** — see below.
+
+The `registerHandlers()` count in this document was **wrong**. It said three,
+because three appeared in the graph's top-ten by connectivity. There are
+**five**, one per NATS service. All are now service-qualified
+(`registerPromptStoreHandlers`, `registerContentIngestHandlers`,
+`registerRecordResolverHandlers`, `registerResponseStoreHandlers`,
+`registerRowStoreHandlers`), so a tree-wide search for any one of them is
+unambiguous. `registerPersonHandlers` in `record-surrealdb-resolver` was left
+alone — it was already unique, which was the entire point.
+
+A reminder that god-node rankings show the *top* of a distribution, not the
+whole of it. Read them as "look here," never as a census.
 
 **Conflict surface with the stranded design-system work.** Phase 0 adds
 `design:drift` / `design:contrast` to the root `package.json`, which this work

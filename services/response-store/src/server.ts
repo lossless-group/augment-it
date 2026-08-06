@@ -6,7 +6,7 @@
 
 import { connect } from '@nats-io/transport-node';
 import { load } from './store';
-import { registerHandlers } from './handlers';
+import { registerResponseStoreHandlers } from './handlers';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 const RESPONSE_STORE_PATH = process.env.RESPONSE_STORE_PATH ?? './data/responses.json';
@@ -18,7 +18,7 @@ async function main(): Promise<void> {
   const nc = await connect({ servers: NATS_URL, name: 'response-store-service' });
   console.log(JSON.stringify({ level: 'info', msg: 'nats connected', url: NATS_URL }));
 
-  registerHandlers(nc);
+  registerResponseStoreHandlers(nc);
   console.log(JSON.stringify({ level: 'info', msg: 'response-store-service ready' }));
 }
 

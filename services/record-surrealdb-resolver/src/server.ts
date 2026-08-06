@@ -1,5 +1,5 @@
 import { connect } from '@nats-io/transport-node';
-import { registerHandlers } from './handlers';
+import { registerRecordResolverHandlers } from './handlers';
 import { registerDomainHandlers } from './domains';
 import { registerPersonHandlers } from './person-handlers';
 import { registerOrgRelationHandlers } from './org-relations';
@@ -23,7 +23,7 @@ async function main(): Promise<void> {
   }
   const nc = await connect({ servers: NATS_URL, name: 'record-surrealdb-resolver-service' });
   console.log(JSON.stringify({ level: 'info', msg: 'nats connected', url: NATS_URL }));
-  registerHandlers(nc);
+  registerRecordResolverHandlers(nc);
   registerDomainHandlers(nc);
   registerPersonHandlers(nc);
   registerOrgRelationHandlers(nc);

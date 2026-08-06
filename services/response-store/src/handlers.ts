@@ -29,7 +29,7 @@ import {
   type ResponseFlag,
 } from './store';
 
-export function registerHandlers(nc: NatsConnection): void {
+export function registerResponseStoreHandlers(nc: NatsConnection): void {
   // response.create.requested — fire-and-forget from prompt-runner
   (async () => {
     const sub = nc.subscribe('response.create.requested');

@@ -85,7 +85,7 @@ type PreviewResult = {
   error?: string;
 };
 
-export function registerHandlers(nc: NatsConnection): void {
+export function registerContentIngestHandlers(nc: NatsConnection): void {
   // corpus.domain.write_index — internal (resolver → here): write a domain's
   // folder + index.md definition file (<type-plural>/<slug>/index.md). Not a
   // browser capability; the resolver's domain.create handler requests it so the
