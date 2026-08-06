@@ -33,7 +33,8 @@ export type SearchInput = {
   prompt_id?: string;
   // Optional — the bundle this fan-out belongs to. Lands on every
   // ResponseRecord produced by this run so Response Reviewer can group by
-  // bundle when it shows results. See bundles.ts.
+  // bundle when it shows results. Bundle definitions live with the consumer
+  // (apps/pack-runner/src/bundles.ts); this service only carries the id.
   bundle_id?: string;
 };
 
