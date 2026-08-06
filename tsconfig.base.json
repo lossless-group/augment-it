@@ -1,0 +1,44 @@
+{
+  "_comment": [
+    "Shared TypeScript config for every federated member under apps/.",
+    "Before this file the 17 apps carried three byte-distinct tsconfig.json",
+    "variants in an 8/7/2 split \u2014 drift, not intent. The two differences were",
+    "an extra 'src/**/*.d.ts' include (kept, it picks up css.d.ts) and a",
+    "missing useDefineForClassFields (kept as true, which is already the",
+    "default at target ES2022, so nothing changes for the two apps that",
+    "omitted it).",
+    "",
+    "NOT to be confused with the root tsconfig.json, which is vestigial:",
+    "it sets jsx: react-jsx in a repo where React is prohibited, targets",
+    "ES2020 while every app targets ES2022, and nothing extends it.",
+    "",
+    "Only compilerOptions live here. include/exclude deliberately stay in",
+    "each app: TypeScript resolves those paths relative to the file they are",
+    "WRITTEN in, not the one doing the extending, so a shared 'src/**/*.ts'",
+    "would resolve to '<root>/src/**/*.ts' and every app would compile zero",
+    "files. Verified the hard way."
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ES2022"
+    ],
+    "strict": true,
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "useDefineForClassFields": true,
+    "types": [
+      "svelte"
+    ]
+  }
+}
