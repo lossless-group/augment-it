@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     "./theme.css": "./theme.css",
-    "./mode-switcher": "./mode-switcher.ts"
+    "./mode-switcher": "./mode-switcher.ts",
+    "./token-baseline.css": "./token-baseline.css"
   },
   "devDependencies": {
     "typescript": "^6.0.3"

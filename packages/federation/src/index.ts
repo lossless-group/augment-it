@@ -3,23 +3,35 @@
 // target, hand back a destroy(). That was 17 hand-maintained copies of the same
 // 23 lines, differing only in the exported function name. This is the one copy.
 //
-// WHY THE theme.css IMPORT LIVES HERE, AND WHY ORDER MATTERS
+// WHY THIS IMPORTS THE BASELINE AND NOT THE FULL THEME (gate A20)
 //
-// theme.css and the member's ./app.css are imported as side effects so the
-// bundler's CSS pipeline injects them — Svelte's append_styles does not fire
-// reliably across the federation chunk boundary. theme.css MUST evaluate
-// before app.css, so its :root tokens exist before app.css's var() refs
-// resolve. That ordering is preserved by the member importing this module
-// FIRST and './app.css' SECOND: ES module imports evaluate in declaration
-// order, so this module's transitive theme.css lands ahead of the member's
-// stylesheet. Reorder those two lines in a member's mount.ts and its tokens
-// resolve to nothing.
+// The shell is the canonical injector of theme.css (F10). A federated member
+// therefore inherits its real token values from the shell's :root at runtime —
+// they share one document, and custom properties inherit.
 //
-// This centralisation is deliberately friendly to Phase 1b / F10 of the
-// federated design system, which makes the shell the sole injector of
-// theme.css. When that lands, deleting the import below removes it from all
-// 17 members at once instead of requiring 14 separate edits.
-// See context-v/handoffs/Federated-Design-System-Phases-0-and-1-Shipped-Nothing-Seen.md
+// The danger in that arrangement is token INTRODUCTION, not retirement.
+// Retirement can be aliased forever. Introduction cannot: a member deployed
+// against a token the DEPLOYED shell does not define yet resolves to nothing —
+// invalid at computed-value time, so text inherits and backgrounds go
+// transparent. It renders unreadable in production and is invisible in the
+// member's own repo, because locally that member has the latest theme.
+//
+// token-baseline.css closes that hole. Every Tier-2 token is registered with
+// @property and an initial-value, which gives each one a FLOOR: when no
+// declaration matches, the initial value is used instead of nothing. The
+// shell's declarations still win whenever they exist, so this costs nothing
+// when the stack is healthy and degrades to a legible dark surface when it is
+// not. Generated from theme.css by scripts/generate-token-baseline.mjs.
+//
+// Standalone entries (each member's src/index.ts) still import the FULL
+// theme.css — they have no shell to inherit from and need all three mode
+// blocks. Only the federated path is thin.
+//
+// ORDER STILL MATTERS. This module must evaluate before the member's
+// './app.css', so the registrations exist before app.css's var() refs resolve.
+// ES module imports evaluate in declaration order, so the member importing
+// this FIRST and './app.css' SECOND is what preserves it. Reorder those two
+// lines in a member's mount.ts and you are back to unstyled.
 //
 // Each remote still ships its own inlined copy of this code — the federation
 // host declares no `shared` block, so a workspace import is bundled per
@@ -27,7 +39,7 @@
 // seventeen independent artifacts. Autonomy is unaffected.
 // See context-v/notes/Sharing-Code-Without-Breaking-Microfrontend-Autonomy.md
 
-import '@augment-it/theme/theme.css';
+import '@augment-it/theme/token-baseline.css';
 import { mount, unmount, type Component } from 'svelte';
 
 export type MountResult = {
