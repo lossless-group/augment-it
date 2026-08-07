@@ -58,3 +58,4 @@ pnpm-debug.log*
 # GRAPH_REPORT.md, AST cache, manifest). Rebuild with `graphify --update`.
 # Corpus scope is committed in .graphifyignore, not here.
 graphify-out/
+tools/

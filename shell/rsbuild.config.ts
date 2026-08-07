@@ -87,6 +87,14 @@ export default defineConfig({
   },
   html: {
     title: 'augment-it · shell',
+    tags: [
+      {
+        tag: 'script',
+        head: true,
+        append: false,
+        children: `(function(){var m=localStorage.getItem('augment-it:mode');if(m&&(m==='light'||m==='dark'||m==='vibrant')){document.documentElement.setAttribute('data-mode',m);}else{document.documentElement.setAttribute('data-mode','dark');}})();`,
+      },
+    ],
   },
   server: {
     // Port 3000 is commonly squatted (Open WebUI on this machine, also

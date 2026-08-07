@@ -17,7 +17,9 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "test:all": "bash scripts/test-all.sh"
+    "test:all": "bash scripts/test-all.sh",
+    "design:drift": "node scripts/design-drift.mjs",
+    "design:contrast": "node scripts/design-drift.mjs --contrast"
   },
   "devDependencies": {
     "@module-federation/enhanced": "^2.6.0",
