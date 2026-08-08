@@ -18,6 +18,7 @@
 import { type NatsConnection } from '@nats-io/transport-node';
 import type { Surreal } from 'surrealdb';
 import { getDb } from './surreal';
+import { serveSubject } from './nats-loop';
 
 // --- helpers ---------------------------------------------------------------
 
@@ -381,22 +382,18 @@ export async function applyTag(
 // --- NATS handler registration --------------------------------------------
 
 export function registerDomainHandlers(nc: NatsConnection): void {
+  // serveSubject owns the parse, the per-message deadline, the always-answer
+  // guarantee, and the loop's own death. See ./nats-loop.ts — the bare
+  // `for await` this replaces is what silently took domain.list out of service
+  // for a whole process lifetime.
   const handle = <T>(subject: string, fn: (db: Surreal, args: T) => Promise<unknown>): void => {
-    void (async () => {
-      const sub = nc.subscribe(subject);
-      for await (const msg of sub) {
-        const args = msg.json() as T;
-        try {
-          const db = await getDb();
-          await ensureDomainSchema(db);
-          const result = await fn(db, args);
-          if (msg.reply) msg.respond(JSON.stringify({ ok: true, ...(result as object) }));
-        } catch (err: unknown) {
-          const error = err instanceof Error ? err.message : String(err);
-          if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
-        }
-      }
-    })();
+    void serveSubject<T>(subject, nc.subscribe(subject), async (args) => {
+      const db = await getDb();
+      await ensureDomainSchema(db);
+      return fn(db, args);
+    }).catch((err: unknown) => {
+      console.error(JSON.stringify({ level: 'error', subject, msg: 'consumer exited', error: String(err) }));
+    });
   };
 
   // Curator liveness — fire-and-forget broadcast after a mutation commits, so
@@ -414,39 +411,39 @@ export function registerDomainHandlers(nc: NatsConnection): void {
 
   // domain.create — DB upsert + write the filesystem index.md (content-ingest,
   // filesystem-authoritative). Cross-service request over NATS.
-  void (async () => {
-    const sub = nc.subscribe('domain.create.requested');
-    for await (const msg of sub) {
-      const args = msg.json() as { type: string; slug: string; title: string; client_slug: string; tags?: string[]; actor?: Actor };
-      try {
-        const db = await getDb();
-        await ensureDomainSchema(db);
-        const { domain } = await createDomain(db, args);
-        const created_at = new Date().toISOString().slice(0, 10);
-        const reply = await nc.request(
-          'corpus.domain.write_index.requested',
-          JSON.stringify({
-            client_slug: args.client_slug,
-            type: domain.type,
-            slug: domain.slug,
-            title: domain.title,
-            client_slugs: domain.client_slugs,
-            tags: domain.tags,
-            created_at,
-            created_by: args.actor?.didi_id ?? null,
-          }),
-          { timeout: 15_000 },
-        );
-        const fileRes = reply.json() as { ok: boolean; corpus_path?: string; error?: string };
-        if (!fileRes.ok) throw new Error(`index.md write failed: ${fileRes.error ?? 'unknown'}`);
-        broadcast('domain.created', { type: domain.type, slug: domain.slug, client_slug: args.client_slug, actor: args.actor ?? null });
-        if (msg.reply) msg.respond(JSON.stringify({ ok: true, domain, corpus_path: fileRes.corpus_path }));
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
-      }
-    }
-  })();
+  void serveSubject<{ type: string; slug: string; title: string; client_slug: string; tags?: string[]; actor?: Actor }>(
+    'domain.create.requested',
+    nc.subscribe('domain.create.requested'),
+    async (args) => {
+      const db = await getDb();
+      await ensureDomainSchema(db);
+      const { domain } = await createDomain(db, args);
+      const created_at = new Date().toISOString().slice(0, 10);
+      const reply = await nc.request(
+        'corpus.domain.write_index.requested',
+        JSON.stringify({
+          client_slug: args.client_slug,
+          type: domain.type,
+          slug: domain.slug,
+          title: domain.title,
+          client_slugs: domain.client_slugs,
+          tags: domain.tags,
+          created_at,
+          created_by: args.actor?.didi_id ?? null,
+        }),
+        { timeout: 15_000 },
+      );
+      const fileRes = reply.json() as { ok: boolean; corpus_path?: string; error?: string };
+      if (!fileRes.ok) throw new Error(`index.md write failed: ${fileRes.error ?? 'unknown'}`);
+      broadcast('domain.created', { type: domain.type, slug: domain.slug, client_slug: args.client_slug, actor: args.actor ?? null });
+      return { domain, corpus_path: fileRes.corpus_path };
+    },
+    // Wider than the default: this one makes a cross-service NATS request with
+    // its own 15s timeout, then a filesystem write on the other side.
+    { timeoutMs: 28_000 },
+  ).catch((err: unknown) => {
+    console.error(JSON.stringify({ level: 'error', subject: 'domain.create.requested', msg: 'consumer exited', error: String(err) }));
+  });
 
   handle('domain.list.requested', listDomains);
   handle('domain.assemble.requested', assembleDomain);
@@ -463,8 +460,8 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('domain.retype.requested');
     for await (const msg of sub) {
-      const args = msg.json() as { type: string; slug: string; new_type: string; actor?: Actor };
       try {
+        const args = msg.json() as { type: string; slug: string; new_type: string; actor?: Actor };
         const db = await getDb();
         await ensureDomainSchema(db);
         const { domain } = await retypeDomain(db, args);
@@ -489,15 +486,17 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
-  })();
+  })().catch((err: unknown) => {
+    console.error(JSON.stringify({ level: 'error', file: 'domains.ts', msg: 'consumer exited', error: String(err) }));
+  });
 
   // source.add — DB registry + usage, then cross-call content-ingest to Jina-fetch
   // metadata and write the per-source file. Update the registry title + usage path.
   void (async () => {
     const sub = nc.subscribe('source.add.requested');
     for await (const msg of sub) {
-      const args = msg.json() as { url: string; domain_type: string; domain_slug: string; client_slug: string; actor?: Actor };
       try {
+        const args = msg.json() as { url: string; domain_type: string; domain_slug: string; client_slug: string; actor?: Actor };
         const db = await getDb();
         await ensureDomainSchema(db);
         const { source } = await addSource(db, args);
@@ -531,7 +530,9 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
-  })();
+  })().catch((err: unknown) => {
+    console.error(JSON.stringify({ level: 'error', file: 'domains.ts', msg: 'consumer exited', error: String(err) }));
+  });
 
   type SourceRef = { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; actor?: Actor };
   const usageOf = async (db: Surreal, a: SourceRef) =>
@@ -575,14 +576,22 @@ export function registerDomainHandlers(nc: NatsConnection): void {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
   }
+  // runSourceFetch already returns {ok:false} rather than throwing, but the
+  // parse and the respond sat outside any guard — one malformed payload took
+  // both fetch subjects down permanently. serveSubject owns that now.
+  // runSourceFetch's own {ok} shape is preserved by returning it directly:
+  // serveSubject spreads the result, and an explicit ok:false in the payload
+  // overrides the wrapper's ok:true.
   const fetchHandler = (subject: string, noCache: boolean): void => {
-    void (async () => {
-      const sub = nc.subscribe(subject);
-      for await (const msg of sub) {
-        const res = await runSourceFetch(msg.json() as SourceRef, noCache);
-        if (msg.reply) msg.respond(JSON.stringify(res));
-      }
-    })();
+    void serveSubject<SourceRef>(
+      subject,
+      nc.subscribe(subject),
+      (ref) => runSourceFetch(ref, noCache),
+      // Jina fetches a remote URL through content-ingest; give it room.
+      { timeoutMs: 28_000 },
+    ).catch((err: unknown) => {
+      console.error(JSON.stringify({ level: 'error', subject, msg: 'consumer exited', error: String(err) }));
+    });
   };
   fetchHandler('source.fetch.requested', false);
   fetchHandler('source.retry.requested', true);
@@ -592,8 +601,8 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('source.remove.requested');
     for await (const msg of sub) {
-      const a = msg.json() as SourceRef;
       try {
+        const a = msg.json() as SourceRef;
         const db = await getDb();
         await ensureDomainSchema(db);
         const usage = await usageOf(db, a);
@@ -611,14 +620,16 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
-  })();
+  })().catch((err: unknown) => {
+    console.error(JSON.stringify({ level: 'error', file: 'domains.ts', msg: 'consumer exited', error: String(err) }));
+  });
 
   // source.update — patch the registry's bibliographic fields + the file frontmatter.
   void (async () => {
     const sub = nc.subscribe('source.update.requested');
     for await (const msg of sub) {
-      const a = msg.json() as SourceRef & { fields: Record<string, string>; authors?: string[] };
       try {
+        const a = msg.json() as SourceRef & { fields: Record<string, string>; authors?: string[] };
         const db = await getDb();
         await ensureDomainSchema(db);
         const fields = a.fields ?? {};
@@ -667,7 +678,9 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
-  })();
+  })().catch((err: unknown) => {
+    console.error(JSON.stringify({ level: 'error', file: 'domains.ts', msg: 'consumer exited', error: String(err) }));
+  });
 
   // source.attach — hang an operator-uploaded binary (PDF the analyst downloaded
   // themselves) under the source. Identity (url) is unchanged; this just sets the
@@ -675,8 +688,8 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('source.attach.requested');
     for await (const msg of sub) {
-      const a = msg.json() as SourceRef & { filename: string; content_base64: string; content_type?: string };
       try {
+        const a = msg.json() as SourceRef & { filename: string; content_base64: string; content_type?: string };
         const db = await getDb();
         await ensureDomainSchema(db);
         const usage = await usageOf(db, a);
@@ -702,14 +715,16 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
-  })();
+  })().catch((err: unknown) => {
+    console.error(JSON.stringify({ level: 'error', file: 'domains.ts', msg: 'consumer exited', error: String(err) }));
+  });
 
   // extract.add — append a pasted extract to the source's file (needs a file = a source_slug).
   void (async () => {
     const sub = nc.subscribe('extract.add.requested');
     for await (const msg of sub) {
-      const args = msg.json() as { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; kind: string; text: string; actor?: Actor };
       try {
+        const args = msg.json() as { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; kind: string; text: string; actor?: Actor };
         const db = await getDb();
         await ensureDomainSchema(db);
         const usage = first<{ source_slug?: string }>(
@@ -740,7 +755,9 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
-  })();
+  })().catch((err: unknown) => {
+    console.error(JSON.stringify({ level: 'error', file: 'domains.ts', msg: 'consumer exited', error: String(err) }));
+  });
 
   handle('tag.suggest.requested', suggestTags);
 
@@ -749,8 +766,8 @@ export function registerDomainHandlers(nc: NatsConnection): void {
   void (async () => {
     const sub = nc.subscribe('tag.apply.requested');
     for await (const msg of sub) {
-      const a = msg.json() as { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; tag: string; op?: 'add' | 'remove'; actor?: Actor };
       try {
+        const a = msg.json() as { source_uuid: string; domain_type: string; domain_slug: string; client_slug: string; tag: string; op?: 'add' | 'remove'; actor?: Actor };
         const db = await getDb();
         await ensureDomainSchema(db);
         const res = await applyTag(db, a);
@@ -774,5 +791,7 @@ export function registerDomainHandlers(nc: NatsConnection): void {
         if (msg.reply) msg.respond(JSON.stringify({ ok: false, error }));
       }
     }
-  })();
+  })().catch((err: unknown) => {
+    console.error(JSON.stringify({ level: 'error', file: 'domains.ts', msg: 'consumer exited', error: String(err) }));
+  });
 }
