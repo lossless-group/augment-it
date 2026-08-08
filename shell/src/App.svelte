@@ -5,6 +5,7 @@
   import FlowWidget from './FlowWidget.svelte';
   import WorkspaceSwitcher from './WorkspaceSwitcher.svelte';
   import DidiBadge from './DidiBadge.svelte';
+  import DevelopersMenu from './DevelopersMenu.svelte';
   import SignInWall from './SignInWall.svelte';
   import JumboPopdown, { type PopdownItem } from './JumboPopdown.svelte';
   import ToggleHeader from '@augment-it/shared-ui/ToggleHeader__PromptOrPackage--Icons.svelte';
@@ -593,7 +594,7 @@
     >
       🔎 queue{#if queueDoneCount > 0}<span class="queue-badge">{queueDoneCount}</span>{/if}
     </button>
-    <span class="muted">tiling host · :3100</span>
+    <DevelopersMenu wsHttpBase={WS_HTTP_BASE} />
     <DidiBadge />
     <ModeToggle />
     {#if !workspace.pinned}

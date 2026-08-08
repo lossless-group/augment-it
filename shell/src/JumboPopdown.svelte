@@ -29,10 +29,15 @@
     triggerLabel,
     items,
     onSelect,
+    // Defaults to the grid mark the flow-navigation popdown has always used, so
+    // adding this prop changed nothing for the first caller. A second caller
+    // (the Developers menu) wants its own glyph rather than a tiling icon.
+    triggerIcon = '▥',
   }: {
     triggerLabel: string;
     items: PopdownItem[];
     onSelect: (id: string) => void;
+    triggerIcon?: string;
   } = $props();
 
   let open = $state(false);
@@ -97,7 +102,7 @@
     aria-expanded={open}
     onclick={toggle}
   >
-    <span class="grid-mark" aria-hidden="true">▥</span>
+    <span class="grid-mark" aria-hidden="true">{triggerIcon}</span>
     <span class="label">{triggerLabel}</span>
     <span class="chev" aria-hidden="true">{open ? '▴' : '▾'}</span>
   </button>
