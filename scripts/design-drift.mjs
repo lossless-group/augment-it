@@ -91,9 +91,27 @@ function parseMemberList(fm) {
   const members = [];
   for (const entry of list) {
     if (typeof entry === 'string') {
-      const parts = entry.match(/name:\s*(\S+).*?path:\s*(\S+).*?prefix:\s*(\S+).*?root_class:\s*(\S+)/);
+      // `(\S+)` was greedy across the comma that separates frontmatter fields,
+      // so `path: shell, prefix: …` yielded the path "shell," — and
+      // resolve(REPO_ROOT, "shell,", "src") does not exist. findMemberFiles()
+      // then returned [] for EVERY member, so every per-file check (F4 z-index,
+      // F8 hardcoded hex / box-shadow, F1a Tier-1 consumption, leaked
+      // selectors) silently found nothing and the run reported near-clean.
+      // The only surviving symptom was F6 failing for all 19 members, which
+      // reads as "per-member DESIGN.md files are Phase 8 work" rather than
+      // "the checker cannot see the tree".
+      //
+      // This is the same failure this script's own notes warn about: a checker
+      // reporting success because it failed to look. Stop each field at the
+      // comma, and strip the quotes root_class carries.
+      const parts = entry.match(/name:\s*([^,\s]+).*?path:\s*([^,\s]+).*?prefix:\s*([^,\s]+).*?root_class:\s*([^,\s]+)/);
       if (parts) {
-        members.push({ name: parts[1], path: parts[2], prefix: parts[3], rootClass: parts[4] });
+        members.push({
+          name: parts[1],
+          path: parts[2],
+          prefix: parts[3],
+          rootClass: parts[4].replace(/^["']|["']$/g, ''),
+        });
       }
     }
   }
