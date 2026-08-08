@@ -1,0 +1,133 @@
+/* Portal chrome. Deliberately minimal and built ONLY from Tier-2 tokens — the
+ * page that judges the token system must not smuggle in colours of its own, or
+ * a token that fails would still look fine here. F8: no literal colour. */
+
+.portal {
+  font-family: var(--font-mono);
+  background: var(--color-background);
+  color: var(--color-text);
+  min-height: 100vh;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.head h1 { font-size: 15px; margin: 0 0 4px; letter-spacing: 0.02em; }
+.sub { font-size: 11px; color: var(--color-text-muted); margin: 0; max-width: 62ch; line-height: 1.5; }
+.sub strong { color: var(--color-accent); }
+
+.modes { display: flex; gap: 4px; }
+.modes button {
+  font-family: inherit;
+  font-size: 11px;
+  padding: 5px 11px;
+  background: var(--color-field);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.modes button:hover { background: var(--color-field-focus); color: var(--color-text); }
+.modes button.active {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+}
+.modes button:focus-visible { outline: var(--focus-ring, 2px solid var(--color-accent)); outline-offset: 2px; }
+
+section { margin-bottom: 40px; }
+h2 { font-size: 12px; margin: 0 0 6px; color: var(--color-text); letter-spacing: 0.04em; text-transform: uppercase; }
+.note { font-size: 11px; color: var(--color-text-muted); margin: 0 0 14px; max-width: 78ch; line-height: 1.55; }
+code { font-family: var(--font-mono); font-size: 11px; }
+
+/* The grid is the page. One header row, then one row per token. */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) repeat(var(--cols), minmax(96px, 1fr));
+  gap: 1px;
+  background: var(--color-border);
+  border: 1px solid var(--color-border);
+  overflow-x: auto;
+}
+
+.cell { padding: 8px 10px; font-size: 11px; }
+.head-cell {
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: sticky;
+  top: 0;
+}
+.token-name { background: var(--color-surface); color: var(--color-text-muted); white-space: nowrap; }
+
+.swatch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 34px;
+}
+.sample { font-weight: 700; font-size: 13px; }
+
+/* The ratio badge must stay readable regardless of the swatch it sits on, so
+ * it carries its own surface rather than inheriting the token under test. */
+.ratio {
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 2px;
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+  border: 1px solid transparent;
+}
+.ratio.pass  { color: var(--color-ok-text); }
+.ratio.large { color: var(--color-confidence-med); }
+.ratio.fail  { color: var(--color-error-text); border-color: var(--color-error-text); }
+
+.effects { display: flex; gap: 16px; flex-wrap: wrap; }
+.effect-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 18px 16px;
+  min-width: 190px;
+}
+
+.palette { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 5px 9px 5px 5px;
+}
+.chip-color { width: 22px; height: 22px; border-radius: 2px; border: 1px solid var(--color-border); }
+.hex { font-size: 10px; color: var(--color-text-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* Structural tokens carry a measurement but no verdict — see App.svelte's
+ * FOREGROUND predicate for why grading the full cross-product cried wolf. */
+.ratio.ungraded { opacity: 0.45; }
+
+/* Applied only while measuring. theme.css transitions colour over 75ms on a
+ * mode swap, and a measurement taken inside that window reads a colour that is
+ * still animating — which produced a page of phantom contrast failures. */
+:root.measuring, :root.measuring * { transition: none !important; }
+
+.accent-cell { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

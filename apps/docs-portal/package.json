@@ -1,0 +1,22 @@
+{
+  "name": "@augment-it/docs-portal",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "rsbuild dev",
+    "build": "rsbuild build",
+    "preview": "rsbuild preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json"
+  },
+  "dependencies": {
+    "@augment-it/theme": "workspace:*",
+    "svelte": "^5.56.4"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^2.1.2",
+    "@rsbuild/plugin-svelte": "^2.0.0",
+    "svelte-check": "^4.7.1",
+    "typescript": "^6.0.3"
+  }
+}
