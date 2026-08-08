@@ -6,6 +6,9 @@
  * for a non-Astro, non-Tailwind, federated multi-remote app. No Tailwind layer;
  * the tokens are plain CSS custom properties. One brand, three modes.
  *
+ * Author: RawNuke
+ * Copyright (c) 2026 RawNuke. All rights reserved.
+ *
  * TWO TIERS:
  *   Tier 1 — named tokens   --color__name      raw palette values, `__` separator
  *   Tier 2 — semantic tokens --color-role       what components consume, kebab-case
@@ -22,6 +25,9 @@
  * Tier 1 — NAMED TOKENS. The raw palette: "the things we have."
  * Components do NOT reference these. Only the Tier-2 blocks below do.
  * The user iterates here — add a colour, re-point a semantic token, done.
+ *
+ * Phase 1 additions: --color__graphite-600, --color__paper-400, --color__void-600,
+ * --color__shadow-black, --color__shadow-ink. Step numbers track luminance.
  * -------------------------------------------------------------------------- */
 :root {
   /* greyscale — dark side */
@@ -30,18 +36,20 @@
   --color__graphite-900:  #16181f;
   --color__graphite-850:  #1a1d27;
   --color__graphite-800:  #232634;
-  --color__graphite-700:  #13151b;
+  --color__graphite-700:  #232634;
+  --color__graphite-600:  #646785;
   --color__mist-100:      #e8eaf0;
   --color__mist-400:      #8a8f9b;
 
   /* greyscale — light side (warm paper / ink) */
+  --color__paper-0:    #ffffff;
   --color__paper-50:   #faf9f6;
   --color__paper-100:  #f1efe9;
   --color__paper-200:  #f4f2ec;
   --color__paper-300:  #ddd9cd;
-  --color__paper-0:    #ffffff;
+  --color__paper-400:  #c4bfb0;
   --color__ink-900:    #1b1d22;
-  --color__ink-500:    #6b6f7a;
+  --color__ink-500:    #686c77;
 
   /* greyscale — vibrant side (violet-tinted near-black) */
   --color__void-1000:  #0a0710;
@@ -50,16 +58,17 @@
   --color__void-850:   #241934;
   --color__void-800:   #3a2a52;
   --color__void-700:   #16101f;
+  --color__void-600:   #6b5d88;
   --color__halo-100:   #f4ecff;
   --color__halo-400:   #a594c4;
 
   /* accents — magenta-violet + cyan, per intensity */
-  --color__magenta-electric: #c75bfb;   /* dark accent */
-  --color__magenta-deep:     #9a3fd4;   /* light accent — reads on paper */
-  --color__magenta-loud:     #d96bff;   /* vibrant accent */
-  --color__cyan-bright:      #5bbcfb;   /* dark accent-2 */
-  --color__cyan-deep:        #2563a8;   /* light accent-2 */
-  --color__cyan-loud:        #54c8ff;   /* vibrant accent-2 */
+  --color__magenta-electric: #c75bfb;
+  --color__magenta-deep:     #9a3fd4;
+  --color__magenta-loud:     #d96bff;
+  --color__cyan-bright:      #5bbcfb;
+  --color__cyan-deep:        #2563a8;
+  --color__cyan-loud:        #54c8ff;
 
   /* status — success */
   --color__green-deep:    #1b3d2f;
@@ -77,13 +86,17 @@
   --color__red-neon:    #ff8fb0;
   --color__red-void:    #3d1430;
 
-  /* status — warn / mid-confidence (new — packs-and-bundles confidence-med) */
+  /* status — warn / mid-confidence */
   --color__amber-deep:    #3d2c0c;
   --color__amber-bright:  #f5c971;
   --color__amber-wash:    #fbeed1;
-  --color__amber-ink:     #a16a1f;
+  --color__amber-ink:     #95621d;
   --color__amber-neon:    #ffd47d;
   --color__amber-void:    #2a1d08;
+
+  /* shadow — Phase 1: so --fx-* tokens carry no literal (F11) */
+  --color__shadow-black: #000000;
+  --color__shadow-ink:   #1b1d22;
 
   /* typeface — augment-it is a monospace tool surface */
   --font__mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
@@ -92,39 +105,52 @@
 /* -----------------------------------------------------------------------------
  * Tier 2 — SEMANTIC TOKENS. What every component reads.
  * dark is the default — :root with no data-mode resolves here.
+ * Phase 1 additions marked with ✅.
  * -------------------------------------------------------------------------- */
 :root,
 [data-mode='dark'] {
   --color-background:      var(--color__graphite-950);
   --color-surface:         var(--color__graphite-700);
+  --color-surface-2:       var(--color__graphite-900);
   --color-surface-raised:  var(--color__graphite-1000);
+  --color-bg-elevated:     var(--color__graphite-850);
   --color-field:           var(--color__graphite-900);
   --color-field-focus:     var(--color__graphite-850);
   --color-border:          var(--color__graphite-800);
+  --color-border-strong:   var(--color__graphite-600);
   --color-text:            var(--color__mist-100);
   --color-text-muted:      var(--color__mist-400);
   --color-accent:          var(--color__magenta-electric);
   --color-accent-2:        var(--color__cyan-bright);
+  --color-accent-warm:     var(--color__amber-bright);
   --color-on-accent:       var(--color__graphite-950);
+  --color-link:            var(--color__cyan-bright);
+  --color-thread:          var(--color__graphite-800);
   --color-ok-bg:           var(--color__green-deep);
   --color-ok-text:         var(--color__green-bright);
   --color-error-bg:        var(--color__red-deep);
   --color-error-text:      var(--color__red-bright);
+  --color-warn-bg:         var(--color__amber-deep);
+  --color-warn-text:       var(--color__amber-bright);
 
-  /* confidence pills — packs-and-bundles. One token per band; the pill
-     component derives a translucent bg via color-mix at the call site.
-     Spec: context-v/blueprints/Packs-and-Bundles-Pattern.md */
+  --focus-ring: 0 0 0 2px var(--color__graphite-950), 0 0 0 3px var(--color__magenta-electric);
+
+  /* deprecated alias — Phase 1. Deleted end of Phase 4. */
+  --color-bg: var(--color-background);
+
+  /* confidence pills — packs-and-bundles. One token per band. */
   --color-confidence-low:  var(--color__red-bright);
   --color-confidence-med:  var(--color__amber-bright);
   --color-confidence-high: var(--color__green-bright);
 
-  /* tints derived from the accent so they follow it automatically */
+  /* tints derived from the accent */
   --color-selected-tint:   color-mix(in srgb, var(--color-accent) 9%, transparent);
   --color-danger-tint:     color-mix(in srgb, var(--color-error-text) 7%, transparent);
 
   /* effect tokens — moderate in dark */
   --fx-accent-glow:  0 0 0 1px color-mix(in srgb, var(--color-accent) 30%, transparent);
-  --fx-card-shadow:  0 1px 3px rgba(0, 0, 0, 0.35);
+  --fx-card-shadow:  0 1px 3px color-mix(in srgb, var(--color__shadow-black) 35%, transparent);
+  --fx-popover-shadow: 0 4px 16px color-mix(in srgb, var(--color__shadow-black) 45%, transparent);
   --fx-flash:        color-mix(in srgb, var(--color-accent-2) 30%, transparent);
 
   --font-mono: var(--font__mono);
@@ -133,19 +159,31 @@
 [data-mode='light'] {
   --color-background:      var(--color__paper-50);
   --color-surface:         var(--color__paper-0);
+  --color-surface-2:       var(--color__paper-100);
   --color-surface-raised:  var(--color__paper-100);
+  --color-bg-elevated:     var(--color__paper-200);
   --color-field:           var(--color__paper-200);
   --color-field-focus:     var(--color__paper-0);
   --color-border:          var(--color__paper-300);
+  --color-border-strong:   var(--color__paper-400);
   --color-text:            var(--color__ink-900);
   --color-text-muted:      var(--color__ink-500);
   --color-accent:          var(--color__magenta-deep);
   --color-accent-2:        var(--color__cyan-deep);
+  --color-accent-warm:     var(--color__amber-ink);
   --color-on-accent:       var(--color__paper-0);
+  --color-link:            var(--color__cyan-deep);
+  --color-thread:          var(--color__paper-300);
   --color-ok-bg:           var(--color__green-wash);
   --color-ok-text:         var(--color__green-ink);
   --color-error-bg:        var(--color__red-wash);
   --color-error-text:      var(--color__red-ink);
+  --color-warn-bg:         var(--color__amber-wash);
+  --color-warn-text:       var(--color__amber-ink);
+
+  --focus-ring: 0 0 0 2px var(--color__paper-0), 0 0 0 3px var(--color__magenta-deep);
+
+  --color-bg: var(--color-background);
 
   --color-confidence-low:  var(--color__red-ink);
   --color-confidence-med:  var(--color__amber-ink);
@@ -156,26 +194,39 @@
 
   /* effect tokens — minimal in light */
   --fx-accent-glow:  none;
-  --fx-card-shadow:  0 1px 3px rgba(27, 29, 34, 0.08);
+  --fx-card-shadow:  0 1px 3px color-mix(in srgb, var(--color__shadow-ink) 8%, transparent);
+  --fx-popover-shadow: 0 4px 16px color-mix(in srgb, var(--color__shadow-ink) 14%, transparent);
   --fx-flash:        color-mix(in srgb, var(--color-accent-2) 18%, transparent);
 }
 
 [data-mode='vibrant'] {
   --color-background:      var(--color__void-950);
   --color-surface:         var(--color__void-700);
+  --color-surface-2:       var(--color__void-900);
   --color-surface-raised:  var(--color__void-1000);
+  --color-bg-elevated:     var(--color__void-850);
   --color-field:           var(--color__void-900);
   --color-field-focus:     var(--color__void-850);
   --color-border:          var(--color__void-800);
+  --color-border-strong:   var(--color__void-600);
   --color-text:            var(--color__halo-100);
   --color-text-muted:      var(--color__halo-400);
   --color-accent:          var(--color__magenta-loud);
   --color-accent-2:        var(--color__cyan-loud);
+  --color-accent-warm:     var(--color__amber-neon);
   --color-on-accent:       var(--color__void-950);
+  --color-link:            var(--color__cyan-loud);
+  --color-thread:          var(--color__void-800);
   --color-ok-bg:           var(--color__green-void);
   --color-ok-text:         var(--color__green-neon);
   --color-error-bg:        var(--color__red-void);
   --color-error-text:      var(--color__red-neon);
+  --color-warn-bg:         var(--color__amber-void);
+  --color-warn-text:       var(--color__amber-neon);
+
+  --focus-ring: 0 0 0 2px var(--color__void-950), 0 0 0 3px var(--color__magenta-loud);
+
+  --color-bg: var(--color-background);
 
   --color-confidence-low:  var(--color__red-neon);
   --color-confidence-med:  var(--color__amber-neon);
@@ -187,7 +238,33 @@
   /* effect tokens — loud in vibrant */
   --fx-accent-glow:  0 0 20px color-mix(in srgb, var(--color-accent) 45%, transparent);
   --fx-card-shadow:  0 0 24px color-mix(in srgb, var(--color__magenta-loud) 12%, transparent);
+  --fx-popover-shadow: 0 4px 24px color-mix(in srgb, var(--color__magenta-loud) 20%, transparent);
   --fx-flash:        color-mix(in srgb, var(--color-accent-2) 45%, transparent);
+}
+
+/* -----------------------------------------------------------------------------
+ * Accessibility — global blocks.
+ * Phase 1: prefers-reduced-motion and forced-colors.
+ * -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  body,
+  body * {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .app-shell,
+  [class*='-app'] {
+    border: 1px solid ButtonText;
+  }
+  *:focus-visible {
+    outline: 2px solid ButtonText;
+    outline-offset: 2px;
+  }
 }
 
 /* -----------------------------------------------------------------------------

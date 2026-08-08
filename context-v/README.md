@@ -22,6 +22,7 @@ Subdirectories appear as content arrives:
 - `reminders/` — short notes future-you will be glad past-you wrote
 - `explorations/` — open questions, partially-answered
 - `issues/` — known problems, not yet fixed
+- `loops/` — repeatable fidelity sweep procedures. See `loops/references/` for supporting rationale.
 
 The splash at `splash/` renders every `.md` in this tree (and `changelog/`)
 on push to `main`.

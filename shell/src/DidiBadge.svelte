@@ -211,17 +211,17 @@
   }
   .didi-pop__head {
     margin: 0 0 8px;
-    font-family: var(--font__mono, monospace);
+    font-family: var(--font-mono);
     font-size: 10px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--color-text-dim, #9a9a9a);
+    color: var(--color-text-muted);
   }
   .didi-row {
     display: flex;
     gap: 8px;
     margin: 3px 0;
-    font-family: var(--font__mono, monospace);
+    font-family: var(--font-mono);
     font-size: 11px;
     overflow-wrap: anywhere;
   }

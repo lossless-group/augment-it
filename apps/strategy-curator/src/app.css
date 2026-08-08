@@ -94,7 +94,7 @@
 .sc-app .sc-value { color: var(--color-text); }
 .sc-app .sc-muted { color: var(--color-text-muted); }
 .sc-app .sc-mini { font-size: 12px; }
-.sc-app .sc-mono { font-family: var(--font__mono, ui-monospace, monospace); }
+.sc-app .sc-mono { font-family: var(--font-mono); }
 .sc-app .sc-pad { padding: 1rem; }
 
 /* ---- inputs / buttons ---- */
@@ -109,9 +109,9 @@
   padding: 0.35rem 0.5rem;
   width: 100%;
 }
-.sc-app input:focus,
-.sc-app textarea:focus,
-.sc-app select:focus { outline: none; border-color: var(--color-field-focus); box-shadow: var(--fx-accent-glow); }
+.sc-app input:focus-visible,
+.sc-app textarea:focus-visible,
+.sc-app select:focus-visible { outline: none; border-color: var(--color-accent); box-shadow: var(--focus-ring); }
 
 /* Saved-confirmation pulse: border glows green on commit, then fades back. */
 @keyframes sc-save-flash {

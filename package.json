@@ -19,7 +19,9 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "test:all": "bash scripts/test-all.sh",
     "tokens:baseline": "node scripts/generate-token-baseline.mjs",
-    "tokens:check": "node scripts/generate-token-baseline.mjs --check"
+    "tokens:check": "node scripts/generate-token-baseline.mjs --check",
+    "design:drift": "node scripts/design-drift.mjs",
+    "design:contrast": "node scripts/design-drift.mjs --contrast"
   },
   "devDependencies": {
     "@module-federation/enhanced": "^2.6.0",

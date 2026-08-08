@@ -75,4 +75,9 @@ export function onModeChange(listener: (mode: Mode) => void): () => void {
 
 // Boot: apply the stored (or default) mode the moment this module is imported.
 // `persist: false` — reading is not a user change.
+//
+// Note: the shell's rsbuild.config.ts duplicates the initial-mode read as an
+// inline FOUC guard in html.tags (the first element in <head>). That is by
+// necessity — this module import is async and the guard must fire before any
+// paint. The two must agree on STORAGE_KEY and DEFAULT_MODE.
 applyMode(current, false);

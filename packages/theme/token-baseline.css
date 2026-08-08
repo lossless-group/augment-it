@@ -11,7 +11,7 @@
  * full theme, because they have no shell to inherit from and need all three
  * mode blocks.
  *
- * 24 tokens registered from theme.css's Tier-2 dark contract.
+ * 35 tokens registered from theme.css's Tier-2 dark contract.
  */
 
 @property --color-background {
@@ -23,13 +23,25 @@
 @property --color-surface {
   syntax: '<color>';
   inherits: true;
-  initial-value: #13151b;
+  initial-value: #232634;
+}
+
+@property --color-surface-2 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #16181f;
 }
 
 @property --color-surface-raised {
   syntax: '<color>';
   inherits: true;
   initial-value: #0c0d12;
+}
+
+@property --color-bg-elevated {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #1a1d27;
 }
 
 @property --color-field {
@@ -48,6 +60,12 @@
   syntax: '<color>';
   inherits: true;
   initial-value: #232634;
+}
+
+@property --color-border-strong {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #646785;
 }
 
 @property --color-text {
@@ -74,10 +92,28 @@
   initial-value: #5bbcfb;
 }
 
+@property --color-accent-warm {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #f5c971;
+}
+
 @property --color-on-accent {
   syntax: '<color>';
   inherits: true;
   initial-value: #0f1115;
+}
+
+@property --color-link {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #5bbcfb;
+}
+
+@property --color-thread {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #232634;
 }
 
 @property --color-ok-bg {
@@ -102,6 +138,30 @@
   syntax: '<color>';
   inherits: true;
   initial-value: #f29a9a;
+}
+
+@property --color-warn-bg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #3d2c0c;
+}
+
+@property --color-warn-text {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #f5c971;
+}
+
+@property --focus-ring {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: 0 0 0 2px #0f1115, 0 0 0 3px #c75bfb;
+}
+
+@property --color-bg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #0f1115;
 }
 
 @property --color-confidence-low {
@@ -143,7 +203,13 @@
 @property --fx-card-shadow {
   syntax: '*';
   inherits: true;
-  initial-value: 0 1px 3px rgba(0, 0, 0, 0.35);
+  initial-value: 0 1px 3px color-mix(in srgb, #000000 35%, transparent);
+}
+
+@property --fx-popover-shadow {
+  syntax: '*';
+  inherits: true;
+  initial-value: 0 4px 16px color-mix(in srgb, #000000 45%, transparent);
 }
 
 @property --fx-flash {
