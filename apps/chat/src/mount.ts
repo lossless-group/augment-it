@@ -1,27 +1,18 @@
-// Federation-exposed mount. Same pattern as prompt-template-manager —
-// theme.css first (so :root tokens exist before app.css's var() refs
-// resolve), then app.css, then mount the App component.
+// Federation-exposed mount. The shared body lives in @augment-it/federation,
+// which also carries the theme.css import — see that module for why the
+// ordering below (federation first, ./app.css second) is load-bearing.
 //
-// The chat connects to the workspace WebSocket on mount and disconnects
-// on unmount. In federation mode the workspace singleton is per-remote
-// (the shell's no-`shared` discipline), so the chat owns its own
-// workspace connection and exchanges state with the rest of the stack
-// via the same broadcast subjects everyone else sees.
+// The chat connects to the workspace WebSocket on mount and disconnects on
+// unmount. In federation mode the workspace singleton is per-remote (the
+// shell's no-`shared` discipline), so the chat owns its own workspace
+// connection and exchanges state with the rest of the stack via the same
+// broadcast subjects everyone else sees.
 
-import '@augment-it/theme/theme.css';
+import { makeMount } from '@augment-it/federation';
 import './app.css';
-import { mount, unmount, type Component } from 'svelte';
+import type { Component } from 'svelte';
 import App from './App.svelte';
 
-export type MountResult = {
-  destroy: () => void;
-};
+export type { MountResult } from '@augment-it/federation';
 
-export function mountChat(target: HTMLElement): MountResult {
-  const component = mount(App as Component, { target });
-  return {
-    destroy: () => {
-      unmount(component);
-    },
-  };
-}
+export const mountChat = makeMount(App as Component);

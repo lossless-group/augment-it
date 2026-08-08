@@ -7,8 +7,9 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 5
-semantic_version: 0.0.0.1
-status: Draft
+semantic_version: 0.0.1.0
+status: Partially-Shipped
+date_first_published: 2026-08-06
 tags:
   - Refactor
   - Augment-It
@@ -272,6 +273,73 @@ area, since it makes every future search across the tree ambiguous.
 Items 1–4 are afternoon-sized and independent. Item 6 is the actual project.
 
 ---
+
+## Remaining work (as of 2026-08-06)
+
+Tiers 1, 2 and 5 shipped the same day this document was written, on
+`refactor/deadweight-and-mount-collapse`. Net **−466 lines across 65 files**,
+verified by 19 packages building, 1,494 files svelte-check clean with zero
+errors, and every non-Docker test suite passing.
+
+| Item | State |
+|---|---|
+| 1.1 — collapse 17 `mount.ts` | ✅ shipped — new `@augment-it/federation`, 406 lines → 12 each |
+| 1.2 — hoist app `package.json` | ⏸️ **deferred, deliberately** — see below |
+| 1.3 — converge tsconfigs | ✅ shipped — `tsconfig.base.json`, 20 lines → 4 per app |
+| 2.1 — `OrgCreate.svelte` | ✅ deleted |
+| 2.2 — two orphaned `bundles.ts` | ✅ deleted, stale comment corrected |
+| 3 — utility consolidation | ⬜ not started (and see the services caveat below) |
+| 4 — design system | ⬜ not started — the actual project |
+| 5 — `Actor` import cycle | ✅ shipped — moved to `services/workspace/src/types.ts` |
+| 5 — rename `registerHandlers()` | ✅ shipped — **five**, not three; one per service |
+
+**Why 1.2 was deferred rather than done.** "Hoist the identical deps to the
+root" is the wrong fix under pnpm. pnpm's strict resolution means a package
+that imports `svelte` must *declare* `svelte`, or it will not resolve — the
+duplication across the 14 identical `package.json` files is a correctness
+requirement, not sloppiness. The right tool is a **pnpm catalog**
+(`catalog:` protocol, available on the pinned pnpm 10.15), which centralises
+the *versions* while leaving the declarations in place. That regenerates the
+lockfile and touches all 17 manifests, so it wants its own commit and its own
+verification pass — and it collides with the root `package.json` change in the
+stranded design-system work (see below).
+
+**Four things shipped that this document did not originally list:**
+
+1. **`turbo.json` removed**, root scripts repointed at `pnpm -r`, which made
+   `pnpm build` work for the first time in the repo's history. Reasoning in
+   [[Why-This-Monorepo-Does-Not-Need-Turbo]].
+2. **React evicted.** The root `tsconfig.json` set `jsx: "react-jsx"` — the
+   only React reference anywhere in the repo, against a hard prohibition, with
+   zero `.tsx` files and no `react` dependency to justify it. Now
+   `jsx: "preserve"`: TSX stays legal, no runtime is bound. Target also raised
+   ES2020 → ES2022 and three dead path aliases removed.
+3. **The shell's typecheck fixed** — it had *never* passed. A missing
+   `css.d.ts` shim, compounded by a tsconfig that omitted `src/**/*.d.ts` from
+   `include` so the shim would have been ignored anyway; plus a real type error
+   (`stageEl` typed `HTMLDivElement` while bound to a `<main>`). This also
+   revealed the shell as the **eighteenth** copy of the converged tsconfig.
+4. **`registerHandlers()` renamed** — see below.
+
+The `registerHandlers()` count in this document was **wrong**. It said three,
+because three appeared in the graph's top-ten by connectivity. There are
+**five**, one per NATS service. All are now service-qualified
+(`registerPromptStoreHandlers`, `registerContentIngestHandlers`,
+`registerRecordResolverHandlers`, `registerResponseStoreHandlers`,
+`registerRowStoreHandlers`), so a tree-wide search for any one of them is
+unambiguous. `registerPersonHandlers` in `record-surrealdb-resolver` was left
+alone — it was already unique, which was the entire point.
+
+A reminder that god-node rankings show the *top* of a distribution, not the
+whole of it. Read them as "look here," never as a census.
+
+**Conflict surface with the stranded design-system work.** Phase 0 adds
+`design:drift` / `design:contrast` to the root `package.json`, which this work
+rewrote. Trivial to resolve, but whoever merges second resolves it. The
+`mount.ts` collapse is *complementary* to Phase 1b rather than competing:
+centralising the `theme.css` import turns the F10 migration into one deletion
+instead of fourteen. See
+[[Federated-Design-System-Phases-0-and-1-Shipped-Nothing-Seen]] and issue #81.
 
 ## Caveats on this analysis
 

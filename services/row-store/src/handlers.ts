@@ -32,7 +32,7 @@ import {
   type RecordSet,
 } from './store';
 
-export function registerHandlers(nc: NatsConnection): void {
+export function registerRowStoreHandlers(nc: NatsConnection): void {
   // record_set.list.requested
   (async () => {
     const sub = nc.subscribe('record_set.list.requested');

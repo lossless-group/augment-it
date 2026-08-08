@@ -17,7 +17,7 @@ import { copyFile, mkdir, stat } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { connect, type NatsConnection } from '@nats-io/transport-node';
 import { load, swap } from './store';
-import { registerHandlers } from './handlers';
+import { registerRowStoreHandlers } from './handlers';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 // /clients in docker, ../../clients for local dev. Same convention as
@@ -157,7 +157,7 @@ async function main(): Promise<void> {
 
   subscribeToWorkspaceChanges(nc);
 
-  registerHandlers(nc);
+  registerRowStoreHandlers(nc);
   console.log(JSON.stringify({ level: 'info', msg: 'row-store-service ready' }));
 }
 

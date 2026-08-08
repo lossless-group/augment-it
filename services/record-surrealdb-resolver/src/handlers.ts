@@ -45,7 +45,7 @@ import {
   type OrgEntryRemoveInput,
 } from './resolver';
 
-export function registerHandlers(nc: NatsConnection): void {
+export function registerRecordResolverHandlers(nc: NatsConnection): void {
   // resolver.candidates
   (async () => {
     const sub = nc.subscribe('resolver.candidates.requested');

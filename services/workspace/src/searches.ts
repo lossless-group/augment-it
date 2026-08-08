@@ -17,7 +17,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { getNats } from './nats';
-import type { Actor } from './capabilities';
+import type { Actor } from './types';
 
 export const SEARCH_UPDATED_SUBJECT = 'search.updated';
 
