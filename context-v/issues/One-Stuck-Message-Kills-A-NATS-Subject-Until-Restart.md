@@ -7,7 +7,8 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 5
-semantic_version: 0.0.0.1
+semantic_version: 0.0.1.0
+date_first_published: 2026-08-08
 tags:
   - Issue
   - Augment-It
@@ -15,7 +16,7 @@ tags:
   - Record-SurrealDB-Resolver
   - Resilience
   - Error-Handling
-status: Open · Diagnosed
+status: Shipped
 ---
 
 # One stuck message kills a NATS subject until restart
@@ -153,14 +154,50 @@ services, so this is a **pattern-level** defect rather than a single-file one �
 4. **Never let the consumer die silently.** Attach a `.catch()` to the loop that
    logs, so if it ever does exit there is a line in the logs instead of silence.
 
-## Verification
+## Verification — done 2026-08-08
 
-- Unit coverage for the three defects: a payload that is not valid JSON, a
-  `getDb()` that never settles, and a slow request that must not block a fast one
-  behind it.
-- `domain.list` answers for `reach-edu` (9 domains), `humain-vc`, and an empty
-  filter.
-- Full suite green.
+**Unit** — 9 new tests in `test/nats-loop.test.ts`, covering each defect against
+a fake subscription with no broker and no database. The production bug was
+unreachable from the existing suite precisely because every test went through a
+real SurrealDB and none exercised the loop.
+
+**Live, against the running stack** after rebuilding the container:
+
+```
+domain.list reach-edu        1857ms  ok=true  domains=9
+   upward-mobility, grant-prospecting-tools, future-of-work,
+   workforce-development, frontier-job-demand, agent-workflow-maxxing,
+   adult-literacy-numeracy, ncad-forge, rural-income-boosts
+domain.list humain-vc         111ms  ok=true  domains=7
+domain.list (no filter)       161ms  ok=true  domains=16
+
+malformed payload               3ms  ok=false  "not json{{" is not valid JSON
+domain.list reach-edu (after) 112ms  ok=true  domains=9   ← SUBJECT SURVIVED
+```
+
+That second block is the regression itself: under the old code the malformed
+payload threw out of the `for await` and every later request on the subject was
+dropped. It now answers in 3ms and the subject keeps serving.
+
+**Suite** — 87 tests across 7 suites, all passing (`bash scripts/test-all.sh`).
+
+## What was NOT fixed here
+
+Only `record-surrealdb-resolver` was changed. The same
+`void (async () => { for await ... })()` idiom appears across the other NATS
+services, and `nats-loop.ts` was deliberately written to be liftable — it takes
+any `AsyncIterable` of reply-shaped messages and has no dependency on this
+service. Rolling it out is tracked separately.
+
+Within this service, the ten consumers landed in two states. The five paths
+that route through `serveSubject` (`domain.list`, `domain.assemble`,
+`tag.suggest`, `domain.create`, and both `source.fetch`/`source.retry`) get all
+four protections. The remaining five (`domain.retype`, `source.add`,
+`source.remove`, `source.update`, `source.attach`, `extract.add`, `tag.apply`)
+got the parse moved inside their `try` and a `.catch()` on the consumer, but
+keep their own hand-written bodies and have no per-message deadline. That is
+acceptable because the deadline in `getDb()` closes the observed hang for all of
+them — every one begins with `await getDb()` — but they are not fully hardened.
 
 ## Related
 
