@@ -10,10 +10,13 @@
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
+    "@augment-it/federation": "workspace:*",
     "@augment-it/theme": "workspace:*",
     "svelte": "^5.56.4"
   },
   "devDependencies": {
+    "@module-federation/enhanced": "^2.6.0",
+    "@module-federation/rsbuild-plugin": "^2.6.0",
     "@rsbuild/core": "^2.1.2",
     "@rsbuild/plugin-svelte": "^2.0.0",
     "svelte-check": "^4.7.1",

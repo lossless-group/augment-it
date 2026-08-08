@@ -175,8 +175,21 @@
     <p class="note">
       Each cell paints <code>color: var(--token)</code> over <code>background: var(--surface)</code>.
       A cell that vanishes is a token that does not resolve on that surface — the P2/P3 failure this
-      page exists to catch. The number is the measured contrast ratio.
+      page exists to catch.
     </p>
+
+    <div class="legend">
+      <span class="legend-title">The number is a WCAG contrast ratio, 1–21:</span>
+      <span class="legend-item"><span class="ratio fail">1</span> identical — invisible</span>
+      <span class="legend-item"><span class="ratio large">3</span> floor for lines &amp; boundaries</span>
+      <span class="legend-item"><span class="ratio pass">4.5</span> floor for text (AA)</span>
+      <span class="legend-item"><span class="ratio pass">7</span> enhanced (AAA)</span>
+      <span class="legend-note">
+        Every type size in augment-it is under 18.66px, so there is no large-text allowance —
+        <strong>4.5 is the bar for all text</strong>. Structural tokens are measured but not graded:
+        they are meant to be seen, not read through.
+      </span>
+    </div>
 
     <div class="grid" style="--cols: {SURFACES.length}">
       <div class="cell head-cell">token</div>

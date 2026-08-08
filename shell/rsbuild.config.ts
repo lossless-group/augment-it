@@ -27,6 +27,10 @@ const STRATEGY_CURATOR_REMOTE = process.env.PUBLIC_STRATEGY_CURATOR_REMOTE || 'h
 const CHAT_REMOTE = process.env.PUBLIC_CHAT_REMOTE || 'http://localhost:3006/remoteEntry.js';
 // Augment-from-DB remotes — deployed for the reach-edu opening (#69);
 // localhost fallbacks keep local dev unchanged.
+// The design system portal. Public by design — it documents the brand and the
+// token contract, neither of which is client data, so the shell mounts it
+// outside the sign-in wall.
+const DESIGN_SYSTEM_REMOTE = process.env.PUBLIC_DESIGN_SYSTEM_REMOTE || 'http://localhost:3020/remoteEntry.js';
 const ORG_WORKBENCH_REMOTE = process.env.PUBLIC_ORG_WORKBENCH_REMOTE || 'http://localhost:3014/remoteEntry.js';
 const SEARCH_AND_ADD_REMOTE = process.env.PUBLIC_SEARCH_AND_ADD_REMOTE || 'http://localhost:3016/remoteEntry.js';
 const SEARCH_RESULTS_REMOTE = process.env.PUBLIC_SEARCH_RESULTS_REMOTE || 'http://localhost:3018/remoteEntry.js';
@@ -56,6 +60,7 @@ export default defineConfig({
         // 3018 — the spec said 3017, but strategy-curator had already
         // claimed it by build time.
         searchResults: `searchResults@${SEARCH_RESULTS_REMOTE}`,
+        designSystem: `designSystem@${DESIGN_SYSTEM_REMOTE}`,
       },
       // No `shared` block — sharing Svelte 5's reactive runtime and a
       // .svelte.ts singleton across federation has known issues with the

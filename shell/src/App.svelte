@@ -14,6 +14,7 @@
     PAIRINGS,
     CHAT_REMOTE,
     SEARCH_RESULTS_REMOTE,
+    DESIGN_SYSTEM_REMOTE,
     remoteById,
     slotById,
     type RemoteEntry,
@@ -113,6 +114,28 @@
     window.addEventListener('augment-it:search-submitted', onSearchSubmitted);
     return () => window.removeEventListener('augment-it:search-submitted', onSearchSubmitted);
   });
+
+  // ---- design-system surface --------------------------------------------
+  // The portal mounts as its own full-bleed surface rather than a step in a
+  // flow: it documents the system, it is not part of any pipeline, and it must
+  // be reachable OUTSIDE the sign-in wall. Brand guidelines and a token
+  // contract are not client data, so gating them behind a session buys nothing
+  // and costs a developer the one reference they need while debugging a
+  // themed surface.
+  //
+  // It gets a slim header of its own rather than the full one. The full header
+  // carries workspace switching, chat and queue rails, all of which assume a
+  // session — rendering it pre-auth would mean guarding every one of them for
+  // a surface that needs none. Brand, mode toggle and a way back is the whole
+  // requirement.
+  let designSystemOpen = $state(false);
+
+  function openDesignSystem(): void {
+    designSystemOpen = true;
+  }
+  function closeDesignSystem(): void {
+    designSystemOpen = false;
+  }
 
   // ---- pre-auth wall (Build-Order Step 7) --------------------------------
   // A single-tenant deploy sets DIDI_AUTH=required; the session frame
@@ -519,8 +542,27 @@
   }
 </script>
 
-{#if showWall}
+{#if designSystemOpen}
+  <header class="ds-header">
+    <div class="brand">
+      <strong>augment-it</strong>
+      <span class="muted">· design system</span>
+    </div>
+    <div class="ds-header-right">
+      <ModeToggle />
+      <button class="ds-back" onclick={closeDesignSystem}>
+        {showWall ? 'Back to sign in' : 'Back to app'}
+      </button>
+    </div>
+  </header>
+  <div class="ds-surface">
+    <MountHost remote={DESIGN_SYSTEM_REMOTE} />
+  </div>
+{:else if showWall}
   <SignInWall />
+  <div class="wall-dev">
+    <button class="ds-back" onclick={openDesignSystem}>⚙ Design system</button>
+  </div>
 {:else}
 <header>
   <div class="header-left">
@@ -594,7 +636,7 @@
     >
       🔎 queue{#if queueDoneCount > 0}<span class="queue-badge">{queueDoneCount}</span>{/if}
     </button>
-    <DevelopersMenu wsHttpBase={WS_HTTP_BASE} />
+    <DevelopersMenu wsHttpBase={WS_HTTP_BASE} onOpenDesignSystem={openDesignSystem} />
     <DidiBadge />
     <ModeToggle />
     {#if !workspace.pinned}
@@ -961,5 +1003,48 @@
   .empty {
     margin: auto;
     color: var(--color-text-muted);
+  }
+  /* ---- design-system surface -------------------------------------------
+     A slim header of its own rather than the full one: the full header
+     carries workspace switching plus the chat and queue rails, all of which
+     assume a session, and this surface must render pre-auth. */
+  .ds-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface-raised);
+  }
+  .ds-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ds-back {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 5px 11px;
+    background: var(--color-field);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .ds-back:hover { background: var(--color-field-focus); }
+  .ds-back:focus-visible { outline: var(--focus-ring, 2px solid var(--color-accent)); outline-offset: 2px; }
+
+  .ds-surface {
+    height: calc(100vh - 45px);
+    overflow: auto;
+  }
+
+  /* The one developer affordance that survives the sign-in wall. */
+  .wall-dev {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 10;
   }
 </style>

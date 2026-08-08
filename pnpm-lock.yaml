@@ -116,6 +116,9 @@ importers:
 
   apps/docs-portal:
     dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -123,6 +126,12 @@ importers:
         specifier: ^5.56.4
         version: 5.56.4
     devDependencies:
+      '@module-federation/enhanced':
+        specifier: ^2.6.0
+        version: 2.6.0(@rspack/core@2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(@swc/helpers@0.5.23))(node-fetch@2.7.0(encoding@0.1.13))(typescript@6.0.3)(webpack@5.107.1(postcss@8.5.25))
+      '@module-federation/rsbuild-plugin':
+        specifier: ^2.6.0
+        version: 2.6.0(@rsbuild/core@2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(core-js@3.47.0))(@rspack/core@2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(@swc/helpers@0.5.23))(node-fetch@2.7.0(encoding@0.1.13))(typescript@6.0.3)(webpack@5.107.1(postcss@8.5.25))
       '@rsbuild/core':
         specifier: ^2.1.2
         version: 2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(core-js@3.47.0)

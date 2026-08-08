@@ -131,3 +131,21 @@ code { font-family: var(--font-mono); font-size: 11px; }
 :root.measuring, :root.measuring * { transition: none !important; }
 
 .accent-cell { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+/* Legend — the ratios are meaningless without the thresholds next to them. */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: 11px;
+}
+.legend-title { color: var(--color-text); }
+.legend-item { display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-muted); }
+.legend-note { flex-basis: 100%; color: var(--color-text-muted); line-height: 1.55; }
+.legend-note strong { color: var(--color-text); }

@@ -100,6 +100,17 @@ export const AFFILIATION_RATING_ROTATION: string[] = ['recordCollector', 'affili
  */
 export const AUGMENT_FROM_DB_ROTATION: string[] = ['orgWorkbench'];
 
+// The design system portal. Deliberately NOT in REMOTES — it is not a step in
+// any flow and must never appear in a rotation. The shell mounts it as its own
+// full-bleed surface from the Developers menu, outside the sign-in wall.
+export const DESIGN_SYSTEM_REMOTE: RemoteEntry = {
+  id: 'designSystem',
+  label: 'Design system',
+  description: 'Brand guidelines, design tokens, the three-mode contract',
+  // @ts-expect-error — federation remote, type comes from the MF runtime
+  importMount: () => import('designSystem/mount'),
+};
+
 export const REMOTES: RemoteEntry[] = [
   {
     id: 'recordCollector',

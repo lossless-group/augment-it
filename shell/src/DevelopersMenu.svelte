@@ -14,7 +14,14 @@
   import JumboPopdown, { type PopdownItem } from './JumboPopdown.svelte';
   import { workspace } from '@augment-it/workspace';
 
-  let { wsHttpBase }: { wsHttpBase: string } = $props();
+  let {
+    wsHttpBase,
+    onOpenDesignSystem,
+  }: {
+    wsHttpBase: string;
+    /** Mounts the portal inside the shell rather than opening a tab. */
+    onOpenDesignSystem: () => void;
+  } = $props();
 
   // Same env convention as the federated remotes and DidiBadge: a PUBLIC_-
   // prefixed var inlined at build time, with a localhost fallback so local dev
@@ -34,7 +41,7 @@
     {
       id: 'design-system',
       title: 'Design system',
-      description: 'Brand guidelines, design tokens, the three-mode contract — every token on every surface with live contrast.',
+      description: 'Brand guidelines, design tokens, the three-mode contract — every token on every surface with live contrast. Opens in the shell.',
     },
     {
       id: 'workspace-service',
@@ -81,7 +88,10 @@
   async function onSelect(id: string): Promise<void> {
     switch (id) {
       case 'design-system':
-        open(DESIGN_PORTAL);
+        // Mounts under the shell header as a federated remote. The standalone
+        // page on DESIGN_PORTAL still exists for anyone who wants it in its own
+        // tab, but the default is to stay in the app.
+        onOpenDesignSystem();
         break;
       case 'workspace-service':
         open(`${wsHttpBase}/config`);
