@@ -10,6 +10,10 @@ WORKDIR /monorepo
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Every app tsconfig `extends: ../../tsconfig.base.json`. Without it in the
+# image the build dies at `Tsconfig not found /monorepo/tsconfig.base.json` —
+# which is what every frontend deploy has been doing since 2026-08-03.
+COPY tsconfig.base.json ./
 COPY packages ./packages
 COPY apps ./apps
 COPY shell ./shell
