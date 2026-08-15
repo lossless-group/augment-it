@@ -92,6 +92,19 @@ jobs:
       # the lockfile have drifted, which a split-across-commits change can do.
       - run: pnpm install --frozen-lockfile
 
+      # Groups E/J are not pure unit tests: test/domains.test.ts spawns a real
+      # `surreal start … memory` as a child process. On a developer machine that
+      # binary is already on PATH, so the suite passes locally and fails here
+      # with `spawn surreal ENOENT` — the same laptop-vs-clean-machine asymmetry
+      # that hid the tsconfig bug for twelve days. Install it explicitly.
+      - name: Install SurrealDB CLI (Groups E/J spawn it)
+        run: |
+          curl -sSf https://install.surrealdb.com | sh -s -- --yes
+          echo "$HOME/.surrealdb" >> "$GITHUB_PATH"
+
+      - name: Verify surreal is on PATH
+        run: surreal version
+
       # Mirrors scripts/test-all.sh minus Group I. The e2e group drives a real
       # backend chain over a live WebSocket (e2e/harness.mjs wants NATS and
       # SurrealDB), so it needs service containers before it can run here.
