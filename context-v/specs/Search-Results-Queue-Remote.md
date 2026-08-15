@@ -135,7 +135,7 @@ chat-legal and untouched for direct use.
 ## Architecture — the new remote
 
 `apps/search-results/` (scaffold template: `apps/search-and-add`; port
-**3018** — the spec first said 3017, but strategy-curator had already
+**3018** — the spec first said 3017, but corpora-curator had already
 claimed it by build time; federation name `searchResults`):
 
 ```

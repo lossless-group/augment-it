@@ -48,7 +48,7 @@ where the live pain is ([[Troubleshooting-Workspace-DB-State-Alignment]]).
 > | D | Workspace registry | 3 | `services/workspace/test/workspaces.test.ts` |
 > | E | Canonical CRUD | 7 | `services/record-surrealdb-resolver/test/domains.test.ts` |
 > | F | Corpus file layer | 3 | `services/content-ingest/test/corpus-files.test.ts` |
-> | G | Curator state (runes) | 5 | `apps/strategy-curator/test/curation.test.ts` |
+> | G | Curator state (runes) | 5 | `apps/corpora-curator/test/curation.test.ts` |
 > | H | Chat corpora slab | 2 | `services/workspace/test/chat-corpora-slab.test.ts` |
 > | I | End-to-end integration (no browser) | 4 | `e2e/integration.test.ts` + `e2e/harness.mjs` |
 > | J | Alignment audit | 5 | `services/record-surrealdb-resolver/test/alignment.test.ts` + `scripts/audit-corpora-alignment.mjs` |
@@ -86,7 +86,7 @@ never landed, a rail that renders "empty" indistinguishably from
 ## The chain under test (orientation)
 
 ```
-Browser (strategy-curator / org-workbench / didi chat)
+Browser (corpora-curator / org-workbench / didi chat)
   └─ packages/workspace           state singleton + WS transport
        └─ services/workspace      session, tenancy, capability dispatch
             ├─ id.didi.sh         (Elixir) JWT, JWKS, /api/me, refresh
@@ -267,12 +267,12 @@ mocked (no network in tests).
   where partial failure bites; assert the re-run heals it.
   Status: Proposed.
 
-## Group G — Curator surface state (apps/strategy-curator)
+## Group G — Curator surface state (apps/corpora-curator)
 
 *Functionality lives in:*
-`apps/strategy-curator/src/curation.svelte.ts` (bootstrap, domain-type
+`apps/corpora-curator/src/curation.svelte.ts` (bootstrap, domain-type
 resolution, workspace-change handling, error surfacing). *Tests live
-in:* `apps/strategy-curator/*.test.ts`, unit tier with a stubbed
+in:* `apps/corpora-curator/*.test.ts`, unit tier with a stubbed
 workspace singleton.
 
 - ✓ **bootstrap resolves the active workspace's default domain type before the first domain.list fires**

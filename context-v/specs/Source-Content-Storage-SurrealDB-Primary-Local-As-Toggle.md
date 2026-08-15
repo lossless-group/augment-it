@@ -125,4 +125,4 @@ up the local tier via rclone as already decided.
 - [[Best-Way-to-RAG-Over-the-Corpus]] — the retrieval design this storage model feeds.
 - [[JuiceFS-Pinned-Path-Off-Local-Substrate]] — the R2/rclone backup decision, not re-litigated here.
 - [[Fetch-Full-Content-Clobbers-Operator-Metadata]] · [[Jina-Metadata-Parser-Is-Blog-Only-Needs-Two-Profiles-And-Routing]] — the fetch/parse steps feeding step 1.
-- [[Strategy-Curator-Entry-Point-for-Augment-It]] — the surface.
+- [[Corpora-Curator-Entry-Point-for-Augment-It]] — the surface.

@@ -37,7 +37,7 @@ const wsSummary = (client_id: string, default_domain_type: string) => ({
 
 /** Route invoke by capability so select()'s domain.assemble + tag.suggest
  *  don't blow up while a test focuses on domain.list. */
-const routedInvoke = (domains: Array<{ slug: string; title: string; tags: string[] }>) =>
+const routedInvoke = (domains: Array<{ slug: string; title: string; tags: string[]; type?: string }>) =>
   vi.fn(async (cap: string) => {
     if (cap === 'domain.list') return { domains };
     if (cap === 'domain.assemble') return { sources: [] };
@@ -52,6 +52,7 @@ beforeEach(() => {
   curation.domainType = 'strategy';
   curation.strategies = [];
   curation.activeSlug = null;
+  curation.activeType = null;
   curation.sources = [];
   curation.lastError = null;
   ws.workspaces = [];
@@ -62,7 +63,7 @@ beforeEach(() => {
 });
 
 describe('Group G — curator surface state', () => {
-  test('bootstrap resolves the active workspace’s default domain type before the first domain.list fires', async () => {
+  test('bootstrap resolves the workspace’s preferred vocabulary, and lists corpora without filtering on it', async () => {
     ws.active_client_id = 'humain-vc';
     ws.workspaces = [wsSummary('humain-vc', 'thesis')];
     const invoke = vi.fn(async () => ({ domains: [] }));
@@ -70,10 +71,47 @@ describe('Group G — curator surface state', () => {
 
     await curation.bootstrap();
 
-    // The humain-vc bug in one assertion: the FIRST query must ask for
-    // thesis, not the flat 'strategy' fallback.
+    // The preference still resolves — it is the create form's default.
     expect(curation.domainType).toBe('thesis');
-    expect(invoke).toHaveBeenCalledWith('domain.list', { type: 'thesis', client_slug: 'humain-vc' });
+    // But it is NOT a filter. domain.list asks for the whole workspace.
+    expect(invoke).toHaveBeenCalledWith('domain.list', { client_slug: 'humain-vc' });
+  });
+
+  // Regression — gh #88. The reported failure: humain-vc saw "No corpora yet"
+  // while holding theses, because workspace.list had not arrived, the type
+  // guess fell back to 'strategy', and the list was filtered by it.
+  test('a workspace whose summary never arrived still sees every corpus it owns', async () => {
+    ws.active_client_id = 'humain-vc';
+    ws.workspaces = []; // the failure condition: workspace.list timed out
+    const invoke = routedInvoke([
+      { slug: 'consumer-immunology', type: 'thesis', title: 'Consumer Immunology', tags: [] },
+      { slug: 'ai-infra-for-bioscience', type: 'thesis', title: 'AI Infrastructure for Bioscience', tags: [] },
+    ]);
+    ws.invoke = invoke;
+
+    await curation.bootstrap();
+
+    // The guess is wrong — nothing can be done about that with no summary.
+    expect(curation.domainType).toBe('strategy');
+    // It no longer costs anything: the theses are all here.
+    expect(curation.strategies).toHaveLength(2);
+    expect(invoke).toHaveBeenCalledWith('domain.list', { client_slug: 'humain-vc' });
+  });
+
+  test('the type sent with a corpus-scoped call comes from that corpus, not the ambient preference', async () => {
+    curation.clientSlug = 'humain-vc';
+    curation.domainType = 'strategy'; // deliberately the wrong guess
+    const invoke = routedInvoke([{ slug: 'consumer-immunology', type: 'thesis', title: 'CI', tags: [] }]);
+    ws.invoke = invoke;
+
+    await curation.loadStrategies();
+    await curation.select('consumer-immunology', 'thesis');
+
+    expect(invoke).toHaveBeenCalledWith('domain.assemble', {
+      type: 'thesis',
+      slug: 'consumer-immunology',
+      client_slug: 'humain-vc',
+    });
   });
 
   test('switching workspaces resets the list, the active corpus, and the domain type to the new workspace’s default', async () => {
@@ -96,6 +134,7 @@ describe('Group G — curator surface state', () => {
     expect(curation.clientSlug).toBe('reach-edu');
     expect(curation.domainType).toBe('strategy'); // reach-edu's default, not humain-vc's thesis
     expect(curation.activeSlug).toBeNull();
+    expect(curation.activeType).toBeNull();
     expect(curation.sources).toEqual([]);
   });
 
@@ -145,5 +184,23 @@ describe('Group G — curator surface state', () => {
     await curation.loadStrategies();
     await settle();
     expect(curation.activeSlug).toBeNull();
+  });
+
+  // (type, slug) is the real key — "apprenticeship" can be a strategy AND a
+  // topic — so the persisted selection carries both since gh #88.
+  test('a restored selection disambiguates two corpora that share a slug', async () => {
+    curation.clientSlug = 'reach-edu';
+    localStorage.setItem('augment-it:active-strategy', 'topic:apprenticeship');
+    ws.invoke = routedInvoke([
+      { slug: 'apprenticeship', type: 'strategy', title: 'Apprenticeship (strategy)', tags: [] },
+      { slug: 'apprenticeship', type: 'topic', title: 'Apprenticeship (topic)', tags: [] },
+    ]);
+
+    await curation.loadStrategies();
+    await settle();
+
+    expect(curation.activeSlug).toBe('apprenticeship');
+    expect(curation.activeType).toBe('topic');
+    expect(curation.active?.title).toBe('Apprenticeship (topic)');
   });
 });

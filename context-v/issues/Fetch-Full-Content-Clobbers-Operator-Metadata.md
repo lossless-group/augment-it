@@ -50,7 +50,7 @@ markdown *if local-write is enabled*.
 Of these: DB write + client scoping (`source_usages.client_slug`) and the
 returned `source_uuid` already exist. This issue covers the **metadata
 preservation** half. The **local-write toggle** is tracked separately (spec
-addendum to [[Strategy-Curator-Entry-Point-for-Augment-It]]).
+addendum to [[Corpora-Curator-Entry-Point-for-Augment-It]]).
 
 ## Fix
 
@@ -64,7 +64,7 @@ addendum to [[Strategy-Curator-Entry-Point-for-Augment-It]]).
 
 ## Resolution
 
-Fixed 2026-08-02. Verified: `rsbuild build` (strategy-curator) + `tsc
+Fixed 2026-08-02. Verified: `rsbuild build` (corpora-curator) + `tsc
 --noEmit` (content-ingest) both green. Reaches augment.didi.sh on the next
 redeploy.
 

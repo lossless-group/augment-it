@@ -31,7 +31,7 @@
   import { activeFlow, FLOWS } from './flows.svelte';
 
   // workspace-service's WS endpoint — every app that connects to it directly
-  // (this shell, plus the strategy-curator and chat remotes independently)
+  // (this shell, plus the corpora-curator and chat remotes independently)
   // reads the same PUBLIC_WS_URL, defaulting to localhost for dev. Rsbuild
   // inlines PUBLIC_-prefixed env vars into import.meta.env at build time
   // (same convention DidiBadge.svelte's PUBLIC_ID_BASE already uses).
@@ -130,7 +130,25 @@
   // requirement.
   let designSystemOpen = $state(false);
 
-  function openDesignSystem(): void {
+  /**
+   * `view` picks which half of the portal opens — the federal token layer or
+   * the members' component libraries.
+   *
+   * Handed over in sessionStorage rather than as a prop, because the portal is
+   * a federation remote whose only contract is `mount(target)`. A prop would
+   * mean widening that contract for every remote; a window event would race the
+   * remote's own async load. A key the portal reads once at mount and clears is
+   * neither. See apps/docs-portal/src/App.svelte's PENDING_VIEW_KEY.
+   */
+  function openDesignSystem(view?: 'tokens' | 'components'): void {
+    if (view) {
+      try {
+        sessionStorage.setItem('augment-it:design-portal-view', view);
+      } catch {
+        // Private-mode / disabled storage — the portal just opens on its
+        // default view, which is a worse landing but not a broken one.
+      }
+    }
     designSystemOpen = true;
   }
   function closeDesignSystem(): void {
@@ -561,7 +579,9 @@
 {:else if showWall}
   <SignInWall />
   <div class="wall-dev">
-    <button class="ds-back" onclick={openDesignSystem}>⚙ Design system</button>
+    <!-- Wrapped, not passed directly: openDesignSystem now takes a view, and a
+         bare handler would hand it the MouseEvent. -->
+    <button class="ds-back" onclick={() => openDesignSystem('tokens')}>⚙ Design system</button>
   </div>
 {:else}
 <header>

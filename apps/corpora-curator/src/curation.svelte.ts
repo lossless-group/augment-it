@@ -1,4 +1,4 @@
-// Strategy-curator state — a Svelte 5 runes singleton, per
+// Corpora-curator state — a Svelte 5 runes singleton, per
 // [[Per-App-Workspace-Conventions]]. Single source of truth; components read
 // derived getters and call actions. Every mutation goes through a workspace
 // capability (strategy.* / source.* / extract.* / tag.*) — no direct storage
@@ -21,15 +21,16 @@ const TOKEN_KEY = 'augment-it:session-token';
 const WS_URL =
   ((import.meta as { env?: Record<string, string> }).env?.PUBLIC_WS_URL as string | undefined) ||
   'ws://localhost:3001/ws';
+// Stores "<type>:<slug>" since gh #88 — uniqueness is (type, slug), so a bare
+// slug can restore the wrong corpus once a workspace holds both. Bare slugs
+// from before #88 still resolve; see loadStrategies().
 const ACTIVE_STRATEGY_KEY = 'augment-it:active-strategy';
-// The operator-chosen domain type this surface is currently browsing/
-// writing into ('strategy', 'thesis', or any other value they type at
-// create time — the domain catalog itself is type-agnostic; see
-// domains.ts's comment: type ∈ strategy | topic | thesis | market-segment |
-// category | …). Defaults per-workspace (WorkspaceSummary.default_domain_type,
-// from that client's DEFAULT_DOMAIN_TYPE .env — humain-vc: 'thesis', reach-edu:
-// 'strategy'), NOT persisted globally — a global localStorage override was
-// exactly the bug that made humain-vc keep showing 'strategy'.
+// Last-resort vocabulary when no workspace summary has arrived yet. This is a
+// LABEL, not a filter: nothing narrows on it (gh #88). Per-workspace preference
+// comes from WorkspaceSummary.default_domain_type, which each client sets via
+// DEFAULT_DOMAIN_TYPE in its own .env — humain-vc: 'thesis', reach-edu:
+// 'strategy'. Never persisted globally; a global localStorage override was
+// itself a previous incarnation of the humain-vc-shows-strategy bug.
 const DEFAULT_DOMAIN_TYPE = 'strategy';
 
 export function slugify(s: string): string {
@@ -64,10 +65,25 @@ class CurationState {
   connection: ConnStatus;
   lastError: string | null;
   clientSlug: string | null; // active workspace/client — threaded into every capability call
-  domainType: string; // active domain type — threaded into every domain.* / source.* call
+  // This client's PREFERRED vocabulary — what it calls a corpus ('strategy'
+  // for reach-edu, 'thesis' for humain-vc). It is the default for the create
+  // form and nothing else.
+  //
+  // It used to be the ACTIVE type, threaded into ~15 calls and used to filter
+  // domain.list. That made one guessed value at load time capable of hiding
+  // every corpus in the workspace: when workspace.list was slow, this fell
+  // back to 'strategy', humain-vc's theses did not match, and the surface said
+  // "No corpora yet" — indistinguishable from the truth. See
+  // context-v/issues/Domain-Type-Is-Ambient-State-So-A-Failed-Workspace-Load-Hides-Every-Corpus.md
+  // (gh #88). Types carry no behaviour; the domain abstraction exists so that
+  // ANY type shows up. The type of a corpus now travels with the corpus.
+  domainType: string;
 
   strategies: Strategy[];
   activeSlug: string | null;
+  // The selected corpus's type. Uniqueness is (type, slug) — "apprenticeship"
+  // can be a strategy AND a topic — so the slug alone does not identify a row.
+  activeType: string | null;
 
   sources: Source[];
   focusIdx: number;
@@ -83,6 +99,7 @@ class CurationState {
     this.domainType = $state<string>(DEFAULT_DOMAIN_TYPE); // resolved per-workspace once bootstrap/applyWorkspaceChange runs
     this.strategies = $state<Strategy[]>([]);
     this.activeSlug = $state<string | null>(null);
+    this.activeType = $state<string | null>(null);
     this.sources = $state<Source[]>([]);
     this.focusIdx = $state<number>(0);
     this.listFilter = $state<string>('');
@@ -113,12 +130,12 @@ class CurationState {
   private async applyWorkspaceChange(client_id: string): Promise<void> {
     this.clientSlug = client_id;
     this.activeSlug = null;
+    this.activeType = null;
     this.sources = [];
-    // Reset to THIS workspace's default type on every switch — without
-    // this, switching e.g. humain-vc('thesis') → reach-edu would silently
-    // query domain.list with type: 'thesis' against a workspace that only
-    // has 'strategy' domains, rendering an empty "no corpora yet" that's
-    // indistinguishable from actually having none.
+    // Reset to THIS workspace's preferred vocabulary on every switch, so the
+    // create form offers the right word. It no longer filters anything — the
+    // list is type-agnostic — so a wrong value here mis-labels one visible
+    // input rather than emptying the surface (gh #88).
     this.setDomainType(this.defaultDomainTypeFor(client_id));
     this.saveStatus = `workspace → ${client_id}`;
     await this.loadStrategies();
@@ -139,7 +156,26 @@ class CurationState {
 
   // --- derived (plain getters read $state reactively) ---
   get active(): Strategy | null {
-    return this.strategies.find((s) => s.slug === this.activeSlug) ?? null;
+    if (!this.activeSlug) return null;
+    // Match on (type, slug) when a type is known, because that is the real
+    // key. Fall back to slug alone so an externally-set activeSlug (the back
+    // button, a test) still resolves.
+    return (
+      this.strategies.find((s) => s.slug === this.activeSlug && (!this.activeType || s.type === this.activeType)) ??
+      this.strategies.find((s) => s.slug === this.activeSlug) ??
+      null
+    );
+  }
+
+  /**
+   * The type to send with any call scoped to the selected corpus.
+   *
+   * It comes from the corpus the operator clicked — a property of the thing
+   * itself — not from an ambient mode. `domainType` is only the last resort,
+   * for the window before the list has loaded.
+   */
+  private get callType(): string {
+    return this.active?.type ?? this.activeType ?? this.domainType;
   }
   get focused(): Source | null {
     return this.sources[this.focusIdx] ?? null;
@@ -216,18 +252,34 @@ class CurationState {
     await workspace.activateWorkspace(client_id);
   }
 
+  /**
+   * Every corpus in this workspace, of every type.
+   *
+   * NO `type` filter. listDomains() in the resolver already declares `type` as
+   * optional and projects it in the result, so omitting it is the supported
+   * shape — the client was imposing a narrowing the backend never asked for.
+   * That narrowing is what let one guessed value hide a workspace's entire
+   * corpus (gh #88), and the types have no behavioural difference to narrow
+   * on: they are what a client prefers to call things.
+   */
   async loadStrategies(): Promise<void> {
-    const r = await this.call<{ domains: Strategy[] }>('domain.list', { type: this.domainType, client_slug: this.clientSlug });
+    const r = await this.call<{ domains: Strategy[] }>('domain.list', { client_slug: this.clientSlug });
     this.strategies = r?.domains ?? [];
     const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(ACTIVE_STRATEGY_KEY) : null;
-    if (saved && this.strategies.some((s) => s.slug === saved)) void this.select(saved);
+    if (!saved) return;
+    // Stored as "type:slug" since gh #88; a bare slug is the pre-#88 format and
+    // still resolves, so nobody loses their selection on upgrade.
+    const [savedType, savedSlug] = saved.includes(':') ? saved.split(':') : [null, saved];
+    const hit =
+      this.strategies.find((s) => s.slug === savedSlug && (!savedType || s.type === savedType)) ??
+      this.strategies.find((s) => s.slug === savedSlug);
+    if (hit) void this.select(hit.slug, hit.type);
   }
 
-  // `type` is operator-chosen at create time (see StrategyPicker's Type
-  // field) — defaults to the currently-active type if omitted. Creating a
-  // domain of a NEW type switches the active type and does a full reload
-  // (the in-memory list is scoped to one type at a time; appending a
-  // different-type domain into it would silently mix types in the view).
+  // `type` is operator-chosen at create time (see CorpusPicker's Type field) —
+  // defaults to this client's preferred vocabulary if omitted. Since gh #88 the
+  // in-memory list holds every type at once, so creating a domain of a new type
+  // needs no reload and no mode switch: it just appends.
   async createStrategy(input: { title: string; slug: string; tags: string[]; type?: string }): Promise<void> {
     const title = input.title.trim();
     const strategy_slug = slugify(input.slug || title);
@@ -246,21 +298,22 @@ class CurationState {
       this.saveStatus = this.lastError ?? 'create failed';
       return;
     }
-    if (type !== this.domainType) {
-      this.setDomainType(type);
-      await this.loadStrategies(); // fresh, scoped to the new type — includes the domain just created
-    } else if (!this.strategies.some((s) => s.slug === r.domain.slug)) {
+    if (!this.strategies.some((s) => s.slug === r.domain.slug && s.type === r.domain.type)) {
       this.strategies = [...this.strategies, r.domain];
     }
     this.saveStatus = r.corpus_path ? `created ${r.corpus_path}` : 'created';
-    await this.select(r.domain.slug);
+    await this.select(r.domain.slug, r.domain.type ?? type);
   }
 
-  async select(slug: string): Promise<void> {
+  async select(slug: string, type?: string): Promise<void> {
     this.activeSlug = slug;
+    // Prefer the caller's type, then the row's own — never the ambient mode.
+    this.activeType = type ?? this.strategies.find((s) => s.slug === slug)?.type ?? null;
     this.focusIdx = 0;
-    if (typeof localStorage !== 'undefined') localStorage.setItem(ACTIVE_STRATEGY_KEY, slug);
-    const r = await this.call<{ sources: Source[] }>('domain.assemble', { type: this.domainType, slug, client_slug: this.clientSlug });
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(ACTIVE_STRATEGY_KEY, this.activeType ? `${this.activeType}:${slug}` : slug);
+    }
+    const r = await this.call<{ sources: Source[] }>('domain.assemble', { type: this.callType, slug, client_slug: this.clientSlug });
     this.sources = (r?.sources ?? []).map(withSlug);
     const tv = await this.call<{ tags: string[] }>('tag.suggest', { prefix: '', client_slug: this.clientSlug });
     this.tagVocab = tv?.tags ?? [];
@@ -271,7 +324,7 @@ class CurationState {
     let url = rawUrl.trim();
     if (!url || !this.activeSlug) return;
     if (!/^[a-z]+:\/\//i.test(url)) url = 'https://' + url;
-    const r = await this.call<{ source: Source }>('source.add', { url, domain_type: this.domainType, domain_slug: this.activeSlug, client_slug: this.clientSlug });
+    const r = await this.call<{ source: Source }>('source.add', { url, domain_type: this.callType, domain_slug: this.activeSlug, client_slug: this.clientSlug });
     if (!r?.source) {
       this.saveStatus = this.lastError ?? 'add failed';
       return;
@@ -285,7 +338,7 @@ class CurationState {
     this.saveStatus = 'fetching…';
     const r = await this.call<{ source: Source }>('source.fetch', {
       source_uuid: source.source_uuid,
-      domain_type: this.domainType,
+      domain_type: this.callType,
       domain_slug: this.activeSlug,
       client_slug: this.clientSlug,
     });
@@ -313,7 +366,7 @@ class CurationState {
     this.saveStatus = 'retrying…';
     const r = await this.call<{ source: Source }>('source.retry', {
       source_uuid: source.source_uuid,
-      domain_type: this.domainType,
+      domain_type: this.callType,
       domain_slug: this.activeSlug,
       client_slug: this.clientSlug,
     });
@@ -336,7 +389,7 @@ class CurationState {
     this.replaceSource({ ...f, authors });
     await this.call('source.update', {
       source_uuid: f.source_uuid,
-      domain_type: this.domainType,
+      domain_type: this.callType,
       domain_slug: this.activeSlug,
       client_slug: this.clientSlug,
       fields: {},
@@ -354,7 +407,7 @@ class CurationState {
     this.replaceSource({ ...f, [field]: value });
     await this.call('source.update', {
       source_uuid: f.source_uuid,
-      domain_type: this.domainType,
+      domain_type: this.callType,
       domain_slug: this.activeSlug,
       client_slug: this.clientSlug,
       fields: { [field]: value },
@@ -371,7 +424,7 @@ class CurationState {
     if (!next || next === f.source_slug) return;
     const r = await this.call<{ source_slug?: string }>('source.update', {
       source_uuid: f.source_uuid,
-      domain_type: this.domainType,
+      domain_type: this.callType,
       domain_slug: this.activeSlug,
       client_slug: this.clientSlug,
       fields: { slug: next },
@@ -406,7 +459,7 @@ class CurationState {
     for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
     const r = await this.call<{ source: Source & { original_bytes?: number; bytes?: number; compressed?: boolean } }>('source.attach', {
       source_uuid: f.source_uuid,
-      domain_type: this.domainType,
+      domain_type: this.callType,
       domain_slug: this.activeSlug,
       client_slug: this.clientSlug,
       filename: file.name,
@@ -428,7 +481,7 @@ class CurationState {
     if (!this.activeSlug) return;
     const r = await this.call<{ ok: boolean }>('source.remove', {
       source_uuid: source.source_uuid,
-      domain_type: this.domainType,
+      domain_type: this.callType,
       domain_slug: this.activeSlug,
       client_slug: this.clientSlug,
     });
@@ -450,7 +503,7 @@ class CurationState {
     if (!f || !body) return;
     await this.call('extract.add', {
       source_uuid: f.source_uuid,
-      domain_type: this.domainType,
+      domain_type: this.callType,
       domain_slug: this.activeSlug,
       client_slug: this.clientSlug,
       kind,
@@ -472,7 +525,7 @@ class CurationState {
     // Commas split into multiple tags; add each new one, deduped, in order.
     for (const tag of splitTags(raw)) {
       if ((f.tags ?? []).includes(tag)) continue;
-      await this.call('tag.apply', { source_uuid: f.source_uuid, domain_type: this.domainType, domain_slug: this.activeSlug, client_slug: this.clientSlug, tag, op: 'add' });
+      await this.call('tag.apply', { source_uuid: f.source_uuid, domain_type: this.callType, domain_slug: this.activeSlug, client_slug: this.clientSlug, tag, op: 'add' });
       f.tags = Array.from(new Set([...(f.tags ?? []), tag]));
       if (!this.tagVocab.includes(tag)) this.tagVocab = [...this.tagVocab, tag];
     }
@@ -481,7 +534,7 @@ class CurationState {
   async removeTag(tag: string): Promise<void> {
     const f = this.focused;
     if (!f) return;
-    await this.call('tag.apply', { source_uuid: f.source_uuid, domain_type: this.domainType, domain_slug: this.activeSlug, client_slug: this.clientSlug, tag, op: 'remove' });
+    await this.call('tag.apply', { source_uuid: f.source_uuid, domain_type: this.callType, domain_slug: this.activeSlug, client_slug: this.clientSlug, tag, op: 'remove' });
     f.tags = (f.tags ?? []).filter((t) => t !== tag);
   }
 
@@ -501,7 +554,7 @@ class CurationState {
   // focus deliberately.
   async refreshSources(): Promise<void> {
     if (!this.activeSlug) return;
-    const r = await this.call<{ sources: Source[] }>('domain.assemble', { type: this.domainType, slug: this.activeSlug, client_slug: this.clientSlug });
+    const r = await this.call<{ sources: Source[] }>('domain.assemble', { type: this.callType, slug: this.activeSlug, client_slug: this.clientSlug });
     if (!r) return;
     const nextSources = (r.sources ?? []).map(withSlug);
     this.sources = nextSources;

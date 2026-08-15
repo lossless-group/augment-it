@@ -112,7 +112,7 @@ plumbing (baked WS URLs). Prefer the designed path.
 - **Anthropic credits** gate didi's crawls/chat for everyone, including
   her (currently exhausted; billing top-up pending).
 - **Which frontends she gets**: the deployed instance today is
-  shell + chat + strategy-curator. The Org Workbench / search-rail
+  shell + chat + corpora-curator. The Org Workbench / search-rail
   remotes are NOT yet deployed anywhere — if her job is the org/pipeline
   view, deploying those remotes to the reach instance is part of this
   plan's scope (three more static-asset services + registry entries).

@@ -14,6 +14,10 @@ WORKDIR /monorepo
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Every app tsconfig `extends: ../../tsconfig.base.json`. Without it in the
+# image the build dies at `Tsconfig not found /monorepo/tsconfig.base.json` —
+# which is what every frontend deploy has been doing since 2026-08-03.
+COPY tsconfig.base.json ./
 COPY packages ./packages
 COPY apps ./apps
 COPY shell ./shell
@@ -21,14 +25,14 @@ RUN pnpm install --frozen-lockfile
 
 ARG PUBLIC_WS_URL
 ARG PUBLIC_ID_BASE
-ARG PUBLIC_STRATEGY_CURATOR_REMOTE
+ARG PUBLIC_CORPORA_CURATOR_REMOTE
 ARG PUBLIC_CHAT_REMOTE
 ARG PUBLIC_ORG_WORKBENCH_REMOTE
 ARG PUBLIC_SEARCH_AND_ADD_REMOTE
 ARG PUBLIC_SEARCH_RESULTS_REMOTE
 ENV PUBLIC_WS_URL=$PUBLIC_WS_URL
 ENV PUBLIC_ID_BASE=$PUBLIC_ID_BASE
-ENV PUBLIC_STRATEGY_CURATOR_REMOTE=$PUBLIC_STRATEGY_CURATOR_REMOTE
+ENV PUBLIC_CORPORA_CURATOR_REMOTE=$PUBLIC_CORPORA_CURATOR_REMOTE
 ENV PUBLIC_CHAT_REMOTE=$PUBLIC_CHAT_REMOTE
 ENV PUBLIC_ORG_WORKBENCH_REMOTE=$PUBLIC_ORG_WORKBENCH_REMOTE
 ENV PUBLIC_SEARCH_AND_ADD_REMOTE=$PUBLIC_SEARCH_AND_ADD_REMOTE

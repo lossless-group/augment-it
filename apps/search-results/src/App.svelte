@@ -46,7 +46,7 @@
   }
 
   // Registry liveness — search.updated broadcasts land on workspace.events;
-  // dedup by seq (the strategy-curator / record-collector pattern) and
+  // dedup by seq (the corpora-curator / record-collector pattern) and
   // refetch. Cheap: the list is card-shaped, no results ride it.
   let lastProcessedSeq = -1;
   $effect(() => {

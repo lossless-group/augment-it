@@ -100,7 +100,7 @@ the refactor silently re-opens the bug.
 ### 1.2 Hoist the app `package.json` files
 
 **14 of 17** `apps/*/package.json` are byte-identical after stripping the
-`name` field. The outliers are `strategy-curator`, `response-reviewer`, and
+`name` field. The outliers are `corpora-curator`, `response-reviewer`, and
 `person-enrichment`.
 
 This is what the graph showed as fourteen communities with an *identical*
@@ -179,12 +179,12 @@ problem isn't that they're hand-rolled, it's that they have no home. A
 s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
  .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60)
 
-// apps/strategy-curator/src/curation.svelte.ts — different behaviour
+// apps/corpora-curator/src/curation.svelte.ts — different behaviour
 s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 ```
 
 No NFKD normalization, no diacritic stripping, no 60-character cap. These
-produce different slugs for the same input. `strategy-curator` also
+produce different slugs for the same input. `corpora-curator` also
 deliberately preserves user casing for tags in the adjacent function — a
 documented product decision.
 

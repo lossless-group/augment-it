@@ -43,7 +43,7 @@ but the compounding costs are now visible:
   - Debounced autocomplete (person-enrichment org picker, person-db-resolver,
     org-workbench `OrgSearch`)
   - Result/source rows with one-click action (response-reviewer,
-    strategy-curator `SourceList`, search-and-add `ResultRow`)
+    corpora-curator `SourceList`, search-and-add `ResultRow`)
 - **Agent drift amplifies it.** Each new remote copies whichever sibling
   the session happened to read, forking dialects further.
 

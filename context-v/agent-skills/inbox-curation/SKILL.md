@@ -20,7 +20,7 @@ noun.
 2. **A source is a URL filed under one or more corpora**, identified by
    `source_uuid` once it's been added. `source.add` does the filing (DB
    registry row + Jina metadata fetch + on-disk file, per
-   [[../../specs/Strategy-Curator-Entry-Point-for-Augment-It|Strategy-Curator-Entry-Point-for-Augment-It]]).
+   [[../../specs/Corpora-Curator-Entry-Point-for-Augment-It|Corpora-Curator-Entry-Point-for-Augment-It]]).
 3. **The inbox (`corpus.inbox.add`) is NOT a corpus.** It's a flat,
    untriaged holding pen — a markdown file with frontmatter, no `domain_type`/
    `domain_slug` at all. It exists for exactly the case this skill's decision
@@ -110,7 +110,7 @@ filing; say "parked in your inbox for later" or similar, not "saved."
 - `services/workspace/src/chat.ts` — `CURATOR_CHAT_VERBS`, the capability
   catalog and args shapes this skill reasons on top of; `existingCorporaSlab`,
   the live `domain.list` read this skill's decision tree depends on.
-- [[../../specs/Strategy-Curator-Entry-Point-for-Augment-It|Strategy-Curator-Entry-Point-for-Augment-It]]
+- [[../../specs/Corpora-Curator-Entry-Point-for-Augment-It|Corpora-Curator-Entry-Point-for-Augment-It]]
   — the click-driven UI this skill is the conversational equivalent of.
 - [[../../../context-v/plans/Unlock-Humain-VC-Team-Access-To-Augment-It|Unlock-Humain-VC-Team-Access-To-Augment-It]]
   (ai-labs level) — Flow 1 item 5, "DiDi assists," the flow this skill serves.

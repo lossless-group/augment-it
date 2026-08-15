@@ -10,7 +10,7 @@ import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 // list. Deliberately its own remote, not a component inside org-workbench —
 // the same surface will serve person cards (Phase 4) and other flows later.
 // See context-v/specs/Augment-From-DB-Flow.md.
-// Own-origin asset prefix for production (chat/strategy-curator pattern) —
+// Own-origin asset prefix for production (chat/corpora-curator pattern) —
 // sub-chunks resolve against the prefix baked at build, not the host page.
 const ASSET_PREFIX = process.env.PUBLIC_SEARCH_AND_ADD_ASSET_PREFIX || 'http://localhost:3016';
 

@@ -195,7 +195,7 @@ augment-it/
 │   ├── person-enrichment/src/pulse-dimensions/   # REUSED — LinkList, AffiliationCard,
 │   │   │                                         #   NameFields, OrgCreate (copy-adapt, see Phase 4)
 │   ├── pack-runner/src/ConnectorPalette.svelte   # REUSED — copy-adapt provider palette
-│   ├── strategy-curator/src/SourceList.svelte    # REUSED — result-row/list idioms
+│   ├── corpora-curator/src/SourceList.svelte    # REUSED — result-row/list idioms
 │   ├── org-workbench/                      # NEW (:3014)
 │   │   ├── package.json / tsconfig.json / rsbuild.config.ts
 │   │   └── src/
@@ -491,7 +491,7 @@ export async function fireSearch(
 // remotes.ts
 export const AUGMENT_FROM_DB_ROTATION: string[] = ['orgWorkbench'];
 // searchAndAdd joins EXTRA_REMOTES (reachable via pairing/event, not a
-// numbered step — the personEnrichment/strategyCurator precedent), plus:
+// numbered step — the personEnrichment/corporaCurator precedent), plus:
 export const PAIRINGS: Pairing[] = [ /* …existing…, */ {
   key: 'orgWorkbench+searchAndAdd',
   left: 'orgWorkbench',

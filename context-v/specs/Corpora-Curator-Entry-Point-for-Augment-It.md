@@ -36,7 +36,7 @@ tags:
 > **Drift note (2026-07-06/07):** the UI now displays as **"Corpora
 > Curator"** — the app stopped being strategy-specific once humain-vc
 > needed the identical shape for "theses." The package/folder/remote id
-> (`apps/strategy-curator`, `strategyCurator`) are unchanged; this is a
+> (`apps/corpora-curator`, `corporaCurator`) are unchanged; this is a
 > display-copy rename only. More load-bearing: `DOMAIN_TYPE` is no longer
 > a hardcoded `'strategy'` constant anywhere in this spec's code — it's
 > operator-defined per domain via a "Type" field on the create form
@@ -201,7 +201,7 @@ operator's chosen name and carries none of DDD's bounded-context semantics.
   `theses/`, `categories/`, `market-segments/`). The `strategies/` bucket is simply the
   `type=strategy` folder.
 - **`strategy.*` is operationalized as `domain.*` with `type='strategy'`.** This app
-  (strategy-curator) is the strategy-type *view*; the canonical capabilities are
+  (corpora-curator) is the strategy-type *view*; the canonical capabilities are
   `domain.create / domain.list / domain.assemble`, always carrying `type`.
 - `source_usages` keys on **(client_slug, domain_type, domain_slug, source_uuid)**; a
   content/funder/person file references domains as compact **`type:slug`** strings, e.g.
@@ -366,12 +366,12 @@ git-lfs discipline. This is already implemented in content-ingest; do not reinve
 
 ## The Svelte microfrontend
 
-A new independently-runnable remote — **`strategy-curator`** — following the exact
+A new independently-runnable remote — **`corpora-curator`** — following the exact
 `pack-runner` pattern, mounted into the shell, talking to augment-it only through the
 workspace adapter.
 
 **Seams (from the real architecture):**
-- **Build:** `rsbuild.config.ts` → `pluginModuleFederation({ name:'strategyCurator',
+- **Build:** `rsbuild.config.ts` → `pluginModuleFederation({ name:'corporaCurator',
   exposes:{ './mount':'./src/mount.ts' } })`, own port (~`:3017`), `dts:false`. Depends on
   `@augment-it/workspace` + `@augment-it/theme`. Standalone entry `src/index.ts` mounts
   `App` at `#root`; `src/mount.ts` exports `mountStrategyCurator(target)` returning
@@ -398,7 +398,7 @@ See the `theme-system` skill and the `@augment-it/theme` package.
 
 ```mermaid
 graph TD
-  App[StrategyCuratorApp] --> Picker[StrategyPicker - create/select]
+  App[CorporaCuratorApp] --> Picker[CorpusPicker - create/select]
   App --> Header[CuratorHeader - strategy + coverage + autosave status]
   App --> List[SourceList - sources where strategy_slugs∋slug]
   App --> Splitter[ColumnSplitter]
@@ -471,10 +471,10 @@ SurrealDB + content-ingest → corpus filesystem, exercised by firing each capab
 directly over NATS and confirming the DB rows + corpus files that result.
 
 ### Increment 1 — the Svelte remote
-`apps/strategy-curator/` — federation remote `strategyCurator` on `:3017`, the exact
+`apps/corpora-curator/` — federation remote `corporaCurator` on `:3017`, the exact
 pack-runner pattern (`./mount`, standalone `index.ts`, `@augment-it/theme` + tokens-only CSS
-namespaced `.sc-app`, three modes). Runes store `curation.svelte.ts` is the single source of
-truth; **all writes go through `workspace.invoke`**. Components: `StrategyPicker` (the create
+namespaced `.cc-app`, three modes). Runes store `curation.svelte.ts` is the single source of
+truth; **all writes go through `workspace.invoke`**. Components: `CorpusPicker` (the create
 form), `SourceList`, `SourceDetail`, `TagBar`. Registered in `shell/src/remotes.ts`
 (`EXTRA_REMOTES`) + `shell/rsbuild.config.ts` — deliberately **not in `ROTATION` yet**.
 

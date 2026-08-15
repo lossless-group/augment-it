@@ -14,13 +14,13 @@ along the way — lives in
 |---|---|---|
 | `https://augment.didi.sh` | `shell` | The app itself — what users visit |
 | `wss://ws.augment.didi.sh/ws` | `workspace-service` | WebSocket endpoint every remote connects to directly |
-| `https://strategy-curator-production.up.railway.app/remoteEntry.js` | `strategy-curator` | Federated remote (static JS asset, not user-facing) |
+| `https://corpora-curator-production.up.railway.app/remoteEntry.js` | `corpora-curator` | Federated remote (static JS asset, not user-facing) |
 | `https://chat-production-3378.up.railway.app/remoteEntry.js` | `chat` | Federated remote (static JS asset, not user-facing) |
 
 Both `shell` and `workspace-service` **must** stay on `*.didi.sh` — the
 `didi_session` cookie `id.didi.sh` issues is scoped to `Domain=.didi.sh`,
 and every federated remote's WS connections go to `workspace-service`
-directly. `strategy-curator` and `chat` are just static JS hosts loaded
+directly. `corpora-curator` and `chat` are just static JS hosts loaded
 cross-origin into the shell's page; they don't need to share the cookie
 domain themselves.
 
@@ -50,7 +50,7 @@ environment (`production`).
 | `content-ingest` | `services/content-ingest/Dockerfile` | Dockerfile | — | none |
 | `prompt-runner` | `services/prompt-runner/Dockerfile` | Dockerfile | — | none |
 | `shell` | `shell/Dockerfile` | Dockerfile | 3100 | `augment.didi.sh` |
-| `strategy-curator` | `apps/strategy-curator/Dockerfile` | Dockerfile | 3017 | Railway-generated |
+| `corpora-curator` | `apps/corpora-curator/Dockerfile` | Dockerfile | 3017 | Railway-generated |
 | `chat` | `apps/chat/Dockerfile` | Dockerfile | 3006 | Railway-generated |
 
 **Every service is Dockerfile-built, including the three frontends** —
@@ -62,7 +62,7 @@ set (they need the full pnpm workspace context — `shared monorepo`
 pattern), and their Dockerfiles `COPY` the whole repo before running
 `pnpm --filter <pkg> build`.
 
-**Only two remotes are actually wired for this deploy**: `strategyCurator`
+**Only two remotes are actually wired for this deploy**: `corporaCurator`
 and `chat`. The other twelve remotes `shell/rsbuild.config.ts` knows about
 (`recordCollector`, `promptTemplateManager`, …) stay hardcoded to
 `localhost` — they belong to flows this single-tenant instance doesn't use.
@@ -112,8 +112,8 @@ credential handling).
 | `record-surrealdb-resolver` | `NATS_URL`, `SURREAL_URL`, `SURREAL_NS`, `SURREAL_DB`, `SURREAL_USER`, `SURREAL_PASS` |
 | `content-ingest` | `NATS_URL`, `CLIENTS_ROOT=/clients`, `JINA_API_KEY` (paid-tier extraction) |
 | `prompt-runner` | `NATS_URL`, `ANTHROPIC_API_KEY` |
-| `shell` | `PUBLIC_WS_URL=wss://ws.augment.didi.sh/ws`, `PUBLIC_ID_BASE=https://id.didi.sh`, `PUBLIC_STRATEGY_CURATOR_REMOTE`, `PUBLIC_CHAT_REMOTE` (all build-time — baked in via Docker `ARG`/`ENV`, not read at runtime) |
-| `strategy-curator` | `PUBLIC_WS_URL`, `PUBLIC_STRATEGY_CURATOR_ASSET_PREFIX` (build-time) |
+| `shell` | `PUBLIC_WS_URL=wss://ws.augment.didi.sh/ws`, `PUBLIC_ID_BASE=https://id.didi.sh`, `PUBLIC_CORPORA_CURATOR_REMOTE`, `PUBLIC_CHAT_REMOTE` (all build-time — baked in via Docker `ARG`/`ENV`, not read at runtime) |
+| `corpora-curator` | `PUBLIC_WS_URL`, `PUBLIC_CORPORA_CURATOR_ASSET_PREFIX` (build-time) |
 | `chat` | `PUBLIC_WS_URL`, `PUBLIC_CHAT_ASSET_PREFIX` (build-time) |
 
 `PUBLIC_*` vars on the three frontends only take effect on the **next
@@ -204,7 +204,7 @@ scoping is a logged follow-up.
 
 **The Augment-from-DB remotes** (`org-workbench`, `search-and-add`,
 `search-results`) deploy as three more static-asset services — same shape
-as `chat`/`strategy-curator`: repo-root build context, dockerfilePath
+as `chat`/`corpora-curator`: repo-root build context, dockerfilePath
 `apps/<name>/Dockerfile`, no rootDirectory, build-time vars
 `PUBLIC_WS_URL` + `PUBLIC_<NAME>_ASSET_PREFIX=https://<own-domain>`, and
 three matching `PUBLIC_<NAME>_REMOTE=https://<domain>/remoteEntry.js`
@@ -267,10 +267,10 @@ keyed by ID).
   string, not `undefined`** — `?? default` in TypeScript doesn't catch
   it. Two real bugs from this: `shell/rsbuild.config.ts`'s remote-URL
   fallbacks had to change from `??` to `||`, and the same for the
-  `PUBLIC_WS_URL` fallback in `shell`/`strategy-curator`/`chat`.
+  `PUBLIC_WS_URL` fallback in `shell`/`corpora-curator`/`chat`.
 - **Federated remotes need `output.assetPrefix`, not just
   `dev.assetPrefix`.** Missing it in production meant `chat`'s and
-  `strategy-curator`'s async sub-chunks resolved as relative paths
+  `corpora-curator`'s async sub-chunks resolved as relative paths
   against the **shell's** origin instead of their own, 404ing into the
   shell's SPA-fallback HTML (`SyntaxError: Unexpected token '<'` — that
   HTML being `eval`'d as JS). Only reproduces cross-origin; local

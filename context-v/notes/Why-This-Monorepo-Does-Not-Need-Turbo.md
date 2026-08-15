@@ -65,7 +65,7 @@ Three supporting facts, all verified the same day:
   rsbuild emits `dist/`. Even if installed, caching would cache nothing.
 
 Every Dockerfile already routes around this with direct `pnpm --filter` calls.
-`apps/strategy-curator/Dockerfile` says so in a comment: *"the (nonfunctional,
+`apps/corpora-curator/Dockerfile` says so in a comment: *"the (nonfunctional,
 turbo was never actually installed) root build script."* And
 `scripts/test-all.sh` says *"Turbo-free on purpose (turbo isn't a declared
 dep)."* The decision was made and documented in passing; only `turbo.json` and

@@ -8,6 +8,15 @@ import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 // It is still not in DESIGN.md's member registry — it documents the system
 // rather than consuming it as a product surface, so the per-member contract
 // (prefix, root_class, tiering, its own DESIGN.md) does not apply.
+//
+// It is now a federation HOST as well as a remote: the components view mounts
+// each member's `./gallery` expose. Note what that does NOT mean — the portal
+// does not import any member's components. It loads a library the member built
+// and shipped, from the member's own bundle. Aggregation without ownership; the
+// index is central, the libraries are not.
+const CORPORA_CURATOR_REMOTE =
+  process.env.PUBLIC_CORPORA_CURATOR_REMOTE || 'http://localhost:3017/remoteEntry.js';
+
 export default defineConfig({
   plugins: [
     pluginSvelte(),
@@ -15,6 +24,9 @@ export default defineConfig({
       name: 'designSystem',
       filename: 'remoteEntry.js',
       exposes: { './mount': './src/mount.ts' },
+      remotes: {
+        corporaCurator: `corporaCurator@${CORPORA_CURATOR_REMOTE}`,
+      },
       dts: false,
     }),
   ],

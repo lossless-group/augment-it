@@ -30,7 +30,7 @@ WebSocket.
 ## The topology
 
 ```
-Browser (strategy-curator / org-workbench / chat / …)
+Browser (corpora-curator / org-workbench / chat / …)
    │
    │   ONE WebSocket connection per session
    ▼
