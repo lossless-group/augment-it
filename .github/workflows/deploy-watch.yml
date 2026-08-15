@@ -52,28 +52,43 @@ jobs:
             exit 1
           fi
 
+          # Trim whitespace. A secret set from a clipboard or a file almost
+          # always carries a trailing newline, and Railway reports a token with
+          # one stray byte as flatly "not found" — indistinguishable from the
+          # wrong KIND of token, which is what sent the first diagnosis astray.
+          TOKEN=$(printf '%s' "${RAILWAY_TOKEN}" | tr -d '[:space:]')
+
+          echo "Token shape: raw=${#RAILWAY_TOKEN} trimmed=${#TOKEN} chars"
+          if printf '%s' "$TOKEN" | grep -qiE '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'; then
+            echo "Token shape: matches the UUID form Railway project tokens take."
+          else
+            echo "Token shape: NOT a bare UUID — check for a copied prefix or a truncated paste."
+          fi
+
           api() {
-            curl -sSf -X POST https://backboard.railway.com/graphql/v2 \
-              -H "Project-Access-Token: ${RAILWAY_TOKEN}" \
+            curl -sS -X POST https://backboard.railway.com/graphql/v2 \
+              -H "Project-Access-Token: ${TOKEN}" \
               -H "Content-Type: application/json" \
               -d "$1"
           }
 
           # The token knows which environment it belongs to, so no Railway IDs
           # are committed here. Swapping the secret repoints the whole workflow.
-          # `|| true` so a non-2xx from curl -f still reaches the diagnostic
-          # below instead of dying silently under `set -e`.
           PROBE=$(api '{"query":"query { projectToken { environmentId } }"}' || true)
           ENV_ID=$(printf '%s' "$PROBE" | jq -r '.data.projectToken.environmentId // empty')
 
           if [ -z "$ENV_ID" ]; then
-            # `projectToken` resolves ONLY for a project token. An account or
-            # team token authenticates fine and returns null here, which is the
-            # overwhelmingly likely cause. Print the response — it carries
-            # Railway's own error message and contains no credential.
-            echo "::error::Could not resolve environmentId from the token. Is it a PROJECT token?"
-            echo "Railway response:"
+            echo "::error::Could not resolve environmentId from the token."
+            echo "Project-Access-Token response:"
             printf '%s\n' "$PROBE" | jq . 2>/dev/null || printf '%s\n' "$PROBE"
+
+            # Identify what the credential actually IS, so the next step is a
+            # fact rather than a guess. An account/team token answers `me`.
+            echo "Retrying the same token as an ACCOUNT token (Authorization: Bearer):"
+            curl -sS -X POST https://backboard.railway.com/graphql/v2 \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d '{"query":"query { me { email } }"}' | jq . 2>/dev/null || true
             exit 1
           fi
 
@@ -81,6 +96,17 @@ jobs:
             query: "query($id: String!) { environment(id: $id) { serviceInstances { edges { node { serviceName latestDeployment { status createdAt } } } } } }",
             variables: {id: $id}
           }')" > status.json
+
+          # An empty service list must NEVER read as healthy. Without this, any
+          # error on the query above yields zero rows, zero FAILED matches, and
+          # a green run — a watchdog reporting all-clear precisely because it
+          # could not see, which is the failure it was built to end.
+          COUNT=$(jq -r '.data.environment.serviceInstances.edges | length // 0' status.json 2>/dev/null || echo 0)
+          if [ "${COUNT:-0}" -eq 0 ]; then
+            echo "::error::Railway returned no services. Refusing to report healthy on an empty read."
+            jq . status.json 2>/dev/null || cat status.json
+            exit 1
+          fi
 
           # FAILED/CRASHED are the states that mean "this did not ship."
           # Transient states (BUILDING, DEPLOYING, INITIALIZING, QUEUED) are not
