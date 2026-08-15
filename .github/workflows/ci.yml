@@ -1,0 +1,126 @@
+# CI — build every container image, run every unit-test group.
+#
+# WHY THIS EXISTS. On 2026-08-15 we found that every frontend Docker build had
+# been failing since 2026-08-03 on a single missing `COPY tsconfig.base.json`,
+# and nobody noticed for twelve days. Two properties conspired:
+#
+#   1. `pnpm build` on a laptop passes regardless, because tsconfig.base.json is
+#      sitting right there on disk. The bug only exists inside the image.
+#   2. A failed Railway deploy is SILENT — the previous container keeps serving
+#      and the health check keeps passing.
+#
+# So the Docker build only ever ran in production, and production only ever
+# whispered when it broke. This workflow moves that build to the one place that
+# fails loudly and early: the pull request.
+#
+# See changelog/2026-08-15_01_Every-Frontend-Deploy-Had-Been-Failing-For-Twelve-Days-On-One-Missing-COPY.md
+name: CI
+
+on:
+  pull_request:
+  push:
+    # The trunk is rebuild/turbo-rsbuild, NOT main — see the branch-tier model.
+    branches: [rebuild/turbo-rsbuild]
+
+# A newer push to the same branch makes the in-flight run irrelevant.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  images:
+    name: image · ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      # One broken image should not hide the state of the other fifteen —
+      # that is precisely the failure mode this workflow exists to prevent.
+      fail-fast: false
+      matrix:
+        include:
+          # Frontends build from the REPO ROOT: they need the pnpm workspace,
+          # packages/, and tsconfig.base.json. This is the group that broke.
+          - { name: shell,                   dockerfile: shell/Dockerfile,                     context: . }
+          - { name: chat,                    dockerfile: apps/chat/Dockerfile,                 context: . }
+          - { name: corpora-curator,         dockerfile: apps/corpora-curator/Dockerfile,      context: . }
+          - { name: org-workbench,           dockerfile: apps/org-workbench/Dockerfile,        context: . }
+          - { name: search-and-add,          dockerfile: apps/search-and-add/Dockerfile,       context: . }
+          - { name: search-results,          dockerfile: apps/search-results/Dockerfile,       context: . }
+          # Services build from their OWN directory — self-contained tsconfig,
+          # npm install rather than the workspace. Different shape, same gate.
+          - { name: content-ingest,          dockerfile: services/content-ingest/Dockerfile,          context: services/content-ingest }
+          - { name: ingest,                  dockerfile: services/ingest/Dockerfile,                  context: services/ingest }
+          - { name: prompt-runner,           dockerfile: services/prompt-runner/Dockerfile,           context: services/prompt-runner }
+          - { name: prompt-store,            dockerfile: services/prompt-store/Dockerfile,            context: services/prompt-store }
+          - { name: record-surrealdb-resolver, dockerfile: services/record-surrealdb-resolver/Dockerfile, context: services/record-surrealdb-resolver }
+          - { name: response-store,          dockerfile: services/response-store/Dockerfile,          context: services/response-store }
+          - { name: row-store,               dockerfile: services/row-store/Dockerfile,               context: services/row-store }
+          - { name: social-search,           dockerfile: services/social-search/Dockerfile,           context: services/social-search }
+          - { name: workspace,               dockerfile: services/workspace/Dockerfile,               context: services/workspace }
+          - { name: xlsx-ingest,             dockerfile: services/xlsx-ingest/Dockerfile,             context: services/xlsx-ingest }
+    steps:
+      # No submodules. The client repos are gitignored out of the Railway build
+      # context (.railwayignore) and no Dockerfile COPYs clients/, so fetching
+      # them here would only buy us a credentials problem.
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          # Never push. The artifact is the exit code — proof it builds at all.
+          push: false
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  tests:
+    name: unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # --frozen-lockfile is itself a check: it fails when a package.json and
+      # the lockfile have drifted, which a split-across-commits change can do.
+      - run: pnpm install --frozen-lockfile
+
+      # Mirrors scripts/test-all.sh minus Group I. The e2e group drives a real
+      # backend chain over a live WebSocket (e2e/harness.mjs wants NATS and
+      # SurrealDB), so it needs service containers before it can run here.
+      # Running it without them would produce a red badge that means nothing,
+      # which is worse than no badge. Tracked as follow-up.
+      - name: Group C — transport
+        run: pnpm --filter @augment-it/workspace test
+      - name: Groups B/D/H — workspace-service
+        run: pnpm --dir services/workspace test
+      - name: Groups E/J — resolver
+        run: pnpm --dir services/record-surrealdb-resolver test
+      - name: Group F — content-ingest
+        run: pnpm --dir services/content-ingest test
+      - name: Group G — corpora-curator
+        run: pnpm --dir apps/corpora-curator test
+
+  design-drift:
+    name: design drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Reports 99 known failures today, so it cannot gate yet — it runs to keep
+      # the number visible and to catch the contrast checks, which DO pass 30/30.
+      # Turn `|| true` off once the F6/F8 debt is burned down.
+      - name: pnpm design:drift
+        run: pnpm design:drift || true
