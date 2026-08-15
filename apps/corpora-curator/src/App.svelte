@@ -38,8 +38,11 @@
         ev.subject === 'domain.retyped'
           ? (payload.client_slugs ?? []).includes(curation.clientSlug ?? '')
           : payload.client_slug === curation.clientSlug;
-      const touchesActiveType = payload.type === curation.domainType || payload.old_type === curation.domainType;
-      if (inThisClient && touchesActiveType) void curation.loadStrategies();
+      // No type check any more: the list holds every type in the workspace
+      // (gh #88), so any domain created or retyped in this client is relevant.
+      // The old filter also meant a retype OUT of the active type was missed
+      // whenever the guessed type was wrong.
+      if (inThisClient) void curation.loadStrategies();
     } else if (
       ev.subject === 'source.added' ||
       ev.subject === 'source.updated' ||
@@ -70,11 +73,16 @@
     {:else}
       <span class="cc-pill" title="Active workspace">{curation.clientSlug ?? '— no workspace —'}</span>
     {/if}
-    <span class="cc-pill" title="Active domain type">{curation.domainType}</span>
+    <!-- The selected corpus's OWN type when there is one; otherwise this
+         client's preferred vocabulary. It labels, it never filters (gh #88). -->
+    <span
+      class="cc-pill"
+      title={curation.active ? 'Type of the selected corpus' : 'This workspace’s preferred vocabulary for new corpora'}
+    >{curation.active?.type ?? curation.domainType}</span>
     {#if curation.active}
       <button
         class="cc-back"
-        onclick={() => (curation.activeSlug = null)}
+        onclick={() => { curation.activeSlug = null; curation.activeType = null; }}
         title="Back to the corpora list / create form"
       >‹ All corpora</button>
       <span class="cc-strategy">{curation.active.title}</span>

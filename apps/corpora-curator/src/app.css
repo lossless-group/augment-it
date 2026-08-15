@@ -167,6 +167,9 @@
 .cc-app .cc-strat-list { list-style: none; margin: 0.5rem 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
 .cc-app .cc-strat { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 2px; }
 .cc-app .cc-strat-title { font-weight: 600; }
+/* Slug + type on one line. The type chip is load-bearing: the list holds every
+   type at once (gh #88) and (type, slug) is the real key. */
+.cc-app .cc-strat-meta { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
 .cc-app .cc-create { display: flex; gap: 0.4rem; margin-top: 0.75rem; }
 
 /* ---- source list ---- */

@@ -18,7 +18,17 @@
   let title = $state('');
   let slug = $state('');
   let slugEdited = $state(false);
+  // A one-time snapshot here was the last visible trace of gh #88: this
+  // component mounts before workspace.list resolves, so humain-vc's create form
+  // offered "strategy" while every other surface had corrected itself to
+  // "thesis". Track the workspace's preference until the operator overrides it;
+  // once they type, their value wins and stops moving under them.
   let type = $state(curation.domainType);
+  let typeEdited = $state(false);
+  $effect(() => {
+    const preferred = curation.domainType;
+    if (!typeEdited) type = preferred;
+  });
   let tagInput = $state('');
   let pendingTags = $state<string[]>([]);
   let tagSuggest = $derived(curation.suggestTags(tagInput));
@@ -43,12 +53,12 @@
   }
   async function create(): Promise<void> {
     await curation.createStrategy({ title, slug, tags: pendingTags, type });
-    // Read domainType back AFTER the await — createStrategy only updates it
-    // (via setDomainType) once the server confirms a type change, so
-    // resetting eagerly here would just re-read the pre-create value.
+    // The form goes back to the workspace's preference after a create — a type
+    // the operator typed for ONE corpus should not become sticky for the next.
     title = '';
     slug = '';
     slugEdited = false;
+    typeEdited = false;
     type = curation.domainType;
     pendingTags = [];
     tagInput = '';
@@ -65,9 +75,15 @@
     <ul class="cc-strat-list">
       {#each curation.strategies as s (s.slug)}
         <li>
-          <button class="cc-strat" onclick={() => curation.select(s.slug)}>
+          <!-- The type rides along on the row rather than filtering the list
+               (gh #88). Two corpora can share a slug across types, so the chip
+               is also what makes them distinguishable. -->
+          <button class="cc-strat" onclick={() => curation.select(s.slug, s.type)}>
             <span class="cc-strat-title">{s.title}</span>
-            <span class="cc-muted cc-mono cc-mini">{s.slug}</span>
+            <span class="cc-strat-meta">
+              <span class="cc-muted cc-mono cc-mini">{s.slug}</span>
+              {#if s.type}<span class="cc-status-chip">{s.type}</span>{/if}
+            </span>
           </button>
         </li>
       {/each}
@@ -85,7 +101,12 @@
 
   <div class="cc-field">
     <span class="cc-label">Type <span class="cc-muted cc-mini">— any value; 'strategy' and 'thesis' are the two in use today</span></span>
-    <input class="cc-mono" bind:value={type} placeholder="strategy" />
+    <input
+      class="cc-mono"
+      value={type}
+      oninput={(e) => { typeEdited = true; type = e.currentTarget.value; }}
+      placeholder={curation.domainType}
+    />
   </div>
 
   <div class="cc-field">
