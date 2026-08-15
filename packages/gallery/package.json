@@ -1,0 +1,21 @@
+{
+  "name": "@augment-it/gallery",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./Gallery.svelte": "./src/Gallery.svelte",
+    "./gallery.css": "./gallery.css"
+  },
+  "dependencies": {
+    "@augment-it/theme": "workspace:*"
+  },
+  "peerDependencies": {
+    "svelte": "^5.0.0"
+  },
+  "devDependencies": {
+    "svelte": "^5.56.4",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,716 @@
+/*
+ * Gallery chrome.
+ *
+ * Every selector is prefixed `agx-` and descends from `.agx` / `.agx-iso`, so
+ * the chrome cannot leak into the specimen it is framing — the same containment
+ * rule (F2/F3) the members live under, applied to the tool that checks them.
+ *
+ * Tokens only, no literals, for the same reason apps/docs-portal/src/app.css is
+ * tokens-only: a documentation surface that painted from colours of its own
+ * would make a broken token look fine.
+ *
+ * The chrome is NOT a federation member. It documents the system rather than
+ * consuming it as a product surface, so the per-member contract (its own
+ * DESIGN.md, a registry row, a tier) does not apply — the same carve-out
+ * apps/docs-portal already has.
+ */
+
+/* Suppress theme.css's 75ms colour transition while audit.ts measures. */
+:root.agx-measuring,
+:root.agx-measuring * {
+  transition: none !important;
+}
+
+.agx,
+.agx-iso {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text);
+  background: var(--color-background);
+  box-sizing: border-box;
+}
+
+.agx *,
+.agx-iso * {
+  box-sizing: border-box;
+}
+
+.agx {
+  display: grid;
+  grid-template-columns: 248px 1fr;
+  min-height: 100vh;
+}
+
+/* ----------------------------------------------------------------- sidebar */
+
+.agx-nav {
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.agx-nav-head {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.agx-nav-head h1 {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--color-accent);
+}
+
+.agx-nav-sub {
+  margin: 2px 0 10px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.agx-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  margin: 0 0 10px;
+  font-size: 10px;
+}
+.agx-meta dt {
+  color: var(--color-text-muted);
+}
+.agx-meta dd {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agx-filter {
+  width: 100%;
+  font: inherit;
+  font-size: 11px;
+  padding: 5px 7px;
+  color: var(--color-text);
+  background: var(--color-field);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+}
+.agx-filter:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.agx-nav-list {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 0 24px;
+}
+
+.agx-nav-section {
+  margin: 14px 12px 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.agx-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 26px;
+  text-align: left;
+  font: inherit;
+  font-size: 11px;
+  padding: 5px 12px;
+  border: none;
+  border-left: 2px solid transparent;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.agx-nav-item:hover {
+  background: var(--color-selected-tint);
+}
+.agx-nav-item.active {
+  background: var(--color-selected-tint);
+  border-left-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.agx-nav-item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.agx-nav-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.agx-count {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+/* ------------------------------------------------------------------- stage */
+
+.agx-stage {
+  padding: 20px 24px 64px;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.agx-head {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+}
+.agx-head-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.agx-head h2 {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+.agx-lede {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+  max-width: 84ch;
+}
+.agx-lede code,
+.agx-source,
+.agx-card-source {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+.agx-deviation {
+  margin: 8px 0 0;
+  font-size: 11px;
+  padding: 6px 8px;
+  border-radius: 3px;
+  color: var(--color-warn-text);
+  background: var(--color-warn-bg);
+}
+
+.agx-badge {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+.agx-badge[data-kind='component'] {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+.agx-badge[data-kind='pattern'] {
+  color: var(--color-accent-2);
+  border-color: var(--color-accent-2);
+}
+.agx-badge[data-status='draft'] {
+  color: var(--color-warn-text);
+  border-color: var(--color-warn-text);
+}
+.agx-badge[data-status='legacy'],
+.agx-badge[data-status='deprecated'] {
+  color: var(--color-error-text);
+  border-color: var(--color-error-text);
+}
+
+/* ----------------------------------------------------------------- toolbar */
+
+.agx-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 0 10px;
+}
+.agx-spacer {
+  flex: 1;
+}
+
+.agx-fixtures {
+  display: inline-flex;
+  gap: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 2px;
+}
+.agx-fixtures button {
+  font: inherit;
+  font-size: 11px;
+  min-height: 24px;
+  padding: 3px 10px;
+  border: none;
+  border-radius: 2px;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.agx-fixtures button:hover {
+  color: var(--color-text);
+  background: var(--color-selected-tint);
+}
+.agx-fixtures button.active {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+.agx-fixtures button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.agx-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+.agx-select select {
+  font: inherit;
+  font-size: 11px;
+  min-height: 24px;
+  padding: 3px 6px;
+  color: var(--color-text);
+  background: var(--color-field);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+}
+.agx-select select:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.agx-btn {
+  font: inherit;
+  font-size: 11px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  color: var(--color-text);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.agx-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.agx-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.agx-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.agx-fixture-note {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  max-width: 84ch;
+  line-height: 1.5;
+}
+
+/* ------------------------------------------------------------------ frames */
+
+.agx-frames {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.agx-frames.multi.fluid > .agx-frame {
+  flex: 1 1 0;
+  min-width: 240px;
+}
+
+.agx-iso {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  min-height: 100vh;
+}
+.agx-iso > .agx-frame {
+  flex: 1 1 0;
+}
+
+/* SpecimenFrame internals — declared here rather than in the component so the
+   whole chrome reads from one file, and so the `agx-` containment is visible
+   in one place. */
+.agx-frame {
+  position: relative;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+  flex: none;
+}
+.agx-frame-tag {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-bottom-left-radius: 3px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-raised);
+  border-left: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+.agx-frame-stage {
+  padding: 16px;
+}
+.agx-frame-missing {
+  margin: 0;
+  color: var(--color-error-text);
+  font-size: 11px;
+}
+
+/* ------------------------------------------------------------------- cards */
+
+.agx-overview-section {
+  margin-bottom: 28px;
+}
+.agx-overview-section h3 {
+  margin: 0 0 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-accent);
+}
+.agx-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.agx-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+  font: inherit;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  box-shadow: var(--fx-card-shadow);
+}
+.agx-card:hover {
+  border-color: var(--color-accent);
+}
+.agx-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.agx-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.agx-card-summary {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* -------------------------------------------------------------- tabs/panel */
+
+.agx-tabs {
+  display: flex;
+  gap: 2px;
+  margin: 18px 0 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.agx-tabs button {
+  font: inherit;
+  font-size: 11px;
+  min-height: 26px;
+  padding: 4px 12px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.agx-tabs button:hover {
+  color: var(--color-text);
+}
+.agx-tabs button.active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+.agx-tabs button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.agx-panel {
+  padding: 14px 0 0;
+}
+
+.agx-empty {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------- controls */
+
+.agx-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.agx-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+}
+.agx-control-name {
+  color: var(--color-text-muted);
+}
+.agx-control input[type='text'],
+.agx-control select {
+  font: inherit;
+  font-size: 11px;
+  min-height: 26px;
+  padding: 4px 6px;
+  color: var(--color-text);
+  background: var(--color-field);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+}
+.agx-control input[type='checkbox'] {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--color-accent);
+}
+.agx-control input:focus-visible,
+.agx-control select:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+.agx-control-num {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.agx-control-num input[type='range'] {
+  flex: 1;
+  min-height: 24px;
+  accent-color: var(--color-accent);
+}
+.agx-control-num output {
+  min-width: 3ch;
+  text-align: right;
+  color: var(--color-accent);
+}
+
+/* ------------------------------------------------------------------- audit */
+
+.agx-audit-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.agx-stat {
+  font-size: 10px;
+  padding: 4px 9px;
+  border-radius: 3px;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+.agx-stat strong {
+  color: var(--color-text);
+  font-size: 12px;
+  margin-right: 4px;
+}
+.agx-stat[data-tone='good'] {
+  border-color: var(--color-ok-text);
+}
+.agx-stat[data-tone='good'] strong {
+  color: var(--color-ok-text);
+}
+.agx-stat[data-tone='warn'] {
+  border-color: var(--color-warn-text);
+}
+.agx-stat[data-tone='warn'] strong {
+  color: var(--color-warn-text);
+}
+.agx-stat[data-tone='bad'] {
+  border-color: var(--color-error-text);
+}
+.agx-stat[data-tone='bad'] strong {
+  color: var(--color-error-text);
+}
+
+.agx-audit-block {
+  margin-bottom: 20px;
+}
+.agx-audit-block h4 {
+  margin: 0 0 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text);
+}
+.agx-block-note {
+  margin: 0 0 8px;
+}
+
+.agx-findings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.agx-findings li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 3px;
+  border-left: 2px solid var(--color-border);
+  background: var(--color-surface);
+}
+.agx-findings li[data-tone='good'] {
+  border-left-color: var(--color-ok-text);
+  color: var(--color-text-muted);
+}
+.agx-findings li[data-tone='warn'] {
+  border-left-color: var(--color-warn-text);
+}
+.agx-findings li[data-tone='bad'] {
+  border-left-color: var(--color-error-text);
+}
+.agx-findings code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+.agx-note {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+.agx-ratio {
+  font-weight: 700;
+  min-width: 3ch;
+}
+.agx-flag {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: 2px;
+  border: 1px solid currentColor;
+}
+
+.agx-tokenlist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.agx-token {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+.agx-token.declared {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+.agx-token-chip {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  border: 1px solid var(--color-border);
+}
+
+/* ------------------------------------------------------------------- usage */
+
+.agx-usage h4 {
+  margin: 14px 0 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text);
+}
+.agx-usage h4:first-child {
+  margin-top: 0;
+}
+.agx-usage pre {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 10px;
+  border-radius: 3px;
+  background: var(--color-field);
+  border: 1px solid var(--color-border);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* --------------------------------------------------------------- responsive */
+
+@media (max-width: 860px) {
+  .agx {
+    grid-template-columns: 1fr;
+  }
+  .agx-nav {
+    position: static;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .agx-nav-list {
+    max-height: 220px;
+  }
+}

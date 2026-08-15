@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@augment-it/federation": "workspace:*",
+    "@augment-it/gallery": "workspace:*",
     "@augment-it/theme": "workspace:*",
     "@augment-it/workspace": "workspace:*",
     "svelte": "^5.56.4"

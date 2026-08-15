@@ -27,6 +27,12 @@ export default defineConfig({
       filename: 'remoteEntry.js',
       exposes: {
         './mount': './src/mount.ts',
+        // The member's component library. A second contract alongside the
+        // product surface: `./mount` is what this member does, `./gallery` is
+        // what it is made of. Same bundle and same stylesheet, so the specimens
+        // are the real components rather than a copy that drifted.
+        // See context-v/specs/Federated-Component-Libraries.md.
+        './gallery': './src/gallery/mount.ts',
       },
       dts: false,
     }),

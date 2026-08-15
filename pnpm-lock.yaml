@@ -119,6 +119,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/gallery':
+        specifier: workspace:*
+        version: link:../../packages/gallery
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -677,6 +680,19 @@ importers:
         version: 3.2.7(@types/node@26.1.0)(jiti@2.4.2)(jsdom@30.0.1)(terser@5.48.0)(tsx@4.22.4)
 
   packages/federation:
+    dependencies:
+      '@augment-it/theme':
+        specifier: workspace:*
+        version: link:../theme
+    devDependencies:
+      svelte:
+        specifier: ^5.56.4
+        version: 5.56.4
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
+  packages/gallery:
     dependencies:
       '@augment-it/theme':
         specifier: workspace:*

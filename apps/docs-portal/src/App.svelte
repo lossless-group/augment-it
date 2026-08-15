@@ -19,6 +19,34 @@
   import { onMount } from 'svelte';
   import { MODES, getMode, setMode, onModeChange, type Mode } from '@augment-it/theme/mode-switcher';
   import manifest from '../../../design-manifest.json';
+  import MemberLibraries from './MemberLibraries.svelte';
+
+  // Two views. Tokens is the federal layer — the vocabulary every member shares.
+  // Components is the local layer — each member's own library, published by that
+  // member and aggregated here. The portal is the one place both are visible at
+  // once, which is the point: the federal/local split is the architecture, and
+  // until now only half of it had a surface.
+  type View = 'tokens' | 'components';
+
+  // Which view the shell asked for, handed over in sessionStorage. The portal
+  // is a federation remote whose contract is `mount(target)` and nothing more;
+  // reading a key here keeps that contract intact, and clearing it immediately
+  // means a later plain "open the design system" lands on the default rather
+  // than on whatever was chosen once, days ago.
+  const PENDING_VIEW_KEY = 'augment-it:design-portal-view';
+
+  function takePendingView(): View {
+    try {
+      const v = sessionStorage.getItem(PENDING_VIEW_KEY);
+      sessionStorage.removeItem(PENDING_VIEW_KEY);
+      if (v === 'components' || v === 'tokens') return v;
+    } catch {
+      // Private-mode / disabled storage.
+    }
+    return 'tokens';
+  }
+
+  let view = $state<View>(takePendingView());
 
   const SURFACES: string[] = manifest.surfaces;
   const COLOR_TOKENS: string[] = manifest.groups.color;
@@ -92,6 +120,14 @@
     accentRatios = acc;
   }
 
+  function selectView(next: View): void {
+    view = next;
+    // Coming back to the swatch grid re-renders every cell, so the ratios held
+    // from before the switch describe elements that no longer exist. Measure
+    // again rather than show stale numbers next to fresh colour.
+    if (next === 'tokens') remeasure();
+  }
+
   function pick(next: Mode): void {
     // setMode dispatches mode-change, which the onModeChange subscription above
     // turns into the state update + remeasure. One path, so a click and an
@@ -159,17 +195,39 @@
     <div>
       <h1>augment-it design system</h1>
       <p class="sub">
-        {COLOR_TOKENS.length} colour tokens × {SURFACES.length} surfaces, resolved by the browser in
-        <strong>{mode}</strong> mode. Contrast measured from what actually painted.
+        {#if view === 'tokens'}
+          {COLOR_TOKENS.length} colour tokens × {SURFACES.length} surfaces, resolved by the browser in
+          <strong>{mode}</strong> mode. Contrast measured from what actually painted.
+        {:else}
+          The federal layer is one vocabulary; the local layer is seventeen libraries. Each member
+          publishes its own, and this is where they are indexed.
+        {/if}
       </p>
     </div>
-    <nav class="modes" aria-label="Theme mode">
-      {#each MODES as m}
-        <button class:active={mode === m} onclick={() => pick(m)} aria-pressed={mode === m}>{m}</button>
-      {/each}
-    </nav>
+    <div class="head-nav">
+      <nav class="views" aria-label="Portal view">
+        <button class:active={view === 'tokens'} onclick={() => selectView('tokens')} aria-pressed={view === 'tokens'}>
+          tokens
+        </button>
+        <button
+          class:active={view === 'components'}
+          onclick={() => selectView('components')}
+          aria-pressed={view === 'components'}
+        >
+          components
+        </button>
+      </nav>
+      <nav class="modes" aria-label="Theme mode">
+        {#each MODES as m}
+          <button class:active={mode === m} onclick={() => pick(m)} aria-pressed={mode === m}>{m}</button>
+        {/each}
+      </nav>
+    </div>
   </header>
 
+  {#if view === 'components'}
+    <MemberLibraries />
+  {:else}
   <section aria-labelledby="swatches-h">
     <h2 id="swatches-h">Semantic tokens on every surface</h2>
     <p class="note">
@@ -261,4 +319,5 @@
       {/each}
     </div>
   </section>
+  {/if}
 </div>
