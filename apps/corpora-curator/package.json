@@ -1,5 +1,5 @@
 {
-  "name": "@augment-it/strategy-curator",
+  "name": "@augment-it/corpora-curator",
   "version": "0.0.1",
   "private": true,
   "type": "module",

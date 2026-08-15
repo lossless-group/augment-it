@@ -9,7 +9,7 @@ import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 // by design: every read/write rides workspace.invoke → NATS →
 // record-surrealdb-resolver (spec decision D1).
 // See context-v/specs/Augment-From-DB-Flow.md.
-// Own-origin asset prefix for production (chat/strategy-curator pattern):
+// Own-origin asset prefix for production (chat/corpora-curator pattern):
 // a remote's sub-chunks resolve against the assetPrefix BAKED AT BUILD, not
 // the host page's origin — without output.assetPrefix they 404 into the
 // shell's SPA-fallback HTML in production. dev.assetPrefix alone only

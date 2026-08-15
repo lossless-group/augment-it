@@ -79,7 +79,7 @@ folders without DB rows (content-ingest writes folders in the same flow).
 If the curator's `defaultDomainTypeFor()` doesn't find
 `default_domain_type: 'thesis'` on the workspace summary, it falls back
 to the flat `'strategy'` constant
-(`apps/strategy-curator/src/curation.svelte.ts:33`), and `domain.list
+(`apps/corpora-curator/src/curation.svelte.ts:33`), and `domain.list
 {type:'strategy', client_slug:'humain-vc'}` returns exactly one row.
 **Signature:** the rail shows **exactly one corpus — rural-income-boosts
 — not zero.** In production this depends on the volume stub:

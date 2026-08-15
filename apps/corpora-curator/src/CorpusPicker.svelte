@@ -55,19 +55,19 @@
   }
 </script>
 
-<section class="sc-card">
+<section class="cc-card">
   <h2>Corpora</h2>
-  <p class="sc-muted">Pick a corpus to gather sources for, or create a new one.</p>
+  <p class="cc-muted">Pick a corpus to gather sources for, or create a new one.</p>
 
   {#if curation.strategies.length === 0}
-    <p class="sc-muted sc-mini">No corpora yet.</p>
+    <p class="cc-muted cc-mini">No corpora yet.</p>
   {:else}
-    <ul class="sc-strat-list">
+    <ul class="cc-strat-list">
       {#each curation.strategies as s (s.slug)}
         <li>
-          <button class="sc-strat" onclick={() => curation.select(s.slug)}>
-            <span class="sc-strat-title">{s.title}</span>
-            <span class="sc-muted sc-mono sc-mini">{s.slug}</span>
+          <button class="cc-strat" onclick={() => curation.select(s.slug)}>
+            <span class="cc-strat-title">{s.title}</span>
+            <span class="cc-muted cc-mono cc-mini">{s.slug}</span>
           </button>
         </li>
       {/each}
@@ -75,51 +75,51 @@
   {/if}
 </section>
 
-<section class="sc-card">
+<section class="cc-card">
   <h2>New corpus</h2>
 
-  <div class="sc-field">
-    <span class="sc-label">Title</span>
+  <div class="cc-field">
+    <span class="cc-label">Title</span>
     <input value={title} oninput={(e) => onTitle(e.currentTarget.value)} placeholder="full corpus name…" />
   </div>
 
-  <div class="sc-field">
-    <span class="sc-label">Type <span class="sc-muted sc-mini">— any value; 'strategy' and 'thesis' are the two in use today</span></span>
-    <input class="sc-mono" bind:value={type} placeholder="strategy" />
+  <div class="cc-field">
+    <span class="cc-label">Type <span class="cc-muted cc-mini">— any value; 'strategy' and 'thesis' are the two in use today</span></span>
+    <input class="cc-mono" bind:value={type} placeholder="strategy" />
   </div>
 
-  <div class="sc-field">
-    <span class="sc-label">Slug <span class="sc-muted sc-mini">— auto from title, editable, lowercase-kebab</span></span>
-    <input class="sc-mono" value={slug} oninput={(e) => onSlug(e.currentTarget.value)} placeholder="corpus-slug" />
+  <div class="cc-field">
+    <span class="cc-label">Slug <span class="cc-muted cc-mini">— auto from title, editable, lowercase-kebab</span></span>
+    <input class="cc-mono" value={slug} oninput={(e) => onSlug(e.currentTarget.value)} placeholder="corpus-slug" />
   </div>
 
-  <div class="sc-field">
-    <span class="sc-label">Tags <span class="sc-muted sc-mini">— Train-Case, workspace vocabulary</span></span>
-    <div class="sc-tags">
+  <div class="cc-field">
+    <span class="cc-label">Tags <span class="cc-muted cc-mini">— Train-Case, workspace vocabulary</span></span>
+    <div class="cc-tags">
       {#each pendingTags as t}
-        <span class="sc-tag">{t}<button class="sc-tag-x" onclick={() => removeTag(t)} aria-label="remove tag">×</button></span>
+        <span class="cc-tag">{t}<button class="cc-tag-x" onclick={() => removeTag(t)} aria-label="remove tag">×</button></span>
       {/each}
     </div>
-    <div class="sc-tag-input">
+    <div class="cc-tag-input">
       <input
         placeholder="add a tag…"
         bind:value={tagInput}
         onkeydown={(e) => { if (e.key === 'Enter' && tagInput.trim()) addTag(tagInput); }}
       />
       {#if tagInput.trim() && tagSuggest.length}
-        <div class="sc-tag-suggest">
+        <div class="cc-tag-suggest">
           {#each tagSuggest as sug}<button onclick={() => addTag(sug)}>{sug}</button>{/each}
         </div>
       {/if}
     </div>
   </div>
 
-  <button class="sc-primary" onclick={create} disabled={!title.trim() || !slug.trim() || !type.trim()}>
+  <button class="cc-primary" onclick={create} disabled={!title.trim() || !slug.trim() || !type.trim()}>
     + Create corpus → folder + index.md
   </button>
   {#if slug.trim() && type.trim()}
-    <p class="sc-muted sc-mini">
-      Writes <code class="sc-mono">{domainFolder(type.trim())}/{slug}/index.md</code>
+    <p class="cc-muted cc-mini">
+      Writes <code class="cc-mono">{domainFolder(type.trim())}/{slug}/index.md</code>
     </p>
   {/if}
 </section>

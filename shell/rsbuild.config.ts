@@ -8,7 +8,7 @@ import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 // Window microfrontends + Chat panel all subscribe to one workspace state
 // (Per-App-Workspace-Conventions blueprint).
 //
-// strategyCurator and chat are the only two remotes the humain-vc deploy
+// corporaCurator and chat are the only two remotes the humain-vc deploy
 // (Build-Order Step 9) actually mounts — their URLs are env-configurable so
 // a production build can point at real hosted remoteEntry.js files instead
 // of localhost. The other twelve stay hardcoded: they belong to flows this
@@ -18,12 +18,21 @@ import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 // federation URLs too — nobody on this instance ever navigates to them.
 // `|| default` (not `?? default`) deliberately — an unset Docker ARG
 // resolves to an EMPTY STRING once assigned to ENV, not undefined, so `??`
-// alone would silently ship `strategyCurator@` / `chat@` (no host) instead
+// alone would silently ship `corporaCurator@` / `chat@` (no host) instead
 // of falling back. Caught locally: a docker build with these vars unset
 // produced "TypeError: object null is not iterable" deep in rspack's
 // Module Federation remote-info resolution — an empty remote URL, not a
 // missing one.
-const STRATEGY_CURATOR_REMOTE = process.env.PUBLIC_STRATEGY_CURATOR_REMOTE || 'http://localhost:3017/remoteEntry.js';
+// RENAME TRANSITION (corpora-curator, Phase 4). The deployed Railway service
+// still supplies PUBLIC_STRATEGY_CURATOR_REMOTE, and this var is inlined at
+// BUILD time — so a shell built after the rename but before the dashboard is
+// updated would silently fall through to localhost and 404 in production.
+// Reading the legacy name second keeps both worlds building.
+// DELETE the middle term in Phase 5, once Railway supplies the new name.
+const CORPORA_CURATOR_REMOTE =
+  process.env.PUBLIC_CORPORA_CURATOR_REMOTE ||
+  process.env.PUBLIC_STRATEGY_CURATOR_REMOTE ||
+  'http://localhost:3017/remoteEntry.js';
 const CHAT_REMOTE = process.env.PUBLIC_CHAT_REMOTE || 'http://localhost:3006/remoteEntry.js';
 // Augment-from-DB remotes — deployed for the reach-edu opening (#69);
 // localhost fallbacks keep local dev unchanged.
@@ -53,11 +62,11 @@ export default defineConfig({
         personEnrichment: 'personEnrichment@http://localhost:3015/remoteEntry.js',
         recordDbResolver: 'recordDbResolver@http://localhost:3008/remoteEntry.js',
         personDbResolver: 'personDbResolver@http://localhost:3010/remoteEntry.js',
-        strategyCurator: `strategyCurator@${STRATEGY_CURATOR_REMOTE}`,
+        corporaCurator: `corporaCurator@${CORPORA_CURATOR_REMOTE}`,
         affiliationRatingResolver: 'affiliationRatingResolver@http://localhost:3012/remoteEntry.js',
         orgWorkbench: `orgWorkbench@${ORG_WORKBENCH_REMOTE}`,
         searchAndAdd: `searchAndAdd@${SEARCH_AND_ADD_REMOTE}`,
-        // 3018 — the spec said 3017, but strategy-curator had already
+        // 3018 — the spec said 3017, but corpora-curator had already
         // claimed it by build time.
         searchResults: `searchResults@${SEARCH_RESULTS_REMOTE}`,
         designSystem: `designSystem@${DESIGN_SYSTEM_REMOTE}`,

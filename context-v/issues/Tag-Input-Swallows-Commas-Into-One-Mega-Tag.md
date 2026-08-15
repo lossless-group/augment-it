@@ -31,7 +31,7 @@ typed commas; the input ignored them.
 
 ## Root cause
 
-`toDashed` (`apps/strategy-curator/src/curation.svelte.ts`) is the culprit:
+`toDashed` (`apps/corpora-curator/src/curation.svelte.ts`) is the culprit:
 
 ```ts
 export function toDashed(s: string): string {
@@ -77,7 +77,7 @@ unchanged — no regression.
 ## Resolution
 
 Fixed 2026-08-02. Note the runtime fix only reaches augment.didi.sh after a
-strategy-curator rebuild + redeploy; the already-mangled data on existing
+corpora-curator rebuild + redeploy; the already-mangled data on existing
 records is corrected separately (the Quantum source's tags were repaired
 directly in the canonical layer the same day).
 

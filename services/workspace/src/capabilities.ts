@@ -249,7 +249,7 @@ const CAPABILITY_TO_SUBJECT: Record<string, string> = {
   // Free-form org observation — person.add_observation's twin (gh #60).
   'organization.add_observation': 'organization.add_observation.requested',
 
-  // Domain catalog — the canonical typed-grouping graph behind apps/strategy-curator
+  // Domain catalog — the canonical typed-grouping graph behind apps/corpora-curator
   // (which is the type='strategy' view). Served by record-surrealdb-resolver
   // (domains.ts). Per context-v/specs/Strategy-Curator-Entry-Point-for-Augment-It.md.
   // (source.fetch / extract.add — the corpus file writes — land in content-ingest next.)

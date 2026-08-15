@@ -12,12 +12,12 @@
     void curation.addExtract(extractKind, t);
   }
 
-  // Pulse the border green to confirm a save, then fade back (see .sc-saved).
+  // Pulse the border green to confirm a save, then fade back (see .cc-saved).
   function flash(node: HTMLElement): void {
-    node.classList.remove('sc-saved');
+    node.classList.remove('cc-saved');
     void node.offsetWidth; // reflow → restart the animation on rapid repeats
-    node.classList.add('sc-saved');
-    window.setTimeout(() => node.classList.remove('sc-saved'), 1600);
+    node.classList.add('cc-saved');
+    window.setTimeout(() => node.classList.remove('cc-saved'), 1600);
   }
 
   // Action: commit on Enter (blur) or change, then flash on success.
@@ -49,59 +49,59 @@
 
 {#if curation.focused}
   {@const s = curation.focused}
-  <section class="sc-card">
+  <section class="cc-card">
     <h3>Source {curation.focusIdx + 1} of {curation.sources.length}</h3>
 
-    <div class="sc-field">
-      <span class="sc-label">Title <span class="sc-muted sc-mini">— editable</span></span>
+    <div class="cc-field">
+      <span class="cc-label">Title <span class="cc-muted cc-mini">— editable</span></span>
       <input
         value={s.title ?? ''}
         placeholder="(no title — fetch, retry, or just type one)"
         use:commitOnEdit={(v) => curation.updateSource('title', v)}
       />
     </div>
-    <div class="sc-field">
-      <span class="sc-label">Filename <span class="sc-muted sc-mini">— sources/<code>{s.source_slug ?? '…'}</code>.md</span></span>
+    <div class="cc-field">
+      <span class="cc-label">Filename <span class="cc-muted cc-mini">— sources/<code>{s.source_slug ?? '…'}</code>.md</span></span>
       <input
-        class="sc-mono"
+        class="cc-mono"
         value={s.source_slug ?? ''}
         placeholder="(filename appears after first save/fetch)"
         disabled={!s.source_slug}
         use:commitOnEdit={(v) => curation.renameSource(v)}
       />
     </div>
-    <div class="sc-field">
-      <span class="sc-label">Author(s) <span class="sc-muted sc-mini">— comma-separated</span></span>
+    <div class="cc-field">
+      <span class="cc-label">Author(s) <span class="cc-muted cc-mini">— comma-separated</span></span>
       <input value={(s.authors ?? []).join(', ')} placeholder="(auto-filled on fetch)" use:commitOnEdit={(v) => curation.updateAuthors(v)} />
     </div>
     <div class="grid2">
-      <div class="sc-field">
-        <span class="sc-label">Publisher</span>
+      <div class="cc-field">
+        <span class="cc-label">Publisher</span>
         <input value={s.publisher ?? ''} placeholder="(auto-filled on fetch)" use:commitOnEdit={(v) => curation.updateSource('publisher', v)} />
       </div>
-      <div class="sc-field">
-        <span class="sc-label">Published date</span>
+      <div class="cc-field">
+        <span class="cc-label">Published date</span>
         <input value={s.published_date ?? ''} placeholder="YYYY-MM-DD" use:commitOnEdit={(v) => curation.updateSource('published_date', v)} />
       </div>
     </div>
-    <div class="sc-field">
-      <span class="sc-label">URL</span>
-      <a class="sc-urllink" href={s.url} target="_blank" rel="noopener noreferrer">{s.url}</a>
+    <div class="cc-field">
+      <span class="cc-label">URL</span>
+      <a class="cc-urllink" href={s.url} target="_blank" rel="noopener noreferrer">{s.url}</a>
     </div>
-    <div class="sc-field">
-      <span class="sc-label">Status</span>
-      <span class="sc-status-chip">{s.status ?? 'metadata-only'}</span>
+    <div class="cc-field">
+      <span class="cc-label">Status</span>
+      <span class="cc-status-chip">{s.status ?? 'metadata-only'}</span>
     </div>
 
-    <div class="sc-field">
-      <span class="sc-label">
-        Report file <span class="sc-muted sc-mini">— attach a PDF you downloaded (when the URL is the profile page, not the PDF)</span>
+    <div class="cc-field">
+      <span class="cc-label">
+        Report file <span class="cc-muted cc-mini">— attach a PDF you downloaded (when the URL is the profile page, not the PDF)</span>
       </span>
       {#if s.binary_filename}
-        <div class="sc-attached" title="A file is attached to this source">
-          <span class="sc-attached-dot">✓</span>
-          <span class="sc-attached-name sc-mono">{s.binary_filename}</span>
-          {#if s.binary_bytes}<span class="sc-muted sc-mini">({(s.binary_bytes / 1e6).toFixed(1)} MB)</span>{/if}
+        <div class="cc-attached" title="A file is attached to this source">
+          <span class="cc-attached-dot">✓</span>
+          <span class="cc-attached-name cc-mono">{s.binary_filename}</span>
+          {#if s.binary_bytes}<span class="cc-muted cc-mini">({(s.binary_bytes / 1e6).toFixed(1)} MB)</span>{/if}
         </div>
       {/if}
       <input
@@ -114,31 +114,31 @@
           e.currentTarget.value = '';
         }}
       />
-      {#if s.binary_filename}<span class="sc-muted sc-mini">Choosing a file replaces the attached one.</span>{/if}
+      {#if s.binary_filename}<span class="cc-muted cc-mini">Choosing a file replaces the attached one.</span>{/if}
     </div>
 
-    <div class="sc-actions">
+    <div class="cc-actions">
       <button onclick={() => curation.fetchSource(s)} disabled={s.content_pulled}>
         {s.content_pulled ? '✓ fetched' : '↓ Fetch full content'}
       </button>
       <button onclick={() => curation.retrySource(s)} title="Re-fetch, bypassing Jina's cache">⟳ Retry</button>
-      <button class="sc-danger" onclick={() => curation.removeSource(s)}>🗑 Remove</button>
+      <button class="cc-danger" onclick={() => curation.removeSource(s)}>🗑 Remove</button>
     </div>
 
     <TagBar />
   </section>
 
-  <section class="sc-card">
+  <section class="cc-card">
     <h3>Extracts</h3>
-    <div class="sc-extract-add">
+    <div class="cc-extract-add">
       <select bind:value={extractKind}>
         {#each EXTRACT_KINDS as k}<option value={k}>{k}</option>{/each}
       </select>
       <textarea placeholder="paste an extract…" bind:value={extractText}></textarea>
-      <button class="sc-primary" onclick={saveExtract}>+ Add to {extractKind}</button>
+      <button class="cc-primary" onclick={saveExtract}>+ Add to {extractKind}</button>
     </div>
-    <p class="sc-muted sc-mini">Extracts append to this source's body under <code>## {extractKind}</code>.</p>
+    <p class="cc-muted cc-mini">Extracts append to this source's body under <code>## {extractKind}</code>.</p>
   </section>
 {:else}
-  <p class="sc-muted sc-pad">Select a source.</p>
+  <p class="cc-muted cc-pad">Select a source.</p>
 {/if}

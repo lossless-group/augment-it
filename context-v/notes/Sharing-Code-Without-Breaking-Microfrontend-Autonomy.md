@@ -97,14 +97,14 @@ to agree and nothing makes them.
 
 This is the part that changes refactor plans, and it is easy to miss.
 
-**Apps** (`apps/strategy-curator/Dockerfile`) build from the repo root:
+**Apps** (`apps/corpora-curator/Dockerfile`) build from the repo root:
 
 ```dockerfile
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages ./packages
 COPY apps ./apps
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @augment-it/strategy-curator build
+RUN pnpm --filter @augment-it/corpora-curator build
 ```
 
 They already see `packages/`. Sharing more costs nothing.

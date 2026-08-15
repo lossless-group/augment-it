@@ -137,7 +137,7 @@ Ten tokens shipped across all three mode blocks. **One was rejected on measureme
 | `--color-bg` → alias of `--color-background` | ⚠️ **DEPRECATED**, deleted end of Phase 4. Closes **43 declarations that painted nothing on the live deploy**, with zero app churn |
 | ~~`--color-text-dim`~~ | ❌ **REJECTED** — see below |
 
-Plus: global `prefers-reduced-motion` and `forced-colors` blocks in `theme.css`; an inline FOUC guard in the shell; and the `strategy-curator` light-mode focus defect closed.
+Plus: global `prefers-reduced-motion` and `forced-colors` blocks in `theme.css`; an inline FOUC guard in the shell; and the `corpora-curator` light-mode focus defect closed.
 
 ### Four findings that changed the work
 
@@ -203,7 +203,7 @@ Seven defects. The document was the source an agent would read to learn the syst
 **`F1` caught a member *declaring* a federal token. It did not catch a member *consuming* Tier 1**, which P1 and F1 both forbid. Three live violations were invisible:
 
 - `shell/src/DidiBadge.svelte:185` and `:195` — `var(--font__mono, monospace)`
-- `apps/strategy-curator/src/app.css:97` — `var(--font__mono, …)`
+- `apps/corpora-curator/src/app.css:97` — `var(--font__mono, …)`
 
 Added check **`F1a`**. It found exactly those three; all now read the Tier-2 `--font-mono` (identical resolved value, zero visual change). Regression-tested by reintroducing a violation and confirming the check fires.
 
@@ -227,7 +227,7 @@ Added check **`F1a`**. It found exactly those three; all now read the Tier-2 `--
 | **`scripts/design-drift.mjs`** | **NEW**, 536 lines — the whole of Phase 0 |
 | `packages/theme/theme.css` | **+183** — Phase 1's substance; 318 lines total |
 | `shell/rsbuild.config.ts` | +21 — the inline FOUC guard in `html.tags` |
-| `apps/strategy-curator/src/app.css` | +20 — focus defect (a11y #1) and the F1a fix |
+| `apps/corpora-curator/src/app.css` | +20 — focus defect (a11y #1) and the F1a fix |
 | `package.json` | +4 — `design:drift`, `design:contrast` |
 | `shell/src/DidiBadge.svelte` | ±4 — F1a fix |
 | `packages/theme/mode-switcher.ts` | +3 — note that the FOUC script duplicates its key/default by necessity |
@@ -310,7 +310,7 @@ SECOND — while the stack is up, eyeball Phase 1. It has never been rendered:
 
   - Cycle all three modes. Confirm no flash of dark on load in light mode
     (the FOUC guard in shell/rsbuild.config.ts).
-  - Tab into a strategy-curator input in LIGHT mode. There must be a visible
+  - Tab into a corpora-curator input in LIGHT mode. There must be a visible
     focus ring. That defect (a11y #1) was invisible before Phase 1.
   - Check the new tokens render sanely in light and vibrant, especially
     --color-border-strong and --color-bg-elevated. They were chosen against

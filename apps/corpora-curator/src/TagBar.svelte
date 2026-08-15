@@ -10,23 +10,23 @@
   }
 </script>
 
-<div class="sc-field">
-  <span class="sc-label">Tags <span class="sc-muted sc-mini">— Train-Case, workspace vocabulary, auto-complete</span></span>
+<div class="cc-field">
+  <span class="cc-label">Tags <span class="cc-muted cc-mini">— Train-Case, workspace vocabulary, auto-complete</span></span>
 
-  <div class="sc-tags">
+  <div class="cc-tags">
     {#each curation.focused?.tags ?? [] as t}
-      <span class="sc-tag">{t}<button class="sc-tag-x" onclick={() => curation.removeTag(t)} aria-label="remove tag">×</button></span>
+      <span class="cc-tag">{t}<button class="cc-tag-x" onclick={() => curation.removeTag(t)} aria-label="remove tag">×</button></span>
     {/each}
   </div>
 
-  <div class="sc-tag-input">
+  <div class="cc-tag-input">
     <input
       placeholder="add a tag…"
       bind:value={input}
       onkeydown={(e) => { if (e.key === 'Enter' && input.trim()) apply(input); }}
     />
     {#if input.trim() && suggestions.length}
-      <div class="sc-tag-suggest">
+      <div class="cc-tag-suggest">
         {#each suggestions as sug}
           <button onclick={() => apply(sug)}>{sug}</button>
         {/each}

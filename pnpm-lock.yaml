@@ -114,6 +114,49 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
+  apps/corpora-curator:
+    dependencies:
+      '@augment-it/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
+      '@augment-it/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
+      '@augment-it/workspace':
+        specifier: workspace:*
+        version: link:../../packages/workspace
+      svelte:
+        specifier: ^5.56.4
+        version: 5.56.4
+    devDependencies:
+      '@module-federation/enhanced':
+        specifier: ^2.6.0
+        version: 2.6.0(@rspack/core@2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(@swc/helpers@0.5.23))(node-fetch@2.7.0(encoding@0.1.13))(typescript@6.0.3)(webpack@5.107.1(postcss@8.5.25))
+      '@module-federation/rsbuild-plugin':
+        specifier: ^2.6.0
+        version: 2.6.0(@rsbuild/core@2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(core-js@3.47.0))(@rspack/core@2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(@swc/helpers@0.5.23))(node-fetch@2.7.0(encoding@0.1.13))(typescript@6.0.3)(webpack@5.107.1(postcss@8.5.25))
+      '@rsbuild/core':
+        specifier: ^2.1.2
+        version: 2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(core-js@3.47.0)
+      '@rsbuild/plugin-svelte':
+        specifier: ^2.0.0
+        version: 2.0.0(@rsbuild/core@2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(core-js@3.47.0))(postcss@8.5.25)(svelte@5.56.4)(typescript@6.0.3)
+      '@sveltejs/vite-plugin-svelte':
+        specifier: ^5.1.1
+        version: 5.1.1(svelte@5.56.4)(vite@7.3.6(@types/node@26.1.0)(jiti@2.4.2)(terser@5.48.0)(tsx@4.22.4))
+      jsdom:
+        specifier: ^30.0.1
+        version: 30.0.1
+      svelte-check:
+        specifier: ^4.7.1
+        version: 4.7.1(picomatch@4.0.5)(svelte@5.56.4)(typescript@6.0.3)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/node@26.1.0)(jiti@2.4.2)(jsdom@30.0.1)(terser@5.48.0)(tsx@4.22.4)
+
   apps/docs-portal:
     dependencies:
       '@augment-it/federation':
@@ -626,49 +669,6 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
-
-  apps/strategy-curator:
-    dependencies:
-      '@augment-it/federation':
-        specifier: workspace:*
-        version: link:../../packages/federation
-      '@augment-it/theme':
-        specifier: workspace:*
-        version: link:../../packages/theme
-      '@augment-it/workspace':
-        specifier: workspace:*
-        version: link:../../packages/workspace
-      svelte:
-        specifier: ^5.56.4
-        version: 5.56.4
-    devDependencies:
-      '@module-federation/enhanced':
-        specifier: ^2.6.0
-        version: 2.6.0(@rspack/core@2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(@swc/helpers@0.5.23))(node-fetch@2.7.0(encoding@0.1.13))(typescript@6.0.3)(webpack@5.107.1(postcss@8.5.25))
-      '@module-federation/rsbuild-plugin':
-        specifier: ^2.6.0
-        version: 2.6.0(@rsbuild/core@2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(core-js@3.47.0))(@rspack/core@2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(@swc/helpers@0.5.23))(node-fetch@2.7.0(encoding@0.1.13))(typescript@6.0.3)(webpack@5.107.1(postcss@8.5.25))
-      '@rsbuild/core':
-        specifier: ^2.1.2
-        version: 2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(core-js@3.47.0)
-      '@rsbuild/plugin-svelte':
-        specifier: ^2.0.0
-        version: 2.0.0(@rsbuild/core@2.1.2(@module-federation/runtime-tools@2.6.0(node-fetch@2.7.0(encoding@0.1.13)))(core-js@3.47.0))(postcss@8.5.25)(svelte@5.56.4)(typescript@6.0.3)
-      '@sveltejs/vite-plugin-svelte':
-        specifier: ^5.1.1
-        version: 5.1.1(svelte@5.56.4)(vite@7.3.6(@types/node@26.1.0)(jiti@2.4.2)(terser@5.48.0)(tsx@4.22.4))
-      jsdom:
-        specifier: ^30.0.1
-        version: 30.0.1
-      svelte-check:
-        specifier: ^4.7.1
-        version: 4.7.1(picomatch@4.0.5)(svelte@5.56.4)(typescript@6.0.3)
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
-      vitest:
-        specifier: ^3.2.7
-        version: 3.2.7(@types/node@26.1.0)(jiti@2.4.2)(jsdom@30.0.1)(terser@5.48.0)(tsx@4.22.4)
 
   e2e:
     devDependencies:

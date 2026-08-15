@@ -1,4 +1,4 @@
-// Strategy-curator state — a Svelte 5 runes singleton, per
+// Corpora-curator state — a Svelte 5 runes singleton, per
 // [[Per-App-Workspace-Conventions]]. Single source of truth; components read
 // derived getters and call actions. Every mutation goes through a workspace
 // capability (strategy.* / source.* / extract.* / tag.*) — no direct storage
@@ -223,7 +223,7 @@ class CurationState {
     if (saved && this.strategies.some((s) => s.slug === saved)) void this.select(saved);
   }
 
-  // `type` is operator-chosen at create time (see StrategyPicker's Type
+  // `type` is operator-chosen at create time (see CorpusPicker's Type
   // field) — defaults to the currently-active type if omitted. Creating a
   // domain of a NEW type switches the active type and does a full reload
   // (the in-memory list is scoped to one type at a time; appending a

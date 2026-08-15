@@ -1,5 +1,5 @@
 ---
-title: "augment-it has outgrown one flow — ROTATION is the CSV-augmentation pipeline's shape wearing a general-purpose name, and strategy-curator's promotion to its head is a splice, not a fit"
+title: "augment-it has outgrown one flow — ROTATION is the CSV-augmentation pipeline's shape wearing a general-purpose name, and corpora-curator's promotion to its head is a splice, not a fit"
 lede: "augment-it started as one thing — augment a CSV, row by row — and ROTATION (shell/src/remotes.ts) is that flow's shape, hardcoded as THE numbered nav. Every use case since (DB-canonicalization for reach-edu's CRM exit, per-org/person corpus curation, now domain/thesis curation for humain-vc) has been reconciled onto that one array instead of recognized as its own flow. Strategy Curator's 2026-07-06 'promotion to the head of ROTATION' is the symptom: a domain-curation session doesn't hand off into recordCollector, but ROTATION was the only navigation primitive that existed, so that's where it landed. The fix isn't a bigger ROTATION array — it's a 'what are you trying to do?' front door that picks which flow mounts, so a use case that isn't CSV-row augmentation stops being forced to pretend it is."
 date_created: 2026-07-06
 date_modified: 2026-07-21
@@ -33,9 +33,9 @@ tags:
 ## The observation — why this exists
 
 2026-07-06, mid-session: after wiring didi.sh actor attribution end to end, the
-operator opened `http://localhost:3017` expecting to see the strategy-curator
+operator opened `http://localhost:3017` expecting to see the corpora-curator
 in context (auth badge, workspace switcher) and instead saw the bare remote —
-no chrome, because `:3017` is `apps/strategy-curator`'s own standalone
+no chrome, because `:3017` is `apps/corpora-curator`'s own standalone
 rsbuild dev server, not the shell. The proximate fix is trivial: go to
 `:3100` instead. But the operator's actual point, in their own words:
 
@@ -73,10 +73,10 @@ Reconstructed from the operator's account plus the git/context-v trail:
    `record_id`.
 4. **reach-edu needed corpora for "strategies"** — cases to support or flesh
    out potential fundraise directions, decoupled from any single CSV row.
-   This is `strategy-curator` ([[../specs/Strategy-Curator-Entry-Point-for-Augment-It]]):
+   This is `corpora-curator` ([[../specs/Corpora-Curator-Entry-Point-for-Augment-It]]):
    pick a `domain` (type='strategy'), gather sources against IT, not against
    a record. **This is the fork.** The unit of work stopped being a record row
-   and became a domain. `strategy-curator` had no natural slot in `ROTATION`
+   and became a domain. `corpora-curator` had no natural slot in `ROTATION`
    — it isn't a step in the CSV pipeline, it's the entry point to a
    different pipeline — so it shipped as a standalone remote, reachable only
    by its own dev port.
@@ -87,7 +87,7 @@ Reconstructed from the operator's account plus the git/context-v trail:
    humain-vc reads "Thesis" and reach-edu keeps "Strategy." Same app, second
    client, second domain-type — proof the domain-curation flow is now a
    first-class citizen, not a one-off.
-6. **2026-07-06: strategy-curator promoted to the head of ROTATION**
+6. **2026-07-06: corpora-curator promoted to the head of ROTATION**
    (commit `1d4acc0`, `shell/src/remotes.ts:34-42`, +4/-2 lines). This gave
    the curator a reachable, chrome-having entry point for the first time —
    genuinely useful, unblocks Flow 1's "primary surface" framing in the
@@ -95,7 +95,7 @@ Reconstructed from the operator's account plus the git/context-v trail:
    domain-curation entry point onto the front of an array whose remaining
    six members (`recordCollector` → `recordDbResolver` → `augment` →
    `recordsSurface` → `responseReviewer` → `enhancedRecordsList`) are all
-   CSV-row-augmentation steps. Nothing in strategy-curator hands off into
+   CSV-row-augmentation steps. Nothing in corpora-curator hands off into
    `recordCollector`. The "numbered flow" is now a lie for one out of seven
    steps — you don't walk from Strategy Curator into Record Collector as
    part of one continuous task.
@@ -119,7 +119,7 @@ one of them is what `ROTATION` actually models:
 |---|---|---|---|
 | **A — CSV Row Augmentation** | one CSV row | recordCollector, recordDbResolver, augment (PTM⇄PackRunner⇄SortFilterLens), recordsSurface, responseReviewer, enhancedRecordsList | Yes — this IS what `ROTATION` models |
 | **B — Canonical DB Reconciliation** | one person/org | recordDbResolver | Embedded inside Flow A (step 3) — also directly useful standalone once reach-edu is fully off their CRM |
-| **C — Domain/Thesis Corpus Curation** | one domain (strategy or thesis) | strategyCurator, content-ingest's corpus tables, (soon) dididecks-ai downstream | Spliced onto Flow A's front as step 1, despite sharing no data spine with steps 2-7 |
+| **C — Domain/Thesis Corpus Curation** | one domain (strategy or thesis) | corporaCurator, content-ingest's corpus tables, (soon) dididecks-ai downstream | Spliced onto Flow A's front as step 1, despite sharing no data spine with steps 2-7 |
 
 Flow C doesn't key off `record_uuid` the way Flow A does — it keys off
 `domain_type:domain_slug`. There is no natural "next step" from Strategy
@@ -167,7 +167,7 @@ layer up: *which flow is even active*. They compose cleanly:
 
 Every new use case gets folded into `ROTATION` wherever it fits best, or
 shipped standalone if it doesn't fit at all. Cheapest, and it's *why*
-strategy-curator exists and works today. Cost: `ROTATION` keeps meaning less
+corpora-curator exists and works today. Cost: `ROTATION` keeps meaning less
 as it grows (it's already lying for 1 of 7 members); each new flow that
 doesn't fit either gets awkwardly spliced in (repeat 2026-07-06's move) or
 stays a standalone-port app operators have to remember, as happened today.
@@ -201,7 +201,7 @@ jumbo variant is the richer, grid-based sibling for a menu that wants to
 say more than one line per item.
 
 **Scope for right now: exactly one entry.** The popdown ships with a
-single item — **"Build Corpora"** — which mounts `strategyCurator` as its
+single item — **"Build Corpora"** — which mounts `corporaCurator` as its
 own focused surface (no CSV steps trailing behind it, same fix for today's
 `:3017` confusion as the original draft: the popdown becomes the on-ramp,
 replacing the memorized-port habit). `ROTATION` itself is untouched — it
@@ -227,7 +227,7 @@ interaction with Step 7's (still-open) sign-in wall. `ROTATION`,
 **Cost estimate:** small. One Svelte component (`JumboPopdown.svelte` or
 similar, ported from the astro-knots blueprint's interaction contract),
 wired into the shell header next to `WorkspaceSwitcher`/`DidiBadge`, one
-menu item, one navigate-to-strategyCurator action.
+menu item, one navigate-to-corporaCurator action.
 
 ### Option 3 — Let each flow be its own top-level shell (defer)
 
@@ -259,7 +259,7 @@ diverge from Flow A's, which they don't yet.
   remote stays federation-registered and technically reachable standalone,
   same as `chat`/`packRunner`/`personEnrichment` today, but nobody needs to
   remember the port).
-- **Doesn't block Build-Order step 5.** Making strategy-curator's
+- **Doesn't block Build-Order step 5.** Making corpora-curator's
   `domain_type` workspace-derived (humain-vc → thesis, reach-edu →
   strategy) is orthogonal to which flow-picker button reaches it, and should
   proceed regardless of when/whether Option 2 ships.
@@ -276,7 +276,7 @@ diverge from Flow A's, which they don't yet.
    `BUILD_CORPORA_ROTATION` (`shell/src/remotes.ts`), each owned by a
    `FlowDef` in the new `shell/src/flows.svelte.ts` (`FLOWS` registry +
    an `activeFlow` singleton, same constructor-`$state` pattern as
-   `layout.svelte.ts`). `strategyCurator` came back OUT of the
+   `layout.svelte.ts`). `corporaCurator` came back OUT of the
    CSV-augmentation rotation entirely — the 2026-07-06 splice is undone,
    not just relabeled.
 2. ✅ **DONE 2026-07-06, then extended 2026-07-07 — the popdown is now a
@@ -321,7 +321,7 @@ diverge from Flow A's, which they don't yet.
   step 7's sign-in wall lands?** No dependency either way today (the
   popdown doesn't touch auth), but worth a quick check-in once Step 7
   ships in case the two end up wanting shared header real estate.
-- **Is `strategyCurator` the right name once the popdown exists and
+- **Is `corporaCurator` the right name once the popdown exists and
   humain-vc reads "Thesis"?** The app id and remote label still say
   "Strategy Curator" everywhere; Build-Order step 5 handles the in-app
   copy but the code identifier will keep saying strategy. Fine to leave —
@@ -341,7 +341,7 @@ diverge from Flow A's, which they don't yet.
 - [[Operator-Built-Flows-Beyond-The-Universal-Pipeline]] — the sibling
   exploration, one layer down (customizing granularity *within* a flow,
   not choosing *which* flow).
-- [[../specs/Strategy-Curator-Entry-Point-for-Augment-It]] — the spec of
+- [[../specs/Corpora-Curator-Entry-Point-for-Augment-It]] — the spec of
   record for the Flow-C entry point this doc discusses; already self-titled
   "An Entry-Point App," which this exploration takes at face value and
   argues should get a real front door rather than a ROTATION splice.

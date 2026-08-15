@@ -37,7 +37,7 @@ The result overturns the diagnosis below:
      pack-runner, the resolvers, …); those fetches fail — and on some networks
      **hang on a TCP connect timeout**, which is where a minute can come from.
      The *deployed* remotes (chat 3006, org-workbench 3014, search-and-add 3016,
-     strategy-curator 3017) load fine and were never in the failure list.
+     corpora-curator 3017) load fine and were never in the failure list.
 
 **So the mesh-refactor design space below is RETRACTED as the cause.** The
 remaining, much smaller work is a **build/federation-config cleanup**: prune the
@@ -60,7 +60,7 @@ many independently-deployed parts.
 
 ## The topology being paid for (with one user)
 
-- **7+ separate Railway services**: `shell` (augment.didi.sh), `strategy-curator`,
+- **7+ separate Railway services**: `shell` (augment.didi.sh), `corpora-curator`,
   `chat` (+ other federation remotes: org-workbench, search-and-add,
   search-results…), `workspace-service` (WS gateway), `record-surrealdb-resolver`,
   `content-ingest`, `prompt-runner`.

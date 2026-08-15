@@ -60,8 +60,8 @@ tags:
   this build order.
 - augment-it workspace-service verifies `didi_session` on WS upgrade
   (`services/workspace/src/didi.ts`); shell has the DidiBadge sign-in AND
-  a "Flows" jumbo popdown ("Build Corpora" → strategyCurator, full-screen);
-  strategy-curator (now "Corpora Curator") promoted to the head of
+  a "Flows" jumbo popdown ("Build Corpora" → corporaCurator, full-screen);
+  corpora-curator (now "Corpora Curator") promoted to the head of
   ROTATION; the active-workspace split-brain fixed at the shell level
   AND, separately, inside the curator itself (each federation remote's own
   `@augment-it/workspace` singleton needed its own reconciliation listener
@@ -181,7 +181,7 @@ Original scope follows.
 ## Step 5 — Thesis vocabulary, minimal (augment-it) ✅ DONE 2026-07-07 (shipped differently than sketched)
 
 > Proceeded independently of [[../explorations/Augment-It-Has-Outgrown-One-Flow-The-Choose-A-Flow-Front-Door]] —
-> that exploration questions whether `strategyCurator`'s place at the head
+> that exploration questions whether `corporaCurator`'s place at the head
 > of shell `ROTATION` is the right long-term shape (it argues for a
 > "choose a flow" front door instead), but this step's per-workspace
 > `domain_type` swap was correct either way and didn't wait on that
@@ -191,7 +191,7 @@ Done across two sessions (2026-07-06 UI rename + operator-defined type;
 2026-07-07 the per-workspace default + the retype migration), ending up
 more general than the original sketch:
 
-- `apps/strategy-curator` UI now reads **"Corpora Curator"** everywhere
+- `apps/corpora-curator` UI now reads **"Corpora Curator"** everywhere
   (display copy only — package/folder/remote id unchanged). `DOMAIN_TYPE`
   the hardcoded constant is gone; `curation.svelte.ts` carries a reactive
   `domainType` field, operator-editable via a **Type** field on the "New
@@ -243,7 +243,7 @@ succeeded) rather than split across resolver and content-ingest:
   which can span clients), and `actor`.
 - Those six subjects added to `BROADCAST_SUBJECTS` in
   `services/workspace/src/ws.ts`.
-- `apps/strategy-curator/src/App.svelte` (not `curation.svelte.ts` — an
+- `apps/corpora-curator/src/App.svelte` (not `curation.svelte.ts` — an
   `$effect` needs a component, and `record-collector`'s App.svelte already
   set the precedent) watches `workspace.events`, dedups by `seq` the same
   way `record-collector` does, and calls the state singleton's
@@ -255,7 +255,7 @@ succeeded) rather than split across resolver and content-ingest:
   independently-authenticated WS sessions against the live local stack;
   session A invokes `domain.create` then `source.add`; session B (idle,
   never invokes) asserted receipt of `domain.created` then `source.added`
-  with matching payloads, no polling. Passed both. `apps/strategy-curator`
+  with matching payloads, no polling. Passed both. `apps/corpora-curator`
   (`svelte-check`) and the two touched services (`tsc --noEmit`) all clean.
   Test domain + source cleaned up from SurrealDB and the humain-vc
   filesystem after the run, same discipline as step 4's ATTRIBUTION mode.
@@ -357,7 +357,7 @@ Lossless Group"): `nats` (official image, custom start command — see
 gotcha below), `workspace-service`, `record-surrealdb-resolver`,
 `content-ingest`, `prompt-runner` (all four Dockerfile builds,
 `rootDirectory` = `/services/<name>`), and three frontends —
-`shell`, `strategy-curator`, `chat` — each **also** Dockerfile-built
+`shell`, `corpora-curator`, `chat` — each **also** Dockerfile-built
 (not Railway's Railpack auto-builder; see gotcha below), full-repo
 build context (they need the pnpm workspace), each producing its own
 static `dist/` served via `serve`.
@@ -391,14 +391,14 @@ Decile Hub credentials workspace-service has no business touching).
   package.json's `build` script (`turbo run build`) for the three
   frontends, ignoring any custom `buildCommand` override — and `turbo`
   was never actually an installed binary here. Fixed by giving `shell`,
-  `strategy-curator`, and `chat` their own Dockerfiles (direct `pnpm
+  `corpora-curator`, and `chat` their own Dockerfiles (direct `pnpm
   --filter <pkg> build`), same pattern as the four backend services.
 - A Docker `ARG` that's declared but never passed resolves to an **empty
   string**, not `undefined` — `?? default` doesn't catch it. Two real
   bugs from this: (1) `shell/rsbuild.config.ts`'s remote-URL fallbacks
   had to change from `??` to `||`; (2) module-federation `assetPrefix`
   was only set for `dev`, not `output` (the field that also covers
-  production builds) — missing it meant `chat`'s and `strategy-curator`'s
+  production builds) — missing it meant `chat`'s and `corpora-curator`'s
   async sub-chunks resolved as relative paths against the **shell's**
   origin instead of their own, 404ing into the shell's SPA-fallback HTML
   ("SyntaxError: Unexpected token '<'"). Only reproduces cross-origin —
@@ -438,7 +438,7 @@ origins don't need to):
   silently CORS-rejected since it went live, just never surfaced because
   augment-it wasn't deployed yet. Added `["https://augment.didi.sh"]`,
   deployed to Fly.
-- `PUBLIC_WS_URL` rebuilt into `shell`/`strategy-curator`/`chat` as
+- `PUBLIC_WS_URL` rebuilt into `shell`/`corpora-curator`/`chat` as
   `wss://ws.augment.didi.sh/ws`.
 - **Verify:** `curl -H "Origin: https://augment.didi.sh" -X OPTIONS
   https://id.didi.sh/api/magic-links` returns

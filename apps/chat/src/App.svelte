@@ -13,7 +13,7 @@
   // No `shared` block in federation (see shell/rsbuild.config.ts's note) —
   // this remote owns its own workspace singleton and connects independently
   // even when mounted inside the shell, so it needs the same env-configured
-  // WS_URL the shell and strategy-curator each read (rsbuild inlines
+  // WS_URL the shell and corpora-curator each read (rsbuild inlines
   // PUBLIC_-prefixed vars into import.meta.env at build time).
   const WS_URL =
     ((import.meta as { env?: Record<string, string> }).env?.PUBLIC_WS_URL as string | undefined) ||

@@ -33,7 +33,7 @@ export type RemoteEntry = {
  * Renamed from the bare `ROTATION` (2026-07-07) — augment-it now has more
  * than one flow (see ./flows.svelte.ts and context-v/explorations/
  * Augment-It-Has-Outgrown-One-Flow-The-Choose-A-Flow-Front-Door.md), so
- * "the rotation" needed to become "this flow's rotation." `strategyCurator`
+ * "the rotation" needed to become "this flow's rotation." `corporaCurator`
  * — briefly spliced onto the head of this array on 2026-07-06 to give it
  * SOME entry point — moved out to its own flow below; it never belonged
  * here (it shares no data spine with the CSV-row steps that follow it).
@@ -54,7 +54,7 @@ export const CSV_AUGMENTATION_ROTATION: string[] = [
  * named array (not just inlined in flows.svelte.ts) so it reads
  * symmetrically next to CSV_AUGMENTATION_ROTATION above.
  */
-export const BUILD_CORPORA_ROTATION: string[] = ['strategyCurator'];
+export const BUILD_CORPORA_ROTATION: string[] = ['corporaCurator'];
 
 /**
  * The "Augment a CSV of Event Attendees" flow's rotation — Flow B from
@@ -247,7 +247,7 @@ export const PERSON_ENRICHMENT_REMOTE: RemoteEntry = {
 // Same shape as CHAT_REMOTE; aggregated here so remoteById() can fall back
 // to look them up without each caller having to know about each extra.
 
-// STRATEGY_CURATOR_REMOTE — "Corpora Curator" on-screen (display rename;
+// CORPORA_CURATOR_REMOTE — "Corpora Curator" on-screen (display rename;
 // id/package/remote name unchanged) — the entry-point surface for
 // gathering sources against a domain (metadata-first → Jina/PDF fetch →
 // extracts), writing only through workspace capabilities. Briefly
@@ -256,12 +256,12 @@ export const PERSON_ENRICHMENT_REMOTE: RemoteEntry = {
 // 2026-07-07 — it never belonged in the CSV-augmentation sequence. Kept
 // in EXTRA_REMOTES too — remoteById checks both, harmless.
 // See context-v/specs/Strategy-Curator-Entry-Point-for-Augment-It.md.
-export const STRATEGY_CURATOR_REMOTE: RemoteEntry = {
-  id: 'strategyCurator',
+export const CORPORA_CURATOR_REMOTE: RemoteEntry = {
+  id: 'corporaCurator',
   label: 'Corpora Curator',
   description: 'Pick a strategy or thesis, gather sources (metadata-first → fetch → extracts), tag and cross-reference',
   // @ts-expect-error — federation remote, type comes from the MF runtime
-  importMount: () => import('strategyCurator/mount'),
+  importMount: () => import('corporaCurator/mount'),
 };
 
 // SEARCH_AND_ADD_REMOTE — the "Augment from DB" flow's search surface
@@ -298,7 +298,7 @@ const EXTRA_REMOTES: RemoteEntry[] = [
   PACK_RUNNER_REMOTE,
   SORT_FILTER_LENS_REMOTE,
   PERSON_ENRICHMENT_REMOTE,
-  STRATEGY_CURATOR_REMOTE,
+  CORPORA_CURATOR_REMOTE,
   SEARCH_AND_ADD_REMOTE,
 ];
 

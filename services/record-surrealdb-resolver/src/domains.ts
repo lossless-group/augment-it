@@ -1,5 +1,5 @@
-// Domain catalog — the canonical graph layer behind the strategy-curator surface
-// (apps/strategy-curator is the type='strategy' view of it). A "domain" is a TYPED
+// Domain catalog — the canonical graph layer behind the corpora-curator surface
+// (apps/corpora-curator is the type='strategy' view of it). A "domain" is a TYPED
 // grouping: type ∈ strategy | topic | thesis | market-segment | category | …
 // Faceted classification, not DDD — one catalog table, discriminated by `type`.
 // `strategy.*` is operationalized as `domain.*` with type='strategy'.

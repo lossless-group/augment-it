@@ -49,7 +49,7 @@ run "Group C — transport (packages/workspace)"                    "$ROOT/packa
 run "Groups B/D/H — workspace-service"                            "$ROOT/services/workspace"                pnpm test
 run "Groups E/J — resolver (canonical CRUD + alignment)"          "$ROOT/services/record-surrealdb-resolver" pnpm test
 run "Group F — content-ingest (corpus files)"                     "$ROOT/services/content-ingest"           pnpm test
-run "Group G — strategy-curator (Svelte 5 runes)"                 "$ROOT/apps/strategy-curator"             pnpm test
+run "Group G — corpora-curator (Svelte 5 runes)"                 "$ROOT/apps/corpora-curator"             pnpm test
 run "Group I — E2E backend-chain integration"                     "$ROOT/e2e"                               pnpm test
 
 if command -v mix >/dev/null 2>&1 && [ -d "$DIDI" ]; then

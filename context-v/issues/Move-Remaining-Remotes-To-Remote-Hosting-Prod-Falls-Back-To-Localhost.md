@@ -34,7 +34,7 @@ prod shell silently mounts *their laptop's* dev code.
 ## How we got here (the deliberate shortcut)
 
 The priority was getting **client collaboration** live: the **Corpus Builder**
-(strategy-curator) and the **Augment-from-DB** flow (org-workbench +
+(corpora-curator) and the **Augment-from-DB** flow (org-workbench +
 search-and-add + search-results), plus **chat**. Those surfaces were deployed as
 hosted Railway services with real `PUBLIC_*_REMOTE` URLs. Everything else — the
 original CSV-first pipeline and the resolver micro-frontends — was left pointing
@@ -65,7 +65,7 @@ reference other undeployed remotes (`recordDbResolver`, `personDbResolver`,
 | chat | 3006 | ✅ yes | env-aware |
 | org-workbench | 3014 | ✅ yes | env-aware |
 | search-and-add | 3016 | ✅ yes | env-aware |
-| strategy-curator (Corpus Builder) | 3017 | ✅ yes | env-aware |
+| corpora-curator (Corpus Builder) | 3017 | ✅ yes | env-aware |
 | search-results | 3018 | ✅ yes | env-aware |
 | **record-collector** | 3002 | ❌ no | **hardcoded localhost** |
 | **prompt-template-manager** | 3003 | ❌ no | **hardcoded localhost** |
@@ -105,7 +105,7 @@ Even before all twelve are hosted, prod should **never fetch `localhost`**:
 1. Make the remotes map **environment-aware** — in a production build, **omit**
    any remote without a real hosted URL, so Module Federation never tries it.
 2. **Guard the mount path** and pick a **deployed default Flow** in prod
-   (strategy-curator / Corpus Builder, what humain-vc actually uses) so boot
+   (corpora-curator / Corpus Builder, what humain-vc actually uses) so boot
    never mounts an undeployed remote.
 
 Track B stops the boot noise and the hang-on-a-collaborator's-network failure
@@ -124,6 +124,6 @@ mode immediately; Track A is the durable "the whole app is hosted" end state.
   was ~543ms; these localhost loads were the residual).
 - `DEPLOYMENT.md` — the shell build-args + per-service deploy pattern the five
   hosted remotes already follow.
-- [[Augment-From-DB-Flow]] · [[Strategy-Curator-Entry-Point-for-Augment-It]] —
+- [[Augment-From-DB-Flow]] · [[Corpora-Curator-Entry-Point-for-Augment-It]] —
   the two surfaces that WERE prioritized and hosted.
 - Boot instrumentation (gh #80) — how the localhost loads became visible.

@@ -9,9 +9,9 @@ import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 // dealt with. Fire many, walk away, triage on arrival.
 // See context-v/specs/Search-Results-Queue-Remote.md.
 //
-// Port 3018 — the spec said 3017, but strategy-curator had already claimed
+// Port 3018 — the spec said 3017, but corpora-curator had already claimed
 // it by build time.
-// Own-origin asset prefix for production (chat/strategy-curator pattern) —
+// Own-origin asset prefix for production (chat/corpora-curator pattern) —
 // sub-chunks resolve against the prefix baked at build, not the host page.
 const ASSET_PREFIX = process.env.PUBLIC_SEARCH_RESULTS_ASSET_PREFIX || 'http://localhost:3018';
 

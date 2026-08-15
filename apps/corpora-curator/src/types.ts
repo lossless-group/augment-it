@@ -1,4 +1,4 @@
-// Local view-model types for the strategy-curator surface. The authoritative
+// Local view-model types for the corpora-curator surface. The authoritative
 // shapes live in the spec (Strategy-Curator-Entry-Point-for-Augment-It.md) and,
 // once the backend handlers land, in the resolver / content-ingest services.
 

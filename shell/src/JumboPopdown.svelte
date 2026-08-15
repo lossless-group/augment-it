@@ -15,7 +15,7 @@
   //
   // First use: the shell's flow-navigation popdown (see
   // context-v/explorations/Augment-It-Has-Outgrown-One-Flow-The-Choose-A-Flow-Front-Door.md)
-  // — one "Build Corpora" item that navigates to strategyCurator. Generic
+  // — one "Build Corpora" item that navigates to corporaCurator. Generic
   // on purpose so a second flow-entry is just another item, not a new
   // component.
 
