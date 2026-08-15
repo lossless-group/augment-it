@@ -97,10 +97,17 @@ jobs:
       # binary is already on PATH, so the suite passes locally and fails here
       # with `spawn surreal ENOENT` — the same laptop-vs-clean-machine asymmetry
       # that hid the tsconfig bug for twelve days. Install it explicitly.
+      # Pinned rather than `latest`, deliberately: an upstream release that
+      # breaks this job would look like a broken PR, and a gate that cries wolf
+      # stops being read. Bump the version here on purpose.
+      # (install.surrealdb.com's script is not used — it rejects --yes and
+      # prompts, which hangs or exits 2 on a runner.)
       - name: Install SurrealDB CLI (Groups E/J spawn it)
+        env:
+          SURREAL_VERSION: v3.2.0
         run: |
-          curl -sSf https://install.surrealdb.com | sh -s -- --yes
-          echo "$HOME/.surrealdb" >> "$GITHUB_PATH"
+          curl -sSfL "https://github.com/surrealdb/surrealdb/releases/download/${SURREAL_VERSION}/surreal-${SURREAL_VERSION}.linux-amd64.tgz" \
+            | sudo tar -xz -C /usr/local/bin
 
       - name: Verify surreal is on PATH
         run: surreal version
