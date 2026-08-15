@@ -61,11 +61,19 @@ jobs:
 
           # The token knows which environment it belongs to, so no Railway IDs
           # are committed here. Swapping the secret repoints the whole workflow.
-          ENV_ID=$(api '{"query":"query { projectToken { environmentId } }"}' \
-            | jq -r '.data.projectToken.environmentId')
+          # `|| true` so a non-2xx from curl -f still reaches the diagnostic
+          # below instead of dying silently under `set -e`.
+          PROBE=$(api '{"query":"query { projectToken { environmentId } }"}' || true)
+          ENV_ID=$(printf '%s' "$PROBE" | jq -r '.data.projectToken.environmentId // empty')
 
-          if [ -z "$ENV_ID" ] || [ "$ENV_ID" = "null" ]; then
+          if [ -z "$ENV_ID" ]; then
+            # `projectToken` resolves ONLY for a project token. An account or
+            # team token authenticates fine and returns null here, which is the
+            # overwhelmingly likely cause. Print the response — it carries
+            # Railway's own error message and contains no credential.
             echo "::error::Could not resolve environmentId from the token. Is it a PROJECT token?"
+            echo "Railway response:"
+            printf '%s\n' "$PROBE" | jq . 2>/dev/null || printf '%s\n' "$PROBE"
             exit 1
           fi
 
