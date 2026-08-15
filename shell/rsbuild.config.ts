@@ -23,16 +23,8 @@ import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 // produced "TypeError: object null is not iterable" deep in rspack's
 // Module Federation remote-info resolution — an empty remote URL, not a
 // missing one.
-// RENAME TRANSITION (corpora-curator, Phase 4). The deployed Railway service
-// still supplies PUBLIC_STRATEGY_CURATOR_REMOTE, and this var is inlined at
-// BUILD time — so a shell built after the rename but before the dashboard is
-// updated would silently fall through to localhost and 404 in production.
-// Reading the legacy name second keeps both worlds building.
-// DELETE the middle term in Phase 5, once Railway supplies the new name.
 const CORPORA_CURATOR_REMOTE =
-  process.env.PUBLIC_CORPORA_CURATOR_REMOTE ||
-  process.env.PUBLIC_STRATEGY_CURATOR_REMOTE ||
-  'http://localhost:3017/remoteEntry.js';
+  process.env.PUBLIC_CORPORA_CURATOR_REMOTE || 'http://localhost:3017/remoteEntry.js';
 const CHAT_REMOTE = process.env.PUBLIC_CHAT_REMOTE || 'http://localhost:3006/remoteEntry.js';
 // Augment-from-DB remotes — deployed for the reach-edu opening (#69);
 // localhost fallbacks keep local dev unchanged.

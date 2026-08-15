@@ -128,35 +128,51 @@ Only **two** of the seventeen remotes are deployed at all — the curator and
 `chat`; the other fifteen are still pointed at `localhost` in the shell's
 federation config, deliberately, per the build order.
 
-### The transition fallbacks already in the tree
+### The transition fallbacks — added in Phase 4, removed in Phase 5
 
-Because these vars are inlined at **build** time, a build that lands before the
-dashboard is updated would fall through to `localhost` and 404 in production.
-Four files therefore read the **new** name first and the **old** name second:
+Because these vars are inlined at **build** time, a build that landed before the
+dashboard was updated would have fallen through to `localhost` and 404'd in
+production. Four files therefore read the **new** name first and the **old**
+name second for the length of the transition.
+
+**That window is now closed** (2026-08-15). Railway supplies only the
+`CORPORA_CURATOR` names, the legacy variables are deleted, and all four files
+read a single name:
 
 | File | Reads |
 |---|---|
-| `shell/rsbuild.config.ts` | `PUBLIC_CORPORA_CURATOR_REMOTE` ‖ `PUBLIC_STRATEGY_CURATOR_REMOTE` |
-| `shell/Dockerfile` | both `ARG`/`ENV` declared |
-| `apps/corpora-curator/rsbuild.config.ts` | `PUBLIC_CORPORA_CURATOR_ASSET_PREFIX` ‖ `PUBLIC_STRATEGY_CURATOR_ASSET_PREFIX` |
-| `apps/corpora-curator/Dockerfile` | both `ARG`/`ENV` declared |
+| `shell/rsbuild.config.ts` | `PUBLIC_CORPORA_CURATOR_REMOTE` |
+| `shell/Dockerfile` | one `ARG`/`ENV` |
+| `apps/corpora-curator/rsbuild.config.ts` | `PUBLIC_CORPORA_CURATOR_ASSET_PREFIX` |
+| `apps/corpora-curator/Dockerfile` | one `ARG`/`ENV` |
 
-This means **the current tree deploys correctly with the dashboard untouched.**
-The asset-prefix one matters most: missing it does not fail the build, it ships
+The asset-prefix one mattered most: missing it does not fail the build, it ships
 a remote that loads and then breaks on its first async sub-chunk.
 
-### Sequence
+### Sequence — executed 2026-08-15
 
-1. Update the Railway service's `dockerfilePath` to
-   `apps/corpora-curator/Dockerfile`. Dashboard change; Railway builds on push,
-   so land it near the merge. Out of order in either direction costs one failed
-   build — recoverable, but expect it rather than discover it.
-2. Add `corpora-curator-production.up.railway.app` as an **additional** domain
-   on the existing service. Both hostnames now serve.
-3. Add `PUBLIC_CORPORA_CURATOR_REMOTE` / `PUBLIC_CORPORA_CURATOR_ASSET_PREFIX`
-   as service variables, redeploy, verify in a real browser.
-4. Only then rename the Railway service and retire the old domain.
-5. Update `DEPLOYMENT.md`'s hostname table last, once it is true.
+The plan below was written expecting a careful dashboard dance. It was executed
+instead against a project with **no active users and a remote database**, where
+downtime was explicitly acceptable, so the additive-domain step was skipped in
+favour of a straight cut.
+
+| # | Step | Result |
+|---|---|---|
+| 1 | `dockerfilePath` → `apps/corpora-curator/Dockerfile`, build command → `pnpm --filter @augment-it/corpora-curator build` | ✅ |
+| 2 | Rename the Railway service `strategy-curator` → `corpora-curator` | ✅ via `serviceUpdate` — **no MCP tool covers this**; the Railway CLI's `railway api` GraphQL passthrough does |
+| 3 | Old generated domain deleted, new one generated | ✅ `corpora-curator-production.up.railway.app` |
+| 4 | `PUBLIC_CORPORA_CURATOR_*` set on both services; `PUBLIC_STRATEGY_CURATOR_*` deleted; `RAILPACK_STATIC_FILE_ROOT` corrected | ✅ |
+| 5 | Phase 5 — legacy reads dropped from all four files | ✅ |
+| 6 | `DEPLOYMENT.md` hostname table | ✅ already correct — Phase 1 wrote the post-rename hostname, which only became true at step 3 |
+
+**A generated domain does not follow a service rename.** After renaming, the
+service still served `strategy-curator-production.up.railway.app`. The domain is
+its own object with its own ID; it must be deleted and regenerated, and
+`generate_domain` is a no-op while any domain already exists.
+
+**`RAILWAY_PRIVATE_DOMAIN` still reads `strategy-curator.railway.internal`** —
+Railway-managed, expected to refresh on the next successful deploy. Nothing
+in this repo consumes it (private networking is unused between the frontends).
 
 ## 6. Phase 5 — retire
 

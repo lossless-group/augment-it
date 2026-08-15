@@ -10,14 +10,10 @@ import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 // the full rationale (a federated remote's sub-chunks resolve against
 // whatever assetPrefix it was compiled with, not the host's origin;
 // dev.assetPrefix alone doesn't cover production builds).
-// RENAME TRANSITION (Phase 4): the Railway service still passes the
-// STRATEGY_CURATOR name. Missing this one does not fail the build — it ships a
-// remote that loads and then breaks on its first async sub-chunk, because the
-// prefix falls back to localhost. Legacy name read second; drop it in Phase 5.
-const ASSET_PREFIX =
-  process.env.PUBLIC_CORPORA_CURATOR_ASSET_PREFIX ||
-  process.env.PUBLIC_STRATEGY_CURATOR_ASSET_PREFIX ||
-  'http://localhost:3017';
+// Missing this does not fail the build — it ships a remote that loads and then
+// breaks on its first async sub-chunk, because the prefix falls back to
+// localhost. `||` not `??`: an unset Docker ARG arrives as an empty string.
+const ASSET_PREFIX = process.env.PUBLIC_CORPORA_CURATOR_ASSET_PREFIX || 'http://localhost:3017';
 
 export default defineConfig({
   plugins: [
