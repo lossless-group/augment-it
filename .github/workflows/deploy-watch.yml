@@ -1,0 +1,147 @@
+# Deploy watchdog — the half of the twelve-day gap that CI structurally cannot see.
+#
+# ci.yml catches a broken build BEFORE merge. Nothing catches a deploy that
+# fails AFTER it, because a failed Railway deploy is invisible from outside:
+# the previously-built container keeps serving, the health check keeps passing,
+# and the domain keeps answering 200. A broken deploy and a healthy one are
+# externally identical. The only record is a red row in a dashboard, and
+# dashboards are pull-based — somebody has to decide to look. Nobody did, for
+# twelve days.
+#
+# So this polls and then SHOUTS: a failed run, plus a GitHub issue that opens on
+# failure and closes on recovery.
+#
+# See context-v/issues/A-Failed-Deploy-Is-Silent-Nothing-Watches-Production-After-Merge.md
+name: Deploy watch
+
+on:
+  schedule:
+    # Every 15 minutes. Two API calls per run = 192 requests/day, comfortable
+    # against Railway's 1000/hour Hobby limit. Do not tighten below ~10 min
+    # without checking the plan's rate limit.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+# Never let two watchdog runs race on the same issue.
+concurrency:
+  group: deploy-watch
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    name: Railway deploy status
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query Railway for every service's latest deployment
+        id: check
+        env:
+          # A PROJECT token — scoped to one environment of one project, and the
+          # least-privilege choice: an account token would hand this workflow
+          # every project in the workspace. Project tokens authenticate with the
+          # `Project-Access-Token` header, NOT `Authorization: Bearer`.
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${RAILWAY_TOKEN:-}" ]; then
+            echo "::error::RAILWAY_TOKEN secret is not set. See the context-v issue for how to mint a project token."
+            exit 1
+          fi
+
+          api() {
+            curl -sSf -X POST https://backboard.railway.com/graphql/v2 \
+              -H "Project-Access-Token: ${RAILWAY_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "$1"
+          }
+
+          # The token knows which environment it belongs to, so no Railway IDs
+          # are committed here. Swapping the secret repoints the whole workflow.
+          ENV_ID=$(api '{"query":"query { projectToken { environmentId } }"}' \
+            | jq -r '.data.projectToken.environmentId')
+
+          if [ -z "$ENV_ID" ] || [ "$ENV_ID" = "null" ]; then
+            echo "::error::Could not resolve environmentId from the token. Is it a PROJECT token?"
+            exit 1
+          fi
+
+          api "$(jq -nc --arg id "$ENV_ID" '{
+            query: "query($id: String!) { environment(id: $id) { serviceInstances { edges { node { serviceName latestDeployment { status createdAt } } } } } }",
+            variables: {id: $id}
+          }')" > status.json
+
+          # FAILED/CRASHED are the states that mean "this did not ship."
+          # Transient states (BUILDING, DEPLOYING, INITIALIZING, QUEUED) are not
+          # failures — a run that happens to land mid-deploy must stay quiet.
+          jq -r '
+            .data.environment.serviceInstances.edges[]
+            | .node
+            | "\(.serviceName)\t\(.latestDeployment.status // "NONE")\t\(.latestDeployment.createdAt // "-")"
+          ' status.json | sort > all.tsv
+
+          echo "### Latest deployment per service" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat all.tsv >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat all.tsv
+
+          awk -F'\t' '$2=="FAILED" || $2=="CRASHED"' all.tsv > bad.tsv || true
+
+          if [ -s bad.tsv ]; then
+            {
+              echo "broken=true"
+              echo "detail<<EOF"
+              cat bad.tsv
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "broken=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update the failure issue
+        if: steps.check.outputs.broken == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DETAIL: ${{ steps.check.outputs.detail }}
+        run: |
+          set -euo pipefail
+          BODY=$(printf '%s\n\n```\n%s\n```\n\n[Run](%s/%s/actions/runs/%s) · [Why this watchdog exists](%s/%s/blob/rebuild/turbo-rsbuild/context-v/issues/A-Failed-Deploy-Is-Silent-Nothing-Watches-Production-After-Merge.md)\n' \
+            "One or more Railway services report a failed latest deployment. The site may still be serving an older container, which is exactly why this is easy to miss." \
+            "$DETAIL" \
+            "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}" "${GITHUB_RUN_ID}" \
+            "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}")
+
+          EXISTING=$(gh issue list --label deploy-failure --state open --limit 1 --json number -q '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+            echo "Updated issue #$EXISTING"
+          else
+            gh issue create \
+              --title "Deploy failing on Railway (production)" \
+              --label deploy-failure \
+              --body "$BODY"
+          fi
+
+      - name: Close the failure issue on recovery
+        if: steps.check.outputs.broken == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          EXISTING=$(gh issue list --label deploy-failure --state open --limit 1 --json number -q '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue close "$EXISTING" \
+              --comment "Every service reports a healthy latest deployment as of run ${GITHUB_RUN_ID}. Closing automatically."
+          fi
+
+      - name: Fail the run so the red mark is visible
+        if: steps.check.outputs.broken == 'true'
+        run: |
+          echo "::error::Failed Railway deployments:"
+          printf '%s\n' "${{ steps.check.outputs.detail }}"
+          exit 1
