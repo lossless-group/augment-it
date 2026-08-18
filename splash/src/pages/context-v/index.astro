@@ -18,8 +18,8 @@ for (const entry of entries) {
 
 for (const arr of groups.values()) {
   arr.sort((a, b) => {
-    const am = toDate(a.data.date_modified ?? a.data.date_updated ?? a.data.date_created);
-    const bm = toDate(b.data.date_modified ?? b.data.date_updated ?? b.data.date_created);
+    const am = toDate(a.data.date_modified ?? a.data.date_updated ?? a.data.date_created ?? a.data.date_authored_current_draft ?? a.data.date_authored_initial_draft ?? a.data.date_authored_current_draft ?? a.data.date_authored_initial_draft ?? a.data.date_authored_current_draft ?? a.data.date_authored_initial_draft);
+    const bm = toDate(b.data.date_modified ?? b.data.date_updated ?? b.data.date_created ?? b.data.date_authored_current_draft ?? b.data.date_authored_initial_draft ?? b.data.date_authored_current_draft ?? b.data.date_authored_initial_draft ?? b.data.date_authored_current_draft ?? b.data.date_authored_initial_draft);
     const ta = am ? am.getTime() : 0;
     const tb = bm ? bm.getTime() : 0;
     if (tb !== ta) return tb - ta;
@@ -80,8 +80,8 @@ const base = import.meta.env.BASE_URL;
               <h2 class="ctx-group__title">{group}</h2>
               <ul class="entry-list" data-pagefind-ignore="all" data-sort-target="context-v">
                 {items.map((entry) => {
-                  const created = toDate(entry.data.date_created);
-                  const modified = toDate(entry.data.date_modified ?? entry.data.date_updated);
+                  const created = toDate(entry.data.date_created ?? entry.data.date_authored_initial_draft);
+                  const modified = toDate(entry.data.date_modified ?? entry.data.date_updated ?? entry.data.date_authored_current_draft);
                   const published = toDate(entry.data.date_first_published);
                   const d = modified ?? created;
                   const title = (entry.data.title ?? entry.id).toString().toLowerCase();

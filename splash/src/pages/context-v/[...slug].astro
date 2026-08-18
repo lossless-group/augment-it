@@ -16,9 +16,9 @@ export async function getStaticPaths() {
 const { entry } = Astro.props;
 const { Content } = await render(entry);
 
-const d = toDate(entry.data.date_modified ?? entry.data.date_updated ?? entry.data.date_created);
-const created = toDate(entry.data.date_created);
-const modified = toDate(entry.data.date_modified ?? entry.data.date_updated);
+const d = toDate(entry.data.date_modified ?? entry.data.date_updated ?? entry.data.date_created ?? entry.data.date_authored_current_draft ?? entry.data.date_authored_initial_draft ?? entry.data.date_authored_current_draft ?? entry.data.date_authored_initial_draft ?? entry.data.date_authored_current_draft ?? entry.data.date_authored_initial_draft);
+const created = toDate(entry.data.date_created ?? entry.data.date_authored_initial_draft);
+const modified = toDate(entry.data.date_modified ?? entry.data.date_updated ?? entry.data.date_authored_current_draft);
 
 const segments = entry.id.split('/');
 const group = segments.length > 1 ? segments[0] : 'general';
