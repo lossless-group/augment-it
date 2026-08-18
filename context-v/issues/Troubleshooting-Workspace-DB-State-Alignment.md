@@ -18,6 +18,10 @@ tags:
 status: Resolved
 date_first_published: 2026-08-02
 post_ship_note: "The DB-state question is answered and tooled: the alignment invariant became Group J (a pure diff + the read-only `scripts/audit-corpora-alignment.mjs`), which caught two real drifts — both reconciled 2026-08-02 (rural-income-boosts de-scoped from humain-vc; upward-mobility's missing DB row backfilled). Audit now reports ALIGNED for both clients. The residual 'corpora slow to load' symptom traced to production/Zen, tracked separately in [[Workspace-And-Corpora-Connection-Slow-To-Hanging-And-Auth-Wont-Persist]]."
+site_uuid: 7d985243-4847-49c7-883b-5b46b9aee28d
+hex_code: d6dueo
+date_authored_initial_draft: 2026-08-02
+date_authored_current_draft: 2026-08-02
 ---
 
 # Troubleshooting workspace ↔ DB state alignment

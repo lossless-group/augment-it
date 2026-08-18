@@ -13,6 +13,10 @@ tags:
   - Reminder
   - Dependencies
   - Augment-It
+site_uuid: 7535af76-e73d-4ae2-a19b-f648698c0ea1
+hex_code: bepljk
+date_authored_initial_draft: 2026-08-02
+date_authored_current_draft: 2026-08-02
 ---
 
 # Libraries We Do Not Use — Ever

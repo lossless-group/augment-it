@@ -1,6 +1,6 @@
 ---
 title: "Crawl replies can be lost — the eternal 'crawling…' spinner (no client timeout, reconnect-dropped invokes, tight dispatch ceiling)"
-lede: "The Curry Foundation crawl finished server-side in 87 seconds — and the tab spun forever anyway. Three gaps stacked: the browser invoke has no deadline, a WS reconnect (e.g. a workspace-service rebuild mid-crawl) silently drops pending invokes, and the 300s dispatch ceiling was one slow team-crawl away from biting (211s observed)."
+lede: "The Curry Foundation crawl finished in 87s and the tab spun forever: no client deadline, reconnect-dropped invokes, a 300s ceiling."
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -18,6 +18,10 @@ tags:
 status: Shipped
 date_first_published: 2026-07-24
 post_ship_note: "Mitigations shipped 2026-07-24 — 660s client-side deadline on both crawl invokes (spinner always resolves to a retryable error naming that the run may still finish server-side), dispatch ceiling 300s→600s. The root transport gap (re-correlating pending invokes across WS reconnects) is folded into the legibility/liveness sweep scope ([[Live-Not-Live-Indicator-Tooling-And-Cross-Service-Error-Surfacing]]); [[Crawl-Progress-Is-A-Black-Box-Needs-Traces-The-Operator-Can-Watch]]'s progress frames would also make a lost reply visible within seconds. gh #40 closed."
+site_uuid: 303e74d1-b0f5-4b34-8c3d-f01a2d21b308
+hex_code: esp47c
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # Crawl replies can be lost

@@ -1,6 +1,7 @@
 ---
 title: "Run /speckit-specify — Workspace + Sidecar Foundation (Feature 001)"
-lede: "The first feature spec for augment-it after the constitution lands. Scope: the workspace package and bun sidecar that everything else depends on, plus exactly one read-only capability (records.import) end-to-end to prove the pipe. No federation yet. No research agents yet. No chat surface implementation yet. Just the foundation that makes every subsequent feature possible — and a CSV import that lands rows in the workspace and persists them to disk."
+lede: >-
+  The workspace package and bun sidecar, plus exactly one capability — `records.import` — end to end to prove the pipe. No federation yet.
 date_created: 2026-05-18
 date_modified: 2026-05-18
 authors:
@@ -16,6 +17,10 @@ tags:
   - Walking-Skeleton
   - First-Feature
 status: Draft
+site_uuid: ce5d13fa-ea32-4bf5-bc0c-2eb0a2f167d7
+hex_code: gpvh2t
+date_authored_initial_draft: 2026-05-18
+date_authored_current_draft: 2026-05-18
 ---
 
 # Run /speckit-specify — Workspace + Sidecar Foundation

@@ -1,6 +1,7 @@
 ---
 title: "Open augment.didi.sh to reach-edu — a second tenant instance, and Stephenie Tesoro as the first client user"
-lede: "The deployed stack already reads the shared SurrealDB Cloud — everything reach-edu's canonical layer holds is one auth gate away. This plan opens that gate the safe way: a per-client instance (the house pattern), not a relaxed org check that would drop reach.edu users into humain-vc's workspace."
+lede: >-
+  The data is already deployed; only the door is single-tenant. Open it with a per-client instance, not a relaxed org check.
 date_created: 2026-07-28
 date_modified: 2026-07-28
 authors:
@@ -18,6 +19,10 @@ tags:
   - Multi-Tenancy
   - Reach-Edu
 status: Implementing
+site_uuid: feab1d70-5163-4653-a8ad-d486c967d95d
+hex_code: m5xf0c
+date_authored_initial_draft: 2026-07-28
+date_authored_current_draft: 2026-07-28
 ---
 
 # Open augment.didi.sh to reach-edu

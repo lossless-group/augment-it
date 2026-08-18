@@ -1,6 +1,6 @@
 ---
 title: "Header polish — the FLOW label and shell suffix have outlived their jobs, and the chat toggle sits on the wrong side"
-lede: "Four operator findings from the workspace-auth human gate: FLOW duplicates the Flows dropdown, the chat toggle lives center-right while the chat rail it controls is on the left, 'augment-it · shell' still says shell, and the chat rail can't collapse itself."
+lede: "Four findings from the first production walk-through — including a chat toggle on the right that opens a rail pinned to the left."
 date_created: 2026-07-28
 date_modified: 2026-07-28
 authors:
@@ -15,6 +15,10 @@ tags:
   - Header
   - UX-Polish
 status: Active
+site_uuid: 1dd33727-44cd-4a47-9ff4-0e636c9455bf
+hex_code: 8amphh
+date_authored_initial_draft: 2026-07-28
+date_authored_current_draft: 2026-07-28
 ---
 
 # Header polish — findings from the first production walk-through

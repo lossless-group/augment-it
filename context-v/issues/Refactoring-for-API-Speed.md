@@ -1,6 +1,6 @@
 ---
 title: "Refactoring for API Speed — a single-user app should boot in milliseconds, not a minute"
-lede: "Refreshing the page takes 60s+ for the logged-in workspaces to appear, and every microfrontend/microservice hop adds latency waiting for the others to respond or 'acknowledge' each other. There is ONE user. The distributed mesh — 7+ Railway services, per-remote WebSockets, NATS request/reply, a remote cloud DB, a separate auth service — imposes coordination cost that dwarfs the actual work. This is the diagnosis and the refactor design space, measure-first."
+lede: "Measured: shell mount to workspaces ready is ~543ms. The perceived minute was a stale deploy plus remotes hanging on `localhost:3XXX`."
 date_created: 2026-08-02
 date_modified: 2026-08-02
 authors:
@@ -16,6 +16,10 @@ tags:
   - Refactor
   - Boot-Latency
 status: Open · Diagnosed · Refactor Backlog
+site_uuid: f4909703-caf5-4b1d-96f5-ce78be3f9eba
+hex_code: wemu7u
+date_authored_initial_draft: 2026-08-02
+date_authored_current_draft: 2026-08-02
 ---
 
 # Refactoring for API Speed

@@ -1,7 +1,7 @@
 ---
 title: "Bolt-Era Highlight Collector Analysis"
-lede: "Lifted from `augment-it-bolt/specs/HighlightCollector-Analysis.md`. Per-feature breakdown of the highlight-collector module — the pipeline stage where users mark up LLM responses with section_title + color spans and persist them. One of the two stages that never got split into Tanuj's microfrontend repos, which means this document is the only existing description of how that stage works. Load-bearing reference for the rewrite."
-date_created: 2026-05-18
+lede: "The only existing description of the highlight-collector stage — one of two that never got split into Tanuj's microfrontend repos."
+date_created: 2025-08-08
 date_modified: 2026-05-25
 date_archived: 2026-05-25
 authors:
@@ -20,6 +20,10 @@ tags:
   - As-Built
 status: Archived
 deferral_note: "Describes the archive/bolt-code highlight-collector — the only existing description of this pipeline stage since it never got split out."
+site_uuid: 3afaac47-1867-49af-a63b-cb6be17fcbe2
+hex_code: 64vn8u
+date_authored_initial_draft: 2025-08-08
+date_authored_current_draft: 2025-08-08
 ---
 
 # HighlightCollector Module Analysis and Specification

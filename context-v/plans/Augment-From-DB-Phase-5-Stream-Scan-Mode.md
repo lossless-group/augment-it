@@ -1,6 +1,7 @@
 ---
 title: "Augment from DB · Phase 5 — stream-scan mode: scan a pulse stream, badge the already-known, one-click the new into the corpus"
-lede: "Step 8 lands as a mode of search-and-add, not a third remote (spec D3): a per-stream Scan button on the org card fires the existing official-blog machinery with the stream URL as the authoritative index, dedups against content_items, and the results rail badges what the corpus already holds."
+lede: >-
+  Stream scan is a mode of search-and-add, not a third remote: the stream URL is the authoritative index, deduped against `content_items`.
 date_created: 2026-07-22
 date_modified: 2026-07-22
 authors:
@@ -20,6 +21,10 @@ tags:
   - Entity-Pulse
   - Pulse-Streams
 status: Shipped
+site_uuid: b384d972-ecb0-40e3-ba75-1c4902d7144c
+hex_code: zaazn1
+date_authored_initial_draft: 2026-07-22
+date_authored_current_draft: 2026-07-22
 ---
 
 # Augment from DB · Phase 5 — stream-scan mode

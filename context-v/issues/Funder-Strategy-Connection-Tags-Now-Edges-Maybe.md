@@ -1,6 +1,6 @@
 ---
 title: "Funder↔strategy is tags for now — whether it deserves a real edge is deferred"
-lede: "Strategy tags landed on 69 funders from the mega-gifts data (Ballmer ← Workforce-Development, the AI trio ← Agent-Workflow-Maxxing) — but a tag can't carry evidence counts, gift sizes, or recency, and someday the question of a first-class funder→strategy edge comes due."
+lede: "140 strategy tags landed on 69 funders, but a tag can't carry evidence counts, gift sizes, or recency. The edge question comes due later."
 date_created: 2026-07-28
 date_modified: 2026-07-28
 authors:
@@ -15,6 +15,10 @@ tags:
   - Strategies
   - Funders
 status: Active
+site_uuid: a5aa838c-8991-424d-bdb5-91838d0baaf1
+hex_code: nhhx09
+date_authored_initial_draft: 2026-07-28
+date_authored_current_draft: 2026-07-28
 ---
 
 # Funder↔strategy: tags now, edges maybe

@@ -1,6 +1,7 @@
 ---
 title: "Flow for Bundles & Packs — The Simplest Possible Thing"
-lede: "Two surfaces. Record Collector (existing) and a Records Surface (new). For each row, see the entity's name and URL. Click a connector. See candidate links inline below the row. Pick one. Move on. That's the whole flow. No Request Reviewer. No Response Reviewer. No bundle picker. No fan-out preview. No multi-step pipeline. The previous specs (Entity-Pulse-Bundle, Connector-Inventory, Pulse-Curation, Per-Record-Iteration, In-App-Chat) collectively overengineered this problem; this spec deliberately ignores all of them and starts over. The job is: for 67 rows that have a website URL, find each one's blog/news/press index. That's it."
+lede: >-
+  For 67 rows with a website URL, find each one's blog index. Two surfaces, no reviewers — this spec deliberately ignores the five before it.
 date_created: 2026-06-02
 date_modified: 2026-06-02
 authors:
@@ -11,7 +12,7 @@ semantic_version: 0.0.0.3
 revisions:
   - 2026-06-02 — Initial draft (0.0.0.1).
   - 2026-06-02 — **Non-destructive refactor rule locked (0.0.0.2)**. Replaced the §"What gets thrown away" section with §"What stays untouched". The new Records Surface is purely additive — `apps/records-surface/` is a new federation remote alongside the existing `apps/pack-runner/`, `apps/response-reviewer/`, etc. Nothing in the existing remotes gets deleted, nothing in `services/social-search/` gets removed. The dispatch shim, the chip palette components in pack-runner and response-reviewer, the bundle configs — all stay as-is. The Records Surface uses its own connectors, its own state, its own components, and ignores response-store. The other surfaces keep working as they do today for anyone who's mid-workflow on them.
-  - 2026-06-02 — **Response Reviewer becomes a shell (0.0.0.3)**. Added §"Response Reviewer as a shell — fire type determines the inner UI". The current Response Reviewer hard-codes the socials triage UI for every record, which is why a Blog fire surfaces socials noise. Response Reviewer becomes a thin shell remote that loads a different inner UI based on what was last fired against the active record set. Pairings: socials bundle → SocialsTriageView (current UI, preserved unchanged); URL-finder pack/bundle (the new flow) → CandidatesView (the inline-candidates UI the Records Surface uses, lifted into Response Reviewer as a reusable view); prompt apply → PromptResponseView (existing). When the user is reviewing a Blog fire, the SocialsTriageView is not even mounted — no noise, no need to scroll past it. Same pattern applies to future fire types: pack/bundle/prompt each pair with a view; the shell loads the right one.
+  - "2026-06-02 — **Response Reviewer becomes a shell (0.0.0.3)**. Added §\"Response Reviewer as a shell — fire type determines the inner UI\". The current Response Reviewer hard-codes the socials triage UI for every record, which is why a Blog fire surfaces socials noise. Response Reviewer becomes a thin shell remote that loads a different inner UI based on what was last fired against the active record set. Pairings: socials bundle → SocialsTriageView (current UI, preserved unchanged); URL-finder pack/bundle (the new flow) → CandidatesView (the inline-candidates UI the Records Surface uses, lifted into Response Reviewer as a reusable view); prompt apply → PromptResponseView (existing). When the user is reviewing a Blog fire, the SocialsTriageView is not even mounted — no noise, no need to scroll past it. Same pattern applies to future fire types: pack/bundle/prompt each pair with a view; the shell loads the right one."
 tags:
   - Spec
   - Augment-It
@@ -22,6 +23,10 @@ tags:
   - Component-Decomposition
   - No-App-Svelte-Bundling
 status: Draft
+site_uuid: 6abd4987-bdc9-4d55-9267-2f1b809e2ced
+hex_code: nd2wz3
+date_authored_initial_draft: 2026-06-02
+date_authored_current_draft: 2026-06-02
 ---
 
 # Flow for Bundles & Packs

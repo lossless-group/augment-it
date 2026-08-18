@@ -1,6 +1,6 @@
 ---
 title: "No component library — the UI is improvised per-remote instead of component-based, and it's starting to show"
-lede: "For expediency, agents have improvised working UI in each remote — and it worked, fourteen remotes' worth. But the bill is arriving: the UI is getting visually funky, near-identical widgets exist in parallel dialects (status pills, additive lists, candidate pickers, chip palettes), and a ton of code is almost certainly redundant. Time to decide what Component-Based Architecture means under this repo's copy-don't-depend rules."
+lede: "Fourteen remotes improvised their own UI, so status pills and candidate pickers now exist in parallel dialects. The bill is arriving."
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -17,6 +17,10 @@ tags:
   - Design-System
   - Microfrontends
 status: Open · Jotted
+site_uuid: 1ead2815-e5a6-4b4e-88ec-72eb64845aea
+hex_code: 6kkh1d
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # No component library — improvised UI across fourteen remotes

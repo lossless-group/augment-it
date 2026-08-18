@@ -1,6 +1,6 @@
 ---
 title: "Tags Are Two Projections — Frontmatter `tags:` on Files, `has_tag` Observations in SurrealDB"
-lede: "Every file-facing surface (corpus markdown frontmatter, pointer files, domain tag arrays) uses plain `tags:` because Obsidian reads files and we always assume Obsidian. The DB's observations table expresses the same fact as a subject–predicate–object triple, and its predicate vocabulary is verb-shaped (`has_email`, `located_in`, `attended`) — so there it is `has_tag`. Same fact, two projections; neither name leaks into the other layer."
+lede: "Files say `tags:` because Obsidian reads files; the DB says `has_tag` because its predicates are verb-shaped. Same fact, two projections."
 date_created: 2026-07-25
 date_modified: 2026-07-25
 authors:
@@ -15,6 +15,10 @@ tags:
   - Observations
   - Obsidian
   - SurrealDB
+site_uuid: 31878be1-fc8b-43cc-9ebb-ebeed5727ede
+hex_code: o1l54a
+date_authored_initial_draft: 2026-07-25
+date_authored_current_draft: 2026-07-25
 ---
 
 # Tags are two projections of one fact

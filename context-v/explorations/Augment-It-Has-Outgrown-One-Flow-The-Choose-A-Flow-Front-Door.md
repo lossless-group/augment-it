@@ -1,6 +1,6 @@
 ---
 title: "augment-it has outgrown one flow — ROTATION is the CSV-augmentation pipeline's shape wearing a general-purpose name, and corpora-curator's promotion to its head is a splice, not a fit"
-lede: "augment-it started as one thing — augment a CSV, row by row — and ROTATION (shell/src/remotes.ts) is that flow's shape, hardcoded as THE numbered nav. Every use case since (DB-canonicalization for reach-edu's CRM exit, per-org/person corpus curation, now domain/thesis curation for humain-vc) has been reconciled onto that one array instead of recognized as its own flow. Strategy Curator's 2026-07-06 'promotion to the head of ROTATION' is the symptom: a domain-curation session doesn't hand off into recordCollector, but ROTATION was the only navigation primitive that existed, so that's where it landed. The fix isn't a bigger ROTATION array — it's a 'what are you trying to do?' front door that picks which flow mounts, so a use case that isn't CSV-row augmentation stops being forced to pretend it is."
+lede: "ROTATION (`shell/src/remotes.ts`) is the CSV-augmentation flow hardcoded as THE nav — every other use case gets spliced onto it."
 date_created: 2026-07-06
 date_modified: 2026-07-21
 date_first_published: 2026-07-07
@@ -26,6 +26,10 @@ tags:
   - Multi-Flow
   - Front-Door
   - UX-Architecture
+site_uuid: f21a3641-ead0-4915-b55c-0640bfc4f2f9
+hex_code: rkj6zy
+date_authored_initial_draft: 2026-07-06
+date_authored_current_draft: 2026-07-06
 ---
 
 # augment-it has outgrown one flow

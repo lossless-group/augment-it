@@ -1,6 +1,6 @@
 ---
 title: "Jina metadata parser is blog-only — needs two profiles + fuzzy routing (academic sources lose their date/publisher)"
-lede: "Jina returns rich metadata for every source, but the parser only reads OpenGraph/blog keys (article:published_time, og:site_name). Scholarly articles carry their metadata under Highwire/Dublin-Core/PRISM keys (citation_*, dc.*, prism.*), so their date and publisher fall through empty and the operator hand-fills them. Fix: two parser profiles — structured and opengraph — with fuzzy routing by source kind, and a manual override so a human can re-route when detection is wrong."
+lede: "The parser only reads OpenGraph keys, so scholarly sources lose date and publisher to `citation_*` / `dc.*` / `prism.*` it never looks at."
 date_created: 2026-08-02
 date_modified: 2026-08-02
 authors:
@@ -16,6 +16,10 @@ tags:
   - Metadata
   - Bug
 status: Resolved
+site_uuid: 23d41189-e6b5-4e0e-b111-420481ca2cca
+hex_code: gyabhb
+date_authored_initial_draft: 2026-08-02
+date_authored_current_draft: 2026-08-02
 ---
 
 # Jina metadata parser is blog-only

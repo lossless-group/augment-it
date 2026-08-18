@@ -1,6 +1,7 @@
 ---
 title: "Workspace-scope legibility — empty workspaces and stale org restores should explain themselves, not look broken"
-lede: "Switching to humain-vc (0 orgs) made the workbench look dead: 'Filter 0 orgs', 'no orgs match', and a red 'organization not found: new-america' for the restored last-worked org. All three are per-workspace visibility working correctly — the plan is to make the correct behavior say so."
+lede: >-
+  Switching to a workspace with 0 orgs made the workbench look dead — the visibility rules were right, only the messaging failed.
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -15,6 +16,10 @@ tags:
   - Workspaces
   - Usability
 status: Draft
+site_uuid: fd7c230a-c607-44e4-aaff-3b23728e0de7
+hex_code: p985yr
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # Workspace-scope legibility

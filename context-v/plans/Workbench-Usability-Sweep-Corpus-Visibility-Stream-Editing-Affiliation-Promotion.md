@@ -19,6 +19,10 @@ tags:
   - Usability
 status: Shipped
 post_ship_note: "All three slices landed 2026-07-24 as commits 90dd83b (#20), 895a6a6 (#26), b86f079 (#25). The operator walk-through (steps 4/9/14's live halves) remains the human rung; browser-drive rung deferred — Playwright MCP loads next session."
+site_uuid: 57284422-9b02-409e-b98c-a83be6ef3bb2
+hex_code: wtp084
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # Workbench usability sweep — #20 · #26 · #25

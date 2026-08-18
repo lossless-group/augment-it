@@ -1,6 +1,7 @@
 ---
 title: "Enhanced Records List — the Triage Checkpoint and the Promotion Loop"
-lede: "A new microfrontend that gives the human the first view of the whole enrichment outcome at once — a sortable list of every record across the parent set + its derived sets, deduplicated by a stable record identity, with each record's current triage state, edits, and helpful_links surfaced inline. From that surface the human selects records (typically all accepted + all good) and promotes them: those selected versions become the canonical record set, the predecessors archive, the same record identity carries forward. The next enrichment prompt fires against the canonical set, and the loop continues. The end-game is rich CRM-grade donor / grantmaker profiles built through repeated tight loops of LLM enrichment + human checkpointing."
+lede: >-
+  One record-grained view of a whole enrichment round: select the good rows, promote them to canonical, and the predecessors archive.
 date_created: 2026-05-22
 date_modified: 2026-05-25
 date_completed: 2026-05-23
@@ -18,6 +19,10 @@ tags:
   - Record-Identity
   - CRM-Enrichment
   - Pipeline-Checkpoint
+site_uuid: e48c8513-61e1-4d2b-b51e-caad1f8f9eb0
+hex_code: 50j5qo
+date_authored_initial_draft: 2026-05-25
+date_authored_current_draft: 2026-05-25
 ---
 
 # Enhanced Records List — the Triage Checkpoint and the Promotion Loop

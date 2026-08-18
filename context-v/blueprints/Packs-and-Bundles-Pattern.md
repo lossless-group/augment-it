@@ -1,6 +1,7 @@
 ---
 title: "Packs and Bundles — The Two-Tier Pattern for Entity-Profile Augmentation (and Beyond)"
-lede: "When augment-it needs to fan out across many sources to find verified profiles for an entity (LinkedIn + X + BlueSky + YouTube for everyone, then Candid + ProPublica + IRS 990 + Charity Navigator for a nonprofit), the right abstraction is not a single capability and not a single big prompt. It is two tiers. A **pack** is the atomic unit — one source, one microfrontend, one MCP-server microservice, one prompt-snippet, one extraction-schema, one render-config. A **bundle** is the orchestration unit — a named composition of packs with single-pass or two-pass execution, data carry-forward between passes, agent-driven pre-flight dedup against existing `helpful_links`, and a single chat verb that fires the whole thing. This blueprint codifies both."
+lede: >-
+  Two tiers: a pack is one source, one remote, one schema; a bundle is a named composition of packs fired by a single chat verb.
 date_created: 2026-05-25
 date_modified: 2026-05-25
 authors:
@@ -10,7 +11,7 @@ augmented_with:
 semantic_version: 0.0.0.3
 revisions:
   - 2026-05-25 — Initial draft.
-  - 2026-05-25 — **Design pivot from `profiles.<source>` columns to a single `socials` JSON column per row, mirroring `helpful_links`.** Triggered by smoke-run feedback: spawning N new columns per pack obscured the result (no row-level view of which platforms were filled in) and broke the dynamic-schema discipline that "row columns are CSV-derived." New shape: one row-level column `socials: SocialProfile[]` containing all accepted pack profiles. Acceptance of a pack response routes through `row.socials.add` (replace-by-pack_id semantics — one entity has one LinkedIn) instead of `row.update` against a per-pack output_column. See §Row write-back below for the schema + capabilities.
+  - "2026-05-25 — **Design pivot from `profiles.<source>` columns to a single `socials` JSON column per row, mirroring `helpful_links`.** Triggered by smoke-run feedback: spawning N new columns per pack obscured the result (no row-level view of which platforms were filled in) and broke the dynamic-schema discipline that \"row columns are CSV-derived.\" New shape: one row-level column `socials: SocialProfile[]` containing all accepted pack profiles. Acceptance of a pack response routes through `row.socials.add` (replace-by-pack_id semantics — one entity has one LinkedIn) instead of `row.update` against a per-pack output_column. See §Row write-back below for the schema + capabilities."
   - 2026-05-26 — Added §Triage Surface UX Requirements (emergent). Captures pattern-level requirements that the foundation-dataset smoke surfaced — discoveries the upfront draft didn't anticipate. Codified here so future pack/bundle implementations across the Lossless family inherit the discipline without re-hitting the same walls.
 tags:
   - Blueprint
@@ -24,6 +25,10 @@ tags:
   - Response-Reviewer
   - Verification-Pattern
 status: Draft
+site_uuid: 276d12c8-1a45-45a7-a742-6f330c540cd8
+hex_code: dn39ix
+date_authored_initial_draft: 2026-05-25
+date_authored_current_draft: 2026-05-25
 ---
 
 # Packs and Bundles — The Two-Tier Pattern

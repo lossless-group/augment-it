@@ -1,6 +1,6 @@
 ---
 title: "Pickup — Build the Enhanced Records List + Promotion Checkpoint"
-lede: "Next session opens with the full spec already in hand: enhanced-records-list, a record-grained checkpoint surface that snapshots the whole triage state per record_uuid into a new canonical record set on promotion. This pickup points at that spec, summarizes the uncommitted-but-working state from the 2026-05-22 session (Save/Apply on Prompt Templates, autosave on response edits, helpful_links on rows, runner observability/cancel, response triage state ergonomics, the needs-human flag, blank-row cleanup), and queues the concrete first build step: the record_uuid plumbing + backfill."
+lede: "The enhanced-records-list spec is finished; next session's first build step is the `record_uuid` plumbing and backfill."
 date_created: 2026-05-22
 date_modified: 2026-05-25
 date_completed: 2026-05-23
@@ -14,6 +14,10 @@ tags:
   - Pickup
   - Enhanced-Records-List
   - Phase-5
+site_uuid: a2a4b6ed-7366-46c6-802f-3480da651a24
+hex_code: wfagng
+date_authored_initial_draft: 2026-05-25
+date_authored_current_draft: 2026-05-25
 ---
 
 # Pickup — Build the Enhanced Records List + Promotion Checkpoint

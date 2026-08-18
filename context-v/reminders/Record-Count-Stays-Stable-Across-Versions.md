@@ -1,6 +1,6 @@
 ---
 title: "Record Count Stays Stable Across Versions — Augmenting Adds Columns, Never Rows"
-lede: "1 dataset = 1 row count. Forever. From ingest through every promote, every augment, every triage. If the user has 96 records, every surface that says a number should say 96. Adding properties + values to records becomes new COLUMNS on those records, not new rows in the store. Discovering 231 rows in the row-store for what the user knows is a 96-record dataset is a symptom — of either ghost data from earlier record sets, version-multiplication of the same 96 records across v3/v4/v5, or a leak in the ingest/promote path. Either way: the user never wants to see a number other than their dataset's record count, and the architecture must reflect that."
+lede: "One dataset, one row count, forever — augmenting adds columns, not rows. 231 rows in the store for a 96-record dataset is a symptom."
 date_created: 2026-06-02
 date_modified: 2026-06-02
 authors:
@@ -16,6 +16,10 @@ tags:
   - Record-Set
   - Row-Count
   - Augment-Adds-Columns
+site_uuid: ce87c630-3736-4365-8776-548ca82edf31
+hex_code: 3oaz84
+date_authored_initial_draft: 2026-06-02
+date_authored_current_draft: 2026-06-02
 ---
 
 # Record Count Stays Stable Across Versions

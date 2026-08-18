@@ -10,6 +10,10 @@ tags:
   - Design-System
   - Fidelity
   - Enforcement
+site_uuid: ec8c9855-23f0-4c4e-8a5d-66c34bc6ea3e
+hex_code: 1eqo6x
+date_authored_initial_draft: 2026-08-01
+date_authored_current_draft: 2026-08-01
 ---
 
 # Sweep — Local & Federated Design System for Fidelity

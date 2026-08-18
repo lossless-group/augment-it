@@ -1,6 +1,7 @@
 ---
 title: "Source Content Storage — SurrealDB-Primary, Local as a Per-User Toggle"
-lede: "Flip the content store: the fetched article body becomes a field on the canonical `sources` row and analyst Extracts become per-`source_usages` — so content access unifies with canonical-layer access, both through the didi.sh-authed DB. The local filesystem write demotes to an explicit per-workspace + per-user toggle: an export for each collaborator's own local RAG, not the primary store. R2 (backup) and Syncthing (live FS mirror) stay as already-scoped substrate."
+lede: >-
+  Flip the content store: the article body moves onto the canonical `sources` row and the local filesystem write demotes to a toggle.
 date_created: 2026-08-02
 date_modified: 2026-08-02
 authors:
@@ -20,6 +21,10 @@ tags:
   - Cloudflare-R2
   - Syncthing
   - Path-Off-Local
+site_uuid: e75c5d34-e631-4c9d-882a-d042e5d3a991
+hex_code: tuh8oz
+date_authored_initial_draft: 2026-08-02
+date_authored_current_draft: 2026-08-02
 ---
 
 # Source Content Storage — SurrealDB-Primary, Local as a Per-User Toggle

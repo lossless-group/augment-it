@@ -1,6 +1,7 @@
 ---
 title: "Augment from DB · Phase 3 — the search-and-add remote: editable term, provider palette, one-click add"
-lede: "The flow's second microfrontend: launched from any 🔍 on the org card, it shows the search term in an always-editable bar, fires through the provider palette (SearXNG preselected, Exa a chip away), and every result row adds to the launching entity's list in one click."
+lede: >-
+  Launched from any 🔍 on the org card: an always-editable term bar, a provider palette, one-click add back to the launching list.
 date_created: 2026-07-22
 date_modified: 2026-07-22
 authors:
@@ -20,6 +21,10 @@ tags:
   - Microfrontend
   - Search-Providers
 status: Shipped
+site_uuid: a6a5993f-64f0-45dd-953e-6bec1e8701af
+hex_code: 28qu8m
+date_authored_initial_draft: 2026-07-22
+date_authored_current_draft: 2026-07-22
 ---
 
 # Augment from DB · Phase 3 — search-and-add remote

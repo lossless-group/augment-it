@@ -1,6 +1,7 @@
 ---
 title: "Why Response Reviewer and Highlight Collector Exist — The Verbose-Prose-to-Tabular Bridge"
-lede: "The core impedance mismatch Augment-It solves: CRM data is tabular (rows × columns, succinct cells), while LLM and Deep-Research responses are verbose markdown prose (paragraphs, hedging, citations, expansion). Augment-It's purpose is to turn prose back into something that fits in a CRM cell. The response-reviewer and highlight-collector are the two pipeline stages where that bridge gets built — and they exist because no structured-output regime, however good, removes the need for a human-in-the-loop integrity check before tabular data gets written back into a system of record."
+lede: >-
+  CRM cells are terse and LLM answers are prose; no structured-output regime removes the human integrity check that bridges them.
 date_created: 2026-05-18
 date_modified: 2026-05-18
 authors:
@@ -18,6 +19,10 @@ tags:
   - Response-Reviewer
   - Highlight-Collector
 status: Draft
+site_uuid: 71dcc42a-f947-4cf5-839a-4f35c39ab6e1
+hex_code: u2xx6c
+date_authored_initial_draft: 2026-05-18
+date_authored_current_draft: 2026-05-18
 ---
 
 # Why Response Reviewer and Highlight Collector Exist

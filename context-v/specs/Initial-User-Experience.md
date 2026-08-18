@@ -1,6 +1,7 @@
 ---
 title: "Initial User Experience — From Landing to a Productive First Action"
-lede: "What does the first thirty seconds of augment-it feel like? This spec covers the surface a brand-new user lands on, the lightweight onboarding that gets them to a productive first action without lecturing, and the seams where the working-app and architecture-demonstration identities first meet the visitor. Designed to be skipped by returning users, never re-shown unnecessarily, and never required to dismiss to do work."
+lede: >-
+  What the first thirty seconds of augment-it feel like: a productive first action without a lecture, skippable and never re-shown.
 date_created: 2026-06-01
 date_modified: 2026-06-01
 authors:
@@ -17,6 +18,10 @@ tags:
   - UX
   - Discoverability
 status: Draft
+site_uuid: 761feca4-0447-4196-8045-70864ca091cc
+hex_code: v589ir
+date_authored_initial_draft: 2026-06-01
+date_authored_current_draft: 2026-06-01
 ---
 
 # Initial User Experience

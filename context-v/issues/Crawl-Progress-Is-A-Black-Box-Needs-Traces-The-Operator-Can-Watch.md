@@ -1,6 +1,6 @@
 ---
 title: "Crawl progress is a black box — 'crawling the web, this takes a minute…' needs traces the operator can watch"
-lede: "A didi crawl is a minute-plus of silence with one static status line. The model is actually narrating as it works — 'searching for Quell Foundation LinkedIn…' — and those traces exist in the response stream today; they just never leave prompt-runner. The operator should watch the agent work, not stare at an ellipsis."
+lede: "The model narrates as it crawls — `extractText` skips straight past it to the final answer, so the operator gets a minute of ellipsis."
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -17,6 +17,10 @@ tags:
   - Observability
   - Prompt-Runner
 status: Open · Jotted
+site_uuid: 988e62d9-d6ed-48f7-a291-d33ce4ed917d
+hex_code: e37ru5
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # Crawl progress needs visible traces

@@ -1,6 +1,6 @@
 ---
 title: "Capability Gaps Surfaced by the First Triage Co-Pilot Run — One Collective Ledger, Not Five Tickets"
-lede: "The 2026-07-25 triage-inbox run (batches 1–3, ~57 items filed) exercised the capability wire harder than anything before it and surfaced a cluster of small gaps. None blocks the workflow — each has a workaround recorded in the run manifest — but each workaround is a paper cut that will recur every run until the wire closes over it."
+lede: "Five gaps from the first triage run — including direct SurrealDB writes whose string-typed ids silently failed to join their org rows."
 date_created: 2026-07-25
 date_modified: 2026-07-25
 authors:
@@ -17,6 +17,10 @@ tags:
   - Corpus-Triage
   - SurrealDB
 status: Active
+site_uuid: a704f082-384b-4c55-9e9e-265c48e78c39
+hex_code: vdyn9p
+date_authored_initial_draft: 2026-07-25
+date_authored_current_draft: 2026-07-25
 ---
 
 # Capability Gaps Surfaced by the First Triage Run

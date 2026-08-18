@@ -1,6 +1,7 @@
 ---
 title: "Workspaces as Tenant Primitive — toggling, tenant-aware microservices, per-tenant env-var pickup, and the seam that lets MCPs and connectors vary per client"
-lede: "Augment-It (and, by inheritance, its sibling pillar apps memopop-ai and dididecks-ai) needs a tenant primitive named workspace — the boundary that says 'humain-vc' vs 'reach-edu' vs whoever comes next. The terminal state is rich: per-workspace branded theme, team membership, roles + permissions, registration flow, auth, per-tenant choice of LLM provider / CRM / MCP server / search connector / storage destination. We are filesystem-backed and local right now, so this spec lays out the vision once and then scopes baby step 1 down to its bones: a workspace toggle, a workspace-aware envelope on every microservice request, I/O routing to `clients/<slug>/`, and a per-workspace `.env` pickup that resolves through a connector-config seam designed to absorb Decile-shaped (and future MCP-shaped, future LLM-shaped) per-tenant integrations without re-design. Inspired by [[Cloud-Variant-of-Dididecks-AI-Workspace]] but diverges on storage (filesystem-now vs cloud) and on cross-cutting reach (this is the contract sibling pillar apps inherit, not a dididecks-only artifact)."
+lede: >-
+  `workspace` is the tenant boundary — humain-vc vs reach-edu. The vision is stated once, then step 1 is cut down to filesystem-only bones.
 date_created: 2026-06-11
 date_modified: 2026-06-21
 authors:
@@ -21,6 +22,10 @@ tags:
   - Humain-VC
   - Reach-Edu
 status: Draft
+site_uuid: dbffa0a4-189b-420e-a29e-94faa0c8c6b0
+hex_code: 5ja6op
+date_authored_initial_draft: 2026-06-11
+date_authored_current_draft: 2026-06-11
 ---
 
 # Workspaces as Tenant Primitive

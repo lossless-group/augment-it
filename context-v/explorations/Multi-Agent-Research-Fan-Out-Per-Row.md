@@ -1,6 +1,6 @@
 ---
 title: "Multi-Agent Research Fan-Out Per Row — The Real Shape of Augment-It's Capability Runtime"
-lede: "Augment-It's capabilities are not single LLM calls. Each row in a CRM export gets enriched by multiple specialized research agents running in parallel — one fetches social profiles and vanity KPIs (X handle, X followers, LinkedIn), another crawls every linked page on the company's website looking for team changes, press mentions, blog posts, and PDF publications. The capability runtime, the @lossless/in-app-agent transcript shape, and the chat UI all need to handle (rows × agents) fan-out, partial results, heterogeneous latencies, per-agent rate limits, and per-agent caching. The memopop character-cast pattern is the UI surface this maps to."
+lede: "Capabilities aren't LLM calls — five research agents run per row in parallel, so the runtime needs (rows × agents) fan-out."
 date_created: 2026-05-18
 date_modified: 2026-05-18
 authors:
@@ -18,6 +18,10 @@ tags:
   - Rate-Limiting
   - Character-Cast
 status: Draft
+site_uuid: 6f5d3d90-dbcb-45e7-b594-ebf2e739c9e2
+hex_code: s90b44
+date_authored_initial_draft: 2026-05-18
+date_authored_current_draft: 2026-05-18
 ---
 
 # Multi-Agent Research Fan-Out Per Row

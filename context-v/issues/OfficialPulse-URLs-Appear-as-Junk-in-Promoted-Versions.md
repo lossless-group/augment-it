@@ -1,6 +1,6 @@
 ---
 title: "OfficialPulse URLs Appear as Junk in Promoted Versions — operator believes promote v6 → v7 → v8 wrote bad data into the array column; audit shows promote is clean and v6 itself already contained every URL"
-lede: "The operator reports that v7 and v8 of the Master-Pipeline-Tracker carry 'junk' OfficialPulse URLs (news / blog / stories / grants / press indices) that weren't in v6, and proposes a recovery of (a) hand-fixing the v6 → v7 export, (b) deleting v8, (c) hardening the next promote so it doesn't recur. The audit inverts that framing: v5, v6, v7, and v8 all carry IDENTICAL `official_updates_index_urls` arrays — 122 URLs across 57 rows, zero per-row diffs across any consecutive pair. The promote is doing exactly what the 'All data continues' invariant from [[Original-and-Enhanced-Record-Instances]] requires. What the operator is *seeing* for the first time is the JSON content of an array column that used to render as a blank box in Record Collector — today's `apps/record-collector/src/logic/format.ts` formatter surfaced it. The operator's claim 'I had approved the proper links' is consistent with the pick-path code (`RecordRow.svelte:63 pick()` appends one URL at a time, no silent bulk-write), but multiple records-surface sessions accumulated to 122 URLs and the cumulative result is what's now legible. The real gap is a curation surface — Record Collector's structured-value branch is read-only; there is no per-URL remove affordance anywhere in the UI that operates on the canonical column. This issue closes the data question and reframes the next step as adding that affordance, plus a pre-promote audit step in PromoteBar."
+lede: "Promote added nothing — v5 through v8 carry identical 122-URL arrays. The new renderer just made them visible, and no UI can remove one."
 date_created: 2026-06-05
 date_modified: 2026-06-05
 authors:
@@ -20,6 +20,10 @@ tags:
   - Records-Surface
   - Record-Collector
 status: Open · Audit Complete · Awaiting Curation Affordance
+site_uuid: d99c1ac2-cdfb-4e22-a230-85bac97c014a
+hex_code: jum43e
+date_authored_initial_draft: 2026-06-05
+date_authored_current_draft: 2026-06-05
 ---
 
 # OfficialPulse URLs Appear as Junk in Promoted Versions

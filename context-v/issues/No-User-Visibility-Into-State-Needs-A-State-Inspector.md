@@ -1,6 +1,6 @@
 ---
 title: "No user visibility into state — the app needs a State-Inspector surface"
-lede: "State lives in five places (per-remote Svelte runes singletons, localStorage keys, the WS-synced workspace frames, server-side stores, the canonical DB) and none of them are inspectable from inside the app. Non-technical users won't care — but the operator debugging a desync, and the agent verifying a flow, both need one surface that shows who currently believes what."
+lede: "State lives in five places and none are inspectable from inside the app — nothing shows which remote currently believes what."
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -18,6 +18,10 @@ tags:
   - Observability
   - Microfrontends
 status: Open · Jotted
+site_uuid: 52ff4460-797a-4d46-964b-74afd3176689
+hex_code: pk0w3a
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # No user visibility into state — needs a State-Inspector

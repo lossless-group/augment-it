@@ -1,6 +1,7 @@
 ---
 title: "Structural refactors surfaced by the codebase graph — the deadweight, the boilerplate, and the CSS convergence problem"
-lede: "A zero-token graphify build over 490 source files found ~500 lines that delete cleanly and 11 mount.ts files differing by one line each. It also killed the assumption that the frontend is full of duplicate CSS — it isn't, and that's the harder finding."
+lede: >-
+  A zero-token graph over 490 files found ~500 lines that delete cleanly, 11 near-identical `mount.ts` files, and no duplicate CSS after all.
 date_created: 2026-08-06
 date_modified: 2026-08-06
 authors:
@@ -19,6 +20,10 @@ tags:
   - Component-Library
   - Dead-Code
   - Technical-Debt
+site_uuid: 5e73fb67-9969-464c-ad3e-15683ec96a9c
+hex_code: wy9wrp
+date_authored_initial_draft: 2026-08-06
+date_authored_current_draft: 2026-08-06
 ---
 
 # Structural refactors surfaced by the codebase graph

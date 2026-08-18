@@ -1,6 +1,7 @@
 ---
 title: "Tooltip System — A Versatile First-Class Family, Plus a Walkthrough for New and Returning Users"
-lede: "Most apps don't succeed or fail at functionality. They succeed or fail at onboarding, orientation, and re-orientation when a returning user comes back to find things have moved. Tooltips are the load-bearing affordance for all three — and they have to be a versatile first-class family, not a single component bolted onto the browser's half-working `title=`. This spec scopes a family of tooltip primitives (Simple, Rich, Popover), the geometry they share (directional `from` placement with arrow connector, configurable distance, dismissal discipline, accessibility), and the **Tooltip-Walkthrough** surface that sits on top — a guided series of tooltips that fire for users who haven't logged in since a given milestone, so they discover what changed without reading release notes."
+lede: >-
+  Apps fail at orientation, not functionality — so tooltips become a first-class family, not the browser's half-working `title=`.
 date_created: 2026-06-01
 date_modified: 2026-06-01
 authors:
@@ -10,7 +11,7 @@ augmented_with:
 semantic_version: 0.0.0.2
 revisions:
   - 2026-06-01 — Initial stub (0.0.0.1). Framed the gap (native `title=` is unreliable) and the migration order.
-  - 2026-06-01 — Sharpened by the user (0.0.0.2). Added: the **subcomponent family** (Tooltip--Simple, Tooltip--Rich, Tooltip--Popover) rather than one component; the **`from` directionality prop** with cardinal + diagonal placements and an arrow/triangle connector; the **`distance` rem prop** with a small default; and the **Tooltip-Walkthrough** surface for new- and returning-user orientation. Framing locked: apps succeed at onboarding/orientation, not at functionality.
+  - "2026-06-01 — Sharpened by the user (0.0.0.2). Added: the **subcomponent family** (Tooltip--Simple, Tooltip--Rich, Tooltip--Popover) rather than one component; the **`from` directionality prop** with cardinal + diagonal placements and an arrow/triangle connector; the **`distance` rem prop** with a small default; and the **Tooltip-Walkthrough** surface for new- and returning-user orientation. Framing locked: apps succeed at onboarding/orientation, not at functionality."
 tags:
   - Spec
   - Augment-It
@@ -23,6 +24,10 @@ tags:
   - Walkthrough
   - First-Class
 status: Draft
+site_uuid: 071eca80-b2ed-4efa-a195-f1e7c0a515d9
+hex_code: l0haq1
+date_authored_initial_draft: 2026-06-01
+date_authored_current_draft: 2026-06-01
 ---
 
 # Tooltip System

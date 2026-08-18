@@ -1,6 +1,6 @@
 ---
 title: "Augment from DB — the org-first workbench flow, and the two new microfrontends it needs"
-lede: "A new flow that starts from SurrealDB instead of a CSV: pick Organizations, smart-search to one org, see its identity links / socials / pulse streams, reveal its affiliated people, and augment any of it through pluggable search packs (SearXNG default, Firecrawl option, Exa planned) with a one-click add-to-corpus results surface — plus a pulse-stream scanner for LinkedIn walls, Facebook walls, and blogs."
+lede: "A flow that starts from SurrealDB, not a CSV: pick an org, reveal its people and pulse streams, augment through pluggable search packs."
 date_created: 2026-07-21
 date_modified: 2026-07-21
 authors:
@@ -20,6 +20,10 @@ tags:
   - Affiliations
   - Corpus-Building
 status: Draft
+site_uuid: 74381fdb-5be5-43f2-995c-ba98a4f06428
+hex_code: 1q6nu4
+date_authored_initial_draft: 2026-07-21
+date_authored_current_draft: 2026-07-21
 ---
 
 # Augment from DB — the org-first workbench flow

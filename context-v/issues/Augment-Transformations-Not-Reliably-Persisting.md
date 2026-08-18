@@ -1,6 +1,6 @@
 ---
 title: "Augment Transformations Not Reliably Persisting — Hand-Curated Field Edits and Whole-Row Augmentations Are Disappearing Across Record-Set Versions"
-lede: "Two failures observed in the same 2026-06-02 session, escalating from immediate to systemic. (Immediate) The user just hand-curated 98 OfficialUpdate URLs across 45 records on the new Records Surface — there is no save / promote affordance in that UI, so the only thing keeping those acceptances alive is the row-store's auto-persisted JSON on disk. A backup has been pulled to `.backups/2026-06-02_records-surface-acceptances/` against accidental data loss. (Systemic) The active record set v5 is missing the homepage-URL edits the user made in a prior v3→v4 augment pass — those edits ARE in the row-store's earlier record sets but did not carry forward through promote. The product's whole value premise is 'augment a record set, promote it to the next version, and your work survives' — that is currently not true for some field categories."
+lede: "98 hand-curated URLs across 45 records with no save or promote affordance — only the row-store's auto-persisted JSON keeps them alive."
 date_created: 2026-06-02
 date_modified: 2026-06-02
 authors:
@@ -21,6 +21,10 @@ tags:
   - Hand-Curation
   - URGENT
 status: Open · Backup Made
+site_uuid: e9bd175d-1a45-4482-b18f-a1bf39a2721e
+hex_code: 9x5btu
+date_authored_initial_draft: 2026-06-02
+date_authored_current_draft: 2026-06-02
 ---
 
 # Augment Transformations Not Reliably Persisting

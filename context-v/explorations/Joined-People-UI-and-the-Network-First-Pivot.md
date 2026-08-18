@@ -1,6 +1,6 @@
 ---
 title: "Joined People UI and the Network-First Pivot — augment-it's sibling-flow to org-first augmentation, and the canonical/proprietary layer split underneath it"
-lede: "Org-first and people-first aren't two flows but two pivot points over the same org↔people join. A canonical layer (LinkedIn truth, refreshable, shareable across clients) split from a proprietary layer (this client's commentary, engagement-scoped, never shareable) — reads it against the CRM platforms that almost got it right (Attio, Affinity, Gong, SalesQL, Crawlbase), and lands on sub-scale plus domain-opinionated -- as the competitive position the big platforms structurally can't occupy."
+lede: "Org-first and people-first are two pivots on one join — and the split that matters is canonical (shareable) vs proprietary (client-only)."
 date_created: 2026-06-15
 date_modified: 2026-06-15
 authors:
@@ -24,6 +24,10 @@ tags:
   - Sub-Scale-Domain
   - Venture-Fundraising
   - Storage-Substrate
+site_uuid: 57af009e-276e-4607-8909-57ed8797a2f8
+hex_code: 8s9gh7
+date_authored_initial_draft: 2026-06-15
+date_authored_current_draft: 2026-06-15
 ---
 
 # Joined People UI and the Network-First Pivot

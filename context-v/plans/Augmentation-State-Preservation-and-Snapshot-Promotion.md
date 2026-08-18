@@ -1,6 +1,7 @@
 ---
 title: "Augmentation-state preservation and snapshot promotion — the operator's CSV is the system of record, the filesystem is the truth, and `/promote-snapshot` is the verb that walks the corpus and emits the next CSV with system columns appended so flow-switches don't erase the prior cycle's work"
-lede: "v8 has been at rest in `inputs/` since 2026-06-05 while 22 corpus files landed across two new funders, 12 inbox captures piled up, one chat verb shipped, and zero of that progress is visible in the spine the operator hands to themselves a week from now. The fix is one new verb: `/promote-snapshot` reads the latest CSV in `inputs/`, walks `clients/<client>/corpus/` indexing markdown files by their `record_id` frontmatter, and emits `<date>_<basename>_v<N+1>.csv` with system columns appended — `corpus_count`, `corpus_funder_slug`, `corpus_last_updated`, `corpus_by_pack`. No new infrastructure between the filesystem and the CSV. No register, no write-hooks, no boot-time backfill — just a stateless join at the moment the operator chooses to advance. The CSV in `inputs/` is the system of record (both spine columns and system columns); the filesystem is the truth that system columns are *derived from*. A re-export from Google Sheets (which won't carry system columns) doesn't lose anything — the next `/promote-snapshot` re-derives them from filesystem and emits them back into the CSV. Ships in two phases: a `corpus_count` chip on Records Surface so the 17/96 coverage gap becomes visible in the view (Phase A); the promotion verb itself (Phase B)."
+lede: >-
+  One verb: `/promote-snapshot` joins the corpus filesystem into a fresh CSV version with system columns. No register, no write-hooks.
 date_created: 2026-06-09
 date_modified: 2026-06-09
 authors:
@@ -21,6 +22,10 @@ tags:
   - Corpus
   - Records-Surface
 status: Draft
+site_uuid: f8be3583-c694-4431-a844-1debe1cea575
+hex_code: mwqjp3
+date_authored_initial_draft: 2026-06-09
+date_authored_current_draft: 2026-06-09
 ---
 
 # Augmentation-state preservation and snapshot promotion

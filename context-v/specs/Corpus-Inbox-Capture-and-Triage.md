@@ -1,6 +1,7 @@
 ---
 title: "Corpus Inbox — capture first, triage later; a zero-friction save destination for URLs without a home yet, with a future triage layer that sorts inbox content into the right places"
-lede: "While researching funders the operator finds URLs that don't yet have a home — articles about the right funder but at a different angle than the active record, cross-funder pieces mentioning several records at once, sector reports, regulatory documents, downloadable PDFs, destination sites worth remembering. The existing Content Reader manual-add affordance requires an active record context; without one the operator either makes a premature filing decision or loses the URL to a tab graveyard. Corpus Inbox is the missing third path: a zero-friction `clients/<client>/corpus/inbox/` destination that captures the URL + Jina-fetched body + operator's drive-by note, holds it in pending state, and waits for triage. Capture vectors at v1: a dedicated microfrontend (`apps/corpus-inbox/`), a `/inbox <url>` chat verb, AND a verb-less conversational path where pasting a bare URL into the agent-chat triggers an 'inbox this?' confirmation (the friction-minimum path for operators who don't want to remember a command); a future browser-plugin capture vector slots in cleanly per the [[../explorations/In-App-Browser-Or-Plugin-For-Corpus-Add]] sketch. The triage layer — direct UI or agent-chat harness that routes inbox items to `corpus/<funder-slug>/`, `corpus/reference/<topic>/`, or `discard` — is scoped here but specced separately. This spec is the *prerequisite* for healthy manual-add work: without an inbox the operator can't research freely without paying a filing tax on every discovery."
+lede: >-
+  A URL with no home yet shouldn't cost a filing decision: `corpus/inbox/` captures the page, its body, and a drive-by note, then waits.
 date_created: 2026-06-08
 date_modified: 2026-06-08
 authors:
@@ -9,8 +10,8 @@ augmented_with:
   - Claude Code on Claude Opus 4.7 (1M context)
 semantic_version: 0.0.0.2
 revisions:
-  - 2026-06-08 — Initial draft. Written immediately after shipping the Content Reader manual-URL add ([[Funder-Content-Corpus-Workflow]] v0.0.0.2, Step 5b). The operator's framing: *"I don't want to proceed to augment with human-searched links for record-focused corpus content without having some way to capture everything I am seeing."* Inbox is gating further per-record manual-add work — capture has to be cheap before triage can be deliberate.
-  - 2026-06-08 — Added Vector 2b: conversational paste-without-verb. Operator pastes a raw URL into the agent-chat (no `/inbox` prefix) and the agent recognizes the inbox-worthy shape, asks "save this to your inbox?" with optional note/tag prompts, then runs `corpus.inbox.add` on yes. The verb-less path is friction-minimum for the "I just want to dump this without remembering the command" rhythm; the verb stays for operators who prefer explicit-command muscle memory. Backend is identical to Vector 2a — same capability, same on-disk shape. Operator framing: *"copy and paste a link directly into the agent-chat and have it ask if this should go to the inbox, if so, the agent runs the commands on the backend."*
+  - "2026-06-08 — Initial draft. Written immediately after shipping the Content Reader manual-URL add ([[Funder-Content-Corpus-Workflow]] v0.0.0.2, Step 5b). The operator's framing: *\"I don't want to proceed to augment with human-searched links for record-focused corpus content without having some way to capture everything I am seeing.\"* Inbox is gating further per-record manual-add work — capture has to be cheap before triage can be deliberate."
+  - "2026-06-08 — Added Vector 2b: conversational paste-without-verb. Operator pastes a raw URL into the agent-chat (no `/inbox` prefix) and the agent recognizes the inbox-worthy shape, asks \"save this to your inbox?\" with optional note/tag prompts, then runs `corpus.inbox.add` on yes. The verb-less path is friction-minimum for the \"I just want to dump this without remembering the command\" rhythm; the verb stays for operators who prefer explicit-command muscle memory. Backend is identical to Vector 2a — same capability, same on-disk shape. Operator framing: *\"copy and paste a link directly into the agent-chat and have it ask if this should go to the inbox, if so, the agent runs the commands on the backend.\"*"
 tags:
   - Spec
   - Augment-It
@@ -22,6 +23,10 @@ tags:
   - Per-Client
   - Operator-UX
 status: Draft
+site_uuid: ae0e40eb-5a3d-47cb-91c8-160b03324d06
+hex_code: 314zyu
+date_authored_initial_draft: 2026-06-08
+date_authored_current_draft: 2026-06-08
 ---
 
 # Corpus Inbox — Capture and Triage

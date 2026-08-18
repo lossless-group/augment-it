@@ -1,6 +1,6 @@
 ---
 title: "Personal-link observations need named query lenses — without them, an accumulating fact log goes uninspected"
-lede: "The `has_personal_link` observation predicate added with the PersonalLinks pulse-dimension stores rich qualifiers (`kind`, `title`, `url_domain`, `org_id`) that we expect to query in specific shapes — per-person presence rollup, per-org corpus rollup, kind-filtered slices for analyst views. None of those queries exist yet. As personal-links accumulate (a single thought leader can easily contribute 50+), the operator will hit 'I have the data but no way to look at it' unless we name the lenses up front and ship them as we hit the friction."
+lede: "`has_personal_link` observations carry rich qualifiers and no queries. One thought leader can contribute 50+ before anyone can look."
 date_created: 2026-06-15
 date_modified: 2026-06-15
 authors:
@@ -17,6 +17,10 @@ tags:
   - Query-Lenses
   - Person-Enrichment
   - Funder-Content-Corpus
+site_uuid: c2b9d5a6-0137-404e-b038-37970e559b39
+hex_code: 979tyr
+date_authored_initial_draft: 2026-06-15
+date_authored_current_draft: 2026-06-15
 ---
 
 # Personal-link observations need named query lenses

@@ -1,6 +1,6 @@
 ---
 title: "Org Workbench in a narrow pane — the roster doesn't collapse, and the org card's contents spill out of their container"
-lede: "Tiled next to Search & Add, the workbench squeezes into a center column and misbehaves twice: the roster column eats width it can't afford (it should auto-hide below a threshold, with a manual toggle), and the org card's link rows and people rows overflow the card's right edge instead of shrinking — the flexbox min-width:auto trap."
+lede: "In a narrow pane the roster keeps its 300px and the card's link rows overflow — the flexbox `min-width: auto` trap, twice."
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -18,6 +18,10 @@ tags:
 status: Shipped
 date_first_published: 2026-07-24
 post_ship_note: "Shipped 2026-07-24 — min-width:0 down the card's flex/grid chain (+ .ow-url flex:1 so ellipsis engages), roster auto-hides under 860px with the ◀/▶ orgs toggle. Browser-drive verified at 720px on the Sterling card: 0px card overflow, 0px link spill, toggle round-trips. gh #38 closed."
+site_uuid: 021285a9-a43d-4ac3-9df0-fc06e855ccbb
+hex_code: 04m8qs
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # Narrow-pane workbench: roster hogs, card spills

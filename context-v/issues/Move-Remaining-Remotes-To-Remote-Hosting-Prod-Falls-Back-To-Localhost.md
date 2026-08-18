@@ -1,6 +1,6 @@
 ---
 title: "Move the rest of the app to remote hosting — prod still falls back to localhost for every undeployed remote"
-lede: "Only the client-facing surfaces (Corpus Builder + Augment-from-DB) were deployed as hosted remotes; the other 12 micro-frontends are hardcoded to http://localhost:3XXX in the production shell build, so augment.didi.sh tries to fetch them from the visitor's own machine at boot — they fail, and on some networks hang on a TCP timeout. This was a deliberate shortcut to get client collaboration live and defer the big refactor. Now the rest of the app needs to graduate to remote hosting."
+lede: "12 micro-frontends are hardcoded to `http://localhost:3XXX` in the prod shell, so augment.didi.sh fetches them from the visitor's machine."
 date_created: 2026-08-03
 date_modified: 2026-08-03
 authors:
@@ -16,6 +16,10 @@ tags:
   - Shell
   - Remote-Hosting
 status: Open · Diagnosed
+site_uuid: a005d699-8629-437a-8a11-8f4ac8e04fe5
+hex_code: 8yeycg
+date_authored_initial_draft: 2026-08-03
+date_authored_current_draft: 2026-08-03
 ---
 
 # Move the rest of the app to remote hosting

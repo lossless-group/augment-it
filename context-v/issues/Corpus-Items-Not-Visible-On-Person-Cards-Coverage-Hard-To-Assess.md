@@ -1,6 +1,6 @@
 ---
 title: "Corpus items aren't visible on person cards — and corpus coverage across entities is hard to assess anywhere"
-lede: "The person card says 'Corpus items 3' and shows nothing — a count with no list, no titles, no URLs. Since a core purpose of this work is assuring corpus items exist for every relevant organization and person, the operator can neither inspect what the 3 are nor assess coverage across the entity graph."
+lede: "The person card says 'Corpus items 3' and shows nothing — the operator can add a fourth without ever seeing the three that exist."
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -19,6 +19,10 @@ tags:
 status: Shipped
 date_first_published: 2026-07-24
 post_ship_note: "Layer 1 (per-card visibility) shipped 2026-07-24 AM — eager entries on organization.affiliations, AdditiveList render, no titles (content_items has none; the write-side is [[Corpus-Adds-Dont-Fetch-Metadata-No-Cue-No-Inspector]]). Layer 2 (coverage roster) shipped same day PM in 760e9fe as the OrgRoster column, gh #32 — un-deferring the earlier fold-into-#22 plan. gh #20 closed."
+site_uuid: 6cf8d893-bc23-4432-992f-be13da2b5019
+hex_code: zg8zb5
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # Corpus items invisible on person cards; coverage unassessable

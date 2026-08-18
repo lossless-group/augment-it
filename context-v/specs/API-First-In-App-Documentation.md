@@ -1,6 +1,7 @@
 ---
 title: "API-First In-App Documentation — Each Surface Reveals Its Own Docs Inline"
-lede: "Every remote, the shell, and every service ships its documentation inside itself — toggled by a small icon-CTA, revealed inline within the surface rather than in a separate tab. Not generic API docs but relevant ones: the data flowing in, the services called with which payloads, the response shapes, the diagrams. Because augment-it is also a demonstration of API-first architecture, the docs are part of the product, not adjacent to it."
+lede: >-
+  Every remote and service ships its own docs inline — an icon-CTA reveals the data flowing in, the calls fired, the response shapes.
 date_created: 2026-06-01
 date_modified: 2026-06-01
 authors:
@@ -19,6 +20,10 @@ tags:
   - Architecture-Demonstration
   - Discoverability
 status: Draft
+site_uuid: 31271d5d-38a9-45ea-824a-e2b2eb7136db
+hex_code: b837f8
+date_authored_initial_draft: 2026-06-01
+date_authored_current_draft: 2026-06-01
 ---
 
 # API-First In-App Documentation

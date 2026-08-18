@@ -1,6 +1,6 @@
 ---
 title: "Invokes survive reconnects — the claim protocol closes the eternal-spinner root cause"
-lede: "Twice in one evening a crawl finished server-side while the tab spun forever — both times because a workspace-service rebuild severed the socket and the transport threw away its pending invokes. Pending invokes now survive the drop and re-attach by id: the server stashes results whose socket died, and reconnecting clients send claim frames to collect them."
+lede: "Two crawls finished server-side while the tab spun forever. Pending invokes now survive a socket drop and re-attach by id via claim frames."
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -18,6 +18,10 @@ tags:
 status: Shipped
 date_first_published: 2026-07-24
 post_ship_note: "Shipped 2026-07-24 — successor to [[Crawl-Replies-Can-Be-Lost-Eternal-Spinner-No-Client-Timeout]]'s mitigations, landing the root cure the same evening after the Atlas Network crawl reproduced the loss. gh #41 closed."
+site_uuid: f4cc6eef-8bff-44d1-9bc0-1e2246b6a4db
+hex_code: mgs5ff
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # The claim protocol

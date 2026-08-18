@@ -1,6 +1,6 @@
 ---
 title: "One stuck message kills a NATS subject until restart — `domain.list: timeout` and the sequential handler loop"
-lede: "reach-edu's corpora stopped loading, and the cause wasn't the data or the database: every handler in domains.ts consumes its subject with a `for await` loop, so a single request that never settles blocks that subject forever. Silent, total, invisible in the logs, and only a container restart clears it."
+lede: "Every handler in `domains.ts` consumes its subject with a `for await` loop, so one unsettled request blocks the subject until a restart."
 date_created: 2026-08-08
 date_modified: 2026-08-08
 authors:
@@ -17,6 +17,10 @@ tags:
   - Resilience
   - Error-Handling
 status: Shipped
+site_uuid: f8fe524b-f991-4631-805e-7b2f045cdcc0
+hex_code: 11hve5
+date_authored_initial_draft: 2026-08-08
+date_authored_current_draft: 2026-08-08
 ---
 
 # One stuck message kills a NATS subject until restart

@@ -1,6 +1,6 @@
 ---
 title: "Issue: How People, Organizations, and Their Relationships Actually Enter SurrealDB"
-lede: "A 'get my head straight' issue, not a bug — augment-it was built one organic problem at a time, so the canonical layer can already do more than the operator remembers or can find in the UI. This traces the real mechanism end to end, verified against live data, before touching the next reach-edu event CSV."
+lede: "Not a bug — a verified trace of the canonical write path, because the DB already does more than the UI or the operator's memory shows."
 date_created: 2026-07-17
 date_modified: 2026-07-17
 authors:
@@ -17,6 +17,10 @@ tags:
   - Person-Org-Resolver
   - Client-Tagging
   - reach-edu
+site_uuid: 5a026017-0ace-4611-9b1a-e8dfc6848710
+hex_code: lo0wz8
+date_authored_initial_draft: 2026-07-17
+date_authored_current_draft: 2026-07-17
 ---
 
 # Issue: How People, Organizations, and Their Relationships Actually Enter SurrealDB

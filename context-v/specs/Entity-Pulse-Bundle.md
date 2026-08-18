@@ -1,6 +1,7 @@
 ---
 title: "Entity-Pulse Bundle — Press Releases, News Mentions, and the Social Voice of a Record"
-lede: "Profile Builder finds the canonical accounts an entity lives at. Entity Pulse finds what that entity has been *saying* and what's been said *about* it lately. Three categories — **Official Updates** (blog + press release + entity's own social posts), **Media Mentions** (news coverage + thematic inclusion + deep analysis), **Socials Mentions** (third-party mentions across platforms) — fire as a foundation-first four-phase DAG: OfficialUpdates first (identifying the entity's own voice), then a rollup-agent synthesizing that voice into a grounding context, then MediaMentions and SocialsMentions on top (with the OfficialUpdates rollup as relevance prior + cross-category dedup), then their rollup-agents. Each item carries two 0-100 scores (confidence + relevance against a fundraise brief); each category lands as a three-layer Pulse Curation state (immutable raw_output / live curated_output / immutable finalized_output snapshot) so the human gates every item with full audit trail. Augmenting a record set with this bundle answers 'what's the current shape of this entity's public conversation, and what survives our curation?' in one fire."
+lede: >-
+  Official Updates fires first; its rollup becomes the relevance prior for Media and Socials Mentions — a foundation-first four-phase DAG.
 date_created: 2026-06-01
 authors:
   - Michael Staton
@@ -28,6 +29,10 @@ tags:
   - Social-Aggregation
   - Profile-Continuation
 status: Partially-Shipped
+site_uuid: 9e3df221-4c2d-48a5-9fc7-07c819fffa6b
+hex_code: 31c9qh
+date_authored_initial_draft: 2026-06-01
+date_authored_current_draft: 2026-06-01
 ---
 
 # Entity-Pulse Bundle

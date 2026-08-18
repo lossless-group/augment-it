@@ -1,6 +1,6 @@
 ---
 title: "Tanuj's Prompt-Manager As Built"
-lede: "The scaffolding repo. Next.js 15 + React 19 + JavaScript, with a full CRUD-shaped UI for prompts (cards, search, statistics, create/edit modals, import/export) — but no store, no real data flow, and a `samplePrompts` array hardcoded inline. Honest about what it is: the right shape, none of the wiring. Worth keeping the schema, throwing away the implementation."
+lede: "Full CRUD-shaped prompt UI over a hardcoded `samplePrompts` array — no store, no data flow. Keep the schema, throw away the implementation."
 date_created: 2026-05-18
 date_modified: 2026-05-25
 date_archived: 2026-05-25
@@ -16,6 +16,10 @@ tags:
   - Prompt-Manager
   - As-Built
 status: Archived
+site_uuid: 19a98f36-cfaa-461a-bd0a-9338f7b94821
+hex_code: cnhpno
+date_authored_initial_draft: 2026-05-25
+date_authored_current_draft: 2026-05-25
 ---
 
 # Tanuj's Prompt-Manager As Built

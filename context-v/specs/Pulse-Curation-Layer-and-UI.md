@@ -1,6 +1,7 @@
 ---
 title: "Pulse Curation Layer & UI — Three Layers per Category, Triage Per Item, Finalize on Demand"
-lede: "Pulse-shaped bundles (Entity Pulse and its siblings) produce multi-item structured rollups that the human triages item-by-item. The data model needs three layers per category — an immutable `raw_output` from the LLM fan-out (audit trail), a live `curated_output` that updates as the user accepts to canonical, accepts to additional context, or discards each item, and an immutable `finalized_output` snapshot taken when the user marks the triage done. Re-firing a bundle later creates new raw + curated layers; the previous finalized is sticky. This spec codifies the three-layer pattern, the triage actions, the row schema, and the UI shape — the layer the Response Reviewer (per Decision §10) renders for pulse-shaped responses."
+lede: >-
+  Three layers per category: immutable `raw_output`, live `curated_output`, and a `finalized_output` snapshot locked when triage is done.
 date_created: 2026-06-02
 date_modified: 2026-06-02
 authors:
@@ -18,6 +19,10 @@ tags:
   - Human-In-The-Loop
   - Data-Model
 status: Draft
+site_uuid: 85b098d2-5532-467e-840f-dc5e74c4e2a7
+hex_code: ch9c8v
+date_authored_initial_draft: 2026-06-02
+date_authored_current_draft: 2026-06-02
 ---
 
 # Pulse Curation Layer & UI

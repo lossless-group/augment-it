@@ -1,6 +1,6 @@
 ---
 title: "Fetch full content clobbers the operator's metadata — resets the title to a URL approximation"
-lede: "Clicking 'Fetch full content' on a source overwrites the title (and publisher/date/authors) the operator typed, replacing it with Jina's guess or — when Jina fails — the raw URL. Enrichment must be additive: fetch the body, fill only empty fields, never overwrite accepted metadata."
+lede: "`fetchSourceContent` never consulted the saved title, so Jina's guess — or the raw URL on failure — overwrote what the operator typed."
 date_created: 2026-08-02
 date_modified: 2026-08-02
 authors:
@@ -15,6 +15,10 @@ tags:
   - Corpus
   - Bug
 status: Resolved
+site_uuid: 36218a4f-dc16-45f4-9719-379c0cf8f0f8
+hex_code: lvs69g
+date_authored_initial_draft: 2026-08-02
+date_authored_current_draft: 2026-08-02
 ---
 
 # Fetch full content clobbers the operator's metadata

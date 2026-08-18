@@ -1,6 +1,7 @@
 ---
 title: "Run /speckit-specify — Response Reviewer Structured-Output Extension (Packs-and-Bundles Feature 1)"
-lede: "The first Spec-Kit feature in the packs-and-bundles series. Extends the shipped response-store schema with sibling-payload structured output, the five-value outcome enum, archival markdown, and the pack/bundle correlation fields — and extends the shipped Response Reviewer remote to render the structured payload as a candidate card with a confidence pill. Zero packs are implemented in this feature. Zero bundles are implemented. The work is the surface that every pack will land on; the next three features (linkedin-pack, profile-builder.common bundle, then two-pass + entity-typed bundles) ride this foundation."
+lede: >-
+  Feature 1 of the packs-and-bundles series: the structured-output surface every pack will land on. Zero packs, zero bundles implemented.
 date_created: 2026-05-25
 date_modified: 2026-05-25
 authors:
@@ -21,6 +22,10 @@ deferral_note: "Kept as a future reference. The team is using the homegrown cont
 revisions:
   - 2026-05-25 — Initial draft.
   - 2026-05-25 — Deferred per user decision. System-of-record remains the homegrown context-v artifacts ([[Packs-and-Bundles-Pattern]] blueprint + [[Entity-Profile-Augmentation-Workflow]] exploration). To be revisited after linkedin-pack ships.
+site_uuid: 7b860a9d-8224-4ada-a2da-7bb0a2ec6e5a
+hex_code: ispffh
+date_authored_initial_draft: 2026-05-25
+date_authored_current_draft: 2026-05-25
 ---
 
 # Run /speckit-specify — Response Reviewer Structured-Output Extension

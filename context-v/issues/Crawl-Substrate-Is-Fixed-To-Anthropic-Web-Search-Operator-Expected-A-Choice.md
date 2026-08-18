@@ -1,6 +1,6 @@
 ---
 title: "The crawl's search substrate is fixed to Anthropic web search — the operator expected to choose"
-lede: "The manual 🔍 has a provider palette (SearXNG free-first, Tavily, Exa, SerpAPI…); the didi crawl has no dial at all — one Claude turn with Anthropic's server-side web_search, per the crawl plan's Decision 1. The operator assumed the choice would carry over. It should at least be visible, and probably choosable."
+lede: "The manual 🔍 has a provider palette; `organization.crawl` is hardwired to Anthropic's server-side web_search with no dial and no label."
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -15,6 +15,10 @@ tags:
   - Search-Providers
   - Prompt-Runner
 status: Open · Jotted
+site_uuid: 642fbcf3-0423-4fd3-ad65-4577d66fc521
+hex_code: d0rsic
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # The crawl has no provider dial

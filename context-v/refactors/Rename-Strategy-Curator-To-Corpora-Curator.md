@@ -1,6 +1,7 @@
 ---
 title: "Rename the corpora curator — finishing a rename that only ever reached the label"
-lede: "The surface said \"Corpora Curator\" from 2026-07-06 while the package, the directory, the federation remote and the Railway service all still said strategy. Four naming layers were tangled here and only three moved: the fourth is a data value living in two external client repos."
+lede: >-
+  Four naming layers were tangled here and only three moved — the fourth is a data value living in two external client repos.
 date_created: 2026-08-08
 date_modified: 2026-08-08
 authors:
@@ -16,6 +17,10 @@ tags:
   - Module-Federation
   - Deployment
   - Design-System
+site_uuid: 1557b5f4-d151-4a62-ad1c-96bb1645af42
+hex_code: iiz80j
+date_authored_initial_draft: 2026-08-08
+date_authored_current_draft: 2026-08-08
 ---
 
 > **Editing note.** This document is the one place in the repo that must keep

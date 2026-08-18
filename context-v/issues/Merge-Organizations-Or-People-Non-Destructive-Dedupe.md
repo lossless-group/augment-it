@@ -1,6 +1,6 @@
 ---
 title: "Merging organizations or people — when two objects turn out to be the same entity, dedupe non-destructively"
-lede: "Sooner or later two rows ARE the same org (or person) — different imports, different spellings, one with a domain and one without. There's no merge anywhere: nothing re-points edges, unions the lists, or absorbs the loser's slug into aliases. Non-destructive but effective dedupe probably deserves its own microfrontend."
+lede: "Two rows are sometimes the same entity and nothing merges them — no edge re-pointing, no list union, no slug absorbed into `aliases[]`."
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -17,6 +17,10 @@ tags:
   - Merge
   - Canonical-Layer
 status: Open · Stub
+site_uuid: 51bcba8c-17bd-4578-952a-03b2b3d62ed2
+hex_code: zpdsmu
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # Merge organizations or people — a stub

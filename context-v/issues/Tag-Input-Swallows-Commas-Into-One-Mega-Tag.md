@@ -1,6 +1,6 @@
 ---
 title: "Tag input swallows commas into one mega-tag — commas should split into separate tags"
-lede: "Typing 'Quantum-Computing, Quantum-Innovations, Computational-Biology' into a tag field saves it as ONE tag, 'Quantum-Computing-Quantum-Innovations-Computational-Biology', because toDashed treats commas exactly like spaces. Commas should be tag separators, spaces the word-joiners."
+lede: "`toDashed` splits on every non-alphanumeric, so commas behave like spaces and three intended tags fuse into one mega-tag."
 date_created: 2026-08-02
 date_modified: 2026-08-02
 authors:
@@ -15,6 +15,10 @@ tags:
   - Tags
   - Bug
 status: Resolved
+site_uuid: 9adaec54-b674-43d3-8207-6a04f98bf3e0
+hex_code: pd8h9p
+date_authored_initial_draft: 2026-08-02
+date_authored_current_draft: 2026-08-02
 ---
 
 # Tag input swallows commas into one mega-tag

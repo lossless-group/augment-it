@@ -1,6 +1,6 @@
 ---
 title: "Troubleshooting UI for Official Blogs — The Bundle Fire Path Doesn't Fit the Flow That Was Built for Prompt Templates"
-lede: "Entity Pulse Phase-1 bundles (entity-blog, entity-officials) are now selectable in the Augment remote and fire end-to-end against real rows — but the Flow that wraps Augment was built around prompt-template fires, not bundle fires, and at every step downstream of step 2 the user hits a surface that makes no sense for what they just did. Request Reviewer (step 3) has no preview of what's about to be sent for a bundle fire; the navigation to Response Reviewer is blocked behind it; Response Reviewer (step 4) only renders responses after they exist; and the per-record fire affordance lives in Response Reviewer instead of in Augment where it should be visible from step 2. Plus a NATS payload-limit crash that ate the first fire's responses. The chip palette pattern is sound; what's broken is the flow's assumption that everything routes through a prompt template, and the gap between the bundle picker and the per-row fire surface."
+lede: "Bundles fire end-to-end, but the Flow assumes every fire routes through a prompt template — so every step past 2 is wrong for a bundle."
 date_created: 2026-06-02
 date_modified: 2026-06-02
 authors:
@@ -21,6 +21,10 @@ tags:
   - Connector-Palette
   - UI-Mismatch
 status: Open
+site_uuid: 161bb0f1-d025-4b9a-aa57-5d7af2ad5079
+hex_code: 0mxx9l
+date_authored_initial_draft: 2026-06-02
+date_authored_current_draft: 2026-06-02
 ---
 
 # Troubleshooting UI for Official Blogs

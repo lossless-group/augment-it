@@ -1,6 +1,6 @@
 ---
 title: "Best Way to RAG Over the Corpus — design space for retrieval-augmented operations on augment-it's per-client corpus, given the structured frontmatter we just earned"
-lede: "245 .md files now carry first-class `published_at`, `record_id`, `record_uuid`, `funder_slug`, `pack_id`, `tags`, `binary_asset.sha256`, and `extra_metadata.{language,description,content_length_bytes}`. That metadata is the differentiator — RAG over augment-it's corpus is not 'embed-and-cosine-search'; it's hybrid retrieval where the structured facets (date, funder, source, document type) do most of the filtering and dense embeddings handle the residual 'about-ness.' This doc walks the design space: vector store choice (local Chroma is the right starting point, given the wider Lossless tree's existing Chroma MCP and the `chroma-local` / `search-lossless-corpus` skills), chunking strategy (markdown H2-aware with overlap, lineage-stable doc IDs keyed by `record_uuid`), the per-funder collection vs single-with-filter trade-off, where the retrieval lives in the runtime (a `corpus.retrieve.requested` NATS capability mirroring the existing `corpus.list_for_record` shape), how the inbox composes (indexed separately under its triage discipline), and what the operator-facing surface looks like (cited answers in chat; retrieval-backed chips on the Sort & Filter Lens; an MCP server export so other tools in the tree can query the same corpus). A phased plan ends the doc — Phase 1 ingest to local Chroma + the retrieve capability; Phase 2 chat-surface citations and lens-side filter-by-retrieval; Phase 3 graduate to Chroma Cloud when multi-user reach matters or local resources become the bottleneck."
+lede: "245 corpus files carry `funder_slug` and `published_at`, so retrieval is facet-filter-first — embeddings handle the residual about-ness."
 date_created: 2026-06-11
 date_modified: 2026-06-11
 authors:
@@ -30,6 +30,10 @@ related_skills:
   - chroma-local
   - chroma-cloud
   - search-lossless-corpus
+site_uuid: 5c24a169-70f5-4747-b789-03a4c1836972
+hex_code: ie8zvz
+date_authored_initial_draft: 2026-06-11
+date_authored_current_draft: 2026-06-11
 ---
 
 # Best Way to RAG Over the Corpus

@@ -1,6 +1,6 @@
 ---
 title: "Search Providers as First-Class — Stand Up SearXNG as the New Default for Social Packs; Tavily Stays as a Peer; Per-Row Iteration as the Workflow We're Building Toward"
-lede: "The social packs route through Tavily today, but Tavily is a content-RAG index — wrong substrate for sparse-text JS-rendered social-profile pages. The fix is **not** to swap Tavily out. The fix is to make **search provider** a first-class concern in the architecture, stand SearXNG up as a peer, flip the common-seven social packs so SearXNG becomes their new default, and keep Tavily wired in as a peer for the content-RAG packs/bundles that will want it (deep-research, document extraction, annual-report summarization). The deeper goal — the reason this is more than a refactor — is that the product is being shaped around an **iteration loop**: a user finds a `not_found` or low-confidence response in the by-record triage view, suspects the provider is the issue, and wants to re-fire the same pack against the same row through a different provider (SearXNG → Brave → Google CSE → direct-API connector) until the accurate data surfaces with the fewest API calls. That loop only exists if providers are plural and selectable per-fire."
+lede: "Tavily is a content-RAG index — wrong substrate for social-profile pages. The fix isn't a swap — it's making provider plural per-fire."
 date_created: 2026-05-26
 date_modified: 2026-07-21
 authors:
@@ -26,6 +26,10 @@ tags:
   - Iteration-Loop
   - Social-Search
 status: Resolved · Provider Plurality Shipped 2026-06-01 · Registry 2026-06-02 · Smoke Metric + Blueprint Skipped
+site_uuid: 4e75401b-b169-4757-9395-bee3567bd922
+hex_code: ywq1cg
+date_authored_initial_draft: 2026-05-26
+date_authored_current_draft: 2026-05-26
 ---
 
 # Search Providers as First-Class — SearXNG Becomes the New Default for Social Packs

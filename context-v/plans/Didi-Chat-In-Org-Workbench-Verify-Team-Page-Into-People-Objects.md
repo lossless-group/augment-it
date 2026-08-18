@@ -1,6 +1,7 @@
 ---
 title: "Didi chat joins the Org Workbench — first agent action: verify a team page and turn it into approved people objects"
-lede: "Integrate the didi chat rail with the Org Workbench so agents can take view-scoped actions. The proving action: point didi at an organization's team page; it returns people objects INTO STATE (not the DB), the user alters or verifies them on the card, and only on approval does the agent write person + affiliation records — to SurrealDB, or CSV, or whatever backend the workspace is using."
+lede: >-
+  Point didi at an org's team page: people objects land in state, not the DB — only on approval does it write persons and affiliations.
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -18,6 +19,10 @@ tags:
   - Persons
   - Affiliations
 status: Draft · Stub
+site_uuid: ec50c286-41d5-40c9-99ea-33ac82ea40af
+hex_code: zqlxl3
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # Didi chat in the Org Workbench — team page → people objects

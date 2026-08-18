@@ -17,6 +17,10 @@ tags:
   - Git-Conventions
   - Changelog-Conventions
 status: Proven-Once
+site_uuid: 4e8898ba-f69b-4266-b00d-5847881aa4b1
+hex_code: 6t91bu
+date_authored_initial_draft: 2026-08-02
+date_authored_current_draft: 2026-08-02
 ---
 
 # From a Raised Issue to Fixed-and-Shipped

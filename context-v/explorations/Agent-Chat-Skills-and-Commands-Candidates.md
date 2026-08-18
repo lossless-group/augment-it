@@ -1,6 +1,6 @@
 ---
 title: "Agent-Chat Skills and Commands — Candidates List"
-lede: "The in-app chat surface (apps/chat) is augment-it's verb-routing layer — the place a user states a goal in prose and a capability handler executes it. Today's roster is small and prompt-focused: `prompts.draft`, `prompts.improve`, `prompts.apply`, `records.list`. The product needs many more verbs to be useful, and several scripts that already exist under `scripts/` and `services/*/scripts/` are the natural first candidates to graduate from shell-only into chat-callable capabilities. This doc maintains the running list of candidates — what they do, what shape they need to take (TS handler / ScriptCapability / McpCapability / SkillCapability), what gating they require (destructive vs read-only, scope-aware vs global), and what the chat-side phrasing should look like. Treated as a living roster — the next session adds entries as they get nominated; promotion out of this doc happens when a candidate becomes a spec or lands in `packages/workspace/src/capabilities/`."
+lede: "The chat's verb roster is four prompt-focused capabilities. A running list of shell scripts that should graduate into chat-callable verbs."
 date_created: 2026-05-26
 date_modified: 2026-05-26
 authors:
@@ -20,6 +20,10 @@ tags:
   - Commands
   - Living-Roster
 status: Active
+site_uuid: cbe77c9c-3d1f-4447-9e3e-79d95f0553ac
+hex_code: ygf6qe
+date_authored_initial_draft: 2026-05-26
+date_authored_current_draft: 2026-05-26
 ---
 
 # Agent-Chat Skills and Commands — Candidates List

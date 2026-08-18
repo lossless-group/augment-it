@@ -1,6 +1,7 @@
 ---
 title: "Walking-Skeleton Pre-Flight Decisions — Augment-It Rewrite"
-lede: "Five decisions that have to be settled before we can write code for the augment-it rewrite. Captured here as a single load-bearing doc so a future session can pick up the build without re-walking the decision tree in chat. State management is hand-rolled useSyncExternalStore. Transport is HTTP fetch to a bun sidecar at localhost. Persistence is JSON files written by the sidecar; graduate to libSQL when multi-device demands it. Auth is opaque session tokens auto-minted by the sidecar on first contact — real user_ids and sessions without an OAuth detour. The @lossless/in-app-agent scaffolding question remains open pending a final call on whether augment-it drives the package's first implementation."
+lede: >-
+  Five substrate decisions — state, transport, persistence, auth, agent scaffolding — settled before code so no session re-walks the tree.
 date_created: 2026-05-18
 date_modified: 2026-05-25
 date_completed: 2026-05-21
@@ -22,6 +23,10 @@ tags:
   - Auth
   - Bun-Sidecar
 status: Shipped
+site_uuid: baa60859-b0c8-4fed-8d1b-ef14ccccf4a5
+hex_code: zfhtul
+date_authored_initial_draft: 2026-05-25
+date_authored_current_draft: 2026-05-25
 ---
 
 # Walking-Skeleton Pre-Flight Decisions

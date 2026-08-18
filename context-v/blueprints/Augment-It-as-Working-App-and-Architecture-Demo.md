@@ -1,6 +1,7 @@
 ---
 title: "Augment-It as Working App and Architecture Demonstration"
-lede: "Augment-it lives two lives at once — a working product that augments CRM-style record sets, and a living showcase of microservices + microfrontend + API-first architecture. This blueprint names the dual identity, draws out the tensions it creates, and codifies the discipline of evaluating every architectural and UX decision under both lenses so neither identity quietly wins."
+lede: >-
+  Augment-it is a working product and a live architecture showcase at once; every decision answers to both lenses so neither quietly wins.
 date_created: 2026-06-01
 date_modified: 2026-06-01
 authors:
@@ -19,6 +20,10 @@ tags:
   - Module-Federation
   - Demonstration
 status: Draft
+site_uuid: f35963fd-1426-4d7a-8d22-19fb04d037e7
+hex_code: 25efk5
+date_authored_initial_draft: 2026-06-01
+date_authored_current_draft: 2026-06-01
 ---
 
 # Augment-It as Working App and Architecture Demonstration

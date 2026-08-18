@@ -1,6 +1,6 @@
 ---
 title: "In-App Browser vs Browser Plugin for Corpus Add — bridging the operator's own search into the per-record corpus without leaving the cockpit"
-lede: "The Content Reader now has a manual-URL field — paste a URL the operator found via their own Google search and it lands in the funder's corpus. That closes the immediate gap but leaves the friction of leaving Augment-It to do the search, finding the URL, then copying it back into the right card. This exploration looks at two ways to collapse that round-trip: (1) an in-app browser/search surface — embed a search experience inside Augment-It so the operator never context-switches; (2) a browser plugin — let the operator search wherever they normally do (Chrome, Safari, Arc) and post the active tab's URL into the active record's corpus with a single keystroke. Each path has real friction-cost / engineering-cost / security-cost trade-offs. The doc captures the trade-offs, the unknowns to resolve before committing, and a recommendation."
+lede: "Adding one operator-found URL to a funder's corpus is a ten-step round-trip out to Google and back. In-app browser, or browser plugin?"
 date_created: 2026-06-08
 date_modified: 2026-06-08
 authors:
@@ -20,6 +20,10 @@ tags:
   - In-App-Browser
   - Operator-UX
 status: Active
+site_uuid: 6a5ce0dc-e4f8-4515-978e-06547e0b0413
+hex_code: h14os1
+date_authored_initial_draft: 2026-06-08
+date_authored_current_draft: 2026-06-08
 ---
 
 # In-App Browser or Plugin for Corpus Add

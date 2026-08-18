@@ -17,6 +17,10 @@ tags:
   - Corpora-Builder
   - Workspace-Auth
   - Test-Registry
+site_uuid: 037ffb0c-f67d-4b01-8c56-7500d147d581
+hex_code: cpnb5l
+date_authored_initial_draft: 2026-08-01
+date_authored_current_draft: 2026-08-01
 ---
 
 # Corpora Builder Harmony — the evolving test registry

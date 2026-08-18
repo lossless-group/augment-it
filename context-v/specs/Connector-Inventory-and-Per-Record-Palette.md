@@ -1,6 +1,7 @@
 ---
 title: "Connector Inventory & Per-Record Palette — Hot-Swap Providers, Re-Fire One Record at a Time"
-lede: "Today's connectors are hardcoded into a small ProviderId union and bound to specific packs at compile time. The reality of LLM web research is that providers churn — new ones launch, old ones rate-limit, costs shift, a specific entity needs a specific connector to crack a stubborn search. The system needs to (a) accept any connector at runtime via a registry that resolves by *capability* not by hardcoded id, and (b) give the human, at triage time, a per-record palette of short-labeled buttons — click `f` to re-fire just this record through the next Facebook connector in priority order, or long-press to pick a specific one. The killer UX from prior live attempts: per-row, per-intent, per-connector, one click. This spec scopes the registry, the pack-intent declarations, the bundle-level chain config, the per-record palette, and the integration with the Pulse Curation Layer."
+lede: >-
+  Per-record connector palette: click `f` to re-fire one row through the next Facebook provider, over a registry that resolves by capability.
 date_created: 2026-06-02
 date_modified: 2026-07-21
 date_first_published: 2026-06-02
@@ -21,6 +22,10 @@ tags:
   - Capabilities
   - Pulse-Curation
 status: Partially-Shipped
+site_uuid: d2290a8e-5d61-4e37-b282-1574d11328f5
+hex_code: 8dzi5c
+date_authored_initial_draft: 2026-06-02
+date_authored_current_draft: 2026-06-02
 ---
 
 # Connector Inventory & Per-Record Palette

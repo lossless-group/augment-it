@@ -1,6 +1,6 @@
 ---
 title: "Funder Corpus First Session Failed — 75 markdown files across 15 of 96 funders, 81 records unprocessable, hours spent layering filters on stale data instead of producing clean fresh data, rebuild against the goals spec exists in code but was never validated against a real pack fire because the session ended"
-lede: "After a multi-hour session on 2026-06-05 building toward the per-client funder content corpus for reach-edu, the operator stopped because the workflow was unworkable. Final state: 75 corpus markdown files written to `clients/reach-edu/corpus/` across 15 funders (Annie E. Casey, Arnold Ventures, Arthur Blank Foundation, Ascendium Education, Ballmer Group II, Bridgespan, Carnegie Corporation, Charles and Lynn Schusterman, Charles Koch Foundation, Daniels Fund, ECMC-2, Education First, Gitlab Foundation, Greater Texas Foundation, Heising-Simons Foundation). 81 of 96 funder records have zero corpus content. The operator's stated framing: 'I was only able to process like 1/3 of the plausible records' and 'this is all fucking bullshit, nothing is working the way it should.' This issue captures what failed so morning-self has a target list and doesn't repeat the failure modes."
+lede: "Six hours produced 75 corpus files across 15 of 96 funders — 81 records still have nothing. This is the failure-mode list for morning-self."
 date_created: 2026-06-05
 date_modified: 2026-06-05
 authors:
@@ -19,6 +19,10 @@ tags:
   - Reach-Edu
   - URGENT
 status: Open · First Session Failed · Rebuild Unvalidated · Multiple Root Causes Outstanding
+site_uuid: e814af34-132c-4f27-bec2-913499133761
+hex_code: 4kyq9q
+date_authored_initial_draft: 2026-06-05
+date_authored_current_draft: 2026-06-05
 ---
 
 # Funder Corpus First Session Failed

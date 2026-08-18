@@ -18,6 +18,10 @@ tags:
   - Path-Off-Local
   - Corpus
   - Collaboration
+site_uuid: 108297f8-c766-48fb-a43e-3518225723ea
+hex_code: 50pdz4
+date_authored_initial_draft: 2026-07-17
+date_authored_current_draft: 2026-07-17
 ---
 
 # Syncthing for Collaborator Access to the Corpus

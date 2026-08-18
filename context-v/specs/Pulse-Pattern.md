@@ -1,6 +1,7 @@
 ---
 title: "Pulse pattern — one operator burst against one entity, expressed as N independent pulse-dimensions composed in a pulse-surface, each dimension potentially owning its own microservice"
-lede: "Building the first version of the person-enrichment remote surfaced a pattern hiding inside the existing per-record / per-flow vocabulary. Operators don't think in 'steps' when they're enriching one person — they think in *bursts*. One Google search reveals a name, a LinkedIn URL, an X handle, two alt emails, and which org the person works for. That's not five sequential UI steps; it's one operator-attention burst against one entity, and the UI should let the operator commit all of it in one save. The pattern: a `pulse` is the burst itself; a `pulse-dimension` is one independent editable concern within the burst (name, socials, emails, org); a `pulse-surface` is the parent that loads the entity, hosts its dimensions, collects them, and writes them as one observation batch. Dimensions can be nested (OrgPicker contains OrgCreate). Dimensions are reusable across pulse-surfaces (NameFields is the same in person-enrichment as it will be in org-enrichment). Each dimension can grow its own microservice when it earns one — matching the existing pack / surface pattern."
+lede: >-
+  Operators enrich in bursts, not steps: one search fills name, socials, emails, and org, and a pulse-surface commits all of it in one save.
 date_created: 2026-06-15
 date_modified: 2026-07-21
 date_first_published: 2026-06-16
@@ -21,6 +22,10 @@ tags:
   - Composable-UI
   - Operator-Built-Flows
   - Entity-Enrichment
+site_uuid: 44223ac9-d197-4d52-9193-e283bb4fbda8
+hex_code: yxg5k4
+date_authored_initial_draft: 2026-06-15
+date_authored_current_draft: 2026-06-15
 ---
 
 # Pulse pattern

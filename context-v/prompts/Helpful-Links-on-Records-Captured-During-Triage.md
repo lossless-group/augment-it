@@ -1,6 +1,7 @@
 ---
 title: "Helpful Links on Records — Captured During Response-Reviewer Triage"
-lede: "While a human-in-the-loop is triaging LLM responses in Response Reviewer — google-searching the unclear ones, fixing wrong URLs, deciding whether an org even exists — they routinely stumble onto adjacent links worth keeping with the record (a foundation page, a personal LinkedIn, a press release, a related grantee site). Today those links die in the human's clipboard. This prompt scopes a `helpful_links` array field per row, attachable inline from Response Reviewer with one click, surviving across record-set derivations so the next enrichment round can read them."
+lede: >-
+  The adjacent links a human finds while triaging die in the clipboard; `helpful_links` catches them in one click and survives derivations.
 date_created: 2026-05-22
 date_modified: 2026-05-25
 date_completed: 2026-05-22
@@ -19,6 +20,10 @@ tags:
   - Row-Store
   - Human-in-the-Loop
   - Data-Model
+site_uuid: 574cd0d1-4aa3-4688-bb78-15ca79aa984b
+hex_code: 8f7c3z
+date_authored_initial_draft: 2026-05-25
+date_authored_current_draft: 2026-05-25
 ---
 
 # Helpful Links on Records — Captured During Response-Reviewer Triage

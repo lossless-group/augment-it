@@ -1,6 +1,7 @@
 ---
 title: "Response Reviewer and Response Store — the Post-Flight Surface"
-lede: "Once a request has fired, the verbose prose the model returns has to be inspected before any of it reaches a CRM cell. response-reviewer is that inspection surface — and it cannot exist until a fired response becomes a first-class stored object instead of a bare cell value. So this spec defines two things at once: a new response-store service that records every fired response with its request, model, and review flag; and the response-reviewer remote that reads it, lets a human triage good/partial/wrong, and either accepts a whole response straight into a cell or sends the row back to be re-run."
+lede: >-
+  No review surface until a fired response is a first-class stored object — so response-store and response-reviewer are specced as one.
 date_created: 2026-05-22
 date_modified: 2026-05-25
 date_completed: 2026-05-22
@@ -20,6 +21,10 @@ tags:
   - Human-in-the-Loop
   - Module-Federation
 status: Shipped
+site_uuid: f46fc57e-b0e9-4eb6-98e6-aebf7d3679f0
+hex_code: 6b20xg
+date_authored_initial_draft: 2026-05-25
+date_authored_current_draft: 2026-05-25
 ---
 
 # Response Reviewer and Response Store — the Post-Flight Surface

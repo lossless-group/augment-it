@@ -1,6 +1,6 @@
 ---
 title: "Corpus adds don't fetch metadata — and the row gives no cue either way, and there's no inspector to see or fix it"
-lede: "Adding a corpus item to New America raised the question 'did it fetch the metadata?' — and the honest answer is no, and nothing on the row would tell you either way. The ➕ path writes url/kind/domain and stops; the Jina metadata fetch we already run for domain-corpus sources never fires for entity corpus."
+lede: "`organization.corpus.add` writes url, kind, and domain then stops — the Jina metadata fetch never fires, and nothing on the row says so."
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -17,6 +17,10 @@ tags:
   - Content-Items
   - Metadata
 status: Open · Jotted
+site_uuid: 9f6e1135-59b2-4bd3-9dbe-d7bd491d45bc
+hex_code: jt03b7
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # Corpus adds don't fetch metadata; no cue; no inspector

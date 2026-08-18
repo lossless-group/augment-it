@@ -1,6 +1,7 @@
 ---
 title: "Person-aware canonical resolver — closing the gap between the proven scripts and the shell-reachable capability"
-lede: "record-db-resolver (the capability the shell/Pack Runner/Didi Chat can actually call) only knows organizations. Every person + affiliation + observation ever written to SurrealDB Cloud went through standalone CLI scripts instead — proven, but unreachable from any UI. This plan extends the resolver service to do what the scripts already do, so the FreedomFest 2026 speaker/sponsor/exhibitor CSVs (and every event after it) can be processed from inside augment-it instead of by hand."
+lede: >-
+  The resolver only knows organizations; every person and affiliation ever written came from CLI scripts no UI can reach.
 date_created: 2026-07-07
 date_modified: 2026-07-07
 authors:
@@ -9,10 +10,7 @@ augmented_with:
   - Claude Code on Claude Sonnet 5
 semantic_version: 0.0.0.2
 revisions:
-  - 2026-07-07 — Resolved §3/§4: separate person-db-resolver remote (not
-    a mode-toggle), per-record-set column mapping. Prompted by a live
-    test writing a bad organizations row + opportunity from a person
-    record; both deleted from SurrealDB Cloud after the fact.
+  - "2026-07-07 — Resolved §3/§4: separate person-db-resolver remote (not a mode-toggle), per-record-set column mapping. Prompted by a live test writing a bad organizations row + opportunity from a person record; both deleted from SurrealDB Cloud after the fact."
   - 2026-07-07 — Initial draft.
 status: Implementing
 tags:
@@ -27,6 +25,10 @@ tags:
   - Person-Enrichment
   - Reach-Edu
   - FreedomFest
+site_uuid: 95576280-9904-4a96-89ca-c12123d8485d
+hex_code: ptkmv1
+date_authored_initial_draft: 2026-07-07
+date_authored_current_draft: 2026-07-07
 ---
 
 # Person-aware canonical resolver

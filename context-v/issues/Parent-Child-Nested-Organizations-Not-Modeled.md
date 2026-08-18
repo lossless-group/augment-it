@@ -1,6 +1,6 @@
 ---
 title: "Parent-Child Nested Organizations Are Not Modeled — Initiatives, Funds, and Sub-Orgs Have Nowhere Canonical to Hang"
-lede: "Surfaced in the first triage-inbox co-pilot run (2026-07-25): an Urban Institute event page had no honest destination because upmobility-foundation-urban-institute conflates a parent org (Urban Institute) with an initiative of it (Upward Mobility Foundation). The operator ruled: don't file content into either until the parent/child relationship is actually modeled."
+lede: "`upmobility-foundation-urban-institute` welds a parent org to its initiative, so triaged content has no honest folder to land in."
 date_created: 2026-07-25
 date_modified: 2026-08-02
 authors:
@@ -9,9 +9,9 @@ augmented_with:
   - Claude Code on Claude Fable 5
 semantic_version: 0.0.1.0
 revisions:
-  - 2026-07-27 — **Model shipped + pilot untangled (0.0.1.0).** Section C fully checked (edges in `affiliations`, six capabilities, workbench surface, triage step 5b); pilot case A-1 done with a superseding ruling — UpMobility Foundation and Urban Institute's Upward Mobility initiative are DISTINCT entities, related peer/`partners_with`, not initiative-of. All three parked captures filed. Remaining: worklist A-2..4 and B, untangled lazily at filing pressure per the standing ruling.
+  - "2026-07-27 — **Model shipped + pilot untangled (0.0.1.0).** Section C fully checked (edges in `affiliations`, six capabilities, workbench surface, triage step 5b); pilot case A-1 done with a superseding ruling — UpMobility Foundation and Urban Institute's Upward Mobility initiative are DISTINCT entities, related peer/`partners_with`, not initiative-of. All three parked captures filed. Remaining: worklist A-2..4 and B, untangled lazily at filing pressure per the standing ruling."
   - 2026-07-25 — Initial draft, written mid-triage-run when the Urban Institute event page (batch 1 item 18) was parked rather than filed into the conflated funder folder.
-  - 2026-07-27 — **Reconciliation worklist added (0.0.0.2).** After the DB-slug-is-source-of-truth pass renamed every cleanly-renamable folder, the welded slugs are the last disk↔DB divergence — operator directed: build this in and track it. Full per-case inventory with current state and untangle steps; gh issue opened for the work trail.
+  - "2026-07-27 — **Reconciliation worklist added (0.0.0.2).** After the DB-slug-is-source-of-truth pass renamed every cleanly-renamable folder, the welded slugs are the last disk↔DB divergence — operator directed: build this in and track it. Full per-case inventory with current state and untangle steps; gh issue opened for the work trail."
 tags:
   - Issue
   - Augment-It
@@ -19,7 +19,11 @@ tags:
   - Canonical-Layer
   - Corpus-Triage
   - Data-Modeling
-status: Partially-Resolved · Model + six capabilities + workbench surface + triage step 5b shipped and code-confirmed (2026-07-27) · Open: multi-hop nesting renders one hop only, corpus roll-up lenses deferred, bulk reconciliation worklist A-2..4 + B outstanding
+status: "Partially-Resolved · Model + six capabilities + workbench surface + triage step 5b shipped and code-confirmed (2026-07-27) · Open: multi-hop nesting renders one hop only, corpus roll-up lenses deferred, bulk reconciliation worklist A-2..4 + B outstanding"
+site_uuid: 6ecf7cf2-5001-4bef-8f6b-3cffd7b313c8
+hex_code: 0l2tlc
+date_authored_initial_draft: 2026-07-25
+date_authored_current_draft: 2026-07-25
 ---
 
 # Parent-Child Nested Organizations Are Not Modeled

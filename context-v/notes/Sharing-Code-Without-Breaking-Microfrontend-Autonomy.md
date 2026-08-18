@@ -1,6 +1,6 @@
 ---
 title: "Sharing code without breaking microfrontend autonomy: build-time import IS the copy"
-lede: "Because federation here has no `shared` block, a workspace import gets inlined into every remote's own bundle — one source of truth in the repo, seventeen independent copies in the artifacts. The real cost isn't runtime coupling, it's redeploy fan-out."
+lede: "With no `shared` block, a workspace import is inlined into all seventeen bundles. The cost isn't runtime coupling, it's redeploy fan-out."
 date_created: 2026-08-06
 date_modified: 2026-08-06
 authors:
@@ -17,6 +17,10 @@ tags:
   - Monorepo
   - Microservices
   - Design-System
+site_uuid: dd90ecab-82c2-4f82-82e7-2a46b0243e5a
+hex_code: yys433
+date_authored_initial_draft: 2026-08-06
+date_authored_current_draft: 2026-08-06
 ---
 
 # Sharing code without breaking microfrontend autonomy

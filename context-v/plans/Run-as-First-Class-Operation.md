@@ -1,6 +1,7 @@
 ---
 title: "Run-as-First-Class-Operation — Pair Pack-Runner with Prompt-Template-Manager, Make Runs Legible Across the Pipeline"
-lede: "Two coupled fixes that came out of the 2026-05-25 smoke against the foundation dataset. **First**, pair the Pack Runner remote with Prompt-Template-Manager in co-existence mode — they are the two ways to enrich a record set (custom LLM prompt vs source-bound pack), so they belong in one viewport with a draggable seam. **Second**, lift `Run` from a string id buried on each ResponseRecord into a first-class entity in response-store, so Response Reviewer (and Pack Runner, and every future surface) can see what batch of work produced the responses it's looking at — what prompt or packs fired, against which rows, with what aggregates, when. The pair is a one-line PAIRINGS entry. The Run lift is a small new service surface plus four UI touches; it pays for itself the moment a bundle wants live progress without inventing new infrastructure."
+lede: >-
+  Lift `Run` from a string id buried on each response into a real entity, so any surface can see which batch produced what it's showing.
 date_created: 2026-05-25
 date_modified: 2026-05-25
 authors:
@@ -23,6 +24,10 @@ tags:
   - Co-Existence-Pairing
   - Architecture
 status: Draft
+site_uuid: 2fa5f400-1e7b-4c85-a38a-62a9fdf1390f
+hex_code: ocki8w
+date_authored_initial_draft: 2026-05-25
+date_authored_current_draft: 2026-05-25
 ---
 
 # Run-as-First-Class-Operation

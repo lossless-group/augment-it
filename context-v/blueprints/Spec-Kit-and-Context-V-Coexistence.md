@@ -1,6 +1,7 @@
 ---
 title: "Spec-Kit and Context-V Coexistence — How They Work Together in Augment-It"
-lede: "On 2026-05-18 augment-it adopted GitHub's Spec Kit (v0.8.11) alongside its existing context-v directory. This blueprint codifies how the two systems coexist: context-v holds the project's living memory (explorations, blueprints, reminders, journey docs, broader specs), and spec-kit drives implementation flow per feature (constitution → specify → plan → tasks → implement, with quality gates). The two are complementary, not competing. The 14 /speckit-* slash commands now available in Claude Code operate on .specify/, while context-v continues to be the source of truth for project memory."
+lede: >-
+  context-v holds the project's living memory; spec-kit drives per-feature implementation flow. Complementary, not competing.
 date_created: 2026-05-18
 date_modified: 2026-05-18
 authors:
@@ -17,6 +18,10 @@ tags:
   - Augment-It
   - AI-Co-Development
 status: Draft
+site_uuid: bba54121-19b6-4b28-9222-cbca88421923
+hex_code: xs6zyp
+date_authored_initial_draft: 2026-05-18
+date_authored_current_draft: 2026-05-18
 ---
 
 # Spec-Kit and Context-V Coexistence

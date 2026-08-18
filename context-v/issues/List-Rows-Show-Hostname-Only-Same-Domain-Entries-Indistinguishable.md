@@ -1,6 +1,6 @@
 ---
 title: "List rows show hostname only — the path is hidden, so same-domain entries are indistinguishable"
-lede: "Gates Foundation's blog_index stream renders as bare 'gatesfoundation.org' when the stream lives at a path — and its two 'website' identity links render identically. AdditiveList's display strips the pathname, hiding exactly the part that tells entries on one domain apart."
+lede: "`AdditiveList`'s `host()` drops the pathname, so two Gates Foundation links both render as `gatesfoundation.org` and can't be told apart."
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -18,6 +18,10 @@ tags:
 status: Shipped
 date_first_published: 2026-07-24
 post_ship_note: "Shipped 2026-07-24 in 15c5cb8 — AdditiveList fallback display is host+path (60-char cap); every list inherits. gh #27 closed."
+site_uuid: 95970243-fd4d-4f4a-9378-7f1744863ed3
+hex_code: 76xsos
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # List rows show hostname only; paths hidden

@@ -1,6 +1,6 @@
 ---
 title: "LinkedIn Network Explorer — slicing your own connection graph by geography for curated invites, when LinkedIn won't let you query it directly"
-lede: "A client is hosting a dinner in Manhattan and the operator wants to invite their LinkedIn contacts who actually live in NYC. LinkedIn's public API removed the connections endpoint years ago, their Terms of Service explicitly forbid scraping, and they ban accounts that get caught. So the question isn't 'how do I scrape LinkedIn' — it's 'given that LinkedIn is hostile to programmatic querying of your own network, which legitimate paths let you produce a geo-filtered slice of your connections in time for next week's dinner, and which of those compose with augment-it's existing pack-runner / record-set / response-reviewer stack so the same pattern works for the next client dinner and the one after that.' This exploration walks the four paths (data export + enrichment cascade, Sales Navigator subscription, third-party scraping services, direct careful scraping), names the legal/ban posture of each, and lands a recommendation that dogfoods augment-it — because the operator has literally built the tool for 'augment a list of contacts with metadata you don't have yet,' and this use case is the canonical instance of that pattern."
+lede: "LinkedIn won't tell you which of your own connections live in Manhattan. The data export plus augment-it's enrichment cascade is the path."
 date_created: 2026-06-11
 date_modified: 2026-06-14
 revisions:
@@ -24,6 +24,10 @@ tags:
   - Data-Export
   - Manhattan-Dinner
   - Trigger-Engagement
+site_uuid: 6ca08dd1-bdb2-403d-a182-e6065236095d
+hex_code: zmh92f
+date_authored_initial_draft: 2026-06-14
+date_authored_current_draft: 2026-06-14
 ---
 
 # LinkedIn Network Explorer — geo-slicing your own connection graph

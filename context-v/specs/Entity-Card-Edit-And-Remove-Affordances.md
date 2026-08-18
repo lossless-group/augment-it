@@ -15,6 +15,10 @@ tags:
   - Workspace
   - Canonical-Layer
 status: Implemented (shipped 2026-07-24)
+site_uuid: be6c36d7-edf5-44b6-93f2-5de33db8f5a3
+hex_code: v12fb2
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # Entity-Card Edit & Remove Affordances

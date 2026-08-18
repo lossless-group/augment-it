@@ -1,6 +1,7 @@
 ---
 title: "Per-Record Iteration as the Primary Surface for Pack and Bundle Fires — The Flow Rearranges Per Fire Type"
-lede: "Pack and bundle fires deserve a fundamentally different primary surface than prompt-template fires deserve. For prompt templates the existing Augment → Request Reviewer → Response Reviewer → Promote sequence works, and the Response Reviewer for socials eventually became lovely. For pack/bundle fires that sequence is wrong from step 2 forward: the Request Reviewer surface is empty, Response Reviewer mixes the current fire's results with every prior fire's results, and bulk fan-out across 96 rows wastes time and credits when the connector chain fails 96 ways before it ever works once. The right primary surface is a **per-record list scoped to the active pack/bundle**, where each row shows only the relevant/visible fields, and a connector palette runs in-place with results landing inline on the row. Bulk fan-out becomes the *secondary* mode, available only after the user has validated a chain on 4–8 records by hand. The Flow chrome adapts to the fire type — same step numbering, different active members per step. This spec describes both the new remote and the Flow rearrangement."
+lede: >-
+  A pack fired across 96 rows returned 0 found — so per-record iteration becomes primary and bulk fan-out waits until a chain is proven.
 date_created: 2026-06-02
 date_modified: 2026-06-02
 authors:
@@ -23,6 +24,10 @@ tags:
   - Records-Surface
   - UX-Rearchitecture
 status: Draft
+site_uuid: cb0ba020-5da6-4230-a1dc-0d41a707e71f
+hex_code: 2omskw
+date_authored_initial_draft: 2026-06-02
+date_authored_current_draft: 2026-06-02
 ---
 
 # Per-Record Iteration as the Primary Surface for Pack and Bundle Fires

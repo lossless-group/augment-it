@@ -1,6 +1,7 @@
 ---
 title: "Record ↔ DB Resolver — operator-driven match/create bridge from row-store records to canonical organizations"
-lede: "The row-store records and the SurrealDB canonical orgs never got bridged. The resolver is the per-record surface that closes the gap: for each record, confirm which canonical org it is (→ additive enrich) or create a new one — one at a time, operator in the driver's seat."
+lede: >-
+  Row-store records and canonical SurrealDB orgs were never bridged; the resolver closes the gap one record at a time, operator driving.
 date_created: 2026-06-22
 date_modified: 2026-07-21
 date_first_published: 2026-06-22
@@ -21,6 +22,10 @@ tags:
   - Org-Enrichment
   - Media-Streams
   - reach-edu
+site_uuid: 5d7c93bb-c477-4da8-b590-563c30d55f63
+hex_code: 1y8qg4
+date_authored_initial_draft: 2026-06-22
+date_authored_current_draft: 2026-06-22
 ---
 
 # Iterations

@@ -1,6 +1,7 @@
 ---
 title: "Augment-It as a CRM-Augmentation Pipeline (Microfrontends + Microservices)"
-lede: "First-pass spec capturing what Augment-It actually is, where it sits in the family of Applied AI Labs apps (memopop generates memos, dididecks generates slides, augment-it generates information that goes back into a CRM), and what the minimum viable path looks like given a paying client needs a fundraising lead list augmented this week against a repo that is currently a clean rebuild on rsbuild + Module Federation + Turbo. Journey-mode: the destination isn't pinned, the team's understanding is."
+lede: >-
+  memopop makes memos, dididecks makes slides, augment-it makes information that lands back in a CRM it doesn't own.
 date_created: 2026-05-18
 date_modified: 2026-05-18
 authors:
@@ -21,6 +22,10 @@ tags:
   - Pipeline-as-UI
   - Applied-AI-Labs
 status: Draft
+site_uuid: c3c973dd-a754-4e62-bb2c-e4409e1b310a
+hex_code: ekrrkk
+date_authored_initial_draft: 2026-05-18
+date_authored_current_draft: 2026-05-18
 ---
 
 # Augment-It as a CRM-Augmentation Pipeline

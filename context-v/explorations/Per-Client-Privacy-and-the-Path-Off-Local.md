@@ -1,6 +1,6 @@
 ---
 title: "Per-Client Privacy and the Path Off Local — when does single-operator-local-only stop scaling, what stack do we reach for, and how do we architect today so the move is cheap when it comes"
-lede: "Two forcing functions converged in the same week. (1) The funder-content corpus the operator wants to build for reach-edu — Jina-pulled markdown from each funder's blog / press / RSS — must be private per client; reach-edu's corpus and Laerdal's would share little, and both treat the material as highly sensitive. (2) Across all ai-labs projects, the single-operator-on-localhost posture is bumping up against the seam where typical SaaS concerns (auth, workspaces, per-client isolation, admin controls) would normally live. An active collaborator is joining; a client wants login soon. The exploration's job is NOT to commit to a stack now — the operator's instinct that 'we're not quite there in terms of actually needing it, maybe in a few weeks' is the right call — but to (a) map the option space across repo topology, storage substrate, identity, and multi-tenant data model, (b) identify which architecture choices made TODAY (about the funder corpus, the augment-it record store, the chroma collections) preserve cheap optionality for the move off local, and which lock us in, (c) name the decision-forcing functions that would flip 'not yet' to 'now'. Anchor reference: the dididecks-ai client-private-repos pattern (calmstorm-decks et al.). Candidate stacks include all-local-private-repos, Railway-Postgres-per-client (single-tenant), Railway-Postgres-multi-tenant with auth, hybrid markdown-in-repos + Chroma-for-retrieval, and managed BaaS (Powabase.ai surveyed, flagged expensive). The exploration ends with a recommended posture, not a decision."
+lede: "Per-client corpus privacy and a client wanting login hit the same week. Not a stack decision — which choices keep the move off local cheap."
 date_created: 2026-06-05
 date_modified: 2026-06-05
 authors:
@@ -28,6 +28,10 @@ tags:
   - Workspaces
   - Repo-Topology
 status: Draft
+site_uuid: b65b512c-a4c5-4191-9f0b-3b5fced6ed03
+hex_code: py26pz
+date_authored_initial_draft: 2026-06-05
+date_authored_current_draft: 2026-06-05
 ---
 
 # Per-Client Privacy and the Path Off Local

@@ -1,6 +1,7 @@
 ---
 title: "Strategy Curator — An Entry-Point App for augment-it"
-lede: "Pick or create a strategy, gather sources for it (metadata first, full content on demand, PDFs preserved), and pull extracts — without the strategy↔source↔funder↔person graph ever decoupling. The trick: a canonical source registry in SurrealDB owns identity; the client's filesystem owns usage; a shared UUID is the only bond."
+lede: >-
+  A canonical source registry in SurrealDB owns identity, the client's filesystem owns usage, and a shared UUID is the only bond.
 date_created: 2026-06-29
 date_modified: 2026-07-21
 date_first_published: 2026-06-29
@@ -29,6 +30,10 @@ tags:
   - Theme-System
   - Workspaces
   - Multi-Client
+site_uuid: 556ec4eb-ac81-4638-b3ff-9963ba4c1d36
+hex_code: k2hd1g
+date_authored_initial_draft: 2026-06-29
+date_authored_current_draft: 2026-06-29
 ---
 
 # Strategy Curator — An Entry-Point App for augment-it

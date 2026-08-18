@@ -1,6 +1,6 @@
 ---
 title: "The Org Workbench can't create an organization — and creation must sit behind a 'be sure there is no match' gate"
-lede: "The workbench's front door only finds orgs that already exist; there's no way to mint one from the UI. When creation lands, it can't be a bare form — the operator should be shown every plausible existing match (name, slug, alias, domain) and create only past an explicit gate, same discipline as adding a person."
+lede: "The workbench can only find orgs that exist. Creation must sit behind the same show-every-match gate that already governs adding a person."
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -18,6 +18,10 @@ tags:
 status: Shipped
 date_first_published: 2026-07-24
 post_ship_note: "Shipped 2026-07-24 in 2864cf3 — '+ New organization' beside OrgSearch (answering the open question: standing ➕, not the empty-state), OrgCreateInline gate over resolver.candidates, create rides person.affiliate's org-only path with domain seeded + website as first link; resolveOrgRow's create-hits-existing-slug branch unions client_access. gh #29 closed."
+site_uuid: b9c8810b-1ba1-4fed-a255-196daddc5a35
+hex_code: 161oxd
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # Create an organization from the Org Workbench — behind the gate

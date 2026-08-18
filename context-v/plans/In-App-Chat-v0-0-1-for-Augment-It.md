@@ -1,6 +1,7 @@
 ---
 title: "In-App Chat v0.0.1 for Augment-It — The Prompt-Drafting Triad as the Demo Affordance"
-lede: "Revised. The v0.0.1 demo arc is the gated-enhancement pattern made conversational: the user states a goal, the chat drafts a prompt (`prompts.draft`), refines it across one or two turns (`prompts.improve`), then explicitly binds it to records (`prompts.apply`) — a ScriptCapability with postconditions that actually checks whether the enrichment did what the prompt promised. Plus `records.list` to look at the result. Four capabilities total, all per-app; two adapter shapes exercised (TS handler, ScriptCapability). McpCapability and SkillCapability honestly deferred to v0.0.2 — no corpus exists yet for `corpus.search` to query, and no skill is wrapped yet. The blueprint's full Pattern 1 isn't proven by v0.0.1; the gated-enhancement triad is. That's the right trade for a client-meeting demo on fundraising-pipeline development."
+lede: >-
+  Gated enhancement made conversational: `prompts.draft` → `improve` → `apply`, with postconditions that check what the prompt promised.
 date_created: 2026-05-22
 date_modified: 2026-06-03
 date_completed: 2026-05-23
@@ -23,6 +24,10 @@ tags:
   - Client-Demo
   - Strict-Alignment
 status: Shipped
+site_uuid: c923b898-4a8d-47d0-9670-b86718f99eef
+hex_code: a782lv
+date_authored_initial_draft: 2026-05-22
+date_authored_current_draft: 2026-05-22
 ---
 
 # In-App Chat v0.0.1 for Augment-It

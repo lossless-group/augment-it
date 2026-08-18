@@ -1,6 +1,6 @@
 ---
 title: "Funder-Fit Engine — Org-Anchored Corpora and the Bidirectional Story↔Funder Cycle"
-lede: "Fundraising is a two-way match: understand a funder and build a story that answers them, or take a committed story and find the funders it unlocks. Both directions run on one substrate — a trustworthy, per-organization corpus. This maps the path to that engine, and argues the differentiator is KAG (graph-grounded), not plain RAG, because we just built the graph."
+lede: "Fundraising matches both ways — funder→story and story→funder — on one org-anchored corpus. The differentiator is KAG, not plain RAG."
 date_created: 2026-06-17
 date_modified: 2026-06-17
 authors:
@@ -31,6 +31,10 @@ related_skills:
   - search-lossless-corpus
   - chroma-local
   - crawl-fetch-ingest
+site_uuid: 29ef9584-692b-46ae-96d3-b06113768e0b
+hex_code: 405ssk
+date_authored_initial_draft: 2026-06-17
+date_authored_current_draft: 2026-06-17
 ---
 
 # Funder-Fit Engine

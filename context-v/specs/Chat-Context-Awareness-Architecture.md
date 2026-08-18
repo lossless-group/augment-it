@@ -1,6 +1,7 @@
 ---
 title: "Chat Context-Awareness Architecture — three layers (workspace as context broker, slab-assembly contract, verb registry) that grow the in-app chat from prompt-only to surface-aware verb router"
-lede: "The agent-chat surface (`apps/chat/`) already has working scaffolding — Anthropic SDK in `services/prompt-runner/src/chat-turn.ts`, four cache-eligible system slabs assembled in `services/workspace/src/chat.ts`, three response modes (chat_answer / chat_propose / chat_invoke), the Svelte transcript + proposal-card surface. What makes it feel narrow is two design holes the v0.0.1 implementation deliberately left open: the verb roster is hand-written and prompt-only, and the context slab inlines `record_set_id` and nothing else. This spec defines the architecture for closing both — workspace as the single source of truth for *what the user is looking at right now and what client they're in*, a slab-assembly contract that names every dimension of context the chat can use, and a verb registry that derives the model's tool roster from `CAPABILITY_TO_SUBJECT` + per-verb args schemas rather than from a hand-edited prose block. The corpus-inbox `/inbox` verb (shipped 2026-06-08 as the first non-prompt verb) is the load-bearing demo: it works because the context slab now carries `active_client_id`, and it points at the seams the spec is here to formalize."
+lede: >-
+  Chat's verb roster is a hand-written prose block and its context slab carries only `record_set_id`; this closes both holes.
 date_created: 2026-06-08
 date_modified: 2026-06-08
 authors:
@@ -9,7 +10,7 @@ augmented_with:
   - Claude Code on Claude Opus 4.7 (1M context)
 semantic_version: 0.0.0.1
 revisions:
-  - 2026-06-08 — Initial draft. Written immediately after shipping the `/inbox` verb (the first non-prompt chat verb), which exposed the v0.0.1 design holes: hardcoded `active_client_id: "reach-edu"` in the context slab, hand-written verb roster prose, no awareness of the operator's current view-mode beyond record_set. This spec is the cleanup target.
+  - "2026-06-08 — Initial draft. Written immediately after shipping the `/inbox` verb (the first non-prompt chat verb), which exposed the v0.0.1 design holes: hardcoded `active_client_id: \"reach-edu\"` in the context slab, hand-written verb roster prose, no awareness of the operator's current view-mode beyond record_set. This spec is the cleanup target."
 tags:
   - Spec
   - Augment-It
@@ -20,6 +21,10 @@ tags:
   - Workspace
   - Verb-Registry
 status: Draft
+site_uuid: d0a80b9c-67fe-4c49-8edd-f7494ec5afce
+hex_code: lw2dof
+date_authored_initial_draft: 2026-06-08
+date_authored_current_draft: 2026-06-08
 ---
 
 # Chat Context-Awareness Architecture

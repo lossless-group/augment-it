@@ -1,6 +1,7 @@
 ---
 title: "Build order: the humain-vc unlock flow, step by step"
-lede: "The execution sequence for Flow 1 (Michael + Aniel, side-by-side thesis corpus building on a hosted augment-it) — each step names its repo, files, and verification so any fresh session can pick up mid-sequence. The strategy and scope cuts live in the ai-labs plan; this is the how."
+lede: >-
+  The execution sequence for Flow 1 — each step names its repo, files, and verification, so a fresh session can pick up mid-sequence.
 date_created: 2026-07-06
 date_modified: 2026-07-09
 authors:
@@ -18,6 +19,10 @@ tags:
   - Auth
   - Deployment
   - Curator
+site_uuid: 254433bd-1635-4ec5-99ec-82924f99081e
+hex_code: 9cbotw
+date_authored_initial_draft: 2026-07-09
+date_authored_current_draft: 2026-07-09
 ---
 
 # Build order: the humain-vc unlock flow

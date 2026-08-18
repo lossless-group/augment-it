@@ -1,6 +1,7 @@
 ---
 title: "Auth Patterns — Following Astro Knots Conventions in a Rsbuild + Module-Federation Shell"
-lede: "Augment-it isn't a pure Astro site — the shell is Rsbuild + Svelte + Module Federation, and the backend is NATS-fronted microservices with a workspace-service holding session tokens. But the Astro Knots auth conventions (session cookie, middleware gate, public allowlist, never-prerender-a-gated-route) still encode the right discipline. This blueprint translates each rule into the augment-it architecture so the audit-trail and the failure modes stay legible across the two stacks."
+lede: >-
+  Astro Knots auth rules translated to Rsbuild + NATS: the middleware gate becomes a WS token check, and silent bypass is the shared risk.
 date_created: 2026-06-01
 date_modified: 2026-06-01
 authors:
@@ -18,6 +19,10 @@ tags:
   - Module-Federation
   - Architecture
 status: Draft
+site_uuid: 40f18f7e-a4e7-45df-a2df-ef72d7bb06ca
+hex_code: aspt35
+date_authored_initial_draft: 2026-06-01
+date_authored_current_draft: 2026-06-01
 ---
 
 # Auth Patterns — Following Astro Knots Conventions

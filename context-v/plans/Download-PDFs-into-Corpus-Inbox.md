@@ -1,6 +1,7 @@
 ---
 title: "Download PDFs into Corpus Inbox — preserve the original binary alongside Jina-extracted markdown; wire both inbox vectors (UI and agent-chat) so the operator's PDF discoveries land as commit-able evidence, not just summarized text"
-lede: "Today's inbox flow Jina-fetches every URL and writes the extracted markdown to `clients/<client>/corpus/inbox/<date>_<slug>.md`. For HTML pages this is fine — the markdown IS the content. For PDFs it loses information that matters: the original PDF (with its tables, figures, signatures, page numbering, citation-able URL) is gone, and the operator is left with whatever text Jina could pull out of it. The DOL workforce-strategy PDF captured in the 2026-06-08 milestone ship is exactly this case — useful text, but the binary that needs to be cited downstream isn't preserved. This plan adds a binary-download primitive to `services/content-ingest`, threads PDF detection + filesystem persistence through `corpus.inbox.add`, extends the inbox frontmatter contract with a `binary_asset` block, surfaces 'PDF saved' affordances in both the agent-chat result bubble AND the Content Reader UI (which gets a small 'send to inbox instead' toggle as an interim inbox-UI surface before the dedicated microfrontend ships), and lays down a per-client `.gitattributes` git-lfs discipline so PDFs don't bloat the per-client repo's git history. PDFs first; the same scaffolding extends to docx/pptx/xlsx when those become operator pain points."
+lede: >-
+  Jina gives the inbox text and throws the PDF away — nothing to cite by page or hand to a co-researcher. Save the binary alongside it.
 date_created: 2026-06-08
 date_modified: 2026-06-08
 authors:
@@ -9,7 +10,7 @@ augmented_with:
   - Claude Code on Claude Opus 4.7 (1M context)
 semantic_version: 0.0.0.1
 revisions:
-  - 2026-06-08 — Initial draft. Written immediately after the agent-chat `/inbox` milestone ship, when the first real captures surfaced the lost-binary problem (the DOL workforce-strategy PDF Jina extracted text from, with the original PDF gone). Operator's framing: *"add to inbox functionality on both UI and agent-chat to download PDFs for corpus."*
+  - "2026-06-08 — Initial draft. Written immediately after the agent-chat `/inbox` milestone ship, when the first real captures surfaced the lost-binary problem (the DOL workforce-strategy PDF Jina extracted text from, with the original PDF gone). Operator's framing: *\"add to inbox functionality on both UI and agent-chat to download PDFs for corpus.\"*"
 tags:
   - Plan
   - Augment-It
@@ -21,6 +22,10 @@ tags:
   - Content-Reader
   - Git-LFS
 status: Draft
+site_uuid: e46491c9-639b-49df-bf34-8d2a41dd5650
+hex_code: qhzaau
+date_authored_initial_draft: 2026-06-08
+date_authored_current_draft: 2026-06-08
 ---
 
 # Download PDFs into Corpus Inbox

@@ -1,6 +1,6 @@
 ---
 title: "A person's bio page on another org's site is an affiliation signal, not just an identity link — the UI should offer the promotion"
-lede: "Jamie Merisotis has a bio on bipartisanpolicy.org — filed today as an 'other' identity link, full stop. But that URL is really three facts: a static profile (identity link — correct), evidence of an affiliation with an org we may not have yet (Bipartisan Policy Center), and an observation with a source. The card captures the first and silently drops the other two."
+lede: "A bio on another org's domain is three facts — identity link, affiliation evidence, observation. The card captures one and drops two."
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -19,6 +19,10 @@ tags:
 status: Shipped
 date_first_published: 2026-07-24
 post_ship_note: "Shipped 2026-07-24 — → affiliation row action + AddAffiliationInline (gate inverted), org_domain seeded on create, bio URL as observation source (no has_bio_at predicate for v1). Riders named not built: server inferLinkKind bio vocabulary, search-and-add rail promotion, didi-chat verb. Per [[../plans/Workbench-Usability-Sweep-Corpus-Visibility-Stream-Editing-Affiliation-Promotion]]; gh #25 closed."
+site_uuid: 7be9f4c7-9430-4bc9-84d4-699ec595855f
+hex_code: 8k95aa
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # Person bio pages are affiliation signals

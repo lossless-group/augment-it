@@ -1,6 +1,6 @@
 ---
 title: "Loop through a spec — write the plan, implement, test, changelog, commit, repeat until Shipped"
-lede: "The phase-execution loop that took Augment-From-DB-Flow.md from Signed-Off to Shipped in one day: each spec phase becomes a plan authored against the live code, executed immediately, proven as far as scripts can reach, changelogged, and pushed as its own attempt() commit — with a milestone() marker when the spec runs dry."
+lede: "The phase loop that took Augment-From-DB-Flow from Signed-Off to Shipped in one day: plan, implement, prove, changelog, commit — per phase."
 date_created: 2026-07-22
 date_modified: 2026-07-22
 authors:
@@ -20,6 +20,10 @@ tags:
   - Changelog-Conventions
   - Git-Conventions
 status: Proven-Once
+site_uuid: 771a131f-f8c4-43ff-8eae-49daa2e672de
+hex_code: dtd98i
+date_authored_initial_draft: 2026-07-22
+date_authored_current_draft: 2026-07-22
 ---
 
 # Loop through a spec — plan → implement → test → changelog → commit

@@ -1,6 +1,6 @@
 ---
 title: "Bolt Monolith As Built — The archive/bolt-code Branch"
-lede: "The earliest working version of Augment-It is a Vite + React + TypeScript monolith on the archive/bolt-code branch of lossless-group/augment-it, built (probably with Bolt.new, hence the branch name) by Michael before Tanuj split things into microfrontends. It is feature-richer than any of the federated repos — it covers five of the six pipeline stages, has multi-provider LLM response handling, Supabase auth, and Tanuj's own per-feature analysis specs already sitting in a specs/ folder. It is also a monolith and uses an auth substrate we won't keep. This doc captures what's there so the rewrite can lift the ideas and discard the architecture."
+lede: "The earliest augment-it is a Vite + React monolith on `archive/bolt-code`: feature-richer than the federated repos, architecture we discard."
 date_created: 2026-05-18
 date_modified: 2026-05-25
 date_archived: 2026-05-25
@@ -17,6 +17,10 @@ tags:
   - Monolith
   - As-Built
 status: Archived
+site_uuid: 9be9d5db-57b5-4ef0-a4da-12315a2907ee
+hex_code: 414yhu
+date_authored_initial_draft: 2026-05-25
+date_authored_current_draft: 2026-05-25
 ---
 
 # Bolt Monolith As Built

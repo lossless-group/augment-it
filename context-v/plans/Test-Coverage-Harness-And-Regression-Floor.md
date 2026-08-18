@@ -16,6 +16,10 @@ tags:
   - TDD
   - Agentic-Development
   - Regression-Floor
+site_uuid: b3f436ed-e2e0-4560-b0b3-a3b29fc39945
+hex_code: kpgjtl
+date_authored_initial_draft: 2026-07-30
+date_authored_current_draft: 2026-07-30
 ---
 
 # Test coverage: harness, seed suite, and the loop to green

@@ -18,6 +18,10 @@ tags:
   - Federated-Architecture
   - Design-Tokens
   - Accessibility
+site_uuid: f9dd8097-41b9-45fc-8c33-249e3eb53e85
+hex_code: iw3v8a
+date_authored_initial_draft: 2026-08-06
+date_authored_current_draft: 2026-08-06
 ---
 
 > ## Filing note — read this before trusting any path in the document below

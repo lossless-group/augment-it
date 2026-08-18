@@ -1,6 +1,6 @@
 ---
 title: "Forced One-By-One Tag Selector — a pulse-dimension pattern for deliberate triage instead of lazy bulk-tick"
-lede: "Bulk-checkbox UX produces uniform half-considered tags. We want a reusable pulse-dimension component that presents one tag at a time, with apply / skip / skip-rest controls, so each tag forces a deliberate per-entity decision. Surfaces first as a 'flag high-value under-the-radar lead' affordance on the person-enrichment worklist; reusable across orgs (sector / region / funder-priority), corpus content (quality tier, sensitivity, voice-fit), and any triage flow where deliberation matters more than throughput. Pattern is abstracted: instantiate with a tag set + an entity ref + an onApply callback; the component owns the one-at-a-time stepping and the keyboard rhythm."
+lede: "Bulk checkboxes produce uniform half-considered tags. Present one tag at a time — apply / skip / skip-rest — and each decision gets made."
 date_created: 2026-06-16
 date_modified: 2026-06-16
 publish: true
@@ -10,7 +10,7 @@ augmented_with:
   - Claude Code on Claude Opus 4.7 (1M context)
 semantic_version: 0.0.0.1
 revisions:
-  - 2026-06-16 — Initial draft. Captured at the end of the person-enrichment session that surfaced the need. Operator framing was: *"I will want to flag high value under-the-radar leads. Possibly by creating an abstracted tag selector component that can accept different tags and force me to apply them one by one."* The 'one by one' part is the load-bearing claim — bulk tagging produces lazy tags; this exploration is the pattern that resists that drift.
+  - "2026-06-16 — Initial draft. Captured at the end of the person-enrichment session that surfaced the need. Operator framing was: *\"I will want to flag high value under-the-radar leads. Possibly by creating an abstracted tag selector component that can accept different tags and force me to apply them one by one.\"* The 'one by one' part is the load-bearing claim — bulk tagging produces lazy tags; this exploration is the pattern that resists that drift."
 tags:
   - Exploration
   - Augment-It
@@ -19,6 +19,10 @@ tags:
   - Triage
   - UI-Component
   - Reusable-Pulse-Dimension
+site_uuid: 12a562c5-68a2-4be2-beb8-7e5a292c48e7
+hex_code: m3m7vm
+date_authored_initial_draft: 2026-06-16
+date_authored_current_draft: 2026-06-16
 ---
 
 # Forced One-By-One Tag Selector

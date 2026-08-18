@@ -1,6 +1,7 @@
 ---
 title: "Search-Results Queue — a right-rail microfrontend where concurrent agent searches land, signal, and get triaged"
-lede: "Agent searches run minutes; the operator shouldn't. Every search fired anywhere becomes a collapsed card in a persistent right rail — status, elapsed vs. typical wait, arrival signal — expandable to act, dismissed when done. Fire many, walk away, triage on arrival."
+lede: >-
+  Agent searches run minutes; the operator shouldn't. Every search becomes a card in a persistent right rail — fire many, triage on arrival.
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -18,6 +19,10 @@ tags:
   - Concurrency
   - Workspace
 status: Implemented (Phases 1–3 shipped 2026-07-24; Phase 4 pending with #35)
+site_uuid: fac82cac-f188-4c37-aff7-b5745deb3929
+hex_code: 391o4k
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # Search-Results Queue — the `search-results` remote

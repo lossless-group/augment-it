@@ -1,6 +1,6 @@
 ---
 title: "Inbox Sort by Agent Tasks — moving the inbox from a flat 86-item pending queue into a task-typed work surface where the operator sees what's next and the agent does the safe parts automatically"
-lede: "The inbox today is a flat list — 86 .md files with `inbox_status: \"pending\"`, all rendered identically in the lens regardless of whether they're (a) a fresh capture that obviously belongs in `corpus/hewlett-foundation/` based on title alone, (b) a PDF the operator dropped that needs body extraction before it's useful, (c) an inbox file that's a near-duplicate of one already in an assigned funder dir, or (d) a low-signal scrape that should probably be discarded. The operator sits down at the lens, sees 86 items, and has to context-switch between four different task types as they scroll. Treating those as separate sortable buckets — each with its own affordance, its own agent-assist scope, and its own confidence band — turns the inbox from a backlog into a triage console. This doc maps the task taxonomy (TRIAGE, EXTRACT, ENRICH, DEDUPE, FLAG, DISCARD), what each task can be done by an agent vs requires a human, how to bake the suggested-task into the file's frontmatter at capture time (an agent-proposed `triage_suggestion:` block) so the lens has something to group by without recomputing every load, the confidence bands that gate auto-action vs human-confirm vs human-decides, and how this composes with the retrieval doc's idea of corpus-level semantic search. A phased plan ends with the simplest move: stamp `triage_suggestion:` at capture time using the title + URL + funder roster, group the lens by task type, and let agent-doable tasks ship a 'do it for me' button next to the operator-decides ones."
+lede: "86 pending inbox files render identically, so the operator context-switches between four task types on every scroll."
 date_created: 2026-06-11
 date_modified: 2026-06-11
 authors:
@@ -24,6 +24,10 @@ status: Active
 
 related_skills:
   - lossless-flavored-markdown
+site_uuid: fa0852b5-d2c6-4cc6-85cc-614c252164c2
+hex_code: 37t51c
+date_authored_initial_draft: 2026-06-11
+date_authored_current_draft: 2026-06-11
 ---
 
 # Inbox Sort by Agent Tasks

@@ -1,6 +1,7 @@
 ---
 title: "Run /speckit-constitution — Seed Augment-It's Constitution from Context-V"
-lede: "The directive to paste alongside /speckit-constitution to fill .specify/memory/constitution.md from augment-it's already-documented thinking. Five principles, two constraint sections, governance — all grounded in the context-v blueprints and specs so spec-kit synthesizes from what we've actually decided rather than re-deriving from training data."
+lede: >-
+  The directive to paste with /speckit-constitution so the principles synthesize from our own context-v docs, not from training data.
 date_created: 2026-05-18
 date_modified: 2026-05-18
 authors:
@@ -15,6 +16,10 @@ tags:
   - Augment-It
   - First-Session
 status: Draft
+site_uuid: eae2075f-45af-43dd-a5fc-523bdf09543e
+hex_code: gwinuj
+date_authored_initial_draft: 2026-05-18
+date_authored_current_draft: 2026-05-18
 ---
 
 # Run /speckit-constitution

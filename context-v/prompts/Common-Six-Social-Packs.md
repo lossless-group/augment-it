@@ -1,6 +1,7 @@
 ---
 title: "Common-Six Social Packs — First Real Packs on the Structured-Output Surface"
-lede: "Six pack identities (linkedin, x, bluesky, youtube, facebook, wikipedia) registered against one consolidated backend service that routes by pack_id, with Tavily as the underlying search and URL-shape verification driving the confidence score. No new microfrontend per pack — Response Reviewer's generic candidate card already renders every pack response. A small new Pack Runner remote provides the per-row × per-pack fan-out affordance so the foundation dataset can be augmented and reviewed today, before the bundle abstraction lands in a later session."
+lede: >-
+  Six pack identities — linkedin, x, bluesky, youtube, facebook, wikipedia — on one backend routing by `pack_id`, no microfrontend per pack.
 date_created: 2026-05-25
 date_modified: 2026-05-25
 authors:
@@ -18,6 +19,10 @@ tags:
   - Pack-Runner
   - Confidence-Verification
 status: Draft
+site_uuid: 6782c655-1e40-4bbf-8991-61dfdc57042d
+hex_code: qlzl2d
+date_authored_initial_draft: 2026-05-25
+date_authored_current_draft: 2026-05-25
 ---
 
 # Common-Six Social Packs

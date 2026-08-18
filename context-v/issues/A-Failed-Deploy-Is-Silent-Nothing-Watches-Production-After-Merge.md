@@ -1,6 +1,6 @@
 ---
 title: "A failed deploy is silent, so nothing watches production after merge"
-lede: "CI now catches a broken build before merge. Nothing catches a deploy that fails after it — the old container keeps serving, the health check keeps passing, and the only record is a red row in a dashboard nobody has open. That is how twelve days passed unnoticed."
+lede: "Every frontend Docker build failed for twelve days unnoticed: the old container keeps serving and the health check keeps passing."
 date_created: 2026-08-15
 date_modified: 2026-08-15
 authors:
@@ -16,6 +16,10 @@ tags:
   - CI-CD
   - Observability
 status: Open
+site_uuid: e5e99013-fe48-440f-bbe7-47d51917b0b2
+hex_code: sndhkh
+date_authored_initial_draft: 2026-08-15
+date_authored_current_draft: 2026-08-15
 ---
 
 # A failed deploy is silent, so nothing watches production after merge

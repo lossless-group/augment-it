@@ -1,6 +1,7 @@
 ---
 title: "Augment from DB — the Org Workbench + Search-and-Add flow: two new microfrontends over capabilities that mostly exist"
-lede: "Start from a canonical organization instead of a CSV row: smart-search to an org, see everything the DB knows (links, streams, corpus, people), and augment any list through provider-pluggable search with a one-click add — two small remotes, four new capabilities, one new connector."
+lede: >-
+  Start from a canonical org, not a CSV row: an org workbench over links, streams, corpus and people, plus provider-pluggable search-and-add.
 date_created: 2026-07-22
 date_modified: 2026-07-24
 authors:
@@ -35,6 +36,10 @@ tags:
   - Didi-Chat
   - Coverage
 status: Shipped
+site_uuid: 73004204-2ddd-4082-9065-10f0be7b48a8
+hex_code: btto95
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # Augment from DB — Org Workbench + Search-and-Add

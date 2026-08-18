@@ -1,6 +1,7 @@
 ---
 title: "Response–Row Identity Across Promote — Why Responses Outlive Their Rows, and the `record_uuid`-on-Response Fix"
-lede: "Responses live in response-store. Rows live in row-store. When `record_set.promote` folds a parent set into a canonical, the **parent rows are deleted and new canonical rows are minted with fresh row_ids** — but the old responses survive untouched, still pointing at row_ids that no longer exist. Today there's no link from those orphaned responses back to the canonical row that inherited their accepted value, because the stable cross-derivation identity (`record_uuid`) lives only on rows, not on responses. The fix is small and additive: carry `record_uuid` on the ResponseRecord at create time, and the by-record view can resolve orphans by identity instead of by dead row_id."
+lede: >-
+  Promote deletes parent rows, leaving responses pointed at dead `row_id`s; carrying `record_uuid` on the response resolves them by identity.
 date_created: 2026-05-26
 date_modified: 2026-05-26
 authors:
@@ -18,6 +19,10 @@ tags:
   - Audit-Trail
   - Cross-Derivation
 status: Draft
+site_uuid: b5086f64-2b2a-4841-ae4d-73173d3461df
+hex_code: 54jgji
+date_authored_initial_draft: 2026-05-26
+date_authored_current_draft: 2026-05-26
 ---
 
 # Response–Row Identity Across Promote

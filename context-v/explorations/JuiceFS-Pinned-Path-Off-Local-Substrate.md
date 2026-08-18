@@ -1,6 +1,6 @@
 ---
 title: "JuiceFS — POSIX-Over-Object-Storage (Explored, Then Set Aside for rclone-to-R2)"
-lede: "Explored JuiceFS to give the corpus a 'path off local.' Verdict: wrong shape for one-person, local-first content work — it's a network drive needing a macOS kernel extension, not Dropbox. Superseded by automated rclone sync to Cloudflare R2. Kept for the hard-won R2-credential recipe (which still works)."
+lede: "JuiceFS is a network drive needing a kernel extension, not Dropbox — wrong shape for local-first corpus work. Superseded by rclone-to-R2."
 date_created: 2026-06-18
 date_modified: 2026-06-18
 authors:
@@ -20,6 +20,10 @@ tags:
   - Corpus
 status: Deferred
 deferral_note: "JuiceFS works and the R2 storage under it is verified, but it's the wrong access pattern for one-person local-first content development (network-drive semantics, no real local files, breaks offline, needs the macFUSE kernel extension). Superseded by automated rclone sync to R2 — same bucket, local-first, no kernel extension. JuiceFS stays relevant only if we later need a many-machine shared POSIX filesystem or datasets too big for local disk."
+site_uuid: 194b8746-106b-40bc-8e47-cad15b01d641
+hex_code: 9jwg3b
+date_authored_initial_draft: 2026-06-18
+date_authored_current_draft: 2026-06-18
 ---
 
 # JuiceFS — explored, then set aside for rclone-to-R2

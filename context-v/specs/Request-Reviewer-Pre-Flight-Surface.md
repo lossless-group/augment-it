@@ -1,6 +1,7 @@
 ---
 title: "Request Reviewer — the Pre-Flight Surface"
-lede: "Before a prompt fires, you should be able to see exactly what is about to leave the building. request-reviewer is the augment-it stage that shows the resolved request — the prompt template with every {{token}} replaced by a real row's property value — lets you pick which model it goes to, optionally shows the literal JSON request body, and then fires it. The hard part is not the UI; it is guaranteeing the request you reviewed is byte-identical to the request that sends. That guarantee is the spec."
+lede: >-
+  See exactly what is about to leave the building — and guarantee the request you reviewed is byte-identical to the one that fires.
 date_created: 2026-05-21
 date_modified: 2026-05-25
 date_completed: 2026-05-22
@@ -20,6 +21,10 @@ tags:
   - Model-Selection
   - Prompt-Runner
 status: Shipped
+site_uuid: 93f1a10f-9ed1-44fa-94ee-16c1eded55d5
+hex_code: af1xbu
+date_authored_initial_draft: 2026-05-25
+date_authored_current_draft: 2026-05-25
 ---
 
 # Request Reviewer — the Pre-Flight Surface

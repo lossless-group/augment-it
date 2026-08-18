@@ -16,6 +16,10 @@ tags:
   - NATS
   - WebSocket
   - Workspace-Service
+site_uuid: a8962219-6a9a-48ba-9cc1-1337d99cc9c1
+hex_code: ictncv
+date_authored_initial_draft: 2026-07-30
+date_authored_current_draft: 2026-07-30
 ---
 
 # Two tiers: WebSocket to the gateway, NATS between services

@@ -1,6 +1,7 @@
 ---
 title: "Response Reviewer Shell and Content-Reader Mode — Response Reviewer becomes a wrapper whose inner review UI swaps based on what the bundle that fired actually produced"
-lede: "Response Reviewer was built to answer one question, well: 'is this URL the right one?' That's the right question for socials packs (linkedin, x, wikipedia, bluesky) — the candidate is a single URL, the action is accept-or-reject. It's the wrong question for content-shaped packs (official-blog, official-pressrelease, official-social-posts, future YouTube / podcast / RSS packs). The unit of work there is an *article* the operator wants to *read*, not a URL to triage — and the recently-shipped audit (1,109 OfficialPulse responses, 3 accepts, 99.7% reject rate) is what that mismatch looks like at scale. This spec splits Response Reviewer into a **shell** (entity selector, pack-filter chips, navigation, response-store connection) and a swappable **review mode** mounted inside the shell. The bundle that fired the responses declares which mode it pairs with — `profile-builder` → `candidate-triage` (today's UI), `entity-pulse` → `content-reader` (new). The content-reader's job is to show the operator what was found and let them include / exclude items from a downstream Jina ingest queue, not to accept individual URLs into row columns. First slice ships the shell pattern + the content-reader mode for `official-blog-pack` + `official-pressrelease-pack` against funder blog / press / RSS sources — articles only, no video / no social posts yet, expanding to those modes in follow-up. Composes with [[Per-Client-Privacy-and-the-Path-Off-Local]] (the Jina-ingested content lands in `clients/reach-edu/corpus/`), [[OfficialPulse-URLs-Appear-as-Junk-in-Promoted-Versions]] (this is the audit's prescribed replacement for per-URL triage on the OfficialPulse packs), and [[Packs-and-Bundles-Pattern]] (the bundle definition grows a `review_mode` field). Treats [[Response-Reviewer-and-Response-Store]] as the prior art whose shell scaffolding gets refactored, not replaced."
+lede: >-
+  1,109 OfficialPulse responses, 3 accepts: 'is this URL right?' is the wrong question for content packs, so review mode becomes swappable.
 date_created: 2026-06-05
 date_modified: 2026-06-05
 authors:
@@ -27,6 +28,10 @@ tags:
   - Blog-Posts
   - RSS
 status: Draft
+site_uuid: 46fdfa45-be57-4296-b9a8-78df7269a36a
+hex_code: opcv3p
+date_authored_initial_draft: 2026-06-05
+date_authored_current_draft: 2026-06-05
 ---
 
 # Response Reviewer Shell and Content-Reader Mode

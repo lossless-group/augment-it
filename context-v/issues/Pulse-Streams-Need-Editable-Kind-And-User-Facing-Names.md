@@ -1,6 +1,6 @@
 ---
 title: "Pulse streams need an editable kind and a user-facing name — 'Today's Credentials' is not an 'updates_index'"
-lede: "The auto-inferred stream kind is wrong often enough to need a correction path, and streams have no name field at all — but real publication streams have titles. Lumina's https://www.luminafoundation.org/topics/todays-credentials/ is called 'Today's Credentials', and the operator can neither fix its classifier nor record what it's called."
+lede: "The operator can neither fix a stream's inferred kind nor record its name — `media_streams[]` has no title field for Today's Credentials."
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -18,6 +18,10 @@ tags:
 status: Shipped
 date_first_published: 2026-07-24
 post_ship_note: "Shipped 2026-07-24 — name on ShapedStream + ➕ form, organization.streams.update (match-by-URL patch; the update-vs-additive question resolved as sparse patch per the updateOrg precedent), in-place kind/name editor, topic_hub in inferStreamKind. Kind confirmed descriptive-only (stream-scan ignores it). Per [[../plans/Workbench-Usability-Sweep-Corpus-Visibility-Stream-Editing-Affiliation-Promotion]]; gh #26 closed."
+site_uuid: b3711907-da20-4d49-b461-9935c1703a60
+hex_code: 38hed5
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # Pulse streams need editable kind + user-facing names

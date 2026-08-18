@@ -1,6 +1,7 @@
 ---
 title: "Augment from DB · Phase 2 — the org-workbench remote: flow registration, org search, org card"
-lede: "The first of the two new microfrontends: pick 'Augment from DB' at the front door, autocomplete to a canonical org, and work its card — identity, links, streams, corpus — with a live ➕ on every list. Plus one service verb the spec missed: organization.streams.add."
+lede: >-
+  Autocomplete to a canonical org and work its card with a live ➕ on every list — plus the verb the spec missed, `organization.streams.add`.
 date_created: 2026-07-22
 date_modified: 2026-07-22
 authors:
@@ -20,6 +21,10 @@ tags:
   - Microfrontend
   - Module-Federation
 status: Shipped
+site_uuid: 5436a8ee-22e3-4bfc-8ad6-00d69725d33b
+hex_code: 60kcf9
+date_authored_initial_draft: 2026-07-22
+date_authored_current_draft: 2026-07-22
 ---
 
 # Augment from DB · Phase 2 — org-workbench remote

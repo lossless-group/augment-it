@@ -1,6 +1,6 @@
 ---
 title: "Entity-Profile Augmentation Workflow — Common Social + Vertical-Specific Sources, Per Entity Type"
-lede: "A common workflow in augment-it is filling in 'who is this' and 'where are they on the web' for every row in a dataset — LinkedIn, X, BlueSky, YouTube for everyone, plus type-specific sources (ProPublica Nonprofit Explorer + Candid for philanthropic orgs, SEC EDGAR for public companies, Crunchbase for startups, etc.). Today this work happens prompt-by-prompt, one column at a time. This doc converges on a two-tier abstraction: **packs** as atomic, source-bound microfrontend+microservice units (one per data source), and **bundles** as workflow-shaped compositions of packs (a `profile-builder` for philanthropic orgs vs for VC firms). Verification rides the existing Response Reviewer surface with a structured-output extension."
+lede: "Two tiers replace prompt-by-prompt column filling: packs as atomic source-bound units, bundles as workflow-shaped compositions of packs."
 date_created: 2026-05-25
 date_modified: 2026-05-25
 authors:
@@ -25,6 +25,10 @@ tags:
   - Verification
   - Response-Reviewer
 status: Draft
+site_uuid: 63e83f1b-7303-43ac-9ac9-674961ccc259
+hex_code: 9qq3wx
+date_authored_initial_draft: 2026-05-25
+date_authored_current_draft: 2026-05-25
 ---
 
 # Entity-Profile Augmentation Workflow

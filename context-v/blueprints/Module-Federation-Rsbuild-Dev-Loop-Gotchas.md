@@ -1,6 +1,7 @@
 ---
 title: "Module Federation + Rsbuild — Dev Loop Gotchas"
-lede: "Operational reference for the five things that bite teams adopting Module Federation 2.0 on the rsbuild stack. None of them block adoption; all of them silently cost time if you don't see them coming. Cross-origin HMR, TypeScript across federation boundaries, the rspack-escape-hatch config shape, MF 1.0 vs 2.0 documentation drift, and the smaller-than-Vite plugin ecosystem. Reference for the augment-it rewrite (and anywhere else in the family that picks the same substrate)."
+lede: >-
+  Five Rsbuild + Module Federation gotchas, cross-origin HMR first: none block adoption, all cost time if you don't see them coming.
 date_created: 2026-05-18
 date_modified: 2026-05-18
 authors:
@@ -17,6 +18,10 @@ tags:
   - Dev-Environment
   - Gotchas
 status: Draft
+site_uuid: b3a24dfa-9a28-412d-8b6f-37fb28e645fb
+hex_code: 7s4424
+date_authored_initial_draft: 2026-05-18
+date_authored_current_draft: 2026-05-18
 ---
 
 # Module Federation + Rsbuild — Dev Loop Gotchas

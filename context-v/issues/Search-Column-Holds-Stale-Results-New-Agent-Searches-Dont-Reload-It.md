@@ -1,6 +1,6 @@
 ---
 title: "The search column holds stale results — a new agent search doesn't reload it"
-lede: "The identity-links crawl fills the third column and that's the right home for results — but the column then just stays there. Fire the people/team crawl next and the column keeps showing the previous search's candidates while the new results land somewhere else (or nowhere visible). One results surface, always showing the latest search, is the expectation."
+lede: "The team crawl bypasses the Search & Add envelope, so the column sits frozen on the last search's candidates, masquerading as current."
 date_created: 2026-07-24
 date_modified: 2026-07-24
 authors:
@@ -17,6 +17,10 @@ tags:
   - Org-Workbench
 status: Superseded
 superseded_by: "[[Concurrent-Agent-Searches-Queue-Into-A-Search-Results-Column]]"
+site_uuid: 0777375c-36ee-497c-b071-4c091792db1f
+hex_code: 7qqtxo
+date_authored_initial_draft: 2026-07-24
+date_authored_current_draft: 2026-07-24
 ---
 
 # The search column doesn't follow the latest search

@@ -1,6 +1,7 @@
 ---
 title: "Build the Shell Tiling & Peek-Deck — Window the Federated Frontends"
-lede: "The augment-it shell stops being a one-at-a-time tab switcher and becomes a desktop-window-tiling surface. Two layout modes: a peek-deck where the focused frontend sits at 90% width with its sequence neighbours peeking from the edges and hover-expanding, and a co-existence split where two frontends share the viewport at a configurable ratio with a draggable seam — entered when a prompt is run against a single record. Full-width single-frontend stays available as a third option. Layout state is User-scoped preference, persisted to localStorage now against a declared shape that the forthcoming shared-auth user store will back later."
+lede: >-
+  The shell stops being a tab switcher: a peek-deck at 90% width with neighbours peeking, plus a two-remote split with a draggable seam.
 date_created: 2026-05-21
 date_modified: 2026-05-21
 authors:
@@ -20,6 +21,10 @@ tags:
   - User-Preferences
   - Single-Record-Enrichment
 status: Draft
+site_uuid: 2d5b8a91-62f5-45dc-85bd-883b8e83329a
+hex_code: q61qku
+date_authored_initial_draft: 2026-05-21
+date_authored_current_draft: 2026-05-21
 ---
 
 # Build the Shell Tiling & Peek-Deck

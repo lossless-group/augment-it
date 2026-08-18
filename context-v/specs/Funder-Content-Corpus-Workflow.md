@@ -1,6 +1,7 @@
 ---
 title: "Funder Content Corpus Workflow — what the system has to do, ranked by quality bar, with no implementation prescribed"
-lede: "Tonight's session went sideways because the implementation got ahead of an explicit shared statement of goals. This spec captures the goals — what the operator wants the funder-content augmentation workflow to actually produce, in what shape, with what quality bar — without prescribing how. Any future implementation choices (refactoring the pack, evolving Content Reader, swapping connectors, adding curation surfaces) must measure themselves against these goals. The deeper failure mode tonight was a class of fixes that filtered yesterday's bad data tighter at display time instead of producing today's good data via a fresh fire; the goals here are written so a future agent can resist that pull. Treat the prior specs ([[Response-Reviewer-Shell-and-Content-Reader-Mode]], [[Flow-for-Bundles-Packs]], [[Entity-Pulse-Bundle]]) as compatible siblings — this spec sits at the level of 'what we want,' those describe pieces of the 'how.'"
+lede: >-
+  Written so a future agent resists the pull to filter yesterday's bad data tighter instead of firing fresh for today's good data.
 date_created: 2026-06-05
 date_modified: 2026-06-08
 authors:
@@ -20,6 +21,10 @@ tags:
   - Goals
   - Reach-Edu
 status: Draft
+site_uuid: 2a93da22-a94a-4f92-97de-19729266970f
+hex_code: d8bh8f
+date_authored_initial_draft: 2026-06-08
+date_authored_current_draft: 2026-06-08
 ---
 
 # Funder Content Corpus Workflow

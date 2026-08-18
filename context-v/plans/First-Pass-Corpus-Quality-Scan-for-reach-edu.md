@@ -1,6 +1,7 @@
 ---
 title: "First-Pass Corpus Quality Scan for reach-edu — a measured before/after baseline of the RAG corpus"
-lede: "Before wiring RAG/grounding over the reach-edu corpus, take a read-only baseline of what's actually there — 517 markdown files across 57 funder dirs (140 still in inbox). A fresh Claude Code session inventories, scores, and reports corpus quality so 'after' is comparable to 'before.' Diagnostic only — it changes nothing."
+lede: >-
+  A read-only baseline of 517 markdown files across 57 funder dirs, taken before RAG is wired, so 'after' has a 'before' to compare to.
 date_created: 2026-06-18
 date_modified: 2026-06-18
 authors:
@@ -18,6 +19,10 @@ tags:
   - reach-edu
   - Diagnostic
   - Before-After
+site_uuid: 9c64800e-fbdf-43e2-805a-8f464e7d194b
+hex_code: svunxl
+date_authored_initial_draft: 2026-06-18
+date_authored_current_draft: 2026-06-18
 ---
 
 # First-Pass Corpus Quality Scan for reach-edu

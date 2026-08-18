@@ -1,6 +1,6 @@
 ---
 title: "Operator-built flows beyond the universal pipeline — the default augmentation path is a dud for most edge cases, and the cheaper-than-microfrontend escape is a view-spec the agent-chat composes from natural language and the UI renders generically"
-lede: "Today's `augment-it` assumes a linear flow: fire packs against records, triage responses, save to corpus, repeat. That works for the records where SerpApi + Firecrawl + Jina hit cleanly — about 17 of 96 in the reach-edu working set. For the rest, the flow is a dud: the bottom ~25% are deliberately private (high-net-worth individuals, small foundations operating by reputation) and have no digital footprint to scrape; the middle ~60% have URLs and socials but our automated fan-out misses what a human eye catches in two minutes of search-engine browsing. Going to the client with content informed by 17 of 96 funders would look like we didn't really try. The fix is *not* a new microfrontend per scenario — there will always be a next scenario — but a *generic spec-renderer* the operator and the agent both compose against. Sort + filter + named views first, sequenced playbooks second, agent-generated view-specs third; the formal flow-editor that competes with n8n is the never-shipped fourth tier unless and until the prior three prove insufficient. The differentiator from n8n / Flowise isn't UX polish — it's that augment-it knows about *records as the implicit data spine*, which means a flow's verbs can pre-bind to a record subset and skip the data-plumbing primitives that make general-purpose flow builders feel like overkill."
+lede: "The default flow lands cleanly on 17 of 96 reach-edu records. The escape isn't a microfrontend per scenario — it's a generic spec-renderer."
 date_created: 2026-06-09
 date_modified: 2026-06-09
 authors:
@@ -18,6 +18,10 @@ tags:
   - Agent-Chat
   - Edge-Cases
 status: Draft
+site_uuid: 88a68356-499a-4f81-84c9-10f1ffd20704
+hex_code: xawo4c
+date_authored_initial_draft: 2026-06-09
+date_authored_current_draft: 2026-06-09
 ---
 
 # Operator-built flows beyond the universal pipeline

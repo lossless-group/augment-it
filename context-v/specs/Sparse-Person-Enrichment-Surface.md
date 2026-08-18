@@ -1,6 +1,7 @@
 ---
 title: "Sparse-Person Enrichment Surface — per-email triage where the operator finds the human behind the address, picks or creates the org they belong to, and writes both back to the canonical layer"
-lede: "The 177 Turning-Jobs-Into-Degrees attendees just landed in SurrealDB as 177 emails with almost nothing else — no names, no titles, no LinkedIn URLs, and (for the 63 with personal-email domains) no org signal either. The default augment-it flow assumes records are URL-bearing and scrape-targetable; this set is the opposite shape. What the operator needs is a per-row enrichment surface: pick a sparse person, search for who they are (web search → LinkedIn → SerpApi), match to an existing `persons` row or create a new one, then pick or create the `organizations` row they belong to (with multi-domain handling for orgs like Sterling Foundations that spell themselves three ways), and save the result as observations on both sides. This is a *sibling* to [[Per-Record-Iteration-as-Primary-Surface-for-Pack-Fires]] — same chrome pattern, same shell integration, different verbs and a two-entity save target. Bulk fan-out stays *secondary* (per that spec's hard-won lesson) until manual enrichment has surfaced what works."
+lede: >-
+  177 event attendees landed as 177 bare emails — the opposite shape from the URL-bearing records every other augment-it flow assumes.
 date_created: 2026-06-15
 date_modified: 2026-07-21
 date_first_published: 2026-06-16
@@ -24,6 +25,10 @@ tags:
   - Canonical-Layer
   - Network-First
   - Operator-Built-Flows
+site_uuid: 66f7b401-1585-4c32-a077-1bd730123ea3
+hex_code: by9cee
+date_authored_initial_draft: 2026-06-15
+date_authored_current_draft: 2026-06-15
 ---
 
 # Sparse-Person Enrichment Surface

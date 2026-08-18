@@ -1,6 +1,7 @@
 ---
 title: "CRM Starter Export — the pipeline shape, enriched from the canonical layer: orgs first, then people attached"
-lede: "Two CSVs that seed the new CRM from everything augment-it already knows: one row per organization carrying the Master Pipeline Tracker's columns plus identity links and pulse streams (never corpora), then one per person with the key that attaches them to the right org."
+lede: >-
+  Two CSVs seed the empty CRM from the canonical layer: organizations first, people second, attached by a stable key. Corpora excluded.
 date_created: 2026-07-27
 date_modified: 2026-07-27
 authors:
@@ -18,6 +19,10 @@ tags:
   - Canonical-Layer
   - Batch-Import
 status: Draft
+site_uuid: 123d8eb2-f02a-418b-977d-c7138cbd38e8
+hex_code: vok1o2
+date_authored_initial_draft: 2026-07-27
+date_authored_current_draft: 2026-07-27
 ---
 
 # CRM Starter Export — orgs, then people

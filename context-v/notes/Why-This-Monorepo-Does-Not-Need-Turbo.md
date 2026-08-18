@@ -17,6 +17,10 @@ tags:
   - Monorepo
   - Turborepo
   - Build-Systems
+site_uuid: 732ae6b2-3355-4a95-88c7-dfb33353cea7
+hex_code: knjsnf
+date_authored_initial_draft: 2026-08-06
+date_authored_current_draft: 2026-08-06
 ---
 
 # Why this monorepo does not need Turbo
