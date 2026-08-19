@@ -22,6 +22,7 @@ site_uuid: f218550e-a243-4e24-9c75-5908d37aae3b
 hex_code: muptqh
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # No test coverage — the deferred TDD debt

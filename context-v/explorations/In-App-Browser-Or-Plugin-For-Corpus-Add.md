@@ -24,6 +24,7 @@ site_uuid: 6a5ce0dc-e4f8-4515-978e-06547e0b0413
 hex_code: h14os1
 date_authored_initial_draft: 2026-06-08
 date_authored_current_draft: 2026-06-08
+publish: true
 ---
 
 # In-App Browser or Plugin for Corpus Add

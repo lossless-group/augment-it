@@ -23,6 +23,7 @@ site_uuid: e48c8513-61e1-4d2b-b51e-caad1f8f9eb0
 hex_code: 50j5qo
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Enhanced Records List — the Triage Checkpoint and the Promotion Loop

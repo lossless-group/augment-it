@@ -27,6 +27,7 @@ site_uuid: ae0e40eb-5a3d-47cb-91c8-160b03324d06
 hex_code: 314zyu
 date_authored_initial_draft: 2026-06-08
 date_authored_current_draft: 2026-06-08
+publish: true
 ---
 
 # Corpus Inbox — Capture and Triage

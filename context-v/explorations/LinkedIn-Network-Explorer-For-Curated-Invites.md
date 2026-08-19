@@ -4,7 +4,8 @@ lede: "LinkedIn won't tell you which of your own connections live in Manhattan. 
 date_created: 2026-06-11
 date_modified: 2026-06-14
 revisions:
-  - 2026-06-14 — Added Path A.5 (DevTools snippets) after a sharper read on TOS posture; the original draft treated the TOS as black-and-white and over-recommended the pack-based path for use cases where a one-shot manual extraction is the right tool. The two snippets land at `tools/browser-snippets/linkedin/` and are referenced from the "Dinner-specific minimum lift" section.
+  - 2026-06-14 — Added Path A.5 (console-snippet extraction) after a sharper read on terms posture.
+  - 2026-08-17 — Rejected Path A.5 and removed its mechanics. It is a §8.2 terms violation whether or not it is enforced, and Path A reaches the same invite list from data LinkedIn hands over on request. Recommendation reverted to Path A.
 authors:
   - Michael Staton
 augmented_with:
@@ -28,6 +29,7 @@ site_uuid: 6ca08dd1-bdb2-403d-a182-e6065236095d
 hex_code: zmh92f
 date_authored_initial_draft: 2026-06-14
 date_authored_current_draft: 2026-06-14
+publish: false
 ---
 
 # LinkedIn Network Explorer — geo-slicing your own connection graph
@@ -106,96 +108,34 @@ will deny scrapers" is the right starting posture.
 
 ## Four paths, ranked by composability with augment-it
 
-### Path A.5 — DevTools snippets run by hand on your own search-results / profile pages
+### Path A.5 — Console-snippet extraction from pages you're already viewing (rejected)
 
-Sitting between manual copy-paste and a pack-based pipeline: a tiny piece of
-JavaScript pasted into your browser's DevTools Console that walks the
-already-rendered DOM of a page YOU are looking at and produces a structured
-CSV / JSON blob.
+There is a middle path between manual copy-paste and a pack-based
+pipeline: a piece of JavaScript pasted into the browser console that walks
+the already-rendered DOM of a page you are looking at and emits a CSV.
 
-**Mechanic:**
+**We are not documenting the mechanics of it here, and it is not the
+recommended path.** LinkedIn's User Agreement §8.2 prohibits accessing the
+service "through any automated means," and a DOM-walking script is
+automation regardless of how it is triggered. The honest read is that this
+is a terms violation whose *practical* enforcement risk at one-shot manual
+scale is low — but "unlikely to be caught" is not the standard this
+repository writes toward, and augment-it's whole positioning is that it
+gets the answer *without* touching linkedin.com.
 
-1. Build your filtered search URL in LinkedIn's normal UI (e.g.,
-   `network=["F"]` + `geoUrn=[<NYC metro>, <Manhattan>]`). Confirm the
-   results look right.
-2. Open DevTools (Cmd+Option+I), Console tab.
-3. Paste `tools/browser-snippets/linkedin/linkedin-search-results-to-csv.js`,
-   hit Enter. Console.table()'s the captured rows.
-4. Click LinkedIn's Next button. Up-arrow + Enter to re-run on the new page.
-   Accumulator de-dupes by URL.
-5. Repeat until you've covered the page range you care about.
-6. Run `window.__liDownloadCsv()` — downloads `linkedin-network-<ts>.csv`.
-7. For high-value contacts, navigate to their profile page individually,
-   paste `tools/browser-snippets/linkedin/linkedin-profile-to-row.js`, get
-   richer fields (full headline, current role, location, About paragraph,
-   top 3 Experience entries).
+The spectrum, for calibration:
 
-**Why this isn't path D in disguise:**
-
-- No request to linkedin.com beyond what your normal clicks already make —
-  the snippet only reads HTML the browser already rendered.
-- No scheduling, no polling, no headless browser, no rotating proxy.
-- Single-shot, manual trigger, human-paced.
-- LinkedIn's anti-scrape detection targets behavioral patterns (rate,
-  fingerprint, cadence) that single-shot manual extraction by definition
-  doesn't produce.
-
-**TOS posture (honest):**
-
-LinkedIn's Section 8.2 is broad enough to cover "any automated means," and
-a DOM-walking script is technically automation. The TOS is broad for three
-reasons that don't really apply at this scale: (1) protecting Sales
-Navigator revenue from competitive-scale exporters, (2) defending the
-aggregate graph against mass scraping, (3) maintaining LinkedIn's position
-as consent-mediator between you and your network. None of those concerns
-fire on a single user manually clicking through their own connections.
-
-The pragmatic spectrum:
-
-| Approach | TOS violation? | Practical risk |
+| Approach | Terms violation? | Practical risk |
 |---|---|---|
 | Manual copy-paste of names | No | None |
-| Bookmarklet / Console snippet you trigger by hand | Technically yes | Vanishingly low |
+| Console snippet / bookmarklet triggered by hand | Yes | Low |
 | Browser extension auto-scrolling and extracting | Yes | Low–medium |
-| Headless puppeteer with your cookie | Yes | High |
+| Headless automation with your session cookie | Yes | High |
 | Third-party SaaS (Path C) | Yes | Low but real |
 
-Path A.5 is the second row. Operators who care about both their LinkedIn
-presence AND getting the dinner invite list done by Thursday sit there.
-
-**Account risk:** Vanishingly low for one-shot use. The DOM-extraction
-pattern is not what LinkedIn's detection looks for.
-
-**Cost:** $0. Two .js files in the repo, no SaaS, no subscription.
-
-**Time to first invite list:**
-- Open search URL with your geo filter. ~2 minutes.
-- Paste snippet, scroll + re-run per page. ~10-15 minutes for hundreds of
-  rows depending on how many pages you walk.
-- CSV downloaded. Import into augment-it as record set OR just open in
-  Numbers/Sheets and filter manually for the dinner.
-
-**Composability:** High in a different way than Path A. The CSV lands in
-augment-it as a record set the same as any export, AND the snippets
-themselves are reusable next time you need to slice the network by a
-different geo. Plus — for the "click into high-value profiles" workflow
-the operator is already willing to do, the profile snippet captures the
-deep data Path A's snippet-search inference can't.
-
-**Where it underperforms:**
-- Selector maintenance — LinkedIn rotates class names every few months
-  to break scrapers. The snippets degrade gracefully (try multiple
-  candidate selectors, log when none match) but eventually need a quick
-  selector update. The head comments document the procedure.
-- Manual pagination — at 5K+ contacts this becomes tedious. Path A or
-  Path B scales better past that.
-
-**This is the right tool for the dinner.** Path A's value comes when you
-want enrichment beyond what LinkedIn's UI already shows — *infer* a
-location from public web snippets when LinkedIn won't tell you. Path A.5's
-value comes when LinkedIn IS already telling you (you've built the right
-search URL), you just need to get that data off the screen and into a CSV.
-For a one-shot dinner invite list, Path A.5 wins.
+Only the first row is unambiguously clean. Everything below it trades a
+terms violation for speed. Path A gets to the same invite list from data
+LinkedIn hands you on request, so the trade isn't necessary.
 
 ### Path A — Data export + augment-it enrichment cascade (recommended)
 
@@ -366,24 +306,18 @@ Listed for completeness; deprioritized for any real engagement.
 
 ## Recommendation
 
-**Path A.5 for the dinner.** Build the geo-filtered search URL in
-LinkedIn's UI, paste the search-results snippet on each page as you
-click through, click into high-value profiles individually and paste the
-profile snippet. Output is a CSV you can use directly or ingest into
-augment-it as a record set. Zero cost, vanishingly low account risk,
-done in an hour.
+**Path A for the dinner.** Request the LinkedIn data export (Settings →
+Data Privacy → Get a copy of your data → Connections). It arrives in
+minutes to hours and hands you first name, last name, company, title, and
+profile URL for your entire network — legitimately, at LinkedIn's
+invitation. What it omits is location, which is exactly the gap the
+`linkedin-location-pack` closes by inferring a city from public web
+snippets. Zero cost, zero account risk, no terms question to weigh.
 
-**Path A** stays in the longer-arc plan — the `linkedin-location-pack`
-remains the right shape for cases where LinkedIn's UI isn't already
-telling you the answer (e.g., "find people in my network who recently
-moved to NYC but haven't updated their profile yet" needs the
-public-snippet inference; LinkedIn's geoUrn filter alone won't catch
-them). The dinner doesn't require it; the next harder slice might.
+**Fall back to Path C** only if Path A doesn't produce a viable list AND
+the timeline justifies the account risk. Realistic for high-volume
+recurring extraction across a 30K+ network, not for a single dinner.
 
-**Fall back to Path C** only if Path A.5 + Path A together don't produce
-a viable list AND the timeline justifies the account risk. Realistic
-for high-volume recurring extraction across a 30K+ network, not for
-the dinner.
 
 **Path B** is the right answer if you already have Sales Navigator for
 other reasons (recruiting, BD pipeline). The marginal cost is zero, the
@@ -428,37 +362,29 @@ from new infrastructure.
 
 ## The dinner-specific minimum lift
 
-For the immediate dinner, the operator's path collapses to Path A.5:
+For the immediate dinner, the operator's path collapses to Path A:
 
-1. **Now:** Build the search URL in LinkedIn's UI — your network
-   filter (`network=["F"]`) plus the geoUrn array for NYC metro +
-   Manhattan. The URL the operator already arrived at is the right
-   shape:
-   ```
-   https://www.linkedin.com/search/results/people/?origin=FACETED_SEARCH&network=%5B%22F%22%5D&geoUrn=%5B%22102571732%22%2C%2290000070%22%5D
-   ```
-2. **Now:** Open DevTools (Cmd+Option+I), Console tab.
-3. **Now:** Paste `tools/browser-snippets/linkedin/linkedin-search-results-to-csv.js`,
-   Enter. Inspect the console.table() output; if name / location columns
-   look right, proceed.
-4. **Now:** Click LinkedIn's Next button. Up-arrow + Enter in the console.
-   Repeat until you've covered the page range. The accumulator de-dupes by
-   profile URL so re-running is safe.
-5. **Now:** Run `window.__liDownloadCsv()` — downloads the CSV.
-6. **Now (optional):** For people you want richer data on, click into their
-   profile individually, paste `linkedin-profile-to-row.js` to capture full
-   headline / location / About / top 3 Experience entries.
-7. **Now:** Either filter the CSV directly in Numbers/Sheets for the dinner
-   invite list, OR ingest into augment-it as a record set if you want the
-   lens + chat workflow.
+1. **Now:** Request the connections export — LinkedIn Settings → Data
+   Privacy → *Get a copy of your data* → **Connections**. Small archives
+   often land in ~10 minutes; budget a few hours.
+2. **Now:** While that generates, build the geo-filtered search URL in
+   LinkedIn's normal UI (your-network filter plus the geoUrn array for the
+   metro you care about) and read the result set on screen. For a dinner-
+   sized list, reading and noting the names you actually want to invite is
+   both faster and cleaner than any extraction scheme.
+3. **When the export lands:** Ingest the CSV into augment-it as a record
+   set. First name, last name, company, title, profile URL.
+4. **Then:** Run the `linkedin-location-pack` over the rows to infer a
+   current city from public web snippets, with a confidence score and the
+   evidence string attached to each guess.
+5. **Then:** Open the sort-filter lens, filter location for the metro, and
+   sort by confidence. Hand-check the low-confidence rows — at dinner
+   scale that's a handful of people, not a data-quality project.
+6. **Then:** Export the filtered set as the invite list.
 
-Total elapsed time: ~30 minutes for hundreds of contacts.
+Total elapsed time: dominated by how long LinkedIn takes to generate the
+export. The work on our side is minutes.
 
-If selectors come back stale on the first run (snippet says "no results
-container found"), inspect one card in DevTools → Elements, copy the
-enclosing list/card selectors, update SELECTORS at the top of the file,
-re-run. The snippet logs which selector path it used so the maintenance
-loop is tight.
 
 ## The pattern this instances
 

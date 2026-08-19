@@ -24,6 +24,7 @@ site_uuid: 3afaac47-1867-49af-a63b-cb6be17fcbe2
 hex_code: 64vn8u
 date_authored_initial_draft: 2025-08-08
 date_authored_current_draft: 2025-08-08
+publish: true
 ---
 
 # HighlightCollector Module Analysis and Specification

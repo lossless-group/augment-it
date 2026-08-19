@@ -22,6 +22,7 @@ site_uuid: b3711907-da20-4d49-b461-9935c1703a60
 hex_code: 38hed5
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # Pulse streams need editable kind + user-facing names

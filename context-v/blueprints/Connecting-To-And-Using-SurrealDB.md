@@ -22,6 +22,7 @@ site_uuid: b83c9250-18f1-4ffc-9715-48d82b4bfe56
 hex_code: 7vqdeg
 date_authored_initial_draft: 2026-06-21
 date_authored_current_draft: 2026-06-21
+publish: true
 ---
 
 # Connecting To And Using SurrealDB

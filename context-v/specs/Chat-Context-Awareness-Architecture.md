@@ -25,6 +25,7 @@ site_uuid: d0a80b9c-67fe-4c49-8edd-f7494ec5afce
 hex_code: lw2dof
 date_authored_initial_draft: 2026-06-08
 date_authored_current_draft: 2026-06-08
+publish: true
 ---
 
 # Chat Context-Awareness Architecture

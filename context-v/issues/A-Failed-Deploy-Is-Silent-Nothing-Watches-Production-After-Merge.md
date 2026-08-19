@@ -20,6 +20,7 @@ site_uuid: e5e99013-fe48-440f-bbe7-47d51917b0b2
 hex_code: sndhkh
 date_authored_initial_draft: 2026-08-15
 date_authored_current_draft: 2026-08-15
+publish: true
 ---
 
 # A failed deploy is silent, so nothing watches production after merge

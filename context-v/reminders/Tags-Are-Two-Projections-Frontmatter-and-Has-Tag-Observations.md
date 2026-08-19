@@ -19,6 +19,7 @@ site_uuid: 31878be1-fc8b-43cc-9ebb-ebeed5727ede
 hex_code: o1l54a
 date_authored_initial_draft: 2026-07-25
 date_authored_current_draft: 2026-07-25
+publish: true
 ---
 
 # Tags are two projections of one fact

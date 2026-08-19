@@ -26,6 +26,7 @@ site_uuid: e46491c9-639b-49df-bf34-8d2a41dd5650
 hex_code: qhzaau
 date_authored_initial_draft: 2026-06-08
 date_authored_current_draft: 2026-06-08
+publish: true
 ---
 
 # Download PDFs into Corpus Inbox

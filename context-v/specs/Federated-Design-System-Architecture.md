@@ -14,6 +14,7 @@ site_uuid: e93f2d43-800c-4161-830e-f31ee5b21c1e
 hex_code: aosfgz
 date_authored_initial_draft: 2026-08-01
 date_authored_current_draft: 2026-08-01
+publish: true
 ---
 
 # Federated Design System Architecture

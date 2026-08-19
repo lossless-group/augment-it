@@ -25,6 +25,7 @@ site_uuid: e9bd175d-1a45-4482-b18f-a1bf39a2721e
 hex_code: 9x5btu
 date_authored_initial_draft: 2026-06-02
 date_authored_current_draft: 2026-06-02
+publish: true
 ---
 
 # Augment Transformations Not Reliably Persisting

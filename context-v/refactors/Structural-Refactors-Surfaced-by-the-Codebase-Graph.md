@@ -24,6 +24,7 @@ site_uuid: 5e73fb67-9969-464c-ad3e-15683ec96a9c
 hex_code: wy9wrp
 date_authored_initial_draft: 2026-08-06
 date_authored_current_draft: 2026-08-06
+publish: true
 ---
 
 # Structural refactors surfaced by the codebase graph

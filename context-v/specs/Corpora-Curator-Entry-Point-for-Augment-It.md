@@ -34,6 +34,7 @@ site_uuid: 556ec4eb-ac81-4638-b3ff-9963ba4c1d36
 hex_code: k2hd1g
 date_authored_initial_draft: 2026-06-29
 date_authored_current_draft: 2026-06-29
+publish: true
 ---
 
 # Strategy Curator — An Entry-Point App for augment-it

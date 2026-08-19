@@ -26,6 +26,7 @@ site_uuid: d399a7a6-d4e4-4fe6-9c6d-fe9b406fc145
 hex_code: m1mdv1
 date_authored_initial_draft: 2026-06-10
 date_authored_current_draft: 2026-06-10
+publish: true
 ---
 
 # Some records show empty corpus despite directories on disk

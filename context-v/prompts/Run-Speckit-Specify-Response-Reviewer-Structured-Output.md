@@ -26,6 +26,7 @@ site_uuid: 7b860a9d-8224-4ada-a2da-7bb0a2ec6e5a
 hex_code: ispffh
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Run /speckit-specify — Response Reviewer Structured-Output Extension

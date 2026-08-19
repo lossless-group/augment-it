@@ -21,6 +21,7 @@ site_uuid: 9be9d5db-57b5-4ef0-a4da-12315a2907ee
 hex_code: 414yhu
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Bolt Monolith As Built

@@ -21,6 +21,7 @@ site_uuid: 1557b5f4-d151-4a62-ad1c-96bb1645af42
 hex_code: iiz80j
 date_authored_initial_draft: 2026-08-08
 date_authored_current_draft: 2026-08-08
+publish: true
 ---
 
 > **Editing note.** This document is the one place in the repo that must keep

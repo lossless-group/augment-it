@@ -25,6 +25,7 @@ site_uuid: 2a93da22-a94a-4f92-97de-19729266970f
 hex_code: d8bh8f
 date_authored_initial_draft: 2026-06-08
 date_authored_current_draft: 2026-06-08
+publish: true
 ---
 
 # Funder Content Corpus Workflow

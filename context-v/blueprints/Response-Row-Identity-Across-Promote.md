@@ -23,6 +23,7 @@ site_uuid: b5086f64-2b2a-4841-ae4d-73173d3461df
 hex_code: 54jgji
 date_authored_initial_draft: 2026-05-26
 date_authored_current_draft: 2026-05-26
+publish: true
 ---
 
 # Response–Row Identity Across Promote

@@ -20,6 +20,7 @@ site_uuid: 9d83da6e-2abd-4122-aefb-6f1b14711d3c
 hex_code: gg220j
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Tanuj's Record-Collector As Built

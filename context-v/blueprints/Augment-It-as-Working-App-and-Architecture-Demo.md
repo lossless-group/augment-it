@@ -24,6 +24,7 @@ site_uuid: f35963fd-1426-4d7a-8d22-19fb04d037e7
 hex_code: 25efk5
 date_authored_initial_draft: 2026-06-01
 date_authored_current_draft: 2026-06-01
+publish: false
 ---
 
 # Augment-It as Working App and Architecture Demonstration

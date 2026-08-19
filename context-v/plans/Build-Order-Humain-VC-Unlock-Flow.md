@@ -23,6 +23,7 @@ site_uuid: 254433bd-1635-4ec5-99ec-82924f99081e
 hex_code: 9cbotw
 date_authored_initial_draft: 2026-07-09
 date_authored_current_draft: 2026-07-09
+publish: true
 ---
 
 # Build order: the humain-vc unlock flow

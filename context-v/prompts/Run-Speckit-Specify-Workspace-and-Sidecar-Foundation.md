@@ -21,6 +21,7 @@ site_uuid: ce5d13fa-ea32-4bf5-bc0c-2eb0a2f167d7
 hex_code: gpvh2t
 date_authored_initial_draft: 2026-05-18
 date_authored_current_draft: 2026-05-18
+publish: true
 ---
 
 # Run /speckit-specify — Workspace + Sidecar Foundation

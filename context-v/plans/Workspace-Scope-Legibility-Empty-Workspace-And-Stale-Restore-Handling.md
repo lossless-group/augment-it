@@ -20,6 +20,7 @@ site_uuid: fd7c230a-c607-44e4-aaff-3b23728e0de7
 hex_code: p985yr
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # Workspace-scope legibility

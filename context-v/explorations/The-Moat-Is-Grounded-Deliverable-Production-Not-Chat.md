@@ -25,6 +25,7 @@ site_uuid: 27cddadf-0c2f-4dc1-822e-70eb67591043
 hex_code: 59c8he
 date_authored_initial_draft: 2026-06-18
 date_authored_current_draft: 2026-06-18
+publish: true
 ---
 
 # The Moat Is Grounded Deliverable Production, Not Chat

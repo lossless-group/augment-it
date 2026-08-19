@@ -23,6 +23,7 @@ site_uuid: 9c64800e-fbdf-43e2-805a-8f464e7d194b
 hex_code: svunxl
 date_authored_initial_draft: 2026-06-18
 date_authored_current_draft: 2026-06-18
+publish: true
 ---
 
 # First-Pass Corpus Quality Scan for reach-edu

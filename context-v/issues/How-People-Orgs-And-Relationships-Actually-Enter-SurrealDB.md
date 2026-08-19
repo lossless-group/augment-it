@@ -21,6 +21,7 @@ site_uuid: 5a026017-0ace-4611-9b1a-e8dfc6848710
 hex_code: lo0wz8
 date_authored_initial_draft: 2026-07-17
 date_authored_current_draft: 2026-07-17
+publish: true
 ---
 
 # Issue: How People, Organizations, and Their Relationships Actually Enter SurrealDB

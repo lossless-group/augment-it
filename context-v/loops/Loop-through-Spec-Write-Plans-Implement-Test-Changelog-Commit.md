@@ -24,6 +24,7 @@ site_uuid: 771a131f-f8c4-43ff-8eae-49daa2e672de
 hex_code: dtd98i
 date_authored_initial_draft: 2026-07-22
 date_authored_current_draft: 2026-07-22
+publish: true
 ---
 
 # Loop through a spec — plan → implement → test → changelog → commit

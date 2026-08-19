@@ -21,6 +21,7 @@ site_uuid: 82371c70-3f6a-460f-b87a-b9fa4c677dab
 hex_code: q997wb
 date_authored_initial_draft: 2026-06-15
 date_authored_current_draft: 2026-06-15
+publish: true
 ---
 
 # Canonical Entity Registry on SurrealDB Cloud

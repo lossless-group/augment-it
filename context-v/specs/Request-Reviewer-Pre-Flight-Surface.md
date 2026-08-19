@@ -25,6 +25,7 @@ site_uuid: 93f1a10f-9ed1-44fa-94ee-16c1eded55d5
 hex_code: af1xbu
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Request Reviewer — the Pre-Flight Surface

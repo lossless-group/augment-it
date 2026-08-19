@@ -22,6 +22,7 @@ site_uuid: 88a68356-499a-4f81-84c9-10f1ffd20704
 hex_code: xawo4c
 date_authored_initial_draft: 2026-06-09
 date_authored_current_draft: 2026-06-09
+publish: true
 ---
 
 # Operator-built flows beyond the universal pipeline

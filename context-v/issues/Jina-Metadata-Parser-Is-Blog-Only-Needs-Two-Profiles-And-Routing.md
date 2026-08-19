@@ -20,6 +20,7 @@ site_uuid: 23d41189-e6b5-4e0e-b111-420481ca2cca
 hex_code: gyabhb
 date_authored_initial_draft: 2026-08-02
 date_authored_current_draft: 2026-08-02
+publish: true
 ---
 
 # Jina metadata parser is blog-only

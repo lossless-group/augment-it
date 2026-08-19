@@ -27,6 +27,7 @@ site_uuid: baa60859-b0c8-4fed-8d1b-ef14ccccf4a5
 hex_code: zfhtul
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Walking-Skeleton Pre-Flight Decisions

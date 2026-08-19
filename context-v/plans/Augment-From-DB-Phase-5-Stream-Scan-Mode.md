@@ -25,6 +25,7 @@ site_uuid: b384d972-ecb0-40e3-ba75-1c4902d7144c
 hex_code: zaazn1
 date_authored_initial_draft: 2026-07-22
 date_authored_current_draft: 2026-07-22
+publish: true
 ---
 
 # Augment from DB · Phase 5 — stream-scan mode

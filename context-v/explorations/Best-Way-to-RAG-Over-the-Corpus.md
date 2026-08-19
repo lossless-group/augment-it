@@ -34,6 +34,7 @@ site_uuid: 5c24a169-70f5-4747-b789-03a4c1836972
 hex_code: ie8zvz
 date_authored_initial_draft: 2026-06-11
 date_authored_current_draft: 2026-06-11
+publish: true
 ---
 
 # Best Way to RAG Over the Corpus

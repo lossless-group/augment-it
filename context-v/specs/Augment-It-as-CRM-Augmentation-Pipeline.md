@@ -26,6 +26,7 @@ site_uuid: c3c973dd-a754-4e62-bb2c-e4409e1b310a
 hex_code: ekrrkk
 date_authored_initial_draft: 2026-05-18
 date_authored_current_draft: 2026-05-18
+publish: true
 ---
 
 # Augment-It as a CRM-Augmentation Pipeline

@@ -22,6 +22,7 @@ site_uuid: c0d6157b-798d-4fcb-a6c0-159e86eacb1b
 hex_code: 5eeprm
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Augment-It Prior Art Survey

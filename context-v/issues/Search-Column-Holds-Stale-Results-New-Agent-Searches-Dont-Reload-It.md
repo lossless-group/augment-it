@@ -21,6 +21,7 @@ site_uuid: 0777375c-36ee-497c-b071-4c091792db1f
 hex_code: 7qqtxo
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # The search column doesn't follow the latest search

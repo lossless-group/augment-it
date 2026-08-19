@@ -22,6 +22,7 @@ site_uuid: 021285a9-a43d-4ac3-9df0-fc06e855ccbb
 hex_code: 04m8qs
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # Narrow-pane workbench: roster hogs, card spills

@@ -20,6 +20,7 @@ site_uuid: eae2075f-45af-43dd-a5fc-523bdf09543e
 hex_code: gwinuj
 date_authored_initial_draft: 2026-05-18
 date_authored_current_draft: 2026-05-18
+publish: true
 ---
 
 # Run /speckit-constitution

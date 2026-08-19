@@ -19,6 +19,7 @@ site_uuid: a62b75aa-217d-4a75-b1e5-debe2c4e6168
 hex_code: t1oias
 date_authored_initial_draft: 2026-08-02
 date_authored_current_draft: 2026-08-02
+publish: true
 ---
 
 # Search & Add invokes never reach the workspace

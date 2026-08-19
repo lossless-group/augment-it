@@ -23,6 +23,7 @@ site_uuid: 57284422-9b02-409e-b98c-a83be6ef3bb2
 hex_code: wtp084
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # Workbench usability sweep — #20 · #26 · #25

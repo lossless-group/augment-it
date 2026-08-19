@@ -23,6 +23,7 @@ site_uuid: feab1d70-5163-4653-a8ad-d486c967d95d
 hex_code: m5xf0c
 date_authored_initial_draft: 2026-07-28
 date_authored_current_draft: 2026-07-28
+publish: true
 ---
 
 # Open augment.didi.sh to reach-edu
@@ -32,7 +33,7 @@ date_authored_current_draft: 2026-07-28
 reach-edu's canonical layer is now substantial — 400+ organizations with
 relations and strategy tags, 500+ people, registered corpora, a CRM
 already seeded from it — and the humans who work the pipeline (first:
-**Stephenie Tesoro <stesoro@reach.edu>**, a tracker row owner) have no
+**the client's first tracker-row owner**) have no
 way to see it except over Michael's shoulder. The production stack at
 augment.didi.sh already talks to the same SurrealDB Cloud instance
 (`rustic-forest-….surreal.cloud`), so the DATA is deployed; what's
@@ -146,7 +147,7 @@ plumbing (baked WS URLs). Prefer the designed path.
 2. **Frontends follow the session**: the shell/remotes read
    `workspace.active` per session (already do) — verify no surface
    caches a global client across a session switch.
-3. id-didi-sh: create org `reach.edu`, invite **stesoro@reach.edu**
+3. id-didi-sh: create org `reach.edu`, invite **the client's first pipeline user**
    (invite-only by design — invites carry org_id + role; there is no
    open signup). Verify the redeem→cookie→WS flow end-to-end.
 4. Deploy the Augment-from-DB remotes (org-workbench, search-results,

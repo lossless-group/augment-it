@@ -23,6 +23,7 @@ site_uuid: 71dcc42a-f947-4cf5-839a-4f35c39ab6e1
 hex_code: u2xx6c
 date_authored_initial_draft: 2026-05-18
 date_authored_current_draft: 2026-05-18
+publish: true
 ---
 
 # Why Response Reviewer and Highlight Collector Exist

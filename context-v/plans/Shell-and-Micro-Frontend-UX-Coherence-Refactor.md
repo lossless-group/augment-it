@@ -35,6 +35,7 @@ site_uuid: fc500c1f-8d66-459b-b4da-dc1c3a834cb8
 hex_code: abczj9
 date_authored_initial_draft: 2026-06-01
 date_authored_current_draft: 2026-06-01
+publish: true
 ---
 
 # Shell & Micro-Frontend UX Coherence — Refactor Plan

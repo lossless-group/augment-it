@@ -25,6 +25,7 @@ site_uuid: 2d5b8a91-62f5-45dc-85bd-883b8e83329a
 hex_code: q61qku
 date_authored_initial_draft: 2026-05-21
 date_authored_current_draft: 2026-05-21
+publish: true
 ---
 
 # Build the Shell Tiling & Peek-Deck

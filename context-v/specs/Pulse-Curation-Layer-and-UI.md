@@ -23,6 +23,7 @@ site_uuid: 85b098d2-5532-467e-840f-dc5e74c4e2a7
 hex_code: ch9c8v
 date_authored_initial_draft: 2026-06-02
 date_authored_current_draft: 2026-06-02
+publish: true
 ---
 
 # Pulse Curation Layer & UI

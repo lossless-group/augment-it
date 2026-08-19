@@ -14,6 +14,7 @@ site_uuid: 20379c24-f895-473a-a673-09c5509da4e2
 hex_code: ge9dge
 date_authored_initial_draft: 2026-08-01
 date_authored_current_draft: 2026-08-01
+publish: true
 ---
 
 # Design System Portal

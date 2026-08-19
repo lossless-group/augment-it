@@ -24,6 +24,7 @@ site_uuid: 593b7b02-40ba-44fe-b70d-acab3154f409
 hex_code: 3253rw
 date_authored_initial_draft: 2025-08-08
 date_authored_current_draft: 2025-08-08
+publish: true
 ---
 
 # MainContainerUI Analysis and Specification

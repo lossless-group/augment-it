@@ -24,6 +24,7 @@ site_uuid: cbe77c9c-3d1f-4447-9e3e-79d95f0553ac
 hex_code: ygf6qe
 date_authored_initial_draft: 2026-05-26
 date_authored_current_draft: 2026-05-26
+publish: true
 ---
 
 # Agent-Chat Skills and Commands — Candidates List

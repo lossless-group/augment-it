@@ -11,6 +11,7 @@ site_uuid: 60a76104-2421-4263-ad44-405d9dfabfaa
 hex_code: bxhzq2
 date_authored_initial_draft: 2026-05-12
 date_authored_current_draft: 2026-05-12
+publish: true
 ---
 
 This directory follows the Lossless Group **context-vigilance** convention.

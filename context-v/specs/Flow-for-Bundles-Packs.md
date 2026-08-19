@@ -27,6 +27,7 @@ site_uuid: 6abd4987-bdc9-4d55-9267-2f1b809e2ced
 hex_code: nd2wz3
 date_authored_initial_draft: 2026-06-02
 date_authored_current_draft: 2026-06-02
+publish: true
 ---
 
 # Flow for Bundles & Packs

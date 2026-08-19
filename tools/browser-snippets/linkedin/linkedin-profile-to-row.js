@@ -4,7 +4,7 @@
 // Paste-into-DevTools-Console snippet. Run while viewing an individual
 // LinkedIn profile page in your own authenticated browser — e.g.:
 //
-//   https://www.linkedin.com/in/charlene-kuo-a877781/
+//   https://www.linkedin.com/in/<profile-slug>/
 //
 // Companion to linkedin-search-results-to-csv.js. Extracts enough about
 // one person to personalize an invite: full name, precise profile-page
@@ -14,8 +14,8 @@
 // Output shape (one object per profile, deduped by profile_url across tabs)
 // -----------------------------------------------------------------------
 //   {
-//     name:              "Charlene Kuo",
-//     profile_url:       "https://www.linkedin.com/in/charlene-kuo-a877781",
+//     name:              "Jane Doe",
+//     profile_url:       "https://www.linkedin.com/in/<profile-slug>",
 //     headline:          "Co-founding Partner of …",                // precise
 //     pronouns:          "She/Her",                                 // when present
 //     location:          "New York, New York, United States",

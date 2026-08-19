@@ -28,6 +28,7 @@ site_uuid: 57af009e-276e-4607-8909-57ed8797a2f8
 hex_code: 8s9gh7
 date_authored_initial_draft: 2026-06-15
 date_authored_current_draft: 2026-06-15
+publish: true
 ---
 
 # Joined People UI and the Network-First Pivot

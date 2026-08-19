@@ -23,6 +23,7 @@ site_uuid: 7be9f4c7-9430-4bc9-84d4-699ec595855f
 hex_code: 8k95aa
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # Person bio pages are affiliation signals

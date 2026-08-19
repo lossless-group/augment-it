@@ -21,6 +21,7 @@ site_uuid: dd90ecab-82c2-4f82-82e7-2a46b0243e5a
 hex_code: yys433
 date_authored_initial_draft: 2026-08-06
 date_authored_current_draft: 2026-08-06
+publish: true
 ---
 
 # Sharing code without breaking microfrontend autonomy

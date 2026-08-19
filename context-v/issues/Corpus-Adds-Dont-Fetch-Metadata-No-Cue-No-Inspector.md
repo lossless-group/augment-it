@@ -21,6 +21,7 @@ site_uuid: 9f6e1135-59b2-4bd3-9dbe-d7bd491d45bc
 hex_code: jt03b7
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # Corpus adds don't fetch metadata; no cue; no inspector

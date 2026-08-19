@@ -22,6 +22,7 @@ site_uuid: e178c262-3f8a-48f8-919b-0082984739bf
 hex_code: g44mvi
 date_authored_initial_draft: 2026-06-22
 date_authored_current_draft: 2026-06-22
+publish: true
 ---
 
 # Grilling on the DB Resolver

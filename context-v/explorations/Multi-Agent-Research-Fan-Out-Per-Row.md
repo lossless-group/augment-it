@@ -22,6 +22,7 @@ site_uuid: 6f5d3d90-dbcb-45e7-b594-ebf2e739c9e2
 hex_code: s90b44
 date_authored_initial_draft: 2026-05-18
 date_authored_current_draft: 2026-05-18
+publish: true
 ---
 
 # Multi-Agent Research Fan-Out Per Row

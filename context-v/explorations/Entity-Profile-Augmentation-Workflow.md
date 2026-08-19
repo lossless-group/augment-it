@@ -29,6 +29,7 @@ site_uuid: 63e83f1b-7303-43ac-9ac9-674961ccc259
 hex_code: 9qq3wx
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Entity-Profile Augmentation Workflow

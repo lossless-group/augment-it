@@ -23,6 +23,7 @@ site_uuid: 97967f4b-4bc2-4f20-b533-9e8e4495fdfe
 hex_code: f05yje
 date_authored_initial_draft: 2025-07-25
 date_authored_current_draft: 2025-08-08
+publish: true
 ---
 
 # Bolt Codebase Analysis

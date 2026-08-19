@@ -25,6 +25,7 @@ site_uuid: e75c5d34-e631-4c9d-882a-d042e5d3a991
 hex_code: tuh8oz
 date_authored_initial_draft: 2026-08-02
 date_authored_current_draft: 2026-08-02
+publish: true
 ---
 
 # Source Content Storage — SurrealDB-Primary, Local as a Per-User Toggle

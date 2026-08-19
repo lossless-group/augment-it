@@ -23,6 +23,7 @@ site_uuid: 6cf8d893-bc23-4432-992f-be13da2b5019
 hex_code: zg8zb5
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # Corpus items invisible on person cards; coverage unassessable

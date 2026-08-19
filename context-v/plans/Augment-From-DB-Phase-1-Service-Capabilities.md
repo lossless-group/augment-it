@@ -25,6 +25,7 @@ site_uuid: c1e0a473-1b1a-4a6d-b8cc-08b8ab78ab0f
 hex_code: 8en2qa
 date_authored_initial_draft: 2026-07-22
 date_authored_current_draft: 2026-07-22
+publish: true
 ---
 
 # Augment from DB · Phase 1 — service capabilities + Exa

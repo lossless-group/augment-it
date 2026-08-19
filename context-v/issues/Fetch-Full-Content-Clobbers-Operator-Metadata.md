@@ -19,6 +19,7 @@ site_uuid: 36218a4f-dc16-45f4-9719-379c0cf8f0f8
 hex_code: lvs69g
 date_authored_initial_draft: 2026-08-02
 date_authored_current_draft: 2026-08-02
+publish: true
 ---
 
 # Fetch full content clobbers the operator's metadata

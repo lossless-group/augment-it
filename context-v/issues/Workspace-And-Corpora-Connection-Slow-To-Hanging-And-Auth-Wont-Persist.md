@@ -20,6 +20,7 @@ site_uuid: b3d32edd-fecd-4382-87df-d6cc35b445f3
 hex_code: sstrq5
 date_authored_initial_draft: 2026-08-02
 date_authored_current_draft: 2026-08-02
+publish: true
 ---
 
 # Workspace + corpora connection is slow-to-hanging, and auth won't persist

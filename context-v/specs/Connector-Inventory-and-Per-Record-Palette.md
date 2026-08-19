@@ -26,6 +26,7 @@ site_uuid: d2290a8e-5d61-4e37-b282-1574d11328f5
 hex_code: 8dzi5c
 date_authored_initial_draft: 2026-06-02
 date_authored_current_draft: 2026-06-02
+publish: true
 ---
 
 # Connector Inventory & Per-Record Palette

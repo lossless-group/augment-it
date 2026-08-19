@@ -22,6 +22,7 @@ site_uuid: 6c9cc51c-ed04-462d-b32b-6e60cb46b913
 hex_code: modl9l
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # Team-crawl accept: links dropped, row lingers

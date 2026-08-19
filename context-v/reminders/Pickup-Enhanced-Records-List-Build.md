@@ -18,6 +18,7 @@ site_uuid: a2a4b6ed-7366-46c6-802f-3480da651a24
 hex_code: wfagng
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: false
 ---
 
 # Pickup — Build the Enhanced Records List + Promotion Checkpoint

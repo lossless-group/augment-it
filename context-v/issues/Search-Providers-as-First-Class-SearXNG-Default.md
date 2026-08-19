@@ -30,6 +30,7 @@ site_uuid: 4e75401b-b169-4757-9395-bee3567bd922
 hex_code: ywq1cg
 date_authored_initial_draft: 2026-05-26
 date_authored_current_draft: 2026-05-26
+publish: true
 ---
 
 # Search Providers as First-Class — SearXNG Becomes the New Default for Social Packs

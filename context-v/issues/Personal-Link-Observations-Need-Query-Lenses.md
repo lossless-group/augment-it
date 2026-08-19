@@ -21,6 +21,7 @@ site_uuid: c2b9d5a6-0137-404e-b038-37970e559b39
 hex_code: 979tyr
 date_authored_initial_draft: 2026-06-15
 date_authored_current_draft: 2026-06-15
+publish: true
 ---
 
 # Personal-link observations need named query lenses

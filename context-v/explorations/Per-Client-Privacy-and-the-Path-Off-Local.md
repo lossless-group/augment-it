@@ -32,6 +32,7 @@ site_uuid: b65b512c-a4c5-4191-9f0b-3b5fced6ed03
 hex_code: py26pz
 date_authored_initial_draft: 2026-06-05
 date_authored_current_draft: 2026-06-05
+publish: true
 ---
 
 # Per-Client Privacy and the Path Off Local

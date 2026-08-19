@@ -28,6 +28,7 @@ site_uuid: 2fa5f400-1e7b-4c85-a38a-62a9fdf1390f
 hex_code: ocki8w
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Run-as-First-Class-Operation

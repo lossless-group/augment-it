@@ -22,6 +22,7 @@ site_uuid: f4cc6eef-8bff-44d1-9bc0-1e2246b6a4db
 hex_code: mgs5ff
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # The claim protocol

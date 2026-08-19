@@ -28,6 +28,7 @@ site_uuid: c923b898-4a8d-47d0-9670-b86718f99eef
 hex_code: a782lv
 date_authored_initial_draft: 2026-05-22
 date_authored_current_draft: 2026-05-22
+publish: true
 ---
 
 # In-App Chat v0.0.1 for Augment-It

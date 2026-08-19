@@ -31,6 +31,7 @@ site_uuid: c54a3e2c-a6e3-4014-a1f3-be6c5c0d3380
 hex_code: deee1i
 date_authored_initial_draft: 2026-06-01
 date_authored_current_draft: 2026-06-01
+publish: true
 ---
 
 # Shell & Micro-Frontend UX Coherence

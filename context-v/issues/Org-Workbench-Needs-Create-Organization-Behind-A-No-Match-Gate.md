@@ -22,6 +22,7 @@ site_uuid: b9c8810b-1ba1-4fed-a255-196daddc5a35
 hex_code: 161oxd
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # Create an organization from the Org Workbench — behind the gate

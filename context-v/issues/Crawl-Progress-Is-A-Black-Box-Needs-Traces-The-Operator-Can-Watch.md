@@ -21,6 +21,7 @@ site_uuid: 988e62d9-d6ed-48f7-a291-d33ce4ed917d
 hex_code: e37ru5
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # Crawl progress needs visible traces

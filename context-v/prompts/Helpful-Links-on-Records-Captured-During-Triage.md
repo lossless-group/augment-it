@@ -24,6 +24,7 @@ site_uuid: 574cd0d1-4aa3-4688-bb78-15ca79aa984b
 hex_code: 8f7c3z
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Helpful Links on Records — Captured During Response-Reviewer Triage

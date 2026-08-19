@@ -29,6 +29,7 @@ site_uuid: 95576280-9904-4a96-89ca-c12123d8485d
 hex_code: ptkmv1
 date_authored_initial_draft: 2026-07-07
 date_authored_current_draft: 2026-07-07
+publish: true
 ---
 
 # Person-aware canonical resolver

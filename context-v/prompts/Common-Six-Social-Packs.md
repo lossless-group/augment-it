@@ -23,6 +23,7 @@ site_uuid: 6782c655-1e40-4bbf-8991-61dfdc57042d
 hex_code: qlzl2d
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Common-Six Social Packs

@@ -28,6 +28,7 @@ site_uuid: a724b530-d1b5-4845-94f7-41aff5c97bf2
 hex_code: 9r21lc
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Prompt-Template-Manager — Walking Skeleton Plan

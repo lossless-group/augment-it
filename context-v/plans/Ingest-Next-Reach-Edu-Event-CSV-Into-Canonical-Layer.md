@@ -20,6 +20,7 @@ site_uuid: 9ab8a5d8-903e-4a27-bd81-21af9ebf88b9
 hex_code: lef3yg
 date_authored_initial_draft: 2026-07-17
 date_authored_current_draft: 2026-07-17
+publish: true
 ---
 
 # Plan stub: ingest the next reach-edu event CSV into the canonical layer

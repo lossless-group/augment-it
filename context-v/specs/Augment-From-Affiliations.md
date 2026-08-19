@@ -32,6 +32,7 @@ site_uuid: 1117ba1f-c259-417d-b7fe-54d656c068eb
 hex_code: 1et9b7
 date_authored_initial_draft: 2026-07-08
 date_authored_current_draft: 2026-07-08
+publish: true
 ---
 
 # Augment from Affiliations

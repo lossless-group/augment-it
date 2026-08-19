@@ -20,6 +20,7 @@ site_uuid: 884498d7-cf72-4553-a934-82448415665f
 hex_code: qcivp4
 date_authored_initial_draft: 2026-07-17
 date_authored_current_draft: 2026-07-17
+publish: true
 ---
 
 # Issue: Person · DB Resolver UI needs to accommodate multiple organizations per person

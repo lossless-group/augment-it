@@ -28,6 +28,7 @@ site_uuid: cb0ba020-5da6-4230-a1dc-0d41a707e71f
 hex_code: 2omskw
 date_authored_initial_draft: 2026-06-02
 date_authored_current_draft: 2026-06-02
+publish: true
 ---
 
 # Per-Record Iteration as the Primary Surface for Pack and Bundle Fires

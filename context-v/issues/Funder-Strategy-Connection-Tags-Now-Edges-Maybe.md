@@ -19,6 +19,7 @@ site_uuid: a5aa838c-8991-424d-bdb5-91838d0baaf1
 hex_code: nhhx09
 date_authored_initial_draft: 2026-07-28
 date_authored_current_draft: 2026-07-28
+publish: true
 ---
 
 # Funder↔strategy: tags now, edges maybe

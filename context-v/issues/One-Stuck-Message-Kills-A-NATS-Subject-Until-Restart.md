@@ -21,6 +21,7 @@ site_uuid: f8fe524b-f991-4631-805e-7b2f045cdcc0
 hex_code: 11hve5
 date_authored_initial_draft: 2026-08-08
 date_authored_current_draft: 2026-08-08
+publish: true
 ---
 
 # One stuck message kills a NATS subject until restart

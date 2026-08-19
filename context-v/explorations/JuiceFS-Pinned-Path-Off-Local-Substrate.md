@@ -24,6 +24,7 @@ site_uuid: 194b8746-106b-40bc-8e47-cad15b01d641
 hex_code: 9jwg3b
 date_authored_initial_draft: 2026-06-18
 date_authored_current_draft: 2026-06-18
+publish: false
 ---
 
 # JuiceFS — explored, then set aside for rclone-to-R2
@@ -117,7 +118,7 @@ Zero egress fees — the right call for a corpus read repeatedly by retrieval. R
    - **THE REAL ROOT CAUSE (cost us an hour, 2026-06-18; confirmed by [Cloudflare community thread #843594, Oct 2025](https://community.cloudflare.com/t/cannot-generate-s3-compatible-api-key-for-r2-object-storage/843594)):** the S3 **Access Key ID + Secret are only generated when the token includes the R2 Storage permission.** Cloudflare's current UI routes you through the **permission-groups "Edit policy"** editor; if you create a token *without* adding R2 (e.g. it has "SAML Certificates Write, +38" but no R2), you get only a bearer **token** and **no secret** — which looks like "there is no secret option." Fix: in the **"Search for permission groups…"** box type **`R2`** → add **"Workers R2 Storage" → Edit** → create. *Now* the result screen shows Access Key ID + Secret. Must be an **Account** API token (Super Admin), not a User API token.
    - **Deterministic fallback** (Cloudflare docs): for R2, **Access Key ID = the token's ID**, **Secret Access Key = SHA-256 of the token value** → `printf "%s" "<TOKEN_VALUE>" | shasum -a 256`. So even a plain token can be converted to S3 creds.
    - Secret Access Key is shown once and cannot be retrieved — miss it → create a new token.
-   - Confirmed values for our setup: bucket `lossless-core`, region **WNAM** (Western North America), endpoint `https://db2f7ba69a4181557f7f5a53ac598ca2.r2.cloudflarestorage.com`.
+   - Confirmed values for our setup: bucket `lossless-core`, region **WNAM** (Western North America), endpoint `https://<CLOUDFLARE_ACCOUNT_ID>.r2.cloudflarestorage.com`.
 
 **In the JuiceFS console (volume → Object Storage):**
 - Provider: **Amazon S3** · Bucket: `juicefs-lossless-core`
@@ -146,7 +147,7 @@ We burned an hour because **Cloudflare R2 never shows a "Secret Access Key" in t
 
 | S3 field | Where it comes from |
 |---|---|
-| **Access Key ID** | the API **token's ID** — get it from `GET https://api.cloudflare.com/client/v4/accounts/<ACCT>/tokens/verify` (header `Authorization: Bearer <TOKEN>`) → `result.id`. Ours: `d259de0aeb65100528f3137cdf8c0531`. |
+| **Access Key ID** | the API **token's ID** — get it from `GET https://api.cloudflare.com/client/v4/accounts/<ACCT>/tokens/verify` (header `Authorization: Bearer <TOKEN>`) → `result.id`. Ours is in `~/.secrets` as `R2_ACCESS_KEY_ID` — not recorded here. |
 | **Secret Access Key** | `SHA-256(token value)` → `printf "%s" "<TOKEN>" \| shasum -a 256`. 64 hex chars. |
 
 Dead ends that wasted time (avoid):

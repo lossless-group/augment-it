@@ -23,6 +23,7 @@ site_uuid: e814af34-132c-4f27-bec2-913499133761
 hex_code: 4kyq9q
 date_authored_initial_draft: 2026-06-05
 date_authored_current_draft: 2026-06-05
+publish: true
 ---
 
 # Funder Corpus First Session Failed

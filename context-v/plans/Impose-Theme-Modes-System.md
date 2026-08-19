@@ -27,6 +27,7 @@ site_uuid: 85923a4d-817e-4859-8d66-4a9d32c053fb
 hex_code: t5p2ru
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Impose the Three-Mode Theme System on augment-it

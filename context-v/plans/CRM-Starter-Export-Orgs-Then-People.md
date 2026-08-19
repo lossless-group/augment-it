@@ -23,6 +23,7 @@ site_uuid: 123d8eb2-f02a-418b-977d-c7138cbd38e8
 hex_code: vok1o2
 date_authored_initial_draft: 2026-07-27
 date_authored_current_draft: 2026-07-27
+publish: true
 ---
 
 # CRM Starter Export — orgs, then people

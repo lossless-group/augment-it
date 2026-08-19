@@ -21,6 +21,7 @@ site_uuid: 51bcba8c-17bd-4578-952a-03b2b3d62ed2
 hex_code: zpdsmu
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # Merge organizations or people — a stub

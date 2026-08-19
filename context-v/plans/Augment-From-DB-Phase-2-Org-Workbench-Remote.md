@@ -25,6 +25,7 @@ site_uuid: 5436a8ee-22e3-4bfc-8ad6-00d69725d33b
 hex_code: 60kcf9
 date_authored_initial_draft: 2026-07-22
 date_authored_current_draft: 2026-07-22
+publish: true
 ---
 
 # Augment from DB · Phase 2 — org-workbench remote

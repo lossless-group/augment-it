@@ -26,6 +26,7 @@ site_uuid: f8be3583-c694-4431-a844-1debe1cea575
 hex_code: mwqjp3
 date_authored_initial_draft: 2026-06-09
 date_authored_current_draft: 2026-06-09
+publish: true
 ---
 
 # Augmentation-state preservation and snapshot promotion

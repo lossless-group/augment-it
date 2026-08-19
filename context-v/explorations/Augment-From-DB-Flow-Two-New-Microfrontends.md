@@ -24,6 +24,7 @@ site_uuid: 74381fdb-5be5-43f2-995c-ba98a4f06428
 hex_code: 1q6nu4
 date_authored_initial_draft: 2026-07-21
 date_authored_current_draft: 2026-07-21
+publish: true
 ---
 
 # Augment from DB — the org-first workbench flow

@@ -20,6 +20,7 @@ site_uuid: 19a98f36-cfaa-461a-bd0a-9338f7b94821
 hex_code: cnhpno
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Tanuj's Prompt-Manager As Built

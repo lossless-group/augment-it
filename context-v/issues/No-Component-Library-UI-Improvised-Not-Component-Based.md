@@ -21,6 +21,7 @@ site_uuid: 1ead2815-e5a6-4b4e-88ec-72eb64845aea
 hex_code: 6kkh1d
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # No component library — improvised UI across fourteen remotes

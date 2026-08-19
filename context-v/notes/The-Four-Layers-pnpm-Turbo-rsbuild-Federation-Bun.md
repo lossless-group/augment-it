@@ -20,6 +20,7 @@ site_uuid: a7bf1b32-966a-412b-8552-6e49fd0fd2ef
 hex_code: 422ca9
 date_authored_initial_draft: 2026-07-30
 date_authored_current_draft: 2026-07-30
+publish: true
 ---
 
 # The four layers: pnpm, Turbo, rsbuild Module Federation, and where Bun would fit

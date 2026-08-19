@@ -23,6 +23,7 @@ site_uuid: 6f7ddc9e-6036-4565-9ad5-24a20afe36a4
 hex_code: 58x9ig
 date_authored_initial_draft: 2026-06-15
 date_authored_current_draft: 2026-06-15
+publish: true
 ---
 
 # Client tagging on canonical writes

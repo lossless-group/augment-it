@@ -24,6 +24,7 @@ site_uuid: d31a21b8-8abd-4d94-8d63-911aefc448b0
 hex_code: 79mwri
 date_authored_initial_draft: 2026-05-21
 date_authored_current_draft: 2026-05-21
+publish: true
 ---
 
 # Original and Enhanced Record Instances

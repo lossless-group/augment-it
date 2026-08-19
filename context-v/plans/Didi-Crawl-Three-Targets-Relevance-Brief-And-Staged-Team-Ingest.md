@@ -24,6 +24,7 @@ site_uuid: c63cff97-7bd6-4368-a2d9-261931c6b5e1
 hex_code: diljfs
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # Didi crawl — the v1.2 build

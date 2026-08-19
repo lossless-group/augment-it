@@ -20,6 +20,7 @@ site_uuid: a005d699-8629-437a-8a11-8f4ac8e04fe5
 hex_code: 8yeycg
 date_authored_initial_draft: 2026-08-03
 date_authored_current_draft: 2026-08-03
+publish: true
 ---
 
 # Move the rest of the app to remote hosting

@@ -25,6 +25,7 @@ site_uuid: 6e8e09a9-0e44-474b-b6df-a6ed901c7869
 hex_code: emiaxu
 date_authored_initial_draft: 2026-07-01
 date_authored_current_draft: 2026-07-01
+publish: true
 ---
 
 # Migrate off the deprecated `nats` package to `@nats-io/*` v3

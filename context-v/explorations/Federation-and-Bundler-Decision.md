@@ -23,6 +23,7 @@ site_uuid: 140701b4-7382-4e2f-9269-187800531577
 hex_code: 4hr8nm
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Federation and Bundler Decision

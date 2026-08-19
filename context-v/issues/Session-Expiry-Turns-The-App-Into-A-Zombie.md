@@ -22,6 +22,7 @@ site_uuid: 691764f6-153c-4878-944a-7b639522c4b2
 hex_code: azmkjc
 date_authored_initial_draft: 2026-08-02
 date_authored_current_draft: 2026-08-02
+publish: true
 ---
 
 # Session expiry turns the app into a zombie

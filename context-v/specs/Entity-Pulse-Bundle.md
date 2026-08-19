@@ -33,6 +33,7 @@ site_uuid: 9e3df221-4c2d-48a5-9fc7-07c819fffa6b
 hex_code: 31c9qh
 date_authored_initial_draft: 2026-06-01
 date_authored_current_draft: 2026-06-01
+publish: true
 ---
 
 # Entity-Pulse Bundle

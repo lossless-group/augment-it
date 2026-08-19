@@ -25,6 +25,7 @@ site_uuid: a6a5993f-64f0-45dd-953e-6bec1e8701af
 hex_code: 28qu8m
 date_authored_initial_draft: 2026-07-22
 date_authored_current_draft: 2026-07-22
+publish: true
 ---
 
 # Augment from DB · Phase 3 — search-and-add remote

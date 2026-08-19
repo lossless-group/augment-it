@@ -29,6 +29,7 @@ site_uuid: 66f7b401-1585-4c32-a077-1bd730123ea3
 hex_code: by9cee
 date_authored_initial_draft: 2026-06-15
 date_authored_current_draft: 2026-06-15
+publish: true
 ---
 
 # Sparse-Person Enrichment Surface

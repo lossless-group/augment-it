@@ -22,6 +22,7 @@ site_uuid: 95970243-fd4d-4f4a-9378-7f1744863ed3
 hex_code: 76xsos
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # List rows show hostname only; paths hidden

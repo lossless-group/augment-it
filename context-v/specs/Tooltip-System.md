@@ -28,6 +28,7 @@ site_uuid: 071eca80-b2ed-4efa-a195-f1e7c0a515d9
 hex_code: l0haq1
 date_authored_initial_draft: 2026-06-01
 date_authored_current_draft: 2026-06-01
+publish: true
 ---
 
 # Tooltip System

@@ -24,6 +24,7 @@ site_uuid: d99c1ac2-cdfb-4e22-a230-85bac97c014a
 hex_code: jum43e
 date_authored_initial_draft: 2026-06-05
 date_authored_current_draft: 2026-06-05
+publish: true
 ---
 
 # OfficialPulse URLs Appear as Junk in Promoted Versions

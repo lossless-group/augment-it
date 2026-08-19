@@ -26,6 +26,7 @@ site_uuid: 44223ac9-d197-4d52-9193-e283bb4fbda8
 hex_code: yxg5k4
 date_authored_initial_draft: 2026-06-15
 date_authored_current_draft: 2026-06-15
+publish: true
 ---
 
 # Pulse pattern

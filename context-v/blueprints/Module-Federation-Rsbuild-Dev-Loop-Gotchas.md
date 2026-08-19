@@ -22,6 +22,7 @@ site_uuid: b3a24dfa-9a28-412d-8b6f-37fb28e645fb
 hex_code: 7s4424
 date_authored_initial_draft: 2026-05-18
 date_authored_current_draft: 2026-05-18
+publish: true
 ---
 
 # Module Federation + Rsbuild — Dev Loop Gotchas

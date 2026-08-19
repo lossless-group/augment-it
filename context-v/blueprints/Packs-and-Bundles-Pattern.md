@@ -29,6 +29,7 @@ site_uuid: 276d12c8-1a45-45a7-a742-6f330c540cd8
 hex_code: dn39ix
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Packs and Bundles — The Two-Tier Pattern

@@ -30,6 +30,7 @@ site_uuid: f21a3641-ead0-4915-b55c-0640bfc4f2f9
 hex_code: rkj6zy
 date_authored_initial_draft: 2026-07-06
 date_authored_current_draft: 2026-07-06
+publish: true
 ---
 
 # augment-it has outgrown one flow

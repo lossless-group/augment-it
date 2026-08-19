@@ -14,6 +14,7 @@ site_uuid: 64f0c333-7d87-49d5-a480-2db5aef359f3
 hex_code: 838pff
 date_authored_initial_draft: 2026-08-08
 date_authored_current_draft: 2026-08-08
+publish: true
 ---
 
 # Federated Component Libraries

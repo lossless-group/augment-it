@@ -23,6 +23,7 @@ site_uuid: 46b1d5c3-22f0-4470-99f2-e485486bc66f
 hex_code: kgxk0f
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # Response Reviewer — Structured-Output Extension

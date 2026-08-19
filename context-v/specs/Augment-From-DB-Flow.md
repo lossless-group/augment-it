@@ -40,6 +40,7 @@ site_uuid: 73004204-2ddd-4082-9065-10f0be7b48a8
 hex_code: btto95
 date_authored_initial_draft: 2026-07-24
 date_authored_current_draft: 2026-07-24
+publish: true
 ---
 
 # Augment from DB — Org Workbench + Search-and-Add

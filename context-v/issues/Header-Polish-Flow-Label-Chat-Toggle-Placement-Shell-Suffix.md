@@ -19,6 +19,7 @@ site_uuid: 1dd33727-44cd-4a47-9ff4-0e636c9455bf
 hex_code: 8amphh
 date_authored_initial_draft: 2026-07-28
 date_authored_current_draft: 2026-07-28
+publish: true
 ---
 
 # Header polish — findings from the first production walk-through

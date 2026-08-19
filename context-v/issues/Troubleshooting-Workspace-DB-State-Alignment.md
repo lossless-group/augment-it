@@ -22,6 +22,7 @@ site_uuid: 7d985243-4847-49c7-883b-5b46b9aee28d
 hex_code: d6dueo
 date_authored_initial_draft: 2026-08-02
 date_authored_current_draft: 2026-08-02
+publish: true
 ---
 
 # Troubleshooting workspace ↔ DB state alignment

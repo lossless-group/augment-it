@@ -24,6 +24,7 @@ site_uuid: bc0ae2d5-b672-47dc-b917-27dfc71670f1
 hex_code: bsy4go
 date_authored_initial_draft: 2026-05-25
 date_authored_current_draft: 2026-05-25
+publish: true
 ---
 
 # RecordCollector Feature Analysis

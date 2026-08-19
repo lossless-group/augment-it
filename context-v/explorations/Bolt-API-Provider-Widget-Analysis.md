@@ -24,6 +24,7 @@ site_uuid: 61f5e96b-8426-4092-90e6-c21fd94c8d62
 hex_code: jnhdk0
 date_authored_initial_draft: 2025-08-08
 date_authored_current_draft: 2025-08-08
+publish: true
 ---
 
 # API Provider Widget Analysis and Specification

@@ -26,6 +26,7 @@ site_uuid: dbffa0a4-189b-420e-a29e-94faa0c8c6b0
 hex_code: 5ja6op
 date_authored_initial_draft: 2026-06-11
 date_authored_current_draft: 2026-06-11
+publish: true
 ---
 
 # Workspaces as Tenant Primitive
