@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { workspace, type RecordSet, type Row } from '@augment-it/workspace';
+  import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import {
     BUNDLES, getBundle, packDisplayName, inferEntityNameField,
     PACK_PALETTE_META,
@@ -23,7 +23,7 @@
   let rowPackFired = $state<Record<string, Set<string>>>({});
 
   const TOKEN_KEY = 'augment-it:session-token';
-  const WS_URL = 'ws://localhost:3001/ws';
+  const WS_URL = resolveWsUrl();
 
   // Remember the user's last record-set + column picks so re-entry doesn't
   // require re-selecting everything. Keys keep the augment-it prefix per

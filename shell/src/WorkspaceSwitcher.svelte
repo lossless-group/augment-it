@@ -11,7 +11,7 @@
   // (operator does `mkdir clients/<slug>/` on disk, picks up on next
   // refresh).
 
-  import { workspace } from '@augment-it/workspace';
+  import { workspace, resolveWsUrl } from '@augment-it/workspace';
 
   let open = $state<boolean>(false);
   let switching = $state<boolean>(false);
@@ -34,7 +34,7 @@
   });
   const tooltip = $derived.by(() => {
     if (workspace.connection_status === 'closed' || workspace.connection_status === 'error') {
-      return `WebSocket ${workspace.connection_status} — workspace-service at ws://localhost:3001/ws unreachable`;
+      return `WebSocket ${workspace.connection_status} — workspace-service at ${resolveWsUrl()} unreachable`;
     }
     if (workspace.workspaces_status === 'error' && workspace.workspaces_error) {
       return `workspace.list failed: ${workspace.workspaces_error}`;

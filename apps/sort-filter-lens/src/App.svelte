@@ -10,7 +10,7 @@
   // Spec: ../../../context-v/specs/Records-Surface-Sort-Step-and-UI.md
 
   import { onMount } from 'svelte';
-  import { workspace, type RecordSet, type Row } from '@augment-it/workspace';
+  import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import {
     type SortSpec,
     type SortKey,
@@ -21,7 +21,7 @@
   } from './sort-spec';
 
   const TOKEN_KEY = 'augment-it:session-token';
-  const WS_URL = 'ws://localhost:3001/ws';
+  const WS_URL = resolveWsUrl();
   const ACTIVE_RECORD_SET_KEY = 'augment-it:active-record-set';
   const CLIENT_ID = 'reach-edu';
 

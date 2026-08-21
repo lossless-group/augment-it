@@ -1,12 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { workspace } from '@augment-it/workspace';
+  import { workspace, resolveWsUrl } from '@augment-it/workspace';
   import { curation } from './curation.svelte';
   import CorpusPicker from './CorpusPicker.svelte';
   import SourceList from './SourceList.svelte';
   import SourceDetail from './SourceDetail.svelte';
 
-  const WS_URL = 'ws://localhost:3001/ws';
+  const WS_URL = resolveWsUrl();
 
   onMount(() => {
     curation.init();

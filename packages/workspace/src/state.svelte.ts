@@ -15,6 +15,7 @@
 // rule in https://svelte.dev/e/state_invalid_placement.
 
 import { createTransport, type ChatTurnReply, type ChatTurnRequest, type Transport, type TransportConfig } from './transport';
+import { resolveWsUrl } from './ws-url';
 import { bootMark, bootSummary } from './boot-timing';
 import type { ActiveView, JobEvent, PromptTemplate, RecordSet, Row, ServerFrame, UserContext, WorkspaceSummary } from './types';
 
@@ -264,7 +265,7 @@ class AugmentItWorkspace {
    */
   connect(config: Omit<TransportConfig, 'onFrame'>): void {
     if (this.transport) return;
-    console.info('[workspace] connect →', config.url);
+    console.info('[workspace] connect →', config.url ?? resolveWsUrl());
     const userOnStatus = config.onStatus;
     this.transport = createTransport({
       ...config,

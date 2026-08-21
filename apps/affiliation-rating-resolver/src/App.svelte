@@ -8,7 +8,7 @@
   // context-v/specs/Augment-From-Affiliations.md.
 
   import { onMount } from 'svelte';
-  import { workspace, type RecordSet, type Row } from '@augment-it/workspace';
+  import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import ColumnMapper from './components/ColumnMapper.svelte';
   import { normalizeRatingRecord, guessMapping, MAPPING_NONE } from './lib/normalize';
   import {
@@ -23,7 +23,7 @@
   import type { RatingFieldMapping, RatingNormRecord, AffiliationDetail, Link, CorpusEntry } from './lib/types';
 
   const TOKEN_KEY = 'augment-it:session-token';
-  const WS_URL = 'ws://localhost:3001/ws';
+  const WS_URL = resolveWsUrl();
   const ACTIVE_RECORD_SET_KEY = 'augment-it:active-record-set';
   const MAPPING_KEY_PREFIX = 'augment-it:affiliation-rating-resolver:mapping:';
 

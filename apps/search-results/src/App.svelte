@@ -7,13 +7,13 @@
   // See context-v/specs/Search-Results-Queue-Remote.md.
 
   import { onMount } from 'svelte';
-  import { workspace } from '@augment-it/workspace';
+  import { workspace, resolveWsUrl } from '@augment-it/workspace';
   import SearchCard from './SearchCard.svelte';
   import { dismissSearch, listSearches } from './lib/search-client';
   import type { SearchCard as SearchCardT } from './lib/types';
 
   const TOKEN_KEY = 'augment-it:session-token';
-  const WS_URL = 'ws://localhost:3001/ws';
+  const WS_URL = resolveWsUrl();
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
   let client = $state<string>('reach-edu');

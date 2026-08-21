@@ -9,7 +9,7 @@
   import SignInWall from './SignInWall.svelte';
   import JumboPopdown, { type PopdownItem } from './JumboPopdown.svelte';
   import ToggleHeader from '@augment-it/shared-ui/ToggleHeader__PromptOrPackage--Icons.svelte';
-  import { workspace, bootMark } from '@augment-it/workspace';
+  import { workspace, bootMark, resolveWsUrl, resolveHttpBase } from '@augment-it/workspace';
   import {
     PAIRINGS,
     CHAT_REMOTE,
@@ -38,10 +38,8 @@
   // Deriving the plain-HTTP base from it (ws→http, wss→https) rather than a
   // second env var — Step 7's /config check needs the same origin, not the
   // WS scheme.
-  const WS_URL =
-    ((import.meta as { env?: Record<string, string> }).env?.PUBLIC_WS_URL as string | undefined) ||
-    'ws://localhost:3001/ws';
-  const WS_HTTP_BASE = WS_URL.replace(/^ws/, 'http').replace(/\/ws$/, '');
+  const WS_URL = resolveWsUrl();
+  const WS_HTTP_BASE = resolveHttpBase(WS_URL);
 
   // Chat rail visibility — persistent left-side companion to the focused
   // Window. Toggleable from the header; persisted to localStorage so a

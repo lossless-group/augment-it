@@ -8,7 +8,7 @@
 // $state is assigned in the constructor (not as a class-field initializer) to
 // match the workspace package's placement-invariant note about field lowering.
 
-import { workspace, WORKSPACE_CHANGED_EVENT, type WorkspaceSummary } from '@augment-it/workspace';
+import { workspace, WORKSPACE_CHANGED_EVENT, type WorkspaceSummary, resolveWsUrl } from '@augment-it/workspace';
 import type { ExtractKind, Source, Strategy } from './types';
 
 const TOKEN_KEY = 'augment-it:session-token';
@@ -18,9 +18,7 @@ const TOKEN_KEY = 'augment-it:session-token';
 // shell and chat each read (rsbuild inlines PUBLIC_-prefixed vars into
 // import.meta.env at build time — applies to plain .ts modules too, not
 // just .svelte files).
-const WS_URL =
-  ((import.meta as { env?: Record<string, string> }).env?.PUBLIC_WS_URL as string | undefined) ||
-  'ws://localhost:3001/ws';
+const WS_URL = resolveWsUrl();
 // Stores "<type>:<slug>" since gh #88 — uniqueness is (type, slug), so a bare
 // slug can restore the wrong corpus once a workspace holds both. Bare slugs
 // from before #88 still resolve; see loadStrategies().

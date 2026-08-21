@@ -6,7 +6,7 @@
   // is established independently (no shared workspace singleton).
 
   import { onMount } from 'svelte';
-  import { workspace } from '@augment-it/workspace';
+  import { workspace, resolveWsUrl } from '@augment-it/workspace';
   import CharacterCastRow from './CharacterCastRow.svelte';
   import ChatSurface from './ChatSurface.svelte';
 
@@ -15,9 +15,7 @@
   // even when mounted inside the shell, so it needs the same env-configured
   // WS_URL the shell and corpora-curator each read (rsbuild inlines
   // PUBLIC_-prefixed vars into import.meta.env at build time).
-  const WS_URL =
-    ((import.meta as { env?: Record<string, string> }).env?.PUBLIC_WS_URL as string | undefined) ||
-    'ws://localhost:3001/ws';
+  const WS_URL = resolveWsUrl();
 
   let connectionStatus = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
 
