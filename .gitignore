@@ -63,3 +63,6 @@ history.txt
 # Corpus scope is committed in .graphifyignore, not here.
 graphify-out/
 tools/
+
+# Local-only compose overrides (host port remaps, etc.)
+docker-compose.override.yml
