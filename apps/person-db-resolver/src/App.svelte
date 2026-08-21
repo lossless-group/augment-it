@@ -7,7 +7,7 @@
   // context-v/plans/Person-Aware-Canonical-Resolver-Extension.md.
 
   import { onMount } from 'svelte';
-  import { workspace, type RecordSet, type Row } from '@augment-it/workspace';
+  import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import RecordCard from './components/RecordCard.svelte';
   import ColumnMapper from './components/ColumnMapper.svelte';
   import PersonCandidateList from './components/PersonCandidateList.svelte';
@@ -35,7 +35,7 @@
   } from './lib/types';
 
   const TOKEN_KEY = 'augment-it:session-token';
-  const WS_URL = 'ws://localhost:3001/ws';
+  const WS_URL = resolveWsUrl();
   const ACTIVE_RECORD_SET_KEY = 'augment-it:active-record-set';
   const MAPPING_KEY_PREFIX = 'augment-it:person-db-resolver:mapping:';
   // Per-record-set "where I left off" — restored on every selectRecordSet()

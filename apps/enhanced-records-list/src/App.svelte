@@ -28,7 +28,6 @@
   onMount(() => {
     const TOKEN_KEY = 'augment_it_session_token';
     workspace.connect({
-      url: 'ws://localhost:3001/ws',
       getToken: () => localStorage.getItem(TOKEN_KEY),
       saveToken: (t) => localStorage.setItem(TOKEN_KEY, t),
       onStatus: (s) => {

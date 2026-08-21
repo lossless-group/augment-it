@@ -10,7 +10,7 @@
   // context-v/specs/Record-DB-Resolver.md.
 
   import { onMount } from 'svelte';
-  import { workspace, type RecordSet, type Row } from '@augment-it/workspace';
+  import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import RecordCard from './components/RecordCard.svelte';
   import CandidateList from './components/CandidateList.svelte';
   import { normalizeRecord, buildCrm } from './lib/normalize';
@@ -18,7 +18,7 @@
   import type { Candidate, OrgSuggestion, ApplyResult } from './lib/types';
 
   const TOKEN_KEY = 'augment-it:session-token';
-  const WS_URL = 'ws://localhost:3001/ws';
+  const WS_URL = resolveWsUrl();
   const ACTIVE_RECORD_SET_KEY = 'augment-it:active-record-set';
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');

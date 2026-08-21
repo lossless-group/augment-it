@@ -9,13 +9,12 @@
     type RecordSet,
     type Row,
     type PreviewResult,
-    type Coverage,
-  } from '@augment-it/workspace';
+    type Coverage, resolveWsUrl } from '@augment-it/workspace';
 
   // Each remote owns its own workspace singleton + WebSocket — no `shared`
   // federation block (see the 2026-05-21_03 changelog).
   const TOKEN_KEY = 'augment-it:session-token';
-  const WS_URL = 'ws://localhost:3001/ws';
+  const WS_URL = resolveWsUrl();
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
 

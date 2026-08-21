@@ -1,11 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { workspace } from '@augment-it/workspace';
+  import { workspace, resolveWsUrl } from '@augment-it/workspace';
   import RecordsList from './components/RecordsList.svelte';
   import { records } from './state/records.svelte';
 
   const TOKEN_KEY = 'augment-it:session-token';
-  const WS_URL = 'ws://localhost:3001/ws';
+  const WS_URL = resolveWsUrl();
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
 

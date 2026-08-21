@@ -10,7 +10,7 @@
   // See context-v/specs/Augment-From-DB-Flow.md §Phase 3.
 
   import { onMount } from 'svelte';
-  import { workspace } from '@augment-it/workspace';
+  import { workspace, resolveWsUrl } from '@augment-it/workspace';
   import TermBar from './TermBar.svelte';
   import ProviderPalette from './ProviderPalette.svelte';
   import ResultsList from './ResultsList.svelte';
@@ -19,7 +19,7 @@
   import type { ConnectorInfo, ConnectorResult } from './lib/types';
 
   const TOKEN_KEY = 'augment-it:session-token';
-  const WS_URL = 'ws://localhost:3001/ws';
+  const WS_URL = resolveWsUrl();
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
   let client = $state<string>('reach-edu');

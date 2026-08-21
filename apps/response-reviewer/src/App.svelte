@@ -8,8 +8,7 @@
     type ResponseFlag,
     type Row,
     type HelpfulLink,
-    type SocialProfile,
-  } from '@augment-it/workspace';
+    type SocialProfile, resolveWsUrl } from '@augment-it/workspace';
   import ConfidencePill from '@augment-it/shared-ui/ConfidencePill.svelte';
   import { MOCK_PACKS_FIXTURE } from './fixtures/mock-packs';
   import ConnectorPalette from './ConnectorPalette.svelte';
@@ -18,7 +17,7 @@
   // Each remote owns its own workspace singleton + WebSocket — no `shared`
   // federation block (see the 2026-05-21_03 changelog).
   const TOKEN_KEY = 'augment-it:session-token';
-  const WS_URL = 'ws://localhost:3001/ws';
+  const WS_URL = resolveWsUrl();
 
   const FLAGS: ResponseFlag[] = ['good', 'partial', 'wrong', 'needs-rerun', 'needs-human'];
 

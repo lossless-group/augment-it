@@ -7,7 +7,7 @@
   // from person-db-resolver. See context-v/specs/Augment-From-DB-Flow.md.
 
   import { onMount } from 'svelte';
-  import { workspace } from '@augment-it/workspace';
+  import { workspace, resolveWsUrl } from '@augment-it/workspace';
   import OrgSearch from './OrgSearch.svelte';
   import OrgCard from './OrgCard.svelte';
   import OrgCreateInline from './OrgCreateInline.svelte';
@@ -17,7 +17,7 @@
   import type { OrgDetail, OrgSuggestion } from './lib/types';
 
   const TOKEN_KEY = 'augment-it:session-token';
-  const WS_URL = 'ws://localhost:3001/ws';
+  const WS_URL = resolveWsUrl();
   // Restore the last-worked org on remount (HMR, flow switch, tab reopen).
   const ACTIVE_ORG_KEY = 'augment-it:org-workbench:active-org';
   // Cross-remote focused-entity broadcast — the chat rail includes it in

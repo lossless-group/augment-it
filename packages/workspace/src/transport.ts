@@ -27,9 +27,15 @@ import type {
   ServerFrame,
 } from './types';
 import { bootMark } from './boot-timing';
+import { resolveWsUrl } from './ws-url';
 
 export type TransportConfig = {
-  url: string;                              // e.g. 'ws://localhost:3001/ws'
+  /**
+   * Workspace-service WS endpoint. OPTIONAL — omit it and the endpoint is
+   * resolved from PUBLIC_WS_URL via resolveWsUrl(). Callers should omit it;
+   * passing a literal is how every remote ended up hardcoded to localhost.
+   */
+  url?: string;
   getToken: () => string | null;
   saveToken: (token: string) => void;
   onFrame: (frame: ServerFrame) => void;    // called for event/session/result frames
@@ -118,9 +124,13 @@ export function createTransport(config: TransportConfig): Transport {
 
   function connect(): void {
     const token = config.getToken();
+    // Resolved per attempt, not captured once: a caller that omits `url`
+    // gets the build's PUBLIC_WS_URL, which is the path every remote
+    // should take.
+    const base = config.url ?? resolveWsUrl();
     const url = token
-      ? `${config.url}?token=${encodeURIComponent(token)}`
-      : config.url;
+      ? `${base}?token=${encodeURIComponent(token)}`
+      : base;
 
     bootMark('ws:connect-start');
     config.onStatus?.('connecting');

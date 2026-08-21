@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { workspace, type PromptTemplate, type PromptTool } from '@augment-it/workspace';
+  import { workspace, type PromptTemplate, type PromptTool, resolveWsUrl } from '@augment-it/workspace';
 
   const TOKEN_KEY = 'augment-it:session-token';
-  const WS_URL = 'ws://localhost:3001/ws';
+  const WS_URL = resolveWsUrl();
   const TOKEN_RE = /\{\{\s*([^{}]+?)\s*\}\}/g;
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
