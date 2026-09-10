@@ -1,7 +1,7 @@
 ---
 title: "Re-Mint the Deploy-Watch Railway Token — the watchdog has been blind for days"
 lede: >-
-  The watchdog built so a failed deploy wouldn't go unnoticed for twelve days has itself gone unnoticed for four.
+  The watchdog built so a failed deploy would not go unnoticed for twelve days has never once run green itself.
 date_created: 2026-09-10
 date_modified: 2026-09-10
 date_authored_initial_draft: 2026-09-10
@@ -10,7 +10,7 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 5 (1M context)
-at_semantic_version: 0.0.0.1
+at_semantic_version: 0.0.0.2
 status: Open
 tags:
   - Plan
@@ -33,8 +33,9 @@ publish: true
 previously-built container keeps serving, the health check keeps passing, and the domain
 keeps answering 200. It was written after a broken deploy went unnoticed for twelve days.
 
-It has now been failing **every scheduled run** — every ~15 minutes, across at least four
-days — on a malformed credential. The watchdog is reproducing the exact failure mode it was
+It has never succeeded. Every one of the 200 retained runs failed, back to
+2026-08-23 — and the secret was last set 2026-08-15, so the watchdog has been blind
+since roughly the day it was wired. The watchdog is reproducing the exact failure mode it was
 built to end, in a different costume: not silence from a healthy system, but silence from a
 sensor nobody is reading.
 
@@ -43,7 +44,8 @@ deploy.
 
 ## Evidence
 
-Observed on run `34517900649` (2026-09-10 19:01 UTC), byte-identical to runs on 2026-09-08:
+Observed on run `34517900649` (2026-09-10 19:01 UTC), byte-identical to runs on 2026-09-08
+and to every earlier run in the retained history:
 
 ```
 Token shape: raw=70 trimmed=63 chars
@@ -115,7 +117,7 @@ followed by a per-service table of latest deployment statuses in the step summar
 - [ ] `projectToken { environmentId }` returns `df7aac8d-543e-47e3-a9e4-482989bbb82f`
 - [ ] A manually dispatched run completes green
 - [ ] The step summary lists all 11 services with `SUCCESS`
-- [ ] The next scheduled run (within 15 min) is also green
+- [ ] The next scheduled run is also green (may be hours away — see cron note below)
 
 ## Risks and notes
 
@@ -125,6 +127,11 @@ followed by a per-service table of latest deployment statuses in the step summar
 - **Rotation has no reminder.** Nothing currently notices a revoked or expired token except
   this same red run. Worth considering whether the failure should page rather than just
   redden — but that is out of scope here.
+- **The cron is not firing at the requested cadence.** The workflow asks for `*/15 * * * *`,
+  but observed runs land roughly every 5 hours (01:28, 06:35, 11:50, 15:56, 19:01 UTC on
+  2026-09-10). GitHub throttles scheduled workflows heavily, so real detection latency is
+  hours, not minutes, even once the token works. Worth a follow-up decision: accept it, or
+  move the watchdog to a trigger that actually fires.
 - **Do not read the secret back** for verification. Confirm via a green run, not by echoing
   the value.
 
