@@ -10,8 +10,13 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 5 (1M context)
-at_semantic_version: 0.0.0.2
-status: Open
+at_semantic_version: 0.0.1.0
+status: Shipped
+date_first_published: 2026-09-10
+post_ship_note: >-
+  The token was only half the problem. With it fixed the run failed one step
+  later on 'not a git repository' — gh had no repo to infer, because the job
+  never checks out. GH_REPO on both gh steps closed it. First green run ever.
 tags:
   - Plan
   - Augment-It
@@ -140,3 +145,39 @@ followed by a per-service table of latest deployment statuses in the step summar
 - `.github/workflows/deploy-watch.yml` — the workflow itself
 - [[A-Failed-Deploy-Is-Silent-Nothing-Watches-Production-After-Merge]] — why the watchdog exists
 - `DEPLOYMENT.md` — Railway service topology and the secrets-handling note
+
+## Outcome (2026-09-10)
+
+Shipped. Token minted, validated against `projectId a45c72fa…` / `environmentId df7aac8d…`,
+and stored via `printf '%s' … | gh secret set`. Run `34540534279` is the workflow's **first
+green run in its history**.
+
+### The second bug, which the first was hiding
+
+The token fix alone was not enough. With the Railway query finally passing, the run failed
+one step later:
+
+```
+failed to run git: fatal: not a git repository (or any of the parent directories): .git
+##[error]Process completed with exit code 1.
+```
+
+The job deliberately never runs `actions/checkout` — it doesn't need the code — so `gh` had
+no git remote from which to infer a repository, and every `gh issue` call died. That defect
+had been latent since the workflow was written and **could not surface while the token was
+broken**, because the run always exited before reaching the issue steps.
+
+Fix: `GH_REPO: ${{ github.repository }}` on both `gh`-using steps, rather than `--repo` flags
+on each call — one place, covering create/comment/list/close, with no way for them to drift.
+
+### Verified in passing
+
+The green run landed while services were mid-rebuild and reported them as `BUILDING` without
+firing. That confirms the transient-state handling works as designed: `BUILDING`, `DEPLOYING`,
+`INITIALIZING`, and `QUEUED` are correctly excluded from the failure match.
+
+### Still open
+
+The cron throttling noted under Risks is unaddressed — the workflow requests `*/15` and
+GitHub delivers roughly every five hours. Detection latency is hours, not minutes. That
+wants its own decision.
