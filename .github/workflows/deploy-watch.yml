@@ -140,6 +140,11 @@ jobs:
         if: steps.check.outputs.broken == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          # gh needs an explicit repo: this job never checks out, so there is no
+          # git remote for it to infer one from. Without this every gh call dies
+          # with "not a git repository" — invisible until the Railway query
+          # started succeeding and these steps finally got to run.
+          GH_REPO: ${{ github.repository }}
           DETAIL: ${{ steps.check.outputs.detail }}
         run: |
           set -euo pipefail
@@ -165,6 +170,11 @@ jobs:
         if: steps.check.outputs.broken == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
+          # gh needs an explicit repo: this job never checks out, so there is no
+          # git remote for it to infer one from. Without this every gh call dies
+          # with "not a git repository" — invisible until the Railway query
+          # started succeeding and these steps finally got to run.
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           EXISTING=$(gh issue list --label deploy-failure --state open --limit 1 --json number -q '.[0].number // empty')
