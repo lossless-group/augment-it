@@ -16,11 +16,40 @@ name: Deploy watch
 
 on:
   schedule:
-    # Every 15 minutes. Two API calls per run = 192 requests/day, comfortable
-    # against Railway's 1000/hour Hobby limit. Do not tighten below ~10 min
-    # without checking the plan's rate limit.
-    - cron: "*/15 * * * *"
+    # Hourly at :23, NOT every 15 minutes — and the minute is off-zero on
+    # purpose, because every cron everyone writes lands on :00.
+    #
+    # The old "*/15" was fiction. Measured 2026-09-10 over the 38 scheduled
+    # runs GitHub actually delivered between 09-05 17:30 and 09-10 21:38 UTC:
+    #
+    #   requested:  496 runs      delivered: 38 runs     rate: 8%
+    #   gap min/median/max: 96 / 185 / 332 minutes
+    #
+    # GitHub drops high-frequency schedules under load; asking for 96 runs a
+    # day and receiving 8 does not buy tighter detection, it just makes the
+    # cron expression lie about the guarantee. The previous comment worried
+    # about Railway's rate limit, which was never the binding constraint —
+    # GitHub's scheduler is.
+    #
+    # This job is a RECONCILER, not a detector. Railway webhooks are the
+    # detector (push, seconds); this sweep exists to catch what best-effort
+    # webhook delivery drops, which is exactly what Railway's own docs say
+    # to do: "Treat a webhook as a prompt to act, not a source of truth.
+    # When you need certainty, reconcile against the public API."
+    - cron: "23 * * * *"
   workflow_dispatch:
+
+  # Woken by the Vercel relay (services/deploy-relay) when Railway reports a
+  # FAILED or CRASHED deployment. Detection latency drops from hours to seconds
+  # without touching the logic below.
+  #
+  # The client_payload is CONTEXT ONLY — nothing in this job branches on it.
+  # The job re-queries the Railway API and reaches its own conclusion exactly
+  # as it does on a cron tick. Railway payloads are unsigned, so this is what
+  # makes a forged dispatch harmless: the worst it can do is cause one extra
+  # authoritative sweep. It can never manufacture a failure or mask one.
+  repository_dispatch:
+    types: [railway-deploy-event]
 
 # Never let two watchdog runs race on the same issue.
 concurrency:

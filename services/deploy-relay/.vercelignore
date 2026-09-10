@@ -1,0 +1,4 @@
+# This directory lives inside the augment-it pnpm workspace, but the relay has
+# no dependencies and must not drag the monorepo into the deploy.
+node_modules
+*.log

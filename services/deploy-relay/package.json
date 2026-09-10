@@ -1,0 +1,7 @@
+{
+  "name": "@augment-it/deploy-relay",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Railway deploy webhook → GitHub repository_dispatch. Adds the Authorization header Railway cannot send."
+}
