@@ -84,6 +84,11 @@ class CurationState {
   activeType: string | null;
 
   sources: Source[];
+  // Whether `sources` currently describes `activeSlug`. Without this, an
+  // unanswered fetch is indistinguishable from a corpus that genuinely has
+  // these sources — the same "absence of signal rendered as positive signal"
+  // failure the deploy watchdog's empty-read guard exists to prevent.
+  sourcesStatus: 'idle' | 'loading' | 'ready' | 'error';
   focusIdx: number;
   listFilter: string;
 
@@ -99,6 +104,7 @@ class CurationState {
     this.activeSlug = $state<string | null>(null);
     this.activeType = $state<string | null>(null);
     this.sources = $state<Source[]>([]);
+    this.sourcesStatus = $state<'idle' | 'loading' | 'ready' | 'error'>('idle');
     this.focusIdx = $state<number>(0);
     this.listFilter = $state<string>('');
     this.tagVocab = $state<string[]>([]);
@@ -311,8 +317,25 @@ class CurationState {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(ACTIVE_STRATEGY_KEY, this.activeType ? `${this.activeType}:${slug}` : slug);
     }
-    const r = await this.call<{ sources: Source[] }>('domain.assemble', { type: this.callType, slug, client_slug: this.clientSlug });
-    this.sources = (r?.sources ?? []).map(withSlug);
+    // Identity has moved; content has not. Clear NOW, before the await, so the
+    // previous corpus's rows cannot sit under this corpus's name while the
+    // fetch is in flight — or forever, if it never resolves (gh #95).
+    this.sources = [];
+    this.sourcesStatus = 'loading';
+
+    const wantType = this.callType;
+    const r = await this.call<AssembleReply>('domain.assemble', { type: wantType, slug, client_slug: this.clientSlug });
+
+    // Superseded: the operator picked a different corpus while this was in
+    // flight. Two rapid switches can resolve out of order, and last-write-wins
+    // would otherwise mean "whichever reply landed last", not "whichever
+    // corpus is selected".
+    if (this.activeSlug !== slug) return;
+    if (!r) { this.sourcesStatus = 'error'; return; }
+    if (!replyMatches(r, wantType, slug)) { this.sourcesStatus = 'error'; return; }
+
+    this.sources = (r.sources ?? []).map(withSlug);
+    this.sourcesStatus = 'ready';
     const tv = await this.call<{ tags: string[] }>('tag.suggest', { prefix: '', client_slug: this.clientSlug });
     this.tagVocab = tv?.tags ?? [];
   }
@@ -552,12 +575,41 @@ class CurationState {
   // focus deliberately.
   async refreshSources(): Promise<void> {
     if (!this.activeSlug) return;
-    const r = await this.call<{ sources: Source[] }>('domain.assemble', { type: this.callType, slug: this.activeSlug, client_slug: this.clientSlug });
+    const slug = this.activeSlug;
+    const wantType = this.callType;
+    const r = await this.call<AssembleReply>('domain.assemble', { type: wantType, slug, client_slug: this.clientSlug });
     if (!r) return;
+    // Same two guards as select(). This path fires on remote mutations, so it
+    // races with user navigation even more readily than the click path does.
+    if (this.activeSlug !== slug) return;
+    if (!replyMatches(r, wantType, slug)) return;
     const nextSources = (r.sources ?? []).map(withSlug);
     this.sources = nextSources;
     if (this.focusIdx >= nextSources.length) this.focusIdx = Math.max(0, nextSources.length - 1);
   }
+}
+
+// domain.assemble's reply. `type` and `slug` echo the request so a late or
+// misrouted answer can be recognised as such; both are optional because the
+// resolver may not have been redeployed yet.
+type AssembleReply = { sources?: Source[]; type?: string; slug?: string };
+
+/**
+ * Does this reply answer the question we are currently asking?
+ *
+ * Enforced ONLY when the echo is present. record-surrealdb-resolver and this
+ * remote deploy independently, so a resolver still running the old build
+ * returns no `type`/`slug` — and a strict check would then reject every reply
+ * and blank the surface entirely, trading a subtle wrong-data bug for a total
+ * outage. Absent echo means "cannot verify", which we treat as before.
+ *
+ * Once both sides are deployed everywhere, this can tighten to requiring the
+ * echo. Until then, present-and-wrong is the only rejectable case.
+ */
+function replyMatches(r: AssembleReply, wantType: string, wantSlug: string): boolean {
+  if (typeof r.slug === 'string' && r.slug !== wantSlug) return false;
+  if (typeof r.type === 'string' && r.type !== wantType) return false;
+  return true;
 }
 
 // Belt-and-suspenders: if a source arrives without source_slug but with a

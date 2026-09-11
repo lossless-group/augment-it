@@ -22,6 +22,10 @@ const ws = {
 vi.mock('@augment-it/workspace', () => ({
   workspace: ws,
   WORKSPACE_CHANGED_EVENT: 'workspace-changed',
+  // curation.svelte.ts calls this at module scope (gh #93 centralised the WS
+  // endpoint here). Omitting it makes the import throw, which collects as
+  // "no tests" rather than a failure — so the suite sat dead and green-looking.
+  resolveWsUrl: () => 'ws://localhost:3001/ws',
 }));
 
 // Imported once; the constructor registers the cross-remote window listener.
@@ -54,6 +58,7 @@ beforeEach(() => {
   curation.activeSlug = null;
   curation.activeType = null;
   curation.sources = [];
+  curation.sourcesStatus = 'idle';
   curation.lastError = null;
   ws.workspaces = [];
   ws.active_client_id = null;
@@ -202,5 +207,96 @@ describe('Group G — curator surface state', () => {
     expect(curation.activeSlug).toBe('apprenticeship');
     expect(curation.activeType).toBe('topic');
     expect(curation.active?.title).toBe('Apprenticeship (topic)');
+  });
+});
+
+// Group G2 — gh #95. The reported failure: three corpora in a row showed the
+// SAME three sources, each under its own name and its own "3 sources" count.
+// SurrealDB was correct and correctly scoped; the resolver query was correct.
+// The socket had dropped, select() had already moved the header, and the
+// assignment that replaces `sources` sat behind an await that never resolved.
+//
+// The fix has two halves and both are tested here: clear before the await, and
+// refuse a reply that answers a question we are no longer asking.
+describe('Group G2 — a corpus never shows another corpus’s sources', () => {
+  const aSource = (title: string) => ({ source_uuid: `u-${title}`, title, url: `https://example.test/${title}` });
+
+  /** invoke that answers domain.assemble with a caller-supplied reply. */
+  const assembleWith = (reply: unknown) =>
+    vi.fn(async (cap: string) => {
+      if (cap === 'domain.assemble') return reply;
+      if (cap === 'tag.suggest') return { tags: [] };
+      if (cap === 'domain.list') return { domains: [] };
+      return {};
+    });
+
+  test('a reply carrying a different slug is refused, not rendered', async () => {
+    curation.clientSlug = 'humain-vc';
+    // The resolver answers for ai-infrastructure-for-bioscience while the
+    // operator is looking at consumer-immunology — the production symptom.
+    ws.invoke = assembleWith({
+      type: 'thesis',
+      slug: 'ai-infrastructure-for-bioscience',
+      sources: [aSource('Imaging Flow Cytometry')],
+    });
+
+    await curation.select('consumer-immunology', 'thesis');
+    await settle();
+
+    expect(curation.sources).toEqual([]);
+    expect(curation.sourcesStatus).toBe('error');
+  });
+
+  test('switching corpora clears the previous sources before the reply arrives', async () => {
+    curation.clientSlug = 'humain-vc';
+    ws.invoke = assembleWith({ type: 'thesis', slug: 'a', sources: [aSource('A-only')] });
+    await curation.select('a', 'thesis');
+    await settle();
+    expect(curation.sources).toHaveLength(1);
+
+    // Now a corpus whose reply never comes — the dead-socket case.
+    ws.invoke = vi.fn((cap: string) =>
+      cap === 'domain.assemble' ? new Promise(() => {}) : Promise.resolve({}),
+    ) as typeof ws.invoke;
+    void curation.select('b', 'thesis');
+
+    // No await: the clear must happen before the first suspension point, or
+    // corpus A's rows sit under corpus B's name for as long as B takes.
+    expect(curation.sources).toEqual([]);
+    expect(curation.sourcesStatus).toBe('loading');
+  });
+
+  test('a superseded selection does not overwrite the corpus that replaced it', async () => {
+    curation.clientSlug = 'humain-vc';
+    // 'slow' resolves after 'fast', simulating out-of-order replies.
+    ws.invoke = vi.fn(async (cap: string, args: unknown) => {
+      if (cap !== 'domain.assemble') return cap === 'tag.suggest' ? { tags: [] } : {};
+      const slug = (args as { slug: string }).slug;
+      const delay = slug === 'slow' ? 40 : 1;
+      await new Promise((r) => setTimeout(r, delay));
+      return { type: 'thesis', slug, sources: [aSource(slug)] };
+    }) as typeof ws.invoke;
+
+    const first = curation.select('slow', 'thesis');
+    const second = curation.select('fast', 'thesis');
+    await Promise.all([first, second]);
+    await settle();
+
+    expect(curation.activeSlug).toBe('fast');
+    expect(curation.sources.map((x) => x.title)).toEqual(['fast']);
+  });
+
+  test('a resolver that does not echo (type, slug) is still trusted', async () => {
+    // Deployment ordering: the resolver and this remote ship independently. An
+    // old resolver sends no echo, and rejecting that would blank the surface —
+    // trading a subtle bug for a total outage.
+    curation.clientSlug = 'humain-vc';
+    ws.invoke = assembleWith({ sources: [aSource('legacy-reply')] });
+
+    await curation.select('consumer-immunology', 'thesis');
+    await settle();
+
+    expect(curation.sources).toHaveLength(1);
+    expect(curation.sourcesStatus).toBe('ready');
   });
 });

@@ -3,15 +3,16 @@ title: "Stale Corpus Sources When the Workspace Socket Is Down — the header mo
 lede: >-
   Switching corpora on a dead socket silently shows another corpus's sources under the new name — a wrong answer wearing a confident label.
 date_created: 2026-09-10
-date_modified: 2026-09-10
+date_modified: 2026-09-11
 date_authored_initial_draft: 2026-09-10
-date_authored_current_draft: 2026-09-10
+date_authored_current_draft: 2026-09-11
 authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 5 (1M context)
-at_semantic_version: 0.0.0.1
-status: Open
+at_semantic_version: 0.0.1.0
+status: Partially-Shipped
+date_first_published: 2026-09-11
 tags:
   - Plan
   - Augment-It
@@ -150,3 +151,43 @@ remote.
 - `shell/src/WorkspaceSwitcher.svelte` — the status vocabulary to reuse
 - [[Corpora-Curator-Entry-Point-for-Augment-It]]
 - [[Session-Expiry-Turns-The-App-Into-A-Zombie]]
+
+## Remaining work (as of 2026-09-11)
+
+**Shipped — the structural fix.** `domain.assemble` echoes the `(type, slug)` it
+answered for; the curator clears `sources` before the await and refuses replies
+that do not match the current selection. This closes the class, not just the
+symptom: an out-of-order reply can no longer win, because "latest reply" is no
+longer what decides what renders.
+
+Chosen over the plan's original Phase 1 (clear-before-await alone), which stops
+the reported symptom but leaves the race. The information needed already existed
+on the `source_usages` row and was being dropped on the way out.
+
+Landed:
+
+- `services/record-surrealdb-resolver/src/domains.ts` — reply carries `type` + `slug`
+- `apps/corpora-curator/src/curation.svelte.ts` — `sourcesStatus`, clear-before-await,
+  supersede guard, `replyMatches()`
+- `apps/corpora-curator/test/curation.test.ts` — four regression tests, plus a repair
+  to the `@augment-it/workspace` mock that had left the whole suite dead since gh #93
+  (missing `resolveWsUrl` export made the import throw, which vitest reports as
+  "no tests" rather than a failure)
+
+Verified: resolver typecheck clean, curator builds, 12 curator + 21 resolver tests green.
+
+**Still open:**
+
+1. **Phase 2 — render the states.** `sourcesStatus` now distinguishes `loading`,
+   `ready`, and `error`, but nothing in `App.svelte` displays them, and the pane
+   still has no connection indicator while the shell's `WorkspaceSwitcher` has
+   had one all along. The data to fix this exists; the UI does not use it yet.
+2. **Phase 3 — reconnect on `visibilitychange` / `online`.** The change that
+   shortens the 28-minute dead window rather than surviving it. Lives in
+   `packages/workspace/src/transport.ts`, which all five deployed remotes bundle
+   separately, so it needs all five rebuilt and redeployed.
+
+**Deployment note.** The echo is enforced only when present, because the resolver
+and the curator deploy independently — a resolver on the old build sends no echo,
+and rejecting that would blank the surface rather than merely misfill it. Tighten
+to a required echo once both sides are deployed everywhere.

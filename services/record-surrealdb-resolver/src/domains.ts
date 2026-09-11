@@ -334,7 +334,7 @@ export async function addSource(
 export async function assembleDomain(
   db: Surreal,
   args: { type: string; slug: string; client_slug: string },
-): Promise<{ sources: (SourceRow & { status: string; tags: string[]; source_slug?: string; corpus_path?: string; binary_filename?: string; binary_bytes?: number })[] }> {
+): Promise<{ type: string; slug: string; sources: (SourceRow & { status: string; tags: string[]; source_slug?: string; corpus_path?: string; binary_filename?: string; binary_bytes?: number })[] }> {
   const usages = ((await db.query(
     'SELECT source_uuid, status, tags, source_slug, corpus_path, binary_filename, binary_bytes, created_at FROM source_usages WHERE domain_type = $t AND domain_slug = $s AND client_slug = $c ORDER BY created_at ASC',
     { t: args.type, s: args.slug, c: args.client_slug },
@@ -349,7 +349,15 @@ export async function assembleDomain(
     );
     if (s) sources.push({ ...s, status: u.status ?? 'metadata-only', tags: u.tags ?? [], source_slug: u.source_slug, corpus_path: u.corpus_path, binary_filename: u.binary_filename, binary_bytes: u.binary_bytes });
   }
-  return { sources };
+  // Echo back WHAT THIS ANSWER IS FOR. The caller cannot otherwise tell one
+  // reply from another: a list of sources carries no trace of the domain it
+  // came from, so a reply that arrives late — or for a corpus the operator has
+  // already navigated away from — is indistinguishable from the right one.
+  // That is not hypothetical; it rendered one corpus's sources under three
+  // different corpus names in production (gh #95). With (type, slug) on the
+  // reply, the client can refuse to display an answer to a question it is no
+  // longer asking.
+  return { type: args.type, slug: args.slug, sources };
 }
 
 // --- tags (workspace vocabulary, Train-Case) -------------------------------
