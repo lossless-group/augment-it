@@ -82,6 +82,11 @@ export default async function handler(req, res) {
   // "I received this and decided it was uninteresting" is a success, not an
   // error.
   if (!isDeployEvent || !looksFailed) {
+    // Log the ignore too. Without this an arriving-but-uninteresting event
+    // leaves only a bare request line, so "Railway is wired up correctly and
+    // this deploy was fine" is indistinguishable from "Railway never called
+    // us" — which is exactly the question you ask when verifying the hookup.
+    console.log(`ignored: ${service}/${environment} type=${type || '(none)'} status=${status || '(none)'}`);
     return res.status(200).json({ ok: true, forwarded: false, reason: 'not a failed deployment', type, status });
   }
 
