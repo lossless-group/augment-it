@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "The e2e harness is Node-profile code (vitest + a .mjs driver), so it",
+    "extends tsconfig.services.json rather than tsconfig.base.json.",
+    "",
+    "It previously had no tsconfig at all while also sitting in the root",
+    "config's `exclude` list, which meant these files were claimed by no",
+    "project and type-checked by nothing — vitest transpiles without checking.",
+    "",
+    "noUnusedLocals/noUnusedParameters are relaxed here: test scaffolding",
+    "legitimately binds values it does not read in every path."
+  ],
+  "extends": "../tsconfig.services.json",
+  "compilerOptions": {
+    "types": ["node", "vitest/globals"],
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}
