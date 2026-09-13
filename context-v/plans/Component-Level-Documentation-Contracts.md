@@ -79,6 +79,29 @@ and the rules of mounting live only in the heads of people who have read
   Backfilling forty histories from 101 system entries is not the goal; the goal
   is that the *next* change to a unit lands in that unit's log.
 
+### The second axis — who is reading
+
+*Added 2026-09-13. The contract set above is organised by unit KIND. That is one
+axis and it is not the only one: a single unit owes different documents to
+different readers, and a README that tries to serve all three serves none.*
+
+| Reader | Wants | Fails when |
+|---|---|---|
+| **The engineer stepping in** | What it owns, what it depends on, how to run it alone, how to know it is working | Written from the system's point of view instead of the unit's |
+| **The non-specialist** — management, a client, anyone who must *understand* the module without operating it | What this thing is FOR, what it does for a user, why it exists as its own unit at all | Written in the vocabulary of the implementation |
+| **The integrator** — human or agent, calling it rather than reading it | The API surface, the state matrix, the error cases, the events it emits and consumes | Prose where a table was needed |
+
+**The third reader is increasingly an agent**, which raises the value of the
+machine-readable artifacts — the OpenAPI document, the gallery catalog, the state
+matrix — above the prose ones. It also means "we have a README" is not an answer
+to any of the three.
+
+The second reader is the one nobody writes for, and the one who makes the system
+legible to the people who fund it. A client cannot read a component library. They
+can read *"this is where a researcher decides which of the candidate URLs is
+actually the company's official blog, and why picking the wrong one is
+expensive."*
+
 ### Microservices additionally owe an API contract
 
 A machine-readable description of every route, its request shape, its response
@@ -116,6 +139,39 @@ safe to bind to.
 How a remote gets mounted, what the shell guarantees it (theme, workspace
 context, routing, error boundary), and what it demands in return. Twenty remotes
 depend on this being true; none of it is written down.
+
+## The federation model generalises past design
+
+*Added 2026-09-13, after the design-system convergence produced a governance model
+that turned out not to be about design.*
+
+The contract governing the design system is **diverge → promote → enforce**:
+members build what they need, recurrence becomes evidence, evidence becomes a
+federal primitive, and the primitive is checked rather than described. Nothing in
+that loop is specific to CSS.
+
+**It is the same shape for every artifact class a unit owes:**
+
+| Artifact | Diverge | Promote | Enforce |
+|---|---|---|---|
+| **UI kit** | a member builds a local component | it recurs in 3+ members | it lands in `shared-ui`, and `design:drift` checks it |
+| **Docs** | a unit writes its own README | a section recurs across units | it becomes a template, and an F6-style check requires it |
+| **Changelog** | a unit logs its own history | conventions converge | `changelog-conventions` enforces the shape |
+| **`context-v/`** | a unit keeps its own specs and issues | folder patterns recur | the roles become contract |
+
+> **The design system went first because it is the only one with cleanup to do.**
+> 158 button rule-sets, 170 phantom tokens, three invisible members. The others
+> are not in a worse state — **they are in no state at all.** Nothing needs
+> un-drifting; it needs implementing.
+
+That inverts the usual expectation about cost. Design was expensive because every
+change was archaeology against decisions nobody recorded — a token whose name
+lied, a list asserted rather than measured, a count that was 40% noise. Per-unit
+changelogs and READMEs carry no archaeology. **The first one written is correct by
+construction**, and the only question is whether the next change lands in it.
+
+**So the remaining classes should move faster than design did, not slower.** A
+sequencing plan that budgets them like the design work will under-commit.
 
 ## Sequencing
 
