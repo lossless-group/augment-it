@@ -103,6 +103,114 @@
 }
 
 /* -----------------------------------------------------------------------------
+ * Tier 2 — DIMENSION SCALES. Space, size, layering.
+ *
+ * Declared ONCE, in :root — not in the three mode blocks. These are dimension,
+ * not colour; they do not change between light, dark and vibrant. Triplicating
+ * them would imply a variance that does not exist. DESIGN.md anticipated this
+ * under "Where Tier 1 is required, and where it is noise": brand choices need a
+ * Tier-1 name, dimensional scales do not.
+ *
+ * PROMOTED, NOT INVENTED. Every name and value below is DESIGN.md's own
+ * proposal, shipped verbatim — Layout & Spacing (Spacing, Sizing) and
+ * Elevation & Depth (Layering), all three marked proposed and none ever
+ * shipped. This phase moves them proposed to shipped; it decides nothing.
+ * Where any spec and DESIGN.md disagree on a value here, DESIGN.md is the
+ * federal document and wins.
+ * -------------------------------------------------------------------------- */
+:root {
+  /* Spacing — ten steps on a 2px base. Dense by design: an 8px grid is the
+     industry convention and would roughly double this product's whitespace,
+     destroying the instrument-panel density that is its identity (P5).
+     Max displacement against measured values is 1.6px, median under 1px.
+     WARNING: space-hairline may NEVER be a control's vertical padding (P10, F7). */
+  --space-hairline: 1px;
+  --space-3xs:      2px;
+  --space-2xs:      4px;
+  --space-xs:       6px;
+  --space-sm:       8px;
+  --space-md:      10px;
+  --space-lg:      12px;
+  --space-xl:      16px;
+  --space-2xl:     24px;
+  --space-3xl:     32px;
+
+  /* Shapes — five values, promoted from DESIGN.md's Shapes table verbatim.
+     radius-md (4px) is the house default: buttons, inputs, chips, small cards.
+
+     WHY 4px AND NOT 3px. The measured split is a dead heat, 3px 86 times
+     against 4px 80 times. At 52/48 there is no house style to preserve; this
+     is a coin flip that was flipped independently 166 times. 4px wins because
+     it is the only value aligned with the 2px spacing grid above; 3px is off
+     every other scale in the system.
+
+     THIS COMMIT FIXES A LIVE DEFECT. Until now radius-md was undefined, so the
+     22 member declarations that reference it fell back to whatever each author
+     guessed: 6px in 11 uses, 8px in 4, 4px in 7 for radius-sm. One name, two
+     radii, depending which app you were looking at. They now tighten to the
+     scale. That is the fix landing, not a regression. */
+  --radius-sm:     2px;
+  --radius-md:     4px;
+  --radius-lg:     8px;
+  --radius-pill: 999px;
+  --radius-round:  50%;
+
+  /* Control height — the accessibility floor lives here. 24px is WCAG 2.2
+     2.5.8's target minimum, and contract F7 defines the federal target floor
+     AS this token. Lowering it lowers the floor for the whole federation. */
+  --control-h-sm: 24px;
+  --control-h-md: 28px;
+  --control-h-lg: 32px;
+
+  /* Icon size */
+  --icon-sm: 12px;
+  --icon-md: 16px;
+  --icon-lg: 20px;
+
+  /* Panel scroll — for when a panel genuinely must be bounded. NOT a
+     substitute for `flex: 1; overflow: auto; min-height: 0`, which is the
+     correct idiom and is currently used in only three places. */
+  --panel-h-sm: 240px;
+  --panel-h-md: 320px;
+  --panel-h-lg: 480px;
+
+  /* Label column */
+  --col-label-sm:  88px;
+  --col-label-md: 160px;
+  --col-label-lg: 224px;
+
+  /* Shell chrome */
+  --shell-header-h:  56px;
+  --shell-rail-w:    64px;
+  --shell-chat-w:   360px;
+
+  /* Layering — banded by OWNERSHIP, not by component (contract F4).
+     Remotes use the four remote-local tokens and NOTHING else. They are not
+     assigned private numeric bands: a shared four-token vocabulary is
+     coordinable across independent deploys in a way sixteen private ranges
+     are not. Measured today, three remotes and the shell all collide at 50. */
+
+  /* 0-899 — remote-local. The only four a member may write. */
+  --z-base:            0;
+  --z-raised:         10;
+  --z-sticky:         30;
+  --z-remote-overlay: 60;
+
+  /* 900-999 — slot geometry. Shell-assigned, not authorable by a member. */
+  --z-slot-peek:  900;
+  --z-slot-hover: 910;
+  --z-slot-focus: 920;
+
+  /* 1000+ — shell chrome. Remotes never write these. */
+  --z-shell-chrome: 1000;
+  --z-flow-widget:  1100;
+  --z-overlay:      1200;
+  --z-modal:        1300;
+  --z-tooltip:      1400;
+  --z-toast:        1500;
+}
+
+/* -----------------------------------------------------------------------------
  * Tier 2 — SEMANTIC TOKENS. What every component reads.
  * dark is the default — :root with no data-mode resolves here.
  * Phase 1 additions marked with ✅.
