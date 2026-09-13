@@ -99,7 +99,8 @@ and the container is the only place that knows what the right answer is.
 ## Steps
 
 1. **Read the member's CSS first, all of it.** You are about to delete from it.
-2. **Check the dependency.** `@augment-it/shared-ui` has been pre-installed into
+2. **Read the member's prefix out of `DESIGN.md` frontmatter first.** The directory name is not the prefix — `response-reviewer` is `resp`, `request-reviewer` is `req`. `--member <wrong>` fails closed with *Member not found*, which is good, but only after you have wasted the run.
+3. **Check the dependency.** `@augment-it/shared-ui` should be installed in
    every member — if it is already in your `package.json`, skip this step and do
    **not** edit the file. If it is somehow missing, add — `"@augment-it/shared-ui": "workspace:*"` — then run
    `pnpm install`. **Do not stage `pnpm-lock.yaml`**: it is shared, every
@@ -180,6 +181,45 @@ isolated, and navigate + assert + measure genuinely is one call.
 Either way, **assert on the member's root class inside the evaluate**, never the
 tab title. A title can be right while the DOM is someone else's.
 
+### The alias that silently does nothing — read this before you build a probe
+
+**In rsbuild 2.x, `source.alias` is accepted and silently ignored. The key is
+`resolve.alias`.** Getting this wrong does not error. It bundles the *real*
+`@augment-it/workspace`, which finds a live workspace-service on this machine and
+renders **real production data**.
+
+This is worse than every other trap in this file, because the failure mode is a
+*full, plausible page*. One engineer's probe reported 866 buttons and record-set
+names like `investors-2026-07-01.csv 378 rows · 104 cols`, from a four-row
+fixture. Another rendered 1,982 real responses and caught it only because the
+numbers were too round to have come from an eleven-record stub.
+
+**And on 2026-09-13 a probe in this state drove its own click-path through
+`content_ingest.preview_url` → `corpus.add` and wrote a real file into live client
+data** at `clients/reach-edu/corpus/…`. It violated the standing rule that
+browser-driven reads are unrestricted and writes go only to a designated safe
+target — not because the engineer ignored the rule, but because **nothing told it
+it was talking to production.**
+
+Three defences, all mandatory, because any one of them can be got wrong:
+
+1. **`resolve.alias`**, never `source.alias`.
+2. **Assert the stub is actually in the bundle before trusting a single number:**
+   put a sentinel string in the stub and
+   `grep -c '<sentinel>' dist-probe/static/js/*.js`. Zero hits means you are
+   looking at production.
+3. **Kill the network in `addInitScript`**, belt and braces:
+   ```js
+   await page.addInitScript(() => {
+     window.WebSocket = class { constructor() { throw new Error('probe: no sockets'); } };
+     window.fetch = () => Promise.reject(new Error('probe: no fetch'));
+   });
+   ```
+
+A probe that renders an empty surface wastes your time. A probe that renders
+production can write to it.
+
+
 ### Building the probe — the parts that are not guessable
 
 Five engineers hit the same five walls. None of these produce an error; every one
@@ -199,17 +239,46 @@ directory *is* scanned. Put it in `probe/` with everything else.
 
 Delete the whole directory before the final gate run regardless.
 
-**There is no Playwright in this repo.** Not in `apps/`, `packages/`, `e2e/`, or
-a root `node_modules`, and adding one would touch `package.json`, which hard rule
-1 forbids. It resolves from the MCP server's npx cache. Do not guess either path —
-two chromium revisions coexist in that cache and picking the wrong one fails:
+**There is no Playwright in this repo.** Not in `apps/`, `packages/`, `e2e/`, or a
+root `node_modules`, and adding one would touch `package.json` in a way nothing
+here needs. It resolves from the MCP server's npx cache.
+
+**Do not `find` for the binary and pick what turns up** — two engineers did and
+both got a stale revision. Several playwright-core copies coexist in that cache at
+different versions, and the newest one may pin a Chromium revision that is not
+installed at all. Match them explicitly:
 
 ```bash
-find ~/.npm/_npx -maxdepth 4 -type d -name playwright-core
-find ~/Library/Caches/ms-playwright -maxdepth 3 -name headless_shell
+find ~/.npm/_npx -maxdepth 4 -type d -name playwright-core     # candidates
+# then, per candidate, read the revision it actually requires:
+cat <candidate>/browsers.json | grep -A2 '"name": "chromium'
+find ~/Library/Caches/ms-playwright -maxdepth 1 -type d        # what is installed
 ```
 
-Then `require()` the first and pass the second as `executablePath`.
+Pick the playwright-core whose pinned revision **exists on disk**. One engineer's
+"newest wins" heuristic selected a 1.63.0-alpha pinning revision 1243 with nothing
+matching; 1.61.1 → 1228 was the working pair.
+
+The binary's path and name both vary by age. Older revisions:
+`chromium_headless_shell-<rev>/chrome-mac/headless_shell`. Newer:
+`chromium_headless_shell-<rev>/chrome-headless-shell-mac-arm64/chrome-headless-shell`.
+Look for **both** names under the revision you matched.
+
+**`require()`, not `import()`.** `await import(PW + '/index.js')` resolves to an
+object with no `.chromium` on it, and fails as *"Cannot read properties of
+undefined"* several lines later.
+
+**The probe's rsbuild config must set `root: __dirname`.** rsbuild defaults `root`
+to the nearest `package.json` directory — so from `apps/<member>/probe/`, passing
+`-c rsbuild.config.ts` silently loads **the member's own config** and boots the
+member on the member's port. One engineer's first run reported *"built in 0.41s"*
+on :3014 and looked entirely successful. Pass both flags absolute, and use the
+member's own bin shim rather than `npx`:
+
+```bash
+cd apps/<member>/probe && P=$(pwd)
+../node_modules/.bin/rsbuild build -r "$P" -c "$P/rsbuild.config.ts"
+```
 
 **The stub must be reactive, or you will verify an empty surface.** A plain-object
 stub never re-runs the member's `$derived`, so the page renders with zero rows and
@@ -233,6 +302,20 @@ clock was wrong. Settle ~1.2s before reading computed style.
 B, read — and you get A's values *after* A lost focus. Snapshot inside the same
 `evaluate`, per element, with `JSON.parse(JSON.stringify(...))` before moving
 focus. This one reads as a clean pass, which is why it is on the list.
+
+**`:focus-visible` does not match a programmatic `.focus()`.** A focus probe driven
+by `el.focus()` reports `boxShadow: none` on every control — indistinguishable
+from the federal ring being broken. Drive focus with real `Tab` keypresses.
+
+**A template-literal `page.evaluate` string eats backslashes.** `/\s+/` becomes
+`/s+/` at runtime, which silently truncates class names mid-word
+(`ow-list-actions` → `ow-li`) and produces plausible-but-wrong attribution rather
+than an error. Pass a real function, or double the backslash.
+
+**Do not dedup call sites by shape alone.** Keying on class + variant + size + text
+collapses genuinely distinct call sites — two different `×` closes in two
+components are both `secondary|lg|×`. Include an ancestor-class path in the key,
+or your stated coverage number is lower than what you actually verified.
 
 ### Measure the before, don't compute it
 
@@ -353,6 +436,33 @@ afterwards.
 
 - **Is a button actually a link?** `variant="link"` exists; an `<a>` styled as a
   button is a different fix and may be out of scope.
+
+**Rung 0 is not free, and it has its own regression mode.** Three self-inflicted
+bugs in one run came from layout fixes, and no gate caught any of them — only the
+before/after probe did.
+
+- Making a popover `display: flex; flex-direction: column` to stop Buttons sitting
+  inline **crushed every item from 26.8px to 17px**, under the very 24px floor the
+  migration exists to fix, because a height-capped column-flex container shrinks
+  its items. **Add `flex: 0 0 auto` to the items.**
+- `.menu > li { display: flex }` sized rows to content — 179px inside a 210px
+  menu. `display: grid` was needed.
+- A three-column label grid overflowed a control once the control gained a fixed
+  height.
+
+**A rung-0 wrapper may carry CSS.** The examples elsewhere say "a plain div,
+usually zero CSS", which reads as a rule. It is not: a wrapper that has to carry
+`margin-inline-start: auto` and `align-self: center`, or a new member class like
+`.link-remove-slot`, is still rung 0 and still not a deviation. Do not route it to
+rung 4 because it needed a declaration.
+
+**A selector that out-specifies the component's base recipe must be REMOVED, not
+raised** — whether or not it still matches anything. The delete-what-you-made-dead
+rule is binary and misses this case. `.resp-app button` at `(0,1,1)` beats
+`.ui-btn` at `(0,1,0)`, so its `border: 0` erases the component's border box
+entirely and its `border-radius` makes rungs 2 and 3 dead on arrival in that
+member. The rule still *matches* every Button — it is not dead — and leaving it
+makes the component decorative.
 
 ## Raise, don't chase
 
