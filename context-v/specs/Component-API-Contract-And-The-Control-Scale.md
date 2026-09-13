@@ -240,28 +240,19 @@ rest in one declaration:
 *:focus-visible { box-shadow: var(--focus-ring); outline: none; }
 ```
 
-## The proof case
+## Proving it
 
-Button first, deliberately — it proves more than the alternatives. The status pill
-has no variants, no sizes and no overrides, so it would prove the promotion
-mechanics and nothing about the API. Button exercises the whole surface, and we
-have the reference implementation pinned.
+A contract nobody has built against is a proposal. The first implementation is
+tracked separately in
+[[../plans/Prove-The-Component-API-On-Request-Reviewer]], which closes the loop
+end-to-end on one member: scales ship, `<Button>` lands, a member adopts it and
+deletes its local recipes, its catalog renders the states, the audit passes, and
+`design:drift` confirms the rule-sets are gone.
 
-**The end-to-end loop this has to demonstrate:**
-
-1. The scales ship in `packages/theme`
-2. `<Button>` lands in `packages/shared-ui` with the API above
-3. **One member adopts it and deletes its local button recipes**
-4. That member's gallery catalog shows the Button with its stories
-5. The gallery audit passes — contrast, target size, accessible name, focus, F1a/F2/F3/F4/F8
-6. `pnpm design:drift` shows the member's local button rule-sets gone
-
-**Proposed demo member: `request-reviewer`.** One component, 237 CSS lines, zero
-hex, 49 rule-sets — the most token-pure member in its cluster and **the least
-accessible** (one `aria-*` attribute in the whole member, zero roles, zero focus
-styles). The a11y delta is therefore measurable, not asserted.
-
-If that loop closes once, it closes eighteen more times.
+**Feedback from that build belongs here.** This spec was written without anyone
+implementing against it; the first engineer to do so will find the parts that are
+ambiguous or wrong, and those corrections land in this document rather than in
+the plan.
 
 ## Open, and deliberately not decided here
 
