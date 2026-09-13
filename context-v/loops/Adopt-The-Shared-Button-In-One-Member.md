@@ -58,6 +58,38 @@ gain the most and will show the largest measurable delta.**
 
 Override rungs, in order of preference — **never a raw value**:
 
+### 0 — layout is the parent's job, and is not a deviation
+
+**A Button never positions itself.** If it needs to sit at the end of a row, align
+to a baseline, right-align in a grid column, or stop stretching in a column-flex
+container, that is the *container's* concern.
+
+Two spellings, both free:
+
+```css
+/* the parent owns alignment */
+.my-row { display: flex; align-items: flex-end; }
+
+/* or wrap it — a plain div, usually zero CSS */
+<div class="my-row-end"><Button …>Not now</Button></div>
+```
+
+> **This rung exists because the absence of it was measured.** Five layout-only
+> overrides appeared across three independent migrations —
+> `margin-inline-start: auto`, `justify-self: end`, `align-self: center`, and
+> twice "a Button inside a column-flex container stretches to full width." Every
+> one carried a `data-deviation` reading some variant of *"the ladder has no rung
+> for layout."*
+>
+> **Placement is not a design departure**, and routing it through rung 4 puts it
+> in the member's catalog under *Deviations*, where it buries the real ones. A
+> deviation section listing five margin adjustments teaches a reader to skim it.
+
+**Why it happens:** `Button` sets a `height` and never a `width`, so in a
+`flex-direction: column` container it stretches. That is correct component
+behaviour — a control that pinned its own width could not be used in a toolbar —
+and the container is the only place that knows what the right answer is.
+
 1. `variant` + `size`
 2. `radius="lg"` — a token NAME
 3. `radius="lg/60"` — `calc(var(--radius-lg) * 0.6)`
@@ -194,6 +226,24 @@ afterwards.
 - **Does anything need an override?** Use rung 2 or 3 if so, and **say so in your
   report.** A recurring override is evidence for a missing variant, which is a
   finding rather than a failure.
+- **Can a rung-4 override even reach it?** Mechanical test, check it before you
+  start: a member's global class lands at `(0,1,0)`; anything `Button` declares
+  inside its own scoped `<style>` lands at `(0,2,0)` after Svelte hashing. **If
+  the property you need to change is one `Button` sets, rung 4 cannot win** —
+  and the next move is `!important`, which is how a component becomes
+  decorative. A control that needs to fight the component is a **missing organ**,
+  not a deviation. Say so and move on.
+- **Count the properties you would have to override.** Past roughly four, you are
+  re-drawing the control. `chat`'s `.command-row` needed eight — `display`,
+  `height`, `width`, `text-align`, `white-space`, `padding`, `border-radius`,
+  `border` — at which point `Button` contributes only `type="button"`, which the
+  element already had.
+- **Check the neighbours before committing to `ghost` or `link`.** A role-correct
+  variant can still destroy the member's only interactivity cue: one migration
+  mapped a dismissal to `ghost` and rendered it indistinguishable from a
+  non-interactive muted span doing the same job one section below. Correct by
+  role, a regression in fact.
+
 - **Is a button actually a link?** `variant="link"` exists; an `<a>` styled as a
   button is a different fix and may be out of scope.
 

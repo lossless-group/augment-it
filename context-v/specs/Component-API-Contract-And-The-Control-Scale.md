@@ -195,6 +195,38 @@ Tailwind, so a raw class passthrough gives specificity wars, not merging.
 
 Four rungs, each more visible than the last, none of them blocked:
 
+### 0 — layout is the parent's job, and is not a deviation
+
+**A Button never positions itself.** If it needs to sit at the end of a row, align
+to a baseline, right-align in a grid column, or stop stretching in a column-flex
+container, that is the *container's* concern.
+
+Two spellings, both free:
+
+```css
+/* the parent owns alignment */
+.my-row { display: flex; align-items: flex-end; }
+
+/* or wrap it — a plain div, usually zero CSS */
+<div class="my-row-end"><Button …>Not now</Button></div>
+```
+
+> **This rung exists because the absence of it was measured.** Five layout-only
+> overrides appeared across three independent migrations —
+> `margin-inline-start: auto`, `justify-self: end`, `align-self: center`, and
+> twice "a Button inside a column-flex container stretches to full width." Every
+> one carried a `data-deviation` reading some variant of *"the ladder has no rung
+> for layout."*
+>
+> **Placement is not a design departure**, and routing it through rung 4 puts it
+> in the member's catalog under *Deviations*, where it buries the real ones. A
+> deviation section listing five margin adjustments teaches a reader to skim it.
+
+**Why it happens:** `Button` sets a `height` and never a `width`, so in a
+`flex-direction: column` container it stretches. That is correct component
+behaviour — a control that pinned its own width could not be used in a toolbar —
+and the container is the only place that knows what the right answer is.
+
 ### 1 — `variant` + `size`
 The sanctioned API. Covers the large majority.
 
