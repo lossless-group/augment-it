@@ -35,16 +35,6 @@
   background: var(--color-surface-raised);
 }
 .cc-app .cc-ws { width: auto; padding: 0.15rem 0.4rem; font-size: 12px; }
-.cc-app .cc-back {
-  font-size: 12px;
-  padding: 0.2rem 0.6rem;
-  border-radius: 4px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-raised);
-  color: var(--color-text);
-  cursor: pointer;
-}
-.cc-app .cc-back:hover { border-color: var(--color-accent); color: var(--color-accent); }
 .cc-app .cc-conn { font-size: 11px; padding: 1px 7px; border-radius: 3px; background: var(--color-border); }
 .cc-app .cc-conn.status-open { background: var(--color-ok-bg); color: var(--color-ok-text); }
 .cc-app .cc-conn.status-error,
@@ -97,7 +87,7 @@
 .cc-app .cc-mono { font-family: var(--font-mono); }
 .cc-app .cc-pad { padding: 1rem; }
 
-/* ---- inputs / buttons ---- */
+/* ---- inputs ---- */
 .cc-app input,
 .cc-app textarea,
 .cc-app select {
@@ -130,19 +120,25 @@
 }
 .cc-app textarea { resize: vertical; min-height: 3.5em; }
 
-.cc-app button {
-  font: inherit;
-  color: var(--color-text);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 0.35rem 0.7rem;
-  cursor: pointer;
-}
-.cc-app button:hover { border-color: var(--color-accent); }
-.cc-app .cc-primary { background: var(--color-accent); color: var(--color-on-accent); border-color: var(--color-accent); font-weight: 600; }
-.cc-app .cc-link { background: none; border: none; color: var(--color-accent); padding: 0.2rem; }
-.cc-app .cc-fetch { margin-top: 0.5rem; }
+/* ---- controls ----
+   There are no button recipes here any more. Every commit, navigation,
+   destructive and dismiss control in this member is <Button> from
+   @augment-it/shared-ui, at override-ladder rung 1 (variant + size) — no
+   radius override, no class passthrough, no data-deviation.
+   Deleted on adoption: .cc-app button, :hover and :disabled; .cc-primary;
+   .cc-link; .cc-danger and :hover; .cc-back and :hover; .cc-tag-x; and
+   .cc-fetch, which had zero call sites left.
+
+   The bare `.cc-app button` base is the one worth naming. It matched every
+   <button> in the member including ones it had never seen, so the moment a
+   federal component rendered inside .cc-app it inherited a padding-block and,
+   worse, an `opacity: 0.6` disabled treatment that Button's :disabled rule does
+   not set and therefore could not have overridden — appearance standing in for
+   state, painted over a component that shifts colour tokens on purpose.
+
+   Three controls stayed raw. Each is a different organ from a button and says
+   so in its own rule below: .cc-strat, .cc-row and .cc-tag-suggest button. */
+
 .cc-app .cc-attached {
   display: flex;
   align-items: center;
@@ -156,16 +152,37 @@
 .cc-app .cc-attached-dot { color: var(--color-confidence-high); font-weight: 700; }
 .cc-app .cc-attached-name { word-break: break-all; }
 .cc-app .cc-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.6rem; }
-.cc-app .cc-danger { color: var(--color-error-text); }
-.cc-app .cc-danger:hover { border-color: var(--color-error-text); }
-.cc-app button:disabled { opacity: 0.6; cursor: default; }
 
 .cc-app .cc-urllink { color: var(--color-accent); text-decoration: none; word-break: break-all; }
 .cc-app .cc-urllink:hover { text-decoration: underline; }
 
 /* ---- strategy picker ---- */
 .cc-app .cc-strat-list { list-style: none; margin: 0.5rem 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
-.cc-app .cc-strat { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 2px; }
+/* Corpus row. NOT adopted as a Button, deliberately. It is full-bleed,
+   left-aligned, two-line and of variable height, where Button is inline-flex,
+   justify-content: center, white-space: nowrap and a fixed --control-h-*.
+   Adopting it needs width, display, flex-direction, justify-content,
+   text-align, white-space and height overridden AT ONCE — every geometric
+   property the component contributes — which negates the base recipe rather
+   than adjusting it, and leaves behind only a focus ring the federal
+   *:focus-visible rule already provides. The organ this wants is a selectable
+   list row; it does not exist yet. Values below are the ones it inherited from
+   the deleted `.cc-app button` base, moved here unchanged. */
+.cc-app .cc-strat {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
+.cc-app .cc-strat:hover { border-color: var(--color-accent); }
 .cc-app .cc-strat-title { font-weight: 600; }
 /* Slug + type on one line. The type chip is load-bearing: the list holds every
    type at once (gh #88) and (type, slug) is the real key. */
@@ -177,6 +194,9 @@
 .cc-app .cc-filter { flex: 1; font-size: 13px; }
 .cc-app .cc-add { display: flex; gap: 0.4rem; padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--color-border); }
 .cc-app .cc-list { flex: 1; overflow: auto; }
+/* Source row. Same holdout as .cc-strat and for the same reason — a hairline
+   list row with a wrapping meta line, not a control. `font`, `color` and
+   `cursor` moved here from the deleted `.cc-app button` base. */
 .cc-app .cc-row {
   width: 100%;
   text-align: left;
@@ -188,6 +208,9 @@
   border-bottom: 1px solid var(--color-border);
   border-radius: 0;
   background: none;
+  font: inherit;
+  color: var(--color-text);
+  cursor: pointer;
 }
 .cc-app .cc-row:hover { background: var(--color-surface); }
 .cc-app .cc-row.active { background: var(--color-selected-tint); border-left: 3px solid var(--color-accent); padding-left: calc(0.7rem - 3px); }
@@ -200,9 +223,12 @@
 
 /* ---- tags ---- */
 .cc-app .cc-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.3rem; }
-.cc-app .cc-tag { display: inline-flex; align-items: center; gap: 0.2rem; font-size: 12px; padding: 0.1rem 0.45rem; border-radius: 999px; background: var(--color-selected-tint); border: 1px solid var(--color-border); }
+/* Vertical padding dropped to zero (rung 0 — layout is the parent's job). The
+   chip now wraps a <Button size="icon">, which owns a 28px target height of its
+   own; padding on top of that only made the chip taller than the control it
+   exists to hold. Matches .cc-tag-mini, which has been `padding: 0 …` all along. */
+.cc-app .cc-tag { display: inline-flex; align-items: center; gap: 0.2rem; font-size: 12px; padding: 0 0.45rem; border-radius: 999px; background: var(--color-selected-tint); border: 1px solid var(--color-border); }
 .cc-app .cc-tag-mini { font-size: 11px; padding: 0 0.35rem; border-radius: 999px; background: var(--color-selected-tint); }
-.cc-app .cc-tag-x { background: none; border: none; padding: 0; color: var(--color-text-muted); cursor: pointer; }
 .cc-app .cc-tag-input { position: relative; }
 .cc-app .cc-tag-suggest {
   position: absolute;
@@ -217,7 +243,22 @@
   max-height: 180px;
   overflow: auto;
 }
-.cc-app .cc-tag-suggest button { display: block; width: 100%; text-align: left; border: none; border-radius: 0; background: none; }
+/* Autocomplete options. Left raw because they are listbox options rather than
+   buttons: full-bleed, left-aligned, keyboard-navigated as a set, and the organ
+   they belong to is a combobox this member has not built. `font`, `color`,
+   `cursor` and `padding` moved here from the deleted `.cc-app button` base. */
+.cc-app .cc-tag-suggest button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  color: var(--color-text);
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
 .cc-app .cc-tag-suggest button:hover { background: var(--color-selected-tint); }
 
 /* ---- extracts ---- */

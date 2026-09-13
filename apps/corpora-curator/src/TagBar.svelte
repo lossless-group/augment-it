@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { curation } from './curation.svelte';
 
   let input = $state('');
@@ -15,7 +16,10 @@
 
   <div class="cc-tags">
     {#each curation.focused?.tags ?? [] as t}
-      <span class="cc-tag">{t}<button class="cc-tag-x" onclick={() => curation.removeTag(t)} aria-label="remove tag">×</button></span>
+      <span class="cc-tag"
+        >{t}<Button variant="ghost" size="icon" onclick={() => curation.removeTag(t)} aria-label="remove tag">×</Button
+        ></span
+      >
     {/each}
   </div>
 
@@ -26,6 +30,7 @@
       onkeydown={(e) => { if (e.key === 'Enter' && input.trim()) apply(input); }}
     />
     {#if input.trim() && suggestions.length}
+      <!-- Left raw: listbox options, not buttons. See .cc-tag-suggest in app.css. -->
       <div class="cc-tag-suggest">
         {#each suggestions as sug}
           <button onclick={() => apply(sug)}>{sug}</button>

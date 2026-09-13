@@ -1,12 +1,20 @@
 <script module lang="ts">
   // The un-componentised half of this member's library.
   //
-  // corpora-curator has four .svelte files and roughly forty class recipes.
-  // The recipes are where the design lives — `.cc-card`, `.cc-row`, the four
-  // button variants, the chips — and they are exactly the things that drift,
-  // because nothing stops a sixth button variant from being added to app.css.
-  // (The federation-wide measurement that started all this counted 158 button
-  // rule-sets and 34 badge treatments; none of them were components.)
+  // corpora-curator has four .svelte files and roughly thirty class recipes.
+  // The recipes are where the design lives — `.cc-card`, `.cc-row`, the chips —
+  // and they are exactly the things that drift, because nothing stops a sixth
+  // badge treatment from being added to app.css. (The federation-wide
+  // measurement that started all this counted 158 button rule-sets and 34 badge
+  // treatments; none of them were components.)
+  //
+  // The BUTTON recipes are no longer among them. `.cc-primary`, `.cc-link`,
+  // `.cc-danger`, `.cc-back`, `.cc-tag-x` and the bare `.cc-app button` base
+  // were deleted when this member adopted @augment-it/shared-ui's <Button>; the
+  // `buttons` specimen below is now a usage catalog of that component's
+  // variants as this member spends them, not a catalog of local recipes. Three
+  // controls stayed raw — the two list rows and the suggestion option — and
+  // each carries its reasoning in app.css.
   //
   // So they get catalogued as first-class entries, as markup rather than as
   // components. Each snippet takes the resolved props object, so the gallery's
@@ -14,6 +22,8 @@
   //
   // Exported from `<script module>`: legal because none of these reference
   // instance state — they read only their own parameter.
+  import Button from '@augment-it/shared-ui/Button.svelte';
+
   export {
     buttons,
     card,
@@ -29,11 +39,18 @@
 </script>
 
 {#snippet buttons(p: Record<string, unknown>)}
+  <!-- Every variant x size this member spends, and nothing else. Six pairs, all
+       at ladder rung 1 — no radius override and no class passthrough anywhere in
+       corpora-curator. A seventh appearing here is now a change to the FEDERAL
+       component's API surface rather than a line appended to app.css, which is
+       the whole point of the swap. -->
   <div class="cc-actions">
-    <button disabled={Boolean(p.disabled)}>{String(p.label ?? 'Fetch metadata')}</button>
-    <button class="cc-primary" disabled={Boolean(p.disabled)}>+ Add</button>
-    <button class="cc-link">‹ corpora</button>
-    <button class="cc-danger" disabled={Boolean(p.disabled)}>Remove source</button>
+    <Button variant="primary" disabled={Boolean(p.disabled)}>{String(p.label ?? '↓ Fetch full content')}</Button>
+    <Button variant="secondary" disabled={Boolean(p.disabled)}>⟳ Retry</Button>
+    <Button variant="destructive" disabled={Boolean(p.disabled)}>🗑 Remove</Button>
+    <Button variant="secondary" size="sm" disabled={Boolean(p.disabled)}>‹ All corpora</Button>
+    <Button variant="link" size="sm" disabled={Boolean(p.disabled)}>‹ corpora</Button>
+    <Button variant="ghost" size="icon" aria-label="remove tag" disabled={Boolean(p.disabled)}>×</Button>
   </div>
 {/snippet}
 
@@ -96,8 +113,12 @@
   <div class="cc-field">
     <span class="cc-label">Tags <span class="cc-muted cc-mini">— Train-Case, workspace vocabulary</span></span>
     <div class="cc-tags">
-      <span class="cc-tag">Work-Based-Learning<button class="cc-tag-x" aria-label="remove tag">×</button></span>
-      <span class="cc-tag">Credential-Attainment<button class="cc-tag-x" aria-label="remove tag">×</button></span>
+      <span class="cc-tag"
+        >Work-Based-Learning<Button variant="ghost" size="icon" aria-label="remove tag">×</Button></span
+      >
+      <span class="cc-tag"
+        >Credential-Attainment<Button variant="ghost" size="icon" aria-label="remove tag">×</Button></span
+      >
       <span class="cc-tag-mini">Rural-Access</span>
     </div>
     {#if p.suggesting}
@@ -144,7 +165,7 @@
     <span class="cc-brand">Corpora Curator</span>
     <span class="cc-pill">reach-edu</span>
     <span class="cc-pill">strategy</span>
-    <button class="cc-back">‹ All corpora</button>
+    <Button variant="secondary" size="sm">‹ All corpora</Button>
     <span class="cc-strategy">{String(p.strategy ?? 'Turning Jobs Into Degrees')}</span>
     <span class="cc-pill">4 sources</span>
     <span class="cc-spacer"></span>

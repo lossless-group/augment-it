@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { workspace, resolveWsUrl } from '@augment-it/workspace';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { curation } from './curation.svelte';
   import CorpusPicker from './CorpusPicker.svelte';
   import SourceList from './SourceList.svelte';
@@ -80,11 +81,18 @@
       title={curation.active ? 'Type of the selected corpus' : 'This workspace’s preferred vocabulary for new corpora'}
     >{curation.active?.type ?? curation.domainType}</span>
     {#if curation.active}
-      <button
-        class="cc-back"
+      <!-- secondary, not ghost: this sits in a row of .cc-pill spans that are
+           NOT interactive and carry the same border+raised-surface treatment the
+           old .cc-back did. secondary draws its boundary with
+           --color-border-strong where the pills use --color-border, so the one
+           control in the header is finally distinguishable from the four
+           labels around it. -->
+      <Button
+        variant="secondary"
+        size="sm"
         onclick={() => { curation.activeSlug = null; curation.activeType = null; }}
         title="Back to the corpora list / create form"
-      >‹ All corpora</button>
+      >‹ All corpora</Button>
       <span class="cc-strategy">{curation.active.title}</span>
       <span class="cc-pill">{curation.sources.length} sources</span>
     {/if}

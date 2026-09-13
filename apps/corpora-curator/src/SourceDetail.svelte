@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { curation } from './curation.svelte';
   import { EXTRACT_KINDS, type ExtractKind } from './types';
   import TagBar from './TagBar.svelte';
@@ -117,12 +118,22 @@
       {#if s.binary_filename}<span class="cc-muted cc-mini">Choosing a file replaces the attached one.</span>{/if}
     </div>
 
+    <!-- The curation triad, mapped by role rather than by the greys the member
+         drew it in. Fetch is the affirmative action of this card and the one
+         the operator is meant to press, so primary. Retry is the alternate path
+         to the same end, so secondary — NOT ghost: it would sit between a
+         filled primary and a filled destructive with no boundary of its own and
+         read as a label rather than a control. Remove is destructive, which is
+         the first time this member has drawn deletion as anything other than
+         error-coloured text on the same surface as its two neighbours. -->
     <div class="cc-actions">
-      <button onclick={() => curation.fetchSource(s)} disabled={s.content_pulled}>
+      <Button variant="primary" onclick={() => curation.fetchSource(s)} disabled={s.content_pulled}>
         {s.content_pulled ? '✓ fetched' : '↓ Fetch full content'}
-      </button>
-      <button onclick={() => curation.retrySource(s)} title="Re-fetch, bypassing Jina's cache">⟳ Retry</button>
-      <button class="cc-danger" onclick={() => curation.removeSource(s)}>🗑 Remove</button>
+      </Button>
+      <Button variant="secondary" onclick={() => curation.retrySource(s)} title="Re-fetch, bypassing Jina's cache"
+        >⟳ Retry</Button
+      >
+      <Button variant="destructive" onclick={() => curation.removeSource(s)}>🗑 Remove</Button>
     </div>
 
     <TagBar />
@@ -135,7 +146,7 @@
         {#each EXTRACT_KINDS as k}<option value={k}>{k}</option>{/each}
       </select>
       <textarea placeholder="paste an extract…" bind:value={extractText}></textarea>
-      <button class="cc-primary" onclick={saveExtract}>+ Add to {extractKind}</button>
+      <Button variant="primary" onclick={saveExtract}>+ Add to {extractKind}</Button>
     </div>
     <p class="cc-muted cc-mini">Extracts append to this source's body under <code>## {extractKind}</code>.</p>
   </section>

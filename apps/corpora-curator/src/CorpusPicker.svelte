@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { curation, slugify, splitTags } from './curation.svelte';
 
   // Mirrors content-ingest's DOMAIN_FOLDERS (services/content-ingest/src/
@@ -77,7 +78,11 @@
         <li>
           <!-- The type rides along on the row rather than filtering the list
                (gh #88). Two corpora can share a slug across types, so the chip
-               is also what makes them distinguishable. -->
+               is also what makes them distinguishable.
+
+               NOT a shared-ui Button: this is a full-bleed, left-aligned, two-line row
+               of variable height. See the .cc-strat rule in app.css for the
+               override count that would be required. -->
           <button class="cc-strat" onclick={() => curation.select(s.slug, s.type)}>
             <span class="cc-strat-title">{s.title}</span>
             <span class="cc-strat-meta">
@@ -118,7 +123,9 @@
     <span class="cc-label">Tags <span class="cc-muted cc-mini">— Train-Case, workspace vocabulary</span></span>
     <div class="cc-tags">
       {#each pendingTags as t}
-        <span class="cc-tag">{t}<button class="cc-tag-x" onclick={() => removeTag(t)} aria-label="remove tag">×</button></span>
+        <span class="cc-tag"
+          >{t}<Button variant="ghost" size="icon" onclick={() => removeTag(t)} aria-label="remove tag">×</Button></span
+        >
       {/each}
     </div>
     <div class="cc-tag-input">
@@ -128,6 +135,8 @@
         onkeydown={(e) => { if (e.key === 'Enter' && tagInput.trim()) addTag(tagInput); }}
       />
       {#if tagInput.trim() && tagSuggest.length}
+        <!-- Left raw: these are listbox options, not buttons. See the
+             .cc-tag-suggest rule in app.css. -->
         <div class="cc-tag-suggest">
           {#each tagSuggest as sug}<button onclick={() => addTag(sug)}>{sug}</button>{/each}
         </div>
@@ -135,9 +144,9 @@
     </div>
   </div>
 
-  <button class="cc-primary" onclick={create} disabled={!title.trim() || !slug.trim() || !type.trim()}>
+  <Button variant="primary" onclick={create} disabled={!title.trim() || !slug.trim() || !type.trim()}>
     + Create corpus → folder + index.md
-  </button>
+  </Button>
   {#if slug.trim() && type.trim()}
     <p class="cc-muted cc-mini">
       Writes <code class="cc-mono">{domainFolder(type.trim())}/{slug}/index.md</code>

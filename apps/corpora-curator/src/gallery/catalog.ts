@@ -46,35 +46,58 @@ export default defineGallery({
   // State hooks that legitimately carry no `cc-` prefix. They only ever appear
   // alongside a prefixed class, so the containment audit would otherwise report
   // each of them as a leak. `status-*` is generated (`cc-conn status-{state}`).
-  exemptClasses: ['active', 'err', 'status-open', 'status-error', 'status-closed', 'status-idle', 'status-connecting'],
+  //
+  // `ui-btn` is a different case and the reason it heads the list: it is the
+  // FEDERAL Button's own class. A federal component's classes can never carry a
+  // member's prefix — they would have to carry nineteen — so without this entry
+  // every button specimen in every adopting catalog reports a permanent leak.
+  exemptClasses: [
+    'ui-btn',
+    'active', 'err', 'status-open', 'status-error', 'status-closed', 'status-idle', 'status-connecting',
+  ],
 
   sections: [
     {
       id: 'recipes',
       title: 'Recipes',
       blurb:
-        'Class-based primitives from app.css. No component behind any of them — which is precisely why they need cataloguing: nothing stops a fifth button variant from being appended to the stylesheet.',
+        'Class-based primitives from app.css. No component behind any of them — which is precisely why they need cataloguing: nothing stops a fourth badge treatment from being appended to the stylesheet. The one former resident that is no longer class-based is Buttons: it now catalogues how this member spends the federal component.',
       entries: [
         {
           id: 'buttons',
           name: 'Buttons',
           kind: 'pattern',
           status: 'stable',
-          source: 'apps/corpora-curator/src/app.css:129–152',
+          source: 'packages/shared-ui/src/Button.svelte',
           summary:
-            'Four variants off one base: default (bordered, raised), .cc-primary (accent fill), .cc-link (bare, accent text), .cc-danger (error text + border on hover).',
-          usage: '<button class="cc-primary">+ Add</button>',
+            'Not a recipe any more. Every control in this member is the federal <Button>, spent as six variant×size pairs: primary/md (fetch, create, add source, add extract), secondary/md (retry), destructive/md (remove source), secondary/sm (‹ All corpora in the header), link/sm (‹ corpora in the list head), ghost/icon (the tag ×). The specimen imports the real component, so what renders is what ships.',
+          usage: '<Button variant="primary">+ Add</Button>',
+          deviation:
+            'None — zero override rungs. No radius=, no class= and no data-deviation anywhere in the member. Three controls were NOT adopted and stayed raw instead: .cc-strat, .cc-row and .cc-tag-suggest button, each of which would need every geometric property the component contributes overridden at once. Their reasoning lives in app.css beside each rule; the organs they want (a selectable list row, a combobox) do not exist yet.',
           a11y:
-            'The base button is 26px tall at the default padding — under the 24×24 floor only if a variant strips its padding. .cc-link and .cc-tag-x both do; check the Audit tab before reusing them.',
-          tokens: ['--color-text', '--color-surface-raised', '--color-border', '--color-accent', '--color-on-accent', '--color-error-text'],
+            'The floor moved. Every one of these is at least --control-h-sm (24px) tall and the icon size is 28×28, where the treatments they replaced were 19–26px and the tag × was a zero-padding 12px glyph — a live WCAG 2.2 SC 2.5.8 failure this member documented against itself. Boundaries are --color-border-strong (≈3.4:1) rather than --color-border (≈1.3:1, gate A22). disabled is a real attribute that shifts colour tokens, replacing the `opacity: 0.6` that used to stand in for state.',
+          tokens: [
+            '--control-h-sm', '--control-h-md', '--color-primary', '--color-primary-foreground',
+            '--color-surface-raised', '--color-border-strong', '--color-error-bg', '--color-error-fg',
+            '--color-link', '--color-selected-tint', '--color-text-muted', '--color-surface-2', '--focus-ring',
+          ],
           snippet: buttons,
           controls: {
-            label: { kind: 'text', label: 'default label', value: 'Fetch metadata' },
+            label: { kind: 'text', label: 'primary label', value: '↓ Fetch full content' },
             disabled: { kind: 'boolean', value: false },
           },
           fixtures: [
-            { id: 'rest', name: 'Rest', note: 'All four variants side by side, so a new one is visibly a fifth.' },
-            { id: 'disabled', name: 'Disabled', props: { disabled: true }, note: 'opacity: 0.6 — the only disabled treatment this member has.' },
+            {
+              id: 'rest',
+              name: 'Rest',
+              note: 'The whole vocabulary side by side. A seventh pair appearing here is a change to the federal component API, not a line appended to app.css — which is what the swap bought.',
+            },
+            {
+              id: 'disabled',
+              name: 'Disabled',
+              props: { disabled: true },
+              note: 'Colour tokens shift to --color-surface-2 / --color-text-muted and the control leaves the tab order. Compare with what this member did before: `opacity: 0.6` on a bare `.cc-app button` selector — appearance instead of state, and it sat at a specificity that would have painted straight over the component had it survived.',
+            },
           ],
         },
         {
@@ -151,7 +174,8 @@ export default defineGallery({
           source: 'apps/corpora-curator/src/app.css:189–212',
           summary:
             'Train-Case tag chips with a remove affordance, plus the absolutely-positioned autocomplete popover. The popover is the only z-index in the member.',
-          a11y: 'The × is a 12px glyph in a zero-padding button — well under the 24×24 target floor.',
+          a11y:
+            'Was: “the × is a 12px glyph in a zero-padding button — well under the 24×24 target floor.” Now a <Button size="icon">, which is 28×28 and carries aria-label="remove tag". The chip grew to fit it; that is the target floor being met rather than a regression.',
           tokens: ['--color-selected-tint', '--color-border', '--color-surface-raised', '--fx-card-shadow'],
           snippet: tags,
           controls: { suggesting: { kind: 'boolean', label: 'show suggestions', value: false } },
@@ -174,6 +198,8 @@ export default defineGallery({
           source: 'apps/corpora-curator/src/app.css:167–188',
           summary:
             'The hairline list row — status dot, title, meta line of publisher + status chip + tag minis. Selection is a tinted background plus a 3px accent rail, with the padding compensated so text does not shift.',
+          deviation:
+            'Deliberately NOT a <Button>, and the clearest example in this member of why. It is a <button> element, but it is full-bleed, left-aligned, two-line with a wrapping meta row, hairline-separated and of variable height — where Button is inline-flex, centred, nowrap and a fixed --control-h-*. Adopting it means overriding width, display, justify-content, text-align, white-space and height simultaneously, which negates the base recipe rather than adjusting it and leaves only a focus ring the federal *:focus-visible rule already supplies. The organ it wants is a selectable list row.',
           tokens: ['--color-border', '--color-surface', '--color-selected-tint', '--color-accent', '--color-confidence-high', '--color-confidence-low', '--color-text-muted'],
           snippet: sourceRow,
           controls: {
@@ -288,7 +314,8 @@ export default defineGallery({
           summary:
             'Tag editor for the focused source. Renders the current tags, removes on ×, adds on Enter, and suggests from the workspace vocabulary as you type.',
           usage: '<TagBar />   <!-- no props: reads curation.focused and curation.tagVocab -->',
-          a11y: 'The remove button carries aria-label="remove tag"; the input has no associated <label>.',
+          a11y:
+            'The remove control is a <Button size="icon"> carrying aria-label="remove tag" — 28×28, so it now clears the WCAG 2.2 SC 2.5.8 floor it used to fail at 12px. The input still has no associated <label>.',
           tokens: ['--color-selected-tint', '--color-border', '--color-text-muted'],
           component: TagBar,
           fixtures: [
