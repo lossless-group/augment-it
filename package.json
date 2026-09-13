@@ -23,7 +23,9 @@
     "tokens:check": "node scripts/generate-token-baseline.mjs --check",
     "design:drift": "node scripts/design-drift.mjs",
     "design:contrast": "node scripts/design-drift.mjs --contrast",
-    "design:structure": "node scripts/design-drift.mjs --structure"
+    "design:structure": "node scripts/design-drift.mjs --structure",
+    "organ:drift": "node scripts/organ-drift.mjs",
+    "organ:record": "node scripts/organ-drift.mjs --record"
   },
   "devDependencies": {
     "@module-federation/enhanced": "^2.6.0",

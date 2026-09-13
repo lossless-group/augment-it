@@ -1,0 +1,90 @@
+{
+  "_comment": "Fingerprint ledger for cross-member Svelte components. Regenerate with `pnpm organ:record`. Compare with `pnpm organ:drift`. See context-v/loops/Converge-The-Federated-Design-System.md — two of four promotion candidates drifted unnoticed over six weeks because nothing re-measured.",
+  "recorded": "2026-09-13",
+  "organs": {
+    "ColumnMapper": {
+      "state": "divergent",
+      "members": [
+        "apps/affiliation-rating-resolver",
+        "apps/person-db-resolver"
+      ],
+      "implementations": [
+        {
+          "member": "apps/affiliation-rating-resolver",
+          "file": "apps/affiliation-rating-resolver/src/components/ColumnMapper.svelte",
+          "lines": 91,
+          "hash": "d0cd067021ab"
+        },
+        {
+          "member": "apps/person-db-resolver",
+          "file": "apps/person-db-resolver/src/components/ColumnMapper.svelte",
+          "lines": 68,
+          "hash": "636465fec2ae"
+        }
+      ]
+    },
+    "ConnectorChip": {
+      "state": "identical",
+      "members": [
+        "apps/pack-runner",
+        "apps/response-reviewer"
+      ],
+      "implementations": [
+        {
+          "member": "apps/pack-runner",
+          "file": "apps/pack-runner/src/ConnectorChip.svelte",
+          "lines": 237,
+          "hash": "d357923a262f"
+        },
+        {
+          "member": "apps/response-reviewer",
+          "file": "apps/response-reviewer/src/ConnectorChip.svelte",
+          "lines": 237,
+          "hash": "d357923a262f"
+        }
+      ]
+    },
+    "ConnectorPalette": {
+      "state": "identical",
+      "members": [
+        "apps/pack-runner",
+        "apps/response-reviewer"
+      ],
+      "implementations": [
+        {
+          "member": "apps/pack-runner",
+          "file": "apps/pack-runner/src/ConnectorPalette.svelte",
+          "lines": 298,
+          "hash": "d4ae5cdb9cfb"
+        },
+        {
+          "member": "apps/response-reviewer",
+          "file": "apps/response-reviewer/src/ConnectorPalette.svelte",
+          "lines": 298,
+          "hash": "d4ae5cdb9cfb"
+        }
+      ]
+    },
+    "RecordCard": {
+      "state": "divergent",
+      "members": [
+        "apps/person-db-resolver",
+        "apps/record-db-resolver"
+      ],
+      "implementations": [
+        {
+          "member": "apps/person-db-resolver",
+          "file": "apps/person-db-resolver/src/components/RecordCard.svelte",
+          "lines": 60,
+          "hash": "3c11b34a5705"
+        },
+        {
+          "member": "apps/record-db-resolver",
+          "file": "apps/record-db-resolver/src/components/RecordCard.svelte",
+          "lines": 93,
+          "hash": "8e43b438f87f"
+        }
+      ]
+    }
+  }
+}
