@@ -47,7 +47,14 @@
   --color__paper-100:  #f1efe9;
   --color__paper-200:  #f4f2ec;
   --color__paper-300:  #ddd9cd;
-  --color__paper-400:  #c4bfb0;
+  /* Darkened 2026-09-13: #c4bfb0 measured 1.60:1 on --color-surface-raised, far
+     under F7's 3:1 floor for a control BOUNDARY. Its sole consumer is
+     --color-border-strong in light mode — the token Button reaches for precisely
+     because plain --color-border was already measured too faint (gate A22). A
+     replacement that also fails the floor is not a fix.
+     #8f8878 clears 3:1 against every light surface it can sit on: 3.06 on
+     surface-raised, 3.35 on background, 3.52 on white. */
+  --color__paper-400:  #8f8878;
   --color__ink-900:    #1b1d22;
   --color__ink-500:    #686c77;
 
