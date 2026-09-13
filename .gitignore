@@ -69,3 +69,6 @@ docker-compose.override.yml
 
 # staged images — CDN is the source of truth for served bytes
 .image-staging/
+
+# Design canvas working files (seeded into a published Artifact)
+design-canvas/
