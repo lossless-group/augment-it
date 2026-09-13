@@ -186,19 +186,37 @@ disk and the registry disagree — is the same fix as rule 1.
 The concern raised was that adding a root `typecheck` would open a rabbit hole,
 because TypeScript conventions have never been enforced and the codebase is large.
 
-Measured on 2026-09-13, whole repo:
+Measured on 2026-09-13, whole repo, **each unit checked by the tool it actually
+declares**:
 
 ```
-svelte-check, 20 apps + shell     0 errors, 5 warnings
-tsc --noEmit, 35 TS projects      34 green, 1 red
+pnpm typecheck    21 svelte-check units + 12 tsc units + the root project
+                  0 errors, 5 warnings, exit 0
 ```
 
-The one red is `apps/corpora-curator` ([gh #99](https://github.com/lossless-group/augment-it/issues/99)). The five warnings are spread
-one each across four apps. **That is the entire debt.** The conventions are in
-fact being held — by hand, by attentive sessions, with no automation. A root
-sweep would not open a rabbit hole; it would **ratchet a state that is already
-green** so the next federation-shaped rot is caught in CI instead of five weeks
-later by accident.
+The five warnings are one each across four apps. **That is the entire debt.**
+The conventions are in fact being held — by hand, by attentive sessions, with no
+automation. A root sweep would not open a rabbit hole; it would **ratchet a
+state that is already green** so the next federation-shaped rot is caught in CI
+instead of five weeks later by accident.
+
+> **A correction worth keeping, because it is the same mistake in miniature.**
+> An earlier pass reported "34 of 35 green, 1 red" and filed the red as
+> [gh #99](https://github.com/lossless-group/augment-it/issues/99). That number
+> came from running bare `tsc --noEmit` on every directory holding a
+> `tsconfig.json` — including the Svelte apps, **which is the wrong checker for
+> them.** `apps/corpora-curator/src/gallery/patterns.svelte` exports Svelte 5
+> snippets via `export { … }` in a `<script module>` block; `svelte-check`
+> resolves those, while bare `tsc` falls back to Svelte's ambient
+> `declare module '*.svelte'` wildcard, which declares only a default export.
+> Hence TS2614, and hence a defect that was never there. #99 is closed as a
+> false positive.
+>
+> The sweep asserted coverage while measuring with a tool that did not fit the
+> units it was pointed at — a checker reporting a result because of how it
+> looked, not what was there. That is why **S3 is phrased as "declares a script
+> that type-checks"** rather than "passes `tsc`": the unit knows which checker
+> is correct for it, and the aggregate's job is to reach it, not to overrule it.
 
 But the instinct is half-right, and the half that's right matters more than the
 half that isn't. **The trap is not redness — it's that "typecheck" means three

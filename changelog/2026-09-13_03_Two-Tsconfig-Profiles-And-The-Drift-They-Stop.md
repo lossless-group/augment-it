@@ -175,12 +175,19 @@ checkable in one command — `tsc -p tsconfig.json --listFiles` now returns exac
 
 ## Where it stands
 
-**34 of 35 projects typecheck green.** The one red is `apps/corpora-curator` on
-TS2614 in `src/gallery/catalog.ts`, and it is **pre-existing** — verified by
-checking out the pre-arc commit and reproducing it there, and by confirming
-`apps/` was never touched and that the `tsconfig.base.json` edit was comment-only
-with byte-identical `compilerOptions`. It is a Svelte named-export typing defect,
-not a config defect, and is filed on its own rather than folded in.
+**Every project typecheck green**, under the checker each unit declares — 21
+`svelte-check` units, 12 `tsc` units, and the root project: 0 errors, 5
+warnings, exit 0.
+
+> **Corrected later the same day.** This entry first reported "34 of 35 green,
+> 1 red," with `apps/corpora-curator` filed as gh #99. That number came from
+> running bare `tsc --noEmit` on every directory holding a `tsconfig.json`,
+> **including the Svelte apps, which is the wrong checker for them.**
+> `patterns.svelte` exports Svelte 5 snippets via `export { … }` in a
+> `<script module>` block — `svelte-check` resolves them; bare `tsc` falls back
+> to Svelte's ambient `declare module '*.svelte'` wildcard, which declares only
+> a default export. TS2614 was an artifact of the measurement. #99 closed as a
+> false positive, and the sweep is green.
 
 Two follow-ups this arc earned but did not take:
 

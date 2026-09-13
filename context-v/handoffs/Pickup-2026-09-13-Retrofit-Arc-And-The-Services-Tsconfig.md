@@ -68,10 +68,22 @@ the graph earns its cadence.
 
 ## The rest of the queue, in order
 
-1. **Finish the `mount.ts` consolidation.** Proposed in the August graph build,
-   still unshipped, and it has *grown*: mount nodes went 17 → 19. `makeMount()` is
-   now a god node with 19 edges, so the helper exists and the duplication wasn't
-   removed. Outstanding across two graph builds now.
+1. ~~**Finish the `mount.ts` consolidation.**~~ **STRUCK 2026-09-13 — already
+   shipped, and this item was a graph misreading.** `e51032d` (2026-08-06,
+   ancestor of `HEAD`) collapsed seventeen `mount.ts` files into one
+   `makeMount()` factory in `packages/federation` — 406 lines gone. The surviving
+   files are 12–18 lines, mostly explanatory comment, wrapping one call, and the
+   distinct export name per remote is *load-bearing* because Module Federation
+   exposes it by name, so they cannot collapse further.
+
+   Nineteen edges into `makeMount` is not a god node — it is nineteen consumers
+   of one shared factory, which is exactly what the refactor was supposed to
+   produce. 17 → 19 is two apps added, not duplication growing. **Centrality
+   cannot distinguish "everyone duplicates this" from "everyone correctly
+   depends on this."** Carried into
+   [[../plans/Graphify-As-Standing-Practice-And-Per-Component-Diagrams]]; a graph
+   finding is a hypothesis until someone runs `git log` on the file. See
+   [[../issues/Structural-Invariants-Live-In-Prose-So-Sweeps-Stop-Halfway]].
 
 2. **Reconcile `DESIGN.md` with the disk.** It registers 16 of 20 microfrontends
    and 2 of 7 packages, and mentions `services/` zero times. Because
