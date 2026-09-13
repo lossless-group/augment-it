@@ -7,6 +7,7 @@
   // in the workbench refresh the counts via augment-it:entity-updated.
   // Per gh #32 (layer 2 of the corpus-coverage issue).
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { fetchOrgRoster } from './lib/org-client';
   import type { OrgRosterRow } from './lib/types';
 
@@ -71,7 +72,7 @@
   }
 </script>
 
-<aside class="ow-roster">
+<aside class="ow-roster" id="ow-roster">
   <div class="ow-roster-head">
     <input
       class="ow-roster-filter"
@@ -79,14 +80,14 @@
       placeholder="Filter {rows.length} orgs…"
       bind:value={filter}
     />
-    <button
-      type="button"
-      class="ow-roster-sort"
+    <Button
+      variant="outline"
+      aria-label="Sort by corpus count — currently {fewestFirst ? 'fewest' : 'most'} first"
       title="Sort by corpus count"
       onclick={() => (fewestFirst = !fewestFirst)}
     >
       corpus {fewestFirst ? '↑' : '↓'}
-    </button>
+    </Button>
   </div>
 
   {#if loading && rows.length === 0}

@@ -10,6 +10,7 @@
   // Busy/error states are localized to this list; a failed add, edit, or
   // remove never disturbs the sibling lists.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import type { ShapedLink } from './lib/types';
 
   type Entry = ShapedLink & { name?: string };
@@ -184,18 +185,25 @@
     <span class="ow-list-actions">
       {#if justAdded}<span class="ow-added">added ✓</span>{/if}
       {#if oncrawl}
-        <button type="button" class="ow-plus" title="didi: crawl the web for {title}" onclick={oncrawl}>
+        <Button variant="outline" size="icon" aria-label="didi: crawl the web for {title}" title="didi: crawl the web for {title}" onclick={oncrawl}>
           🤖
-        </button>
+        </Button>
       {/if}
       {#if onsearch}
-        <button type="button" class="ow-plus" title="Search the web for {title}" onclick={onsearch}>
+        <Button variant="outline" size="icon" aria-label="Search the web for {title}" title="Search the web for {title}" onclick={onsearch}>
           🔍
-        </button>
+        </Button>
       {/if}
-      <button type="button" class="ow-plus" title="Add to {title}" onclick={() => (open = !open)}>
+      <Button
+        variant="outline"
+        size="icon"
+        aria-expanded={open}
+        aria-label={open ? `Close the add form for ${title}` : `Add to ${title}`}
+        title="Add to {title}"
+        onclick={() => (open = !open)}
+      >
         {open ? '×' : '+'}
-      </button>
+      </Button>
     </span>
   </header>
 
@@ -226,7 +234,7 @@
           disabled={adding}
         />
       {/if}
-      <button type="submit" class="ow-add-go" disabled={adding}>{adding ? '…' : 'Add'}</button>
+      <Button type="submit" variant="primary" size="lg" disabled={adding}>{adding ? '…' : 'Add'}</Button>
     </form>
     {#if error}<div class="ow-error">{error}</div>{/if}
   {/if}
@@ -266,12 +274,12 @@
                   disabled={editBusy}
                 />
               {/if}
-              <button type="submit" class="ow-add-go" disabled={editBusy}>
+              <Button type="submit" variant="primary" size="lg" disabled={editBusy}>
                 {editBusy ? '…' : 'Save'}
-              </button>
-              <button type="button" class="ow-add-go" onclick={abortEdit} disabled={editBusy}>
+              </Button>
+              <Button size="lg" aria-label="Cancel this edit" onclick={abortEdit} disabled={editBusy}>
                 ×
-              </button>
+              </Button>
             </form>
             {#if editError}<div class="ow-error">{editError}</div>{/if}
           {:else}
@@ -291,44 +299,51 @@
             {#if onremove && removeUrl === e.url}
               <span class="ow-remove-confirm">
                 remove?{#if removenote?.(e)}&nbsp;<em class="ow-remove-note">{removenote(e)}</em>{/if}
-                <button
-                  type="button"
-                  class="ow-add-go ow-remove-yes"
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  aria-label="Confirm removing {e.url} from {title}"
                   disabled={removeBusy}
                   onclick={() => commitRemove(e)}
                 >
                   {removeBusy ? '…' : 'yes'}
-                </button>
-                <button type="button" class="ow-add-go" disabled={removeBusy} onclick={() => (removeUrl = null)}>
+                </Button>
+                <Button size="sm" aria-label="Keep {e.url}" disabled={removeBusy} onclick={() => (removeUrl = null)}>
                   keep
-                </button>
+                </Button>
               </span>
             {:else}
               {#if onedit}
-                <button
-                  type="button"
-                  class="ow-entry-action ow-micro"
-                  title="edit url / kind{nameable ? ' / name' : ''}"
-                  onclick={() => startEdit(e)}
-                >
-                  ✎
-                </button>
+                <span class="ow-micro">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Edit url / kind{nameable ? ' / name' : ''} for {e.url}"
+                    title="edit url / kind{nameable ? ' / name' : ''}"
+                    onclick={() => startEdit(e)}
+                  >
+                    ✎
+                  </Button>
+                </span>
               {/if}
               {#if onremove}
-                <button
-                  type="button"
-                  class="ow-entry-action ow-micro"
-                  title="remove from {title}"
-                  onclick={() => (removeUrl = e.url)}
-                >
-                  ×
-                </button>
+                <span class="ow-micro">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Remove {e.url} from {title}"
+                    title="remove from {title}"
+                    onclick={() => (removeUrl = e.url)}
+                  >
+                    ×
+                  </Button>
+                </span>
               {/if}
             {/if}
             {#if entryaction}
-              <button type="button" class="ow-entry-action" onclick={() => entryaction.fn(e)}>
+              <Button variant="outline" size="sm" onclick={() => entryaction.fn(e)}>
                 {entryaction.label}
-              </button>
+              </Button>
             {/if}
             <span class="ow-date">{(e.added_at ?? '').slice(0, 10)}</span>
             {#if removeError && removeUrl === e.url}<div class="ow-error">{removeError}</div>{/if}
@@ -346,6 +361,13 @@
 </section>
 
 <style>
+  /* HOLDOUT — the kind badge is a BADGE with a click affordance, not a button.
+     Its non-editable twin is a <span class="ow-kind"> rendered from the same
+     template; making one a Button and leaving the other a span splits one visual
+     element into two unrelated ones. Button contributes height, padding-inline
+     and border-radius — all declared in its scoped style at (0,2,0), so rung 4
+     cannot reach them. The missing organ is an interactive Badge/Pill (shared-ui
+     already ships ConfidencePill); raised in the report. */
   .ow-kind-editable {
     background: transparent;
     border: 1px dashed transparent;
@@ -376,9 +398,5 @@
   }
   .ow-remove-note {
     font-style: italic;
-  }
-  .ow-remove-yes {
-    border-color: var(--color-error-text, #f3a3a3);
-    color: var(--color-error-text, #f3a3a3);
   }
 </style>

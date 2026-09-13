@@ -9,6 +9,7 @@
   // also lands as its first org_link.
   // Per context-v/issues/Org-Workbench-Needs-Create-Organization-Behind-A-No-Match-Gate.md.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { fetchOrgCandidates, createOrg, addOrgLink } from './lib/org-client';
   import type { OrgCandidate } from './lib/types';
 
@@ -99,8 +100,8 @@
     />
     {#if phase === 'form'}
       <span class="ow-addperson-actions">
-        <button type="submit" class="ow-add-go" disabled={!name.trim()}>Find matches</button>
-        <button type="button" class="ow-add-go" onclick={oncancel}>Cancel</button>
+        <Button type="submit" variant="primary" size="lg" disabled={!name.trim()}>Find matches</Button>
+        <Button size="lg" onclick={oncancel}>Cancel</Button>
       </span>
     {/if}
   </form>
@@ -130,10 +131,10 @@
         <p class="ow-gate-note">No existing organization matches “{name}”.</p>
       {/if}
       <span class="ow-addperson-actions">
-        <button type="button" class="ow-add-go" onclick={create}>
+        <Button variant="primary" onclick={create}>
           No match — create “{name.trim()}”
-        </button>
-        <button type="button" class="ow-add-go" onclick={() => (phase = 'form')}>Back</button>
+        </Button>
+        <Button onclick={() => (phase = 'form')}>Back</Button>
       </span>
     </div>
   {:else if phase === 'writing'}

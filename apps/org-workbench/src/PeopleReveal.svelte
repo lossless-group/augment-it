@@ -7,6 +7,7 @@
   // added from the search-and-add rail).
 
   import { onMount } from 'svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import PersonCard from './PersonCard.svelte';
   import AddPersonInline from './AddPersonInline.svelte';
   import { fetchOrgAffiliations } from './lib/org-client';
@@ -97,19 +98,20 @@
 <section class="ow-people">
   <header class="ow-list-head">
     <h3 class="ow-list-title">
-      <button type="button" class="ow-people-toggle" onclick={toggle}>
+      <Button variant="ghost" size="sm" aria-expanded={open} aria-controls="ow-people-list" onclick={toggle}>
         {open ? '▾' : '▸'} People{#if loaded}&nbsp;<span class="ow-list-count">{people.length}</span>{/if}
-      </button>
+      </Button>
     </h3>
     <span class="ow-list-actions">
-      <button
-        type="button"
-        class="ow-plus"
+      <Button
+        variant="outline"
+        size="icon"
+        aria-label="didi: crawl the web for relevant team members"
         title="didi: crawl the web for relevant team members (selection per the relevance brief) — lands in the search queue"
         onclick={crawl}
       >
         🤖
-      </button>
+      </Button>
     </span>
   </header>
   {#if queued}<p class="ow-empty">team search queued — it lands in the 🔎 search rail when done; keep working</p>{/if}
@@ -124,12 +126,13 @@
       {#if people.length === 0}
         <p class="ow-empty">no affiliated people yet</p>
       {:else}
-        <ul class="ow-people-list">
+        <ul class="ow-people-list" id="ow-people-list">
           {#each people as p (p.person_uuid)}
             <li class="ow-person">
               <button
                 type="button"
                 class="ow-person-row"
+                aria-expanded={expanded === p.person_uuid}
                 onclick={() => (expanded = expanded === p.person_uuid ? null : p.person_uuid)}
               >
                 <span class="ow-person-name">{p.name ?? p.person_uuid}</span>

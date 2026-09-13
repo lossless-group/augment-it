@@ -6,6 +6,7 @@
   // what the agent believes should be visible and editable.
   // Per context-v/specs/Augment-From-DB-Flow.md §v1.2.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { fetchBrief, saveBrief } from './lib/org-client';
 
   let { client }: { client: string } = $props();
@@ -53,11 +54,11 @@
 </script>
 
 <div class="ow-brief">
-  <button type="button" class="ow-add-go" onclick={() => (open = !open)}>
+  <Button size="lg" aria-expanded={open} aria-controls="ow-brief-panel" onclick={() => (open = !open)}>
     {open ? '× Relevance brief' : '📋 Relevance brief'}
-  </button>
+  </Button>
   {#if open}
-    <div class="ow-brief-panel">
+    <div class="ow-brief-panel" id="ow-brief-panel">
       <p class="ow-brief-hint">
         didi loads this into every crawl for <strong>{client}</strong> — topical scope (what's
         relevant) and the people policy (who from a team page is worth ingesting).
@@ -72,9 +73,9 @@
       ></textarea>
       <span class="ow-addperson-actions">
         {#if saved}<span class="ow-added">saved ✓</span>{/if}
-        <button type="button" class="ow-add-go" onclick={save} disabled={busy}>
+        <Button variant="primary" onclick={save} disabled={busy}>
           {busy ? '…' : 'Save brief'}
-        </button>
+        </Button>
       </span>
       {#if error}<div class="ow-error">{error}</div>{/if}
     </div>

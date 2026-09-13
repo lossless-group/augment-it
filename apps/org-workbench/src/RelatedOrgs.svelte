@@ -6,6 +6,7 @@
   // header's gated + New organization (OrgCreateInline).
   // Per context-v/plans/Org-Relations-Parent-Child-Peer-Plus-Org-Tags.md §2.1.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import OrgSearch from './OrgSearch.svelte';
   import { fetchOrgRelations, relateOrg, unrelateOrg, patchOrgRelation } from './lib/org-client';
   import type { OrgRelations, OrgRelKind, OrgSuggestion, RelatedOrg } from './lib/types';
@@ -165,18 +166,18 @@
         </select>
         <input class="ow-add-kind" type="text" list="ro-kinds" placeholder="kind (initiative_of/…)" bind:value={editKind} disabled={busy} />
         <input class="ow-add-url" type="text" placeholder="description (free text)" bind:value={editDescription} disabled={busy} />
-        <button type="submit" class="ow-add-go" disabled={busy}>{busy ? '…' : 'Save'}</button>
-        <button type="button" class="ow-add-go" onclick={() => (editingSlug = null)} disabled={busy}>×</button>
+        <Button type="submit" variant="primary" size="lg" disabled={busy}>{busy ? '…' : 'Save'}</Button>
+        <Button size="lg" aria-label="Cancel editing this relation" onclick={() => (editingSlug = null)} disabled={busy}>×</Button>
       </form>
     {:else}
-      <button type="button" class="ro-open" title="open {r.slug} in the workbench" onclick={() => onopen(r.slug)}>
+      <Button variant="link" size="sm" title="open {r.slug} in the workbench" onclick={() => onopen(r.slug)}>
         {r.display_name}
-      </button>
+      </Button>
       {#if r.kind}<span class="ro-kind">{r.kind}</span>{/if}
       {#if r.description}<span class="ro-desc">{r.description}</span>{/if}
       <span class="ro-actions">
-        <button type="button" class="ow-entry-action ow-micro" title="edit relation" onclick={() => startEdit(r)}>✎</button>
-        <button type="button" class="ow-entry-action ow-micro" title="remove relation" onclick={() => (pendingRemove = r)}>×</button>
+        <Button variant="ghost" size="sm" aria-label="Edit the relation to {r.display_name}" title="edit relation" onclick={() => startEdit(r)}>✎</Button>
+        <Button variant="ghost" size="sm" aria-label="Remove the relation to {r.display_name}" title="remove relation" onclick={() => (pendingRemove = r)}>×</Button>
       </span>
     {/if}
   </li>
@@ -186,14 +187,16 @@
   <header class="ow-list-head">
     <h3 class="ow-list-title">Related organizations{#if !loading}&nbsp;<span class="ow-list-count">{total}</span>{/if}</h3>
     <span class="ow-list-actions">
-      <button
-        type="button"
-        class="ow-plus"
+      <Button
+        variant="outline"
+        size="icon"
+        aria-expanded={adding}
+        aria-label={adding ? 'Close the relate-organization form' : 'Relate an existing organization (parent / child / peer)'}
         title="relate an existing organization (parent / child / peer)"
         onclick={() => { adding = !adding; note = null; }}
       >
         {adding ? '×' : '+'}
-      </button>
+      </Button>
     </span>
   </header>
 
@@ -212,8 +215,8 @@
           </select>
           <input class="ow-add-kind" type="text" list="ro-kinds" placeholder="kind (initiative_of/…)" bind:value={addKind} disabled={busy} />
           <input class="ow-add-url" type="text" placeholder="description (free text — the context humans hold)" bind:value={addDescription} disabled={busy} />
-          <button type="submit" class="ow-add-go" disabled={busy}>{busy ? '…' : 'Relate'}</button>
-          <button type="button" class="ow-add-go" onclick={() => (picked = null)} disabled={busy}>×</button>
+          <Button type="submit" variant="primary" size="lg" disabled={busy}>{busy ? '…' : 'Relate'}</Button>
+          <Button size="lg" aria-label="Clear the picked organization" onclick={() => (picked = null)} disabled={busy}>×</Button>
         </form>
       {:else}
         <OrgSearch {client} onpick={(s) => (picked = s)} />
@@ -244,8 +247,8 @@
   {#if pendingRemove}
     <p class="ow-chip-confirm">
       remove the relation to <strong>{pendingRemove.display_name}</strong>? (both orgs stay — only the edge goes)
-      <button type="button" class="ow-add-go ow-remove-yes" disabled={busy} onclick={commitRemove}>{busy ? '…' : 'yes'}</button>
-      <button type="button" class="ow-add-go" disabled={busy} onclick={() => (pendingRemove = null)}>keep</button>
+      <Button variant="destructive" size="sm" aria-label="Confirm removing the relation to {pendingRemove.display_name}" disabled={busy} onclick={commitRemove}>{busy ? '…' : 'yes'}</Button>
+      <Button size="sm" aria-label="Keep the relation to {pendingRemove.display_name}" disabled={busy} onclick={() => (pendingRemove = null)}>keep</Button>
     </p>
   {/if}
 
@@ -259,11 +262,9 @@
   .ro-group { margin: 0.35rem 0 0.1rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.65; }
   .ro-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; }
   .ro-row { display: flex; align-items: baseline; gap: 0.5rem; min-width: 0; }
-  .ro-open { background: none; border: none; padding: 0; color: inherit; font: inherit; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
-  .ro-open:hover { text-decoration-style: solid; }
   .ro-kind { font-size: 0.72rem; padding: 0.05rem 0.4rem; border: 1px solid var(--color-border, #2a2c33); border-radius: 999px; opacity: 0.8; white-space: nowrap; }
   .ro-desc { font-size: 0.78rem; opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
-  .ro-actions { margin-left: auto; display: inline-flex; gap: 0.25rem; }
+  .ro-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 0.25rem; }
   /* opacity, not visibility — the buttons stay focusable/clickable for
      keyboard users and assistive tech; :focus-within reveals them on Tab */
   .ro-row:not(:hover):not(:focus-within) .ro-actions { opacity: 0; }

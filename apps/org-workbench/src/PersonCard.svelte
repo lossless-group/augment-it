@@ -5,6 +5,7 @@
   // envelope). Every write dispatches augment-it:entity-updated
   // { person_uuid } so the reveal refetches.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import AdditiveList from './AdditiveList.svelte';
   import AddAffiliationInline from './AddAffiliationInline.svelte';
   import {
@@ -114,29 +115,39 @@
     {#if confirmDetach}
       <span class="ow-remove-confirm">
         remove this affiliation? <em class="ow-remove-note">the person and their history stay</em>
-        <button type="button" class="ow-add-go ow-remove-yes" disabled={detachBusy} onclick={detach}>
+        <Button
+          variant="destructive"
+          size="sm"
+          aria-label="Confirm removing {displayName}'s affiliation with {orgName}"
+          disabled={detachBusy}
+          onclick={detach}
+        >
           {detachBusy ? '…' : 'yes'}
-        </button>
-        <button type="button" class="ow-add-go" disabled={detachBusy} onclick={() => (confirmDetach = false)}>
+        </Button>
+        <Button size="sm" aria-label="Keep the affiliation" disabled={detachBusy} onclick={() => (confirmDetach = false)}>
           keep
-        </button>
+        </Button>
       </span>
     {:else}
-      <button
-        type="button"
-        class="ow-entry-action ow-micro"
-        title="remove {displayName}'s affiliation with {orgName}"
-        onclick={() => (confirmDetach = true)}
-      >×</button>
+      <span class="ow-micro">
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label="Remove {displayName}'s affiliation with {orgName}"
+          title="remove {displayName}'s affiliation with {orgName}"
+          onclick={() => (confirmDetach = true)}
+        >×</Button>
+      </span>
     {/if}
-    <button
-      type="button"
-      class="ow-entry-action"
+    <Button
+      variant="outline"
+      size="sm"
+      aria-expanded={affiliating}
       title="affiliate {displayName} with another organization"
       onclick={() => (affiliating = !affiliating)}
     >
       {affiliating ? '× cancel' : '+ other org'}
-    </button>
+    </Button>
   </p>
   {#if detachError}<div class="ow-error">{detachError}</div>{/if}
 

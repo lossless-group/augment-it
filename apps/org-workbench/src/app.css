@@ -1,3 +1,20 @@
+/* THE ROW HOLDOUT (referenced from four rule-sets below).
+   .ow-search-item, .ow-roster-row, .ow-person-row and .ow-gate-pick stay raw
+   <button> elements and are NOT migrated to @augment-it/shared-ui's Button.
+   They are full-bleed, left-aligned, variable-height LIST ROWS that happen to
+   be buttons, not controls. Button is inline-flex / justify-content:center /
+   white-space:nowrap at a fixed height from --control-h-*; adopting one here
+   would need simultaneous rung-4 overrides of display, justify-content,
+   text-align, white-space, height and (for .ow-roster-row) flex-direction.
+   Every one of those is a property Button declares inside its own scoped
+   <style>, which hashes to (0,2,0) — a member's global class is (0,1,0), so
+   rung 4 CANNOT WIN and the next move would be !important. An override that
+   negates the base recipe rather than adjusting it is a different organ.
+   Measured at 33.2 / 51.9 / 36.8 / 33.8px against a 32px max control height;
+   all four already clear the 24px WCAG 2.2 SC 2.5.8 floor. The missing organ
+   (a "Row" / selectable list item) is raised in the migration report rather
+   than forked in place. */
+
 /* org-workbench — scoped ow-* surface styles. Uses @augment-it/theme :root
    tokens with literal fallbacks so the remote still renders standalone if a
    token is absent (same discipline as person-db-resolver's pdr-*). */
@@ -20,13 +37,13 @@
 .ow-ws.status-closed, .ow-ws.status-error { background: var(--color-error-bg, #3a1717); color: var(--color-error-text, #f3a3a3); }
 
 /* search */
-.ow-search-row { display: flex; align-items: flex-start; gap: 0.5rem; }
+.ow-search-row { display: flex; align-items: center; gap: 0.5rem; }
 .ow-search-row .ow-search { flex: 1; }
-.ow-search-row > .ow-add-go { margin-top: 0.6rem; white-space: nowrap; }
 .ow-search { position: relative; margin-top: 0.6rem; }
 .ow-search-input { width: 100%; box-sizing: border-box; background: var(--color-surface, #1c1e25); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; padding: 0.5rem 0.75rem; font: inherit; }
 .ow-search-busy { position: absolute; right: 0.75rem; top: 0.5rem; color: var(--color-text-muted, #9aa0aa); }
 .ow-search-drop { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5; margin: 0; padding: 0.25rem; list-style: none; background: var(--color-surface, #1c1e25); border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; box-shadow: var(--fx-popover-shadow); max-height: 18rem; overflow-y: auto; }
+/* ROW HOLDOUT — see the note at the top of this file. */
 .ow-search-item { display: flex; justify-content: space-between; gap: 0.75rem; width: 100%; text-align: left; background: none; border: none; color: inherit; font: inherit; padding: 0.45rem 0.6rem; border-radius: 4px; cursor: pointer; }
 .ow-search-item:hover { background: var(--color-border, #2a2c33); }
 .ow-search-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -58,12 +75,11 @@
 
 /* coverage roster — the column in front of the flow (gh #32) */
 .ow-roster { width: 300px; flex-shrink: 0; position: sticky; top: 7.5rem; max-height: calc(100vh - 8.5rem); display: flex; flex-direction: column; border: 1px solid var(--color-border, #2a2c33); border-radius: 8px; background: var(--color-surface, #1c1e25); }
-.ow-roster-head { display: flex; gap: 0.4rem; padding: 0.5rem; border-bottom: 1px solid var(--color-border, #2a2c33); }
+.ow-roster-head { display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem; border-bottom: 1px solid var(--color-border, #2a2c33); }
 .ow-roster-filter { flex: 1; min-width: 0; box-sizing: border-box; background: var(--color-bg, #14151a); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; padding: 0.35rem 0.55rem; font: inherit; font-size: 0.85rem; }
-.ow-roster-sort { background: none; border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; color: var(--color-text-muted, #9aa0aa); font: inherit; font-size: 0.8rem; padding: 0.25rem 0.5rem; cursor: pointer; white-space: nowrap; }
-.ow-roster-sort:hover { color: inherit; }
 .ow-roster-note { padding: 0.75rem; margin: 0; color: var(--color-text-muted, #9aa0aa); font-size: 0.85rem; }
 .ow-roster-list { margin: 0; padding: 0.25rem; list-style: none; overflow-y: auto; }
+/* ROW HOLDOUT — see the note at the top of this file. */
 .ow-roster-row { display: flex; flex-direction: column; gap: 0.1rem; width: 100%; text-align: left; background: none; border: none; color: inherit; font: inherit; padding: 0.4rem 0.55rem; border-radius: 5px; cursor: pointer; }
 .ow-roster-row:hover { background: var(--color-border, #2a2c33); }
 .ow-roster-row.active { background: var(--color-border, #2a2c33); outline: 1px solid var(--color-text-muted, #9aa0aa); }
@@ -91,14 +107,10 @@
 .ow-list-count { color: var(--color-text-muted, #9aa0aa); font-weight: normal; font-size: 0.8rem; margin-left: 0.35rem; }
 .ow-list-actions { display: flex; align-items: center; gap: 0.5rem; }
 .ow-added { font-size: 0.75rem; color: var(--color-ok-text, #6ee7a8); }
-.ow-plus { width: 1.6rem; height: 1.6rem; border-radius: 4px; border: 1px solid var(--color-border, #2a2c33); background: var(--color-bg, #14151a); color: inherit; font-size: 1rem; line-height: 1; cursor: pointer; }
-.ow-plus:hover { background: var(--color-border, #2a2c33); }
 
-.ow-add { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.ow-add { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
 .ow-add-url { flex: 2; min-width: 0; background: var(--color-bg, #14151a); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 4px; padding: 0.35rem 0.5rem; font: inherit; }
 .ow-add-kind { flex: 1; min-width: 0; background: var(--color-bg, #14151a); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 4px; padding: 0.35rem 0.5rem; font: inherit; }
-.ow-add-go { border: 1px solid var(--color-border, #2a2c33); background: var(--color-surface, #1c1e25); color: inherit; border-radius: 4px; padding: 0.35rem 0.8rem; font: inherit; cursor: pointer; }
-.ow-add-go:disabled { opacity: 0.6; cursor: default; }
 
 .ow-entries { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.3rem; }
 .ow-entry { display: flex; align-items: baseline; gap: 0.6rem; font-size: 0.85rem; min-width: 0; }
@@ -106,16 +118,14 @@
 .ow-url { color: var(--color-link, #8ab4f8); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 auto; }
 .ow-url:hover { text-decoration: underline; }
 .ow-date { margin-left: auto; flex-shrink: 0; color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
-.ow-entry-action { flex-shrink: 0; font-size: 0.7rem; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--color-border, #2a2c33); background: var(--color-bg, #14151a); color: var(--color-text-muted, #cfd3da); font-family: inherit; cursor: pointer; }
-.ow-entry-action:hover { background: var(--color-border, #2a2c33); color: var(--color-text, #e7e7e7); }
 
 .ow-empty { color: var(--color-text-muted, #9aa0aa); font-size: 0.8rem; margin: 0.4rem 0 0; }
 .ow-error { color: var(--color-error-text, #f3a3a3); font-size: 0.8rem; margin-top: 0.4rem; }
 
 /* people reveal (Phase 4) */
 .ow-people { border-top: 1px solid var(--color-border, #2a2c33); padding-top: 0.75rem; }
-.ow-people-toggle { background: none; border: none; color: inherit; font: inherit; font-size: 0.9rem; cursor: pointer; padding: 0; }
 .ow-people-list { list-style: none; margin: 0.5rem 0 0.75rem; padding: 0; display: grid; gap: 0.35rem; }
+/* ROW HOLDOUT — see the note at the top of this file. */
 .ow-person-row { display: flex; align-items: baseline; gap: 0.6rem; width: 100%; text-align: left; background: var(--color-bg, #14151a); border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; color: inherit; font: inherit; padding: 0.45rem 0.7rem; cursor: pointer; }
 .ow-person-row:hover { background: var(--color-border, #2a2c33); }
 .ow-person-row { min-width: 0; }
@@ -132,13 +142,12 @@
 
 /* add-person (Phase 4) */
 .ow-addperson { margin-top: 0.4rem; }
-.ow-addperson-open { background: none; border: 1px dashed var(--color-border, #2a2c33); border-radius: 6px; color: var(--color-text-muted, #9aa0aa); font: inherit; font-size: 0.82rem; padding: 0.4rem 0.8rem; cursor: pointer; }
-.ow-addperson-open:hover { color: var(--color-text, #e7e7e7); border-color: var(--color-text-muted, #9aa0aa); }
-.ow-addperson-form { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.ow-addperson-actions { display: flex; gap: 0.5rem; }
+.ow-addperson-form { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.ow-addperson-actions { display: flex; align-items: center; gap: 0.5rem; }
 .ow-gate { margin-top: 0.5rem; }
 .ow-gate-note { color: var(--color-text-muted, #9aa0aa); font-size: 0.8rem; margin: 0 0 0.4rem; }
 .ow-gate-list { list-style: none; margin: 0 0 0.5rem; padding: 0; display: grid; gap: 0.3rem; }
+/* ROW HOLDOUT — see the note at the top of this file. */
 .ow-gate-pick { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; width: 100%; text-align: left; background: var(--color-bg, #14151a); border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; color: inherit; font: inherit; font-size: 0.82rem; padding: 0.4rem 0.7rem; cursor: pointer; }
 .ow-gate-pick:hover { background: var(--color-border, #2a2c33); }
 .ow-gate-headline { color: var(--color-text-muted, #9aa0aa); font-size: 0.75rem; }
@@ -149,15 +158,12 @@
    (.ow-micro hover-reveal inside AdditiveList rows is component-scoped;
    these cover the card header + identity block, whose reveal scopes are
    the header row and the <dd>.) */
-.ow-chip { display: inline-flex; align-items: center; gap: 0.25rem; padding: 1px 8px; margin: 0 0.3rem 0.2rem 0; border-radius: 999px; border: 1px solid var(--color-border, #2a2c33); background: var(--color-bg, #14151a); font-size: 0.78rem; }
-.ow-chip-x { background: transparent; border: 0; color: var(--color-text-muted, #9aa0aa); font: inherit; line-height: 1; padding: 0 2px; cursor: pointer; }
-.ow-chip-x:hover { color: var(--color-error-text, #f3a3a3); }
+.ow-chip { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0 var(--space-sm); margin: 0 0.3rem 0.2rem 0; border-radius: 999px; border: 1px solid var(--color-border, #2a2c33); background: var(--color-bg, #14151a); font-size: 0.78rem; }
 .ow-chip .ow-micro { opacity: 0; transition: opacity 0.1s ease; }
 .ow-chip:hover .ow-micro, .ow-chip:focus-within .ow-micro { opacity: 1; }
 .ow-card-head .ow-micro { opacity: 0; transition: opacity 0.1s ease; }
 .ow-card-head:hover .ow-micro, .ow-card-head:focus-within .ow-micro { opacity: 1; }
 .ow-chip-confirm { font-size: 0.78rem; color: var(--color-text-muted, #9aa0aa); display: flex; align-items: center; gap: 0.4rem; margin: 0.25rem 0 0; }
-.ow-remove-yes { border-color: var(--color-error-text, #f3a3a3) !important; color: var(--color-error-text, #f3a3a3) !important; }
 .ow-names-edit { flex: 1; }
 
 /* Person-card affiliation row — role at this org, with × (detach edge) and

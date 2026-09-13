@@ -6,6 +6,7 @@
   // exists because none is needed — and the same person can gain more orgs
   // later (N-affiliation assumption, never 1:1).
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { fetchPersonCandidates, applyPerson, affiliatePerson } from './lib/org-client';
   import type { PersonCandidate, PersonNormRecord } from './lib/types';
 
@@ -85,9 +86,9 @@
 
 <div class="ow-addperson">
   {#if !open}
-    <button type="button" class="ow-addperson-open" onclick={() => (open = true)}>
+    <Button variant="outline" aria-expanded={open} onclick={() => (open = true)}>
       + Add a person to {orgName}
-    </button>
+    </Button>
   {:else}
     <form class="ow-addperson-form" onsubmit={findCandidates}>
       <input class="ow-add-url" type="text" placeholder="Full name (required)" bind:value={name} required disabled={phase !== 'form'} />
@@ -95,8 +96,8 @@
       <input class="ow-add-kind" type="text" placeholder="Role at {orgName} (optional)" bind:value={role} disabled={phase !== 'form'} />
       {#if phase === 'form'}
         <span class="ow-addperson-actions">
-          <button type="submit" class="ow-add-go" disabled={!name.trim()}>Find matches</button>
-          <button type="button" class="ow-add-go" onclick={() => { open = false; error = null; }}>Cancel</button>
+          <Button type="submit" variant="primary" size="lg" disabled={!name.trim()}>Find matches</Button>
+          <Button size="lg" onclick={() => { open = false; error = null; }}>Cancel</Button>
         </span>
       {/if}
     </form>
@@ -120,10 +121,10 @@
           <p class="ow-gate-note">No existing person matches “{name}”.</p>
         {/if}
         <span class="ow-addperson-actions">
-          <button type="button" class="ow-add-go" onclick={() => resolve('create')}>
+          <Button variant="primary" onclick={() => resolve('create')}>
             Create new person + affiliate with {orgName}
-          </button>
-          <button type="button" class="ow-add-go" onclick={() => (phase = 'form')}>Back</button>
+          </Button>
+          <Button onclick={() => (phase = 'form')}>Back</Button>
         </span>
       </div>
     {:else if phase === 'writing'}

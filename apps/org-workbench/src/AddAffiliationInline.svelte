@@ -12,6 +12,7 @@
   // Either way the gate is ALWAYS shown: pick an existing org or explicitly
   // create a thin, domain-matchable one.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { searchOrgs, affiliatePerson } from './lib/org-client';
   import type { OrgSuggestion, ShapedLink } from './lib/types';
 
@@ -131,13 +132,13 @@
         bind:value={role}
       />
       <span class="ow-addperson-actions">
-        <button type="button" class="ow-add-go" onclick={() => find(orgName.trim() || domain)}>
+        <Button size="lg" onclick={() => find(orgName.trim() || domain)}>
           Find matches
-        </button>
-        <button type="submit" class="ow-add-go" disabled={!orgName.trim()}>
+        </Button>
+        <Button type="submit" variant="primary" size="lg" disabled={!orgName.trim()}>
           Create + affiliate
-        </button>
-        <button type="button" class="ow-add-go" onclick={oncancel}>Cancel</button>
+        </Button>
+        <Button size="lg" onclick={oncancel}>Cancel</Button>
       </span>
     </form>
   {:else}

@@ -5,6 +5,7 @@
   // add triggers the parent's refetch so the card always shows DB truth,
   // never an optimistic guess.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import AdditiveList from './AdditiveList.svelte';
   import PeopleReveal from './PeopleReveal.svelte';
   import RelatedOrgs from './RelatedOrgs.svelte';
@@ -244,12 +245,14 @@
       <form class="ow-add ow-names-edit" onsubmit={commitNames}>
         <input class="ow-add-url" type="text" placeholder="complete name" bind:value={nameDraft} disabled={identityBusy} />
         <input class="ow-add-kind" type="text" placeholder="known as (conventional)" bind:value={convDraft} disabled={identityBusy} />
-        <button type="submit" class="ow-add-go" disabled={identityBusy}>{identityBusy ? '…' : 'Save'}</button>
-        <button type="button" class="ow-add-go" onclick={() => (editingNames = false)} disabled={identityBusy}>×</button>
+        <Button type="submit" variant="primary" size="lg" disabled={identityBusy}>{identityBusy ? '…' : 'Save'}</Button>
+        <Button size="lg" aria-label="Cancel editing names" onclick={() => (editingNames = false)} disabled={identityBusy}>×</Button>
       </form>
     {:else}
       <h2 class="ow-card-name">{org.complete_name ?? org.conventional_name ?? org.slug}</h2>
-      <button type="button" class="ow-entry-action ow-micro" title="edit names" onclick={startNamesEdit}>✎</button>
+      <span class="ow-micro">
+        <Button variant="ghost" size="sm" aria-label="Edit names" title="edit names" onclick={startNamesEdit}>✎</Button>
+      </span>
       <code class="ow-card-slug">{org.slug}</code>
     {/if}
   </header>
@@ -265,12 +268,15 @@
         {#each org.aliases as alias (alias)}
           <span class="ow-chip">
             {alias}
-            <button
-              type="button"
-              class="ow-chip-x ow-micro"
-              title="remove alias"
-              onclick={() => (pendingChip = { kind: 'alias', value: alias })}
-            >×</button>
+            <span class="ow-micro">
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label="Remove alias {alias}"
+                title="remove alias"
+                onclick={() => (pendingChip = { kind: 'alias', value: alias })}
+              >×</Button>
+            </span>
           </span>
         {/each}
       </dd>
@@ -280,17 +286,29 @@
       {#each org.tags as tag (tag)}
         <span class="ow-chip">
           {tag}
-          <button
-            type="button"
-            class="ow-chip-x ow-micro"
-            title="remove tag"
-            onclick={() => (pendingChip = { kind: 'tag', value: tag })}
-          >×</button>
+          <span class="ow-micro">
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Remove tag {tag}"
+              title="remove tag"
+              onclick={() => (pendingChip = { kind: 'tag', value: tag })}
+            >×</Button>
+          </span>
         </span>
       {/each}
-      <button type="button" class="ow-entry-action ow-micro" title="add a tag (Initiative / Program / Funder…)" onclick={() => void openTagAdd()}>
-        {addingTag ? '×' : '+'}
-      </button>
+      <span class="ow-micro">
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-expanded={addingTag}
+          aria-label={addingTag ? 'Close the add-tag form' : 'Add a tag (Initiative / Program / Funder…)'}
+          title="add a tag (Initiative / Program / Funder…)"
+          onclick={() => void openTagAdd()}
+        >
+          {addingTag ? '×' : '+'}
+        </Button>
+      </span>
       {#if addingTag}
         <form class="ow-add ow-tag-add" onsubmit={commitTagAdd}>
           <input
@@ -301,7 +319,7 @@
             bind:value={tagDraft}
             disabled={identityBusy}
           />
-          <button type="submit" class="ow-add-go" disabled={identityBusy}>{identityBusy ? '…' : 'Tag'}</button>
+          <Button type="submit" variant="primary" size="lg" disabled={identityBusy}>{identityBusy ? '…' : 'Tag'}</Button>
         </form>
         <datalist id="ow-tag-vocab">
           {#each tagVocab as t (t)}<option value={t}></option>{/each}
@@ -314,12 +332,15 @@
         {#each org.domains.filter((d) => d.domain) as d (d.domain)}
           <span class="ow-chip">
             {d.domain}
-            <button
-              type="button"
-              class="ow-chip-x ow-micro"
-              title="remove domain"
-              onclick={() => (pendingChip = { kind: 'domain', value: d.domain ?? '' })}
-            >×</button>
+            <span class="ow-micro">
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label="Remove domain {d.domain}"
+                title="remove domain"
+                onclick={() => (pendingChip = { kind: 'domain', value: d.domain ?? '' })}
+              >×</Button>
+            </span>
           </span>
         {/each}
       </dd>
@@ -328,10 +349,16 @@
   {#if pendingChip}
     <p class="ow-chip-confirm">
       remove {pendingChip.kind} <strong>{pendingChip.value}</strong>?
-      <button type="button" class="ow-add-go ow-remove-yes" disabled={identityBusy} onclick={commitChipRemove}>
+      <Button
+        variant="destructive"
+        size="sm"
+        aria-label="Confirm removing {pendingChip.kind} {pendingChip.value}"
+        disabled={identityBusy}
+        onclick={commitChipRemove}
+      >
         {identityBusy ? '…' : 'yes'}
-      </button>
-      <button type="button" class="ow-add-go" disabled={identityBusy} onclick={() => (pendingChip = null)}>keep</button>
+      </Button>
+      <Button size="sm" aria-label="Keep {pendingChip.value}" disabled={identityBusy} onclick={() => (pendingChip = null)}>keep</Button>
     </p>
   {/if}
   {#if identityError}<div class="ow-error">{identityError}</div>{/if}

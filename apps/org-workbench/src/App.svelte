@@ -7,6 +7,7 @@
   // from person-db-resolver. See context-v/specs/Augment-From-DB-Flow.md.
 
   import { onMount } from 'svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { workspace, resolveWsUrl } from '@augment-it/workspace';
   import OrgSearch from './OrgSearch.svelte';
   import OrgCard from './OrgCard.svelte';
@@ -145,23 +146,25 @@
       <span class="ow-ws status-{status}">{status}</span>
     </div>
     <div class="ow-search-row">
-      <button
-        type="button"
-        class="ow-add-go"
+      <Button
+        size="lg"
+        aria-expanded={rosterVisible}
+        aria-controls="ow-roster"
         title={rosterVisible ? 'Hide the org roster' : 'Show the org roster'}
         onclick={() => (rosterManual = !rosterVisible)}
       >
         {rosterVisible ? '◀ orgs' : '▶ orgs'}
-      </button>
+      </Button>
       <OrgSearch {client} onpick={onPick} onquery={(q) => (searchQuery = q)} />
-      <button
-        type="button"
-        class="ow-add-go"
+      <Button
+        size="lg"
+        aria-expanded={creating}
+        aria-label={creating ? 'Close the create-organization form' : 'Create an organization'}
         title="Create an organization (gated — existing matches shown first)"
         onclick={() => (creating = !creating)}
       >
         {creating ? '×' : '+ New organization'}
-      </button>
+      </Button>
       <BriefPanel {client} />
     </div>
     {#if creating}
