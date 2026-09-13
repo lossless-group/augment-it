@@ -145,6 +145,77 @@ dimension-tier gap.
 
 ---
 
+---
+
+## 4 — double focus indicator on `<select>` / `<input>`, in two different colours
+
+**Phase:** 2 (visual gate) · **Blast radius:** this member for the doubling,
+**federation-wide as a pattern** · **Confidence:** measured for the doubling,
+**suspected** for prevalence
+
+**Where:** `apps/request-reviewer/src/app.css:74`
+
+```css
+.req-app input:focus { outline: 1px solid var(--color-accent-2); }
+```
+
+**What.** Specificity `(0,2,1)` against the federal `*:focus-visible` at
+`(0,1,0)`, so the federal `outline: none` loses and the member's **cyan 1px
+outline paints on top of the federal magenta ring**. Both read off the live
+element together: `box-shadow: rgb(199,91,251)…` **and**
+`outline: solid 1px rgb(91,188,251)`.
+
+It is also `:focus`, not `:focus-visible`, so it does not inherit the federal
+rule's click-safety — a mouse click paints it.
+
+**How found.** Phase 2's visual gate — tabbed to the first control and read
+`getComputedStyle`, rather than trusting the screenshot.
+
+**Why it is a pattern candidate, not just a bug.** Phase 2 shipped a universal
+`:focus-visible` rule to all nineteen members simultaneously. **Any member
+carrying a local `:focus` outline at class specificity now has the same
+doubling.** Three members were known to consume `--focus-ring` before Phase 2;
+nothing is known about how many hand-rolled a local focus style instead.
+
+**Held, per the loop's triage rule** — this is a pattern candidate, and the fix's
+shape depends on how many members carry it. One member is an edit; eight is a
+sweep with a codemod. The count is not known yet, so nothing federation-wide
+happens until a finding like this reaches its third member file.
+
+**The local instance is different**, because it has a natural owner already in the
+file: the recipe is dead weight in `request-reviewer` once Button lands, and it is
+deleted in Phase 4 alongside the button recipes the plan enumerates. That is not
+"fixing a finding early" — it is the migration removing CSS the migration made
+redundant.
+
+---
+
+## 5 — no gate in the repo can see CSS source order
+
+**Phase:** 2 · **Blast radius:** federation-wide (tooling) · **Confidence:**
+measured
+
+**Where:** `scripts/design-drift.mjs` (absence), `packages/gallery/src/audit.ts`
+(absence)
+
+**What.** Phase 2 nearly shipped a regression that no check in the repository
+could have caught. Two `*:focus-visible` rules at identical specificity, where
+source order alone decides the winner and the loser leaves Windows High Contrast
+users with **no focus indicator at all**. `design:drift` parses declarations, not
+ordering; the gallery audit reads computed style in one mode at a time and would
+not have exercised `forced-colors`.
+
+**How found.** Placing the federal focus rule and checking what it would override.
+
+**Why it matters beyond this instance.** The same shape as finding 1: *the thing
+that bites is the rule you cannot see from the value.* A declaration can be
+individually correct, pass every check, and still be wrong because of where it
+sits. The federal layer now has two ordering constraints — this one, and the
+`@augment-it/gallery`-before-`app.css` import order that renders specimens
+unstyled — and **neither is enforced by anything but a comment.**
+
+**Owner: platform (me).** Not this migration.
+
 ## Already filed elsewhere
 
 Raised by this engineer, tracked as platform work:

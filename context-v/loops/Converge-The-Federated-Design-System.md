@@ -233,14 +233,41 @@ For each one, and no more than this:
    `context-v/issues/Issues-Raised-by-Subagent-for-<Microfrontend-Name>.md`.
    One file per member, appended across phases — not one file per agent run, and
    not scattered into the main issues folder where the pattern disappears.
-2. **Triage on arrival**, not at the end. A finding that is genuinely blocking the
-   migration gets fixed now, in its own commit, before the phase proceeds.
-   Everything else is queued.
-3. **Fix them as they return** — as separate, attributable commits, never folded
-   into the migration commit that surfaced them.
-4. **Escalate the federation-wide ones.** A finding in one member's file that
-   turns out to be true in nine is not a member issue; it is a platform defect,
-   and it graduates to `context-v/refactors/` with its own gh issue.
+
+2. **Triage by blast radius, not by arrival time.** Three outcomes:
+
+   | Class | Action |
+   |---|---|
+   | **Blocking** — the migration cannot proceed | Fix now, own commit, before the phase continues |
+   | **Has a natural owner** — it lives in a member someone will migrate anyway | Record it in *that* member's file. It gets fixed by the engineer already reading that CSS, which is the cheapest moment and the only one with the context loaded |
+   | **Pattern candidate** — could plausibly be true in other members | **Hold. Do not fix.** |
+
+3. **Hold the pattern candidates until the corpus is worth reading.**
+
+   > **The fix's shape depends on the count.** Three instances of a defect is three
+   > edits. Fifteen is a codemod that maps the wrong thing to the right thing. You
+   > cannot know which artifact you are building until enough members have
+   > reported — and **fixing the first three by hand spends the evidence that would
+   > have told you to build the tool.**
+
+   This is the same principle as the promotion path: a fix argued without
+   duplication counts is an opinion. Fixing on arrival optimises for a tidy queue
+   and against the abstraction the queue exists to reveal.
+
+4. **The forcing function: the third file.** Holding is not the same as waiting for
+   all nineteen — a pile nobody re-reads becomes the failure this whole loop was
+   started by (*"a list written once and never re-measured decays into a
+   historical document that reads like a live one"*).
+
+   So the trigger is **structural, not periodic**: when a single finding appears in
+   its **third** member file, run the pattern pass immediately, whatever the member
+   count is. Three is where coincidence becomes a pattern, and it is the same
+   threshold the promotion path already uses.
+
+5. **Escalate the federation-wide ones.** A finding true in three or more members
+   is not a member issue; it is a platform defect. It graduates to
+   `context-v/refactors/` with its own gh issue, and the per-member entries become
+   citations rather than work items.
 
 ### Why one file per member
 
