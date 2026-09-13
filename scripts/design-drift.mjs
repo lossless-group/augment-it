@@ -320,12 +320,27 @@ function runMemberChecks(member, tokens) {
       }
     }
 
-    if (/#[0-9a-fA-F]{3,8}/.test(n) && !f.includes('packages/theme')) {
+    // Svelte block syntax is not a colour. `{#each` contains `#eac` — three
+    // consecutive hex digits — so a bare /#[0-9a-fA-F]{3,8}/ over whole-file text
+    // flags every .svelte file with an each-block, forever, whatever its colours.
+    //
+    // Measured 2026-09-13 before this fix: 38 of 52 F8 hex findings were caused
+    // SOLELY by this — 40% of the entire baseline. That matters beyond tidiness.
+    // The Button rollout gates on 'the count must not increase', and a real
+    // regression can hide inside a number that is mostly noise, while a member
+    // 'improves' by deleting an each-block.
+    //
+    // Strip the block openers first. `{#if`, `{#await` and `{#key` do not produce
+    // three hex digits and `{#each` is the only current culprit, but all are
+    // stripped so a keyword added upstream cannot reintroduce this.
+    const hexSearchable = n.replace(/\{#[a-z]+/g, '{');
+    const hexHit = hexSearchable.match(/#[0-9a-fA-F]{3,8}/);
+    if (hexHit && !f.includes('packages/theme')) {
       results.push({
         check: 'F8',
         status: 'fail',
         file: relative(REPO_ROOT, f),
-        detail: 'Hardcoded hex colour outside packages/theme',
+        detail: 'Hardcoded hex colour outside packages/theme: ' + hexHit[0],
       });
     }
 
