@@ -13,6 +13,7 @@
  * Usage:
  *   pnpm design:drift                           full sweep
  *   pnpm design:contrast                        contrast-only
+ *   pnpm design:structure                       S1-S3 structural invariants only (gating)
  *   node scripts/design-drift.mjs --resolve     dump resolved Tier-2/3 values
  *   node scripts/design-drift.mjs --member sc   sweep one member
  *   node scripts/design-drift.mjs --json        machine-readable output
@@ -36,6 +37,7 @@ const FLAG = {
   json: args.includes('--json'),
   resolve: args.includes('--resolve'),
   contrast: args.includes('--contrast'),
+  structure: args.includes('--structure'),
   member: null,
 };
 {
@@ -507,7 +509,183 @@ function runResolve(tokens) {
   return output;
 }
 
+
+/* ---------------------------------------------------------------------------
+ * S1–S3 — structural invariants.
+ *
+ * WHY THESE EXIST. Between 2026-08-06 and 2026-09-13 three units were found
+ * whose typecheck had never once passed — shell, then packages/federation —
+ * plus e2e/ claimed by no TypeScript project at all and packages/gallery
+ * claimed by two under different options. Every one was found by accident, by
+ * someone tidying something else.
+ *
+ * The invariants that would have caught them were real, and were written down:
+ * in a comment inside tsconfig.json. Prose cannot fail a build. These three
+ * rules are that same prose, executable.
+ *
+ * They are deliberately pure file-tree logic — no tsc invocation — so the whole
+ * sweep costs milliseconds and can gate CI even while F6/F8 cannot.
+ * ------------------------------------------------------------------------- */
+
+const UNIT_ROOTS = ['apps', 'packages', 'services'];
+const UNIT_SINGLETONS = ['shell', 'e2e'];
+const PROFILES = new Set(['tsconfig.base.json', 'tsconfig.services.json']);
+
+function readJsonIf(filePath) {
+  const raw = readIf(filePath);
+  if (raw === null) return null;
+  try { return JSON.parse(raw); } catch { return undefined; } // undefined = present but unparseable
+}
+
+function countSource(dir) {
+  let ts = 0, svelte = 0;
+  const walk = (d) => {
+    let entries;
+    try { entries = readdirSync(d, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      if (e.name === 'node_modules' || e.name === 'dist' || e.name.startsWith('.')) continue;
+      const full = join(d, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (e.name.endsWith('.d.ts')) continue;
+      else if (e.name.endsWith('.ts')) ts++;
+      else if (e.name.endsWith('.svelte')) svelte++;
+    }
+  };
+  walk(dir);
+  return { ts, svelte };
+}
+
+function discoverUnits() {
+  const units = [];
+  const push = (rel) => {
+    const abs = resolve(REPO_ROOT, rel);
+    if (!existsSync(abs) || !statSync(abs).isDirectory()) return;
+    const src = countSource(abs);
+    const tsconfigPath = join(abs, 'tsconfig.json');
+    const pkgPath = join(abs, 'package.json');
+    const tsconfig = existsSync(tsconfigPath) ? readJsonIf(tsconfigPath) : null;
+    const pkg = existsSync(pkgPath) ? readJsonIf(pkgPath) : null;
+    units.push({
+      rel,
+      src,
+      hasSource: src.ts + src.svelte > 0,
+      hasTsconfig: existsSync(tsconfigPath),
+      tsconfig,
+      pkg,
+    });
+  };
+  for (const root of UNIT_ROOTS) {
+    const abs = resolve(REPO_ROOT, root);
+    if (!existsSync(abs)) continue;
+    for (const e of readdirSync(abs, { withFileTypes: true })) {
+      if (!e.isDirectory() || e.name === 'node_modules') continue;
+      push(`${root}/${e.name}`);
+    }
+  }
+  for (const s of UNIT_SINGLETONS) push(s);
+  return units.sort((a, b) => a.rel.localeCompare(b.rel));
+}
+
+// Does the root tsconfig's exclude list cover this unit path?
+function rootExcludes(rootTsconfig, rel) {
+  const list = (rootTsconfig && rootTsconfig.exclude) || [];
+  return list.some(entry => rel === entry || rel.startsWith(`${entry}/`));
+}
+
+// Does a unit declare a script that actually type-checks?
+function checkingScripts(pkg) {
+  const scripts = (pkg && pkg.scripts) || {};
+  return Object.entries(scripts)
+    .filter(([, cmd]) => /\btsc\b|\bsvelte-check\b/.test(String(cmd)))
+    .map(([name]) => name);
+}
+
+function runStructureChecks() {
+  const results = [];
+  const rootTsconfig = readJsonIf(resolve(REPO_ROOT, 'tsconfig.json'));
+  const units = discoverUnits();
+
+  for (const u of units) {
+    // A directory with no source is not a unit under these rules. That is how
+    // apps/highlight-collector and apps/insight-manager (README-only
+    // placeholders) and services/deploy-relay (a single plain-JS Vercel
+    // function) stay silent WITHOUT a hand-maintained exemption list — the
+    // exemption is derived from the disk, so it cannot go stale.
+    if (!u.hasSource) continue;
+
+    const excluded = rootExcludes(rootTsconfig, u.rel);
+    // The root's `include` is **/*.ts — so it claims a unit's .ts files
+    // whenever the unit is not excluded. .svelte is never claimed by the root.
+    const rootClaimsIt = !excluded && u.src.ts > 0;
+
+    /* S1 — claimed by exactly one project: not zero, not two. */
+    if (!u.hasTsconfig && excluded) {
+      results.push({
+        check: 'S1', status: 'fail', file: u.rel,
+        detail: `claimed by NO TypeScript project — no tsconfig.json, and the root config excludes it (${u.src.ts} .ts, ${u.src.svelte} .svelte unchecked)`,
+      });
+    } else if (u.hasTsconfig && rootClaimsIt) {
+      results.push({
+        check: 'S1', status: 'fail', file: u.rel,
+        detail: `claimed TWICE — has its own tsconfig.json but is missing from the root config's exclude list, so its .ts files are checked under two different option sets`,
+      });
+    } else if (!u.hasTsconfig && u.src.svelte > 0) {
+      results.push({
+        check: 'S1', status: 'fail', file: u.rel,
+        detail: `${u.src.svelte} .svelte file(s) claimed by NO project — the root config's include is **/*.ts and never matches .svelte`,
+      });
+    }
+
+    /* S2 — every unit config extends a profile; no standalone copies. */
+    if (u.hasTsconfig) {
+      if (u.tsconfig === undefined) {
+        results.push({ check: 'S2', status: 'fail', file: u.rel, detail: 'tsconfig.json is not parseable JSON' });
+      } else {
+        const ext = u.tsconfig.extends;
+        if (!ext) {
+          results.push({
+            check: 'S2', status: 'fail', file: u.rel,
+            detail: 'tsconfig.json extends nothing — a standalone copy is how the 8/7/2 apps split and the ten identical service configs happened',
+          });
+        } else if (!String(ext).startsWith('astro/') && !PROFILES.has(String(ext).split('/').pop())) {
+          results.push({
+            check: 'S2', status: 'fail', file: u.rel,
+            detail: `extends "${ext}" — expected tsconfig.base.json (browser/Svelte) or tsconfig.services.json (Node)`,
+          });
+        }
+      }
+    }
+
+    /* S3 — reachable by an aggregate command. */
+    const checkers = checkingScripts(u.pkg);
+    if (u.hasTsconfig && checkers.length === 0) {
+      results.push({
+        check: 'S3', status: 'fail', file: u.rel,
+        detail: 'declares no script running tsc or svelte-check, so `pnpm -r` cannot reach it — this is exactly how packages/federation sat red for five weeks',
+      });
+    }
+  }
+
+  return results;
+}
+
 function main() {
+  // Structure checks depend on neither DESIGN.md nor theme.css, so they run
+  // first and can short-circuit. That independence is the point: this gate must
+  // not inherit the fragility of the registry it sits next to.
+  if (FLAG.structure) {
+    const structureResults = runStructureChecks();
+    if (FLAG.json) {
+      console.log(JSON.stringify({ fail: structureResults.length, warn: 0, results: structureResults }, null, 2));
+    } else if (structureResults.length === 0) {
+      console.log('S1-S3 structural invariants: all pass');
+    } else {
+      for (const r of structureResults) console.log(`FAIL ${r.check} [${r.file}]: ${r.detail}`);
+      console.log(`\n${structureResults.length} structural violation(s)`);
+    }
+    process.exit(structureResults.length > 0 ? 1 : 0);
+  }
+
   const designText = readIf(DESIGN_MD);
   if (!designText) {
     console.error('DESIGN.md not found');
@@ -565,6 +743,8 @@ function main() {
 
   const contrastData = runContrastChecks(tokens);
   allResults.push(...contrastData.results);
+
+  if (!FLAG.contrast) allResults.push(...runStructureChecks());
 
   const fails = allResults.filter(r => r.status === 'fail').length;
   const warns = allResults.filter(r => r.status === 'warn').length;

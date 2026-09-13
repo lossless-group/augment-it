@@ -128,6 +128,48 @@ jobs:
       - name: Group G — corpora-curator
         run: pnpm --dir apps/corpora-curator test
 
+  # Structural invariants S1-S3: every source dir claimed by exactly one
+  # TypeScript project, every unit config extending a profile, every unit
+  # reachable by an aggregate command.
+  #
+  # This GATES, unlike design-drift below. It can, because it passes today and
+  # because it is pure file-tree logic — no tsc, no DESIGN.md, no theme.css —
+  # so it cannot go red for a reason unrelated to the invariant it checks.
+  #
+  # It exists because between 2026-08-06 and 2026-09-13 three units were found
+  # whose typecheck had never once passed, each by accident, by someone tidying
+  # something else. See context-v/issues/Structural-Invariants-Live-In-Prose-So-Sweeps-Stop-Halfway.md
+  structure:
+    name: structural invariants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: pnpm design:structure
+        run: pnpm design:structure
+
+  # The type sweep across all three checker shapes: the root project for loose
+  # files, `typecheck` (tsc) for services and packages, `check` (svelte-check)
+  # for the apps and shell. Running only one name reaches only a third of the
+  # tree, which is how packages/federation sat red for five weeks.
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+
   design-drift:
     name: design drift
     runs-on: ubuntu-latest
