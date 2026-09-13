@@ -175,26 +175,120 @@ always a window for another agent to move your tab. One engineer was navigated
 away *mid-evaluate* and received a different member's DOM.
 
 **Launch your own headless chromium from a node script via Bash instead.** Fully
-isolated, and navigate + assert + measure genuinely is one call. Gotcha:
-`chromium.launch()` may fail with *"Executable doesn't exist at
-…chromium_headless_shell-…"* — pass `executablePath` pointing at an installed
-revision under `~/Library/Caches/ms-playwright/`.
+isolated, and navigate + assert + measure genuinely is one call.
 
 Either way, **assert on the member's root class inside the evaluate**, never the
 tab title. A title can be right while the DOM is someone else's.
 
-**Reaching buttons behind `{#if}`.** Rendering leaf components with fixture props
-only reaches the leaves. The high-leverage move for data-driven members is to
-**alias `@augment-it/workspace` to a fixture stub** in the probe's
-`resolve.alias` — every capability call funnels through `workspace.invoke()`, so
-one small stub renders the member's *real* `App.svelte` end-to-end. Two traps: a
-probe outside the pnpm workspace cannot resolve `@augment-it/*` at all (use
-relative paths), and fixture shapes must match `packages/workspace/src/types.ts`
-exactly.
+### Building the probe — the parts that are not guessable
 
-**Put the probe outside `apps/`.** `design:drift` treats any directory there as a
-member and will silently add an F6 to the federation count. Delete it before your
-final measurement either way.
+Five engineers hit the same five walls. None of these produce an error; every one
+produces a *confidently wrong pass*.
+
+**Where the probe goes: `apps/<member>/probe/`.** An earlier version of this
+playbook said "outside `apps/`", which is exactly backwards and self-defeating —
+a probe outside `apps/` cannot resolve `@augment-it/*` at all. Verified in
+`scripts/design-drift.mjs`: `findMemberFiles()` walks **only**
+`apps/<member>/src`, and the S5 unregistered-member sweep enumerates **only
+direct children of `apps/`**. A sibling of `src/` is therefore invisible to every
+F-check and to S5, while inheriting the member's own `node_modules` — rsbuild,
+plugin-svelte, `@augment-it/theme`, `@augment-it/shared-ui` — for free.
+
+Corollary with teeth: **the fixture stub must not live in `src/`.** That
+directory *is* scanned. Put it in `probe/` with everything else.
+
+Delete the whole directory before the final gate run regardless.
+
+**There is no Playwright in this repo.** Not in `apps/`, `packages/`, `e2e/`, or
+a root `node_modules`, and adding one would touch `package.json`, which hard rule
+1 forbids. It resolves from the MCP server's npx cache. Do not guess either path —
+two chromium revisions coexist in that cache and picking the wrong one fails:
+
+```bash
+find ~/.npm/_npx -maxdepth 4 -type d -name playwright-core
+find ~/Library/Caches/ms-playwright -maxdepth 3 -name headless_shell
+```
+
+Then `require()` the first and pass the second as `executablePath`.
+
+**The stub must be reactive, or you will verify an empty surface.** A plain-object
+stub never re-runs the member's `$derived`, so the page renders with zero rows and
+every data-driven button in its empty state — and reports a clean pass. Name it
+`stub-workspace.svelte.ts` and back its fields with `$state`. One engineer's first
+run reported "all 0 / Promote 0 records" and looked entirely successful.
+
+**Read the member's predicates and dialog calls before shaping the fixture.**
+Aliasing the workspace is necessary and not sufficient. One member's auto-select
+only fires on a parent with more than ten columns, so a three-column fixture
+leaves the table empty forever. `window.confirm` blocks headless outright — stub
+it via `addInitScript` or the whole post-confirm branch is unreachable.
+
+**`theme.css` transitions `body *`, so computed style races.** A disabled-state
+read taken mid-transition returns intermediate values and looks *exactly* like the
+component failing to apply its rule. One engineer got as far as a CDP
+`getMatchedStylesForNode` dump before realising the rule matched fine and the
+clock was wrong. Settle ~1.2s before reading computed style.
+
+**`getComputedStyle` returns a LIVE object.** Focus A, hold the reference, focus
+B, read — and you get A's values *after* A lost focus. Snapshot inside the same
+`evaluate`, per element, with `JSON.parse(JSON.stringify(...))` before moving
+focus. This one reads as a clean pass, which is why it is on the list.
+
+### Measure the before, don't compute it
+
+The loop asks for a numeric delta and until now gave no way to obtain the first
+half of it. Arithmetic on deleted CSS is not a measurement.
+
+```bash
+git archive HEAD apps/<member>/src | tar -x -C probe/before --strip-components=3
+```
+
+Then add a **second rsbuild entry** pointed at `probe/before/App.svelte`. Same
+browser, same viewport, same theme, same fixture — the delta becomes a diff of two
+evaluates. This is what caught a `margin-right` on a bare `button` selector that
+was silently widening every control in one member; no amount of reading the diff
+would have surfaced it.
+
+The same move is what turns a suspected double focus ring into a proven one.
+`git show HEAD:<path>` the old CSS, rebuild, read `outline` **and** `boxShadow` at
+focus. It also exposed three rules that *looked* like focus handling and had never
+painted anything in their lives — `--focus-ring` holds a box-shadow value, so
+`outline: var(--focus-ring, …)` is invalid at computed-value time and dropped, and
+because the property *is* defined the fallback after the comma never applies
+either.
+
+### Capture both gate numbers at the top of the run
+
+Member-scoped **and** federation, before touching anything. Under parallel
+migration the federation number moves for reasons that are not yours, and an
+engineer who only captured the member number ends up reasoning backwards to prove
+a 72 wasn't theirs.
+
+### The a11y delta is usually not aria
+
+This loop's headline number — "five members carry zero `aria-*`" — has now
+mis-aimed two disciplined members in a row. One went 9 → 9 and that was *correct*:
+nothing it migrated was a toggle or a disclosure, and every icon-only control
+already had a name. Its real delta was two live WCAG 2.2 SC 2.5.8 target-size
+failures and a control boundary at 1.26:1 against a 3:1 floor.
+
+**Lead with target size and boundary contrast. Check aria second.** The recurring
+findings across nine migrations, in order of how often they turn out to be real:
+
+1. Controls under the 24px target floor — found in six of nine members.
+2. Boundaries drawn with `--color-border` (≈1.26:1) instead of
+   `--color-border-strong` (≈3.44:1).
+3. `opacity: 0.x` standing in for a disabled state — appearance without state.
+4. Icon-only controls whose accessible name is the glyph itself.
+5. Missing `type="button"`, defaulting to `submit`.
+
+### When a member hosts other members
+
+`docs-portal` mounts other members' galleries into its own document, and carries
+bare `section` / `h2` / `code` selectors plus generic `.cell` / `.chip` / `.grid`
+classes. A member can be entirely inside its own boundary and still style its
+neighbours. If yours is a host, **raise it — do not prefix it**. A containment
+pass is its own piece of work, not a line in a button diff.
 
 ### Verify what you cannot see
 
@@ -243,6 +337,19 @@ afterwards.
   mapped a dismissal to `ghost` and rendered it indistinguishable from a
   non-interactive muted span doing the same job one section below. Correct by
   role, a regression in fact.
+
+- **Is it actually a row?** This is now the most common holdout in the rollout and
+  the single most-cited missing organ. Four members have produced the same shape:
+  a full-bleed, left-aligned, **wrapping**, variable-height list row or card that
+  someone made into a `<button>` — measured at 39px, 56px, 89px and 93px against a
+  32px control height. `Button` is `inline-flex`, `justify-content: center`,
+  `white-space: nowrap`, fixed height. Adopting one takes rung-4 overrides for
+  height, `justify-content`, `text-align`, `white-space` and `flex`
+  *simultaneously* — every geometric property the component contributes, leaving
+  behind only a focus ring the federal `*:focus-visible` rule already provides.
+  **Leave it raw, put the rationale in the CSS, and raise the organ.** The general
+  form of the rule: *if the override would negate the base recipe rather than
+  adjust it, it is a different organ.*
 
 - **Is a button actually a link?** `variant="link"` exists; an `<a>` styled as a
   button is a different fix and may be out of scope.
