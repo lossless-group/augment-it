@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import {
     workspace,
     MODELS,
@@ -334,9 +335,23 @@
 
     {#if rows.length > 0}
       <div class="stepper">
-        <button onclick={() => stepRow(-1)} disabled={rowIndex === 0}>◀</button>
+        <Button
+          size="icon"
+          aria-label="Previous row"
+          onclick={() => stepRow(-1)}
+          disabled={rowIndex === 0}
+        >
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 L5 8 L10 13" /></svg>
+        </Button>
         <span>row {rowIndex + 1} / {rows.length}</span>
-        <button onclick={() => stepRow(1)} disabled={rowIndex >= rows.length - 1}>▶</button>
+        <Button
+          size="icon"
+          aria-label="Next row"
+          onclick={() => stepRow(1)}
+          disabled={rowIndex >= rows.length - 1}
+        >
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3 L11 8 L6 13" /></svg>
+        </Button>
       </div>
 
       {#if coverage && promptId}
@@ -360,12 +375,13 @@
       <div class="models">
         <span class="knob-label">Model</span>
         {#each MODELS as m (m.id)}
-          <button
-            class="chip"
-            class:active={model === m.id}
+          <Button
+            size="sm"
+            variant={model === m.id ? 'primary' : 'secondary'}
+            aria-pressed={model === m.id}
             title={m.note}
             onclick={() => (model = m.id)}
-          >{m.label}</button>
+          >{m.label}</Button>
         {/each}
       </div>
       <label class="inline">
@@ -383,10 +399,16 @@
 
     {#if previewOk}
       <div class="view-toggle">
-        <button class="chip" class:active={view === 'resolved'} onclick={() => (view = 'resolved')}
-          >Resolved prompt</button>
-        <button class="chip" class:active={view === 'json'} onclick={() => (view = 'json')}
-          >JSON request</button>
+        <Button
+          size="sm"
+          variant={view === 'resolved' ? 'primary' : 'secondary'}
+          aria-pressed={view === 'resolved'}
+          onclick={() => (view = 'resolved')}>Resolved prompt</Button>
+        <Button
+          size="sm"
+          variant={view === 'json' ? 'primary' : 'secondary'}
+          aria-pressed={view === 'json'}
+          onclick={() => (view = 'json')}>JSON request</Button>
       </div>
 
       {#if view === 'resolved'}
@@ -424,19 +446,20 @@
         <input type="number" min="1" bind:value={rowLimit} />
       </label>
       <div class="fire-row">
-        <button onclick={() => fire('row')} disabled={!canFire}>Fire this row</button>
-        <button onclick={() => fire('set')} disabled={!canFire}
-          >Fire whole set · limit {rowLimit}</button>
+        <Button variant="primary" onclick={() => fire('row')} disabled={!canFire}
+          >Fire this row</Button>
+        <Button variant="primary" onclick={() => fire('set')} disabled={!canFire}
+          >Fire whole set · limit {rowLimit}</Button>
         {#if coverage && remainingRowIds.length > 0}
-          <button
-            class="remaining"
+          <Button
+            variant="secondary"
             onclick={() => fire('remaining')}
             disabled={!canFire}
             title="Fire only rows that have not been processed by this prompt yet{includeNeedsRerun ? ' (plus needs-rerun)' : ''}"
-          >Fire remaining ({remainingRowIds.length})</button>
+          >Fire remaining ({remainingRowIds.length})</Button>
         {/if}
         {#if firing}
-          <button class="cancel" onclick={cancelRun}>Cancel run</button>
+          <Button variant="destructive" onclick={cancelRun}>Cancel run</Button>
         {/if}
       </div>
       {#if firing}
