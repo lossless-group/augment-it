@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import {
     BUNDLES, getBundle, packDisplayName, inferEntityNameField,
     PACK_PALETTE_META,
@@ -520,11 +521,9 @@
           <span class="muted entity-warn">No entity-name column inferred — pick one:</span>
         {/if}
         {#if !entityNamePickerOpen}
-          <button
-            type="button"
-            class="entity-change"
-            onclick={() => (entityNamePickerOpen = true)}
-          >change ›</button>
+          <Button size="sm" variant="ghost" onclick={() => (entityNamePickerOpen = true)}
+            >change ›</Button
+          >
         {/if}
         {#if entityNamePickerOpen || !entityNameField}
           <select
@@ -542,28 +541,37 @@
 
       <section class="card">
         <h3>2 · Rows to fire against ({selectedRowCount}/{rowsForSelected.length})</h3>
-        <div class="row-filter-chips" role="tablist" aria-label="Filter rows by status">
-          <button
-            class="chip"
-            class:active={rowFilter === 'all'}
+        <!-- role="group", not role="tablist". This row declared a tablist while
+             none of its children carried role="tab" or aria-selected, so a
+             screen reader announced a tab list containing zero tabs. These are
+             toggles, and honest toggle buttons with aria-pressed beat
+             half-implemented tabs — real tab semantics would need
+             aria-controls, role="tabpanel" and arrow-key handling. -->
+        <div class="row-filter-chips" role="group" aria-label="Filter rows by status">
+          <Button
+            size="sm"
+            variant={rowFilter === 'all' ? 'primary' : 'secondary'}
+            aria-pressed={rowFilter === 'all'}
             onclick={() => (rowFilter = 'all')}
-          >all <span class="chip-count">{filterCounts.all}</span></button>
-          <button
-            class="chip"
-            class:active={rowFilter === 'has-url'}
+          >all <span class="chip-count">{filterCounts.all}</span></Button>
+          <Button
+            size="sm"
+            variant={rowFilter === 'has-url' ? 'primary' : 'secondary'}
+            aria-pressed={rowFilter === 'has-url'}
             onclick={() => (rowFilter = 'has-url')}
             title="Rows whose `url` is already populated — likely candidates for further enrichment"
-          >has url <span class="chip-count">{filterCounts['has-url']}</span></button>
-          <button
-            class="chip"
-            class:active={rowFilter === 'no-url'}
+          >has url <span class="chip-count">{filterCounts['has-url']}</span></Button>
+          <Button
+            size="sm"
+            variant={rowFilter === 'no-url' ? 'primary' : 'secondary'}
+            aria-pressed={rowFilter === 'no-url'}
             onclick={() => (rowFilter = 'no-url')}
             title="Rows whose `url` is empty or 'unknown' — likely need client clarification before pack-firing"
-          >no url <span class="chip-count">{filterCounts['no-url']}</span></button>
+          >no url <span class="chip-count">{filterCounts['no-url']}</span></Button>
         </div>
         <div class="row-actions">
-          <button class="chip" onclick={selectAllRows}>all visible</button>
-          <button class="chip" onclick={clearAllRows}>none</button>
+          <Button size="sm" onclick={selectAllRows}>all visible</Button>
+          <Button size="sm" onclick={clearAllRows}>none</Button>
           <span class="muted row-actions-hint">
             ({rowFilter === 'all' ? rowsForSelected.length : visibleRows.length} visible)
           </span>
@@ -637,9 +645,9 @@
           <strong>solo</strong> next to a pack to fire just that one.
         </p>
         <div class="row-actions">
-          <button class="chip" onclick={rosterAll}>all</button>
-          <button class="chip" onclick={rosterNone}>none</button>
-          <button class="chip" onclick={rosterDefaults}>defaults</button>
+          <Button size="sm" onclick={rosterAll}>all</Button>
+          <Button size="sm" onclick={rosterNone}>none</Button>
+          <Button size="sm" onclick={rosterDefaults}>defaults</Button>
         </div>
         <div class="packs">
           {#each activeBundle.members as m (m.pack_id)}
@@ -653,12 +661,12 @@
                 <span>{packDisplayName(m.pack_id)}</span>
                 {#if !m.default}<span class="muted pack-optin">opt-in</span>{/if}
               </label>
-              <button
-                type="button"
-                class="solo"
+              <Button
+                size="sm"
+                variant="ghost"
                 title="Fire only {packDisplayName(m.pack_id)} for this bundle"
                 onclick={() => rosterSolo(m.pack_id)}
-              >solo</button>
+              >solo</Button>
             </div>
           {/each}
         </div>
@@ -666,8 +674,9 @@
 
       <section class="card fire-card">
         <div class="fire-actions">
-          <button
-            class="fire"
+          <Button
+            variant="primary"
+            size="lg"
             disabled={firing || cellsToFire === 0 || !entityNameField}
             onclick={() => void fire()}
           >
@@ -678,10 +687,10 @@
             {:else}
               Fire {activeBundle.display_name} on {selectedRowCount} {selectedRowCount === 1 ? 'row' : 'rows'}
             {/if}
-          </button>
-          <button class="to-reviewer" onclick={goToResponseReviewer}>
+          </Button>
+          <Button variant="outline" size="lg" onclick={goToResponseReviewer}>
             Response Reviewer →
-          </button>
+          </Button>
         </div>
         <!-- Target-column line (spec Decision §9): name what gets richer
              when responses are accepted. Always visible when there are

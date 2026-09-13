@@ -67,8 +67,6 @@
   max-width: 480px;
 }
 
-.pr-app select:focus { outline: 1px solid var(--color-accent-2); }
-
 .pr-app .row-filter-chips {
   display: flex;
   gap: 0.4rem;
@@ -76,23 +74,14 @@
   flex-wrap: wrap;
 }
 
-.pr-app .row-filter-chips .chip.active {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border-color: var(--color-accent);
-}
-
+/* Rides inside a <Button>, so it takes its colour from whichever variant the
+   Button is painting — one rule instead of a second for the active state, and
+   no accent token named twice. Gap comes from the Button, not a margin. */
 .pr-app .chip-count {
-  background: color-mix(in srgb, var(--color-text) 12%, transparent);
-  padding: 0 0.4em;
-  border-radius: 999px;
-  margin-left: 0.3rem;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  padding: 0 var(--space-2xs);
+  border-radius: var(--radius-pill);
   font-size: 0.7rem;
-  color: var(--color-text-muted);
-}
-.pr-app .row-filter-chips .chip.active .chip-count {
-  background: color-mix(in srgb, var(--color-on-accent) 22%, transparent);
-  color: var(--color-on-accent);
 }
 
 .pr-app .row-actions {
@@ -125,17 +114,6 @@
   padding: 0.5rem 0.6rem;
   font-style: italic;
 }
-
-.pr-app .chip {
-  background: var(--color-field);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  cursor: pointer;
-}
-.pr-app .chip:hover { border-color: var(--color-accent); }
 
 .pr-app .rows {
   list-style: none;
@@ -195,26 +173,13 @@
   margin: 0.3rem 0 0;
 }
 
-/* Per-pack row with a solo affordance. The chip lays out the same way as
-   before; solo is a small right-aligned text button. */
+/* Per-pack row with a solo affordance. Layout only — the solo control is a
+   <Button variant="ghost" size="sm">, so its background, border, radius,
+   focus ring and disabled state all come from the federal component. */
 .pr-app .pack-row {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-}
-.pr-app .pack-row .solo {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--color-text-muted);
-  font-size: 0.7rem;
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  cursor: pointer;
-  letter-spacing: 0.02em;
-}
-.pr-app .pack-row .solo:hover {
-  color: var(--color-accent);
-  border-color: var(--color-accent);
 }
 .pr-app .pack-optin {
   font-size: 0.7rem;
@@ -236,20 +201,6 @@
   font-weight: 600;
 }
 .pr-app .entity-warn { color: var(--color-warn-text, var(--color-text)); }
-.pr-app .entity-change {
-  background: transparent;
-  border: 0;
-  color: var(--color-text-muted);
-  font: inherit;
-  font-size: 0.75rem;
-  cursor: pointer;
-  padding: 0.1rem 0.3rem;
-  border-radius: 4px;
-}
-.pr-app .entity-change:hover {
-  color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
-}
 .pr-app .entity-select {
   font-size: 0.8rem;
   padding: 0.2rem 0.4rem;
@@ -290,33 +241,6 @@
   align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;
-}
-
-.pr-app .fire {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border: 0;
-  padding: 0.6rem 1.2rem;
-  border-radius: 4px;
-  font: 600 0.85rem var(--font-mono);
-  cursor: pointer;
-}
-
-.pr-app .to-reviewer {
-  background: transparent;
-  color: var(--color-accent);
-  border: 1px solid var(--color-accent);
-  padding: 0.6rem 1rem;
-  border-radius: 4px;
-  font: 600 0.85rem var(--font-mono);
-  cursor: pointer;
-}
-.pr-app .to-reviewer:hover { box-shadow: var(--fx-accent-glow); }
-.pr-app .fire:hover:not(:disabled) { box-shadow: var(--fx-accent-glow); }
-.pr-app .fire:disabled {
-  background: var(--color-field);
-  color: var(--color-text-muted);
-  cursor: not-allowed;
 }
 
 .pr-app .result {
