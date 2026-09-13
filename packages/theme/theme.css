@@ -253,10 +253,12 @@
   --color-primary-foreground: var(--color__graphite-950);
   --color-secondary:          var(--color__cyan-bright);
   --color-secondary-foreground: var(--color__graphite-950);
+  --color-tertiary:           var(--color__amber-bright);
+  --color-tertiary-foreground: var(--color__graphite-950);
 
   --color-accent:          var(--color-primary);      /* alias → --color-primary */
   --color-accent-2:        var(--color-secondary);    /* alias → --color-secondary */
-  --color-accent-warm:     var(--color__amber-bright);
+  --color-accent-warm:     var(--color-tertiary);      /* alias → --color-tertiary */
   --color-on-accent:       var(--color-primary-foreground);  /* alias → --color-primary-foreground */
   --color-link:            var(--color__cyan-bright);
   --color-thread:          var(--color__graphite-800);
@@ -329,10 +331,12 @@
   --color-primary-foreground: var(--color__paper-0);
   --color-secondary:          var(--color__cyan-deep);
   --color-secondary-foreground: var(--color__paper-0);
+  --color-tertiary:           var(--color__amber-ink);
+  --color-tertiary-foreground: var(--color__paper-0);
 
   --color-accent:          var(--color-primary);      /* alias → --color-primary */
   --color-accent-2:        var(--color-secondary);    /* alias → --color-secondary */
-  --color-accent-warm:     var(--color__amber-ink);
+  --color-accent-warm:     var(--color-tertiary);      /* alias → --color-tertiary */
   --color-on-accent:       var(--color-primary-foreground);  /* alias → --color-primary-foreground */
   --color-link:            var(--color__cyan-deep);
   --color-thread:          var(--color__paper-300);
@@ -389,10 +393,12 @@
   --color-primary-foreground: var(--color__void-950);
   --color-secondary:          var(--color__cyan-loud);
   --color-secondary-foreground: var(--color__void-950);
+  --color-tertiary:           var(--color__amber-neon);
+  --color-tertiary-foreground: var(--color__void-950);
 
   --color-accent:          var(--color-primary);      /* alias → --color-primary */
   --color-accent-2:        var(--color-secondary);    /* alias → --color-secondary */
-  --color-accent-warm:     var(--color__amber-neon);
+  --color-accent-warm:     var(--color-tertiary);      /* alias → --color-tertiary */
   --color-on-accent:       var(--color-primary-foreground);  /* alias → --color-primary-foreground */
   --color-link:            var(--color__cyan-loud);
   --color-thread:          var(--color__void-800);
