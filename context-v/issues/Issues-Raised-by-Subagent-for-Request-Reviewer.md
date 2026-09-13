@@ -60,7 +60,22 @@ DESIGN.md §Shapes' own role column, and all four `--radius-md` uses are
 | `.proposal-card`, `.draft-body` | `sm` (2px — *"tight inline, tag stamps"*) | `md` — *"small cards"* |
 | `.run`, `.decline`, `.submit-refine`, `.draft-actions button` | `sm` | `md` — *"buttons"* |
 | `.refine-row textarea` | `sm` | `md` — *"inputs"* |
-| `.bubble`, `.composer`, `.send`, popover | `md` (4px) | `lg` — *"panels, dialogs"* |
+| `.bubble`, `.commands-popover` | `md` (4px) | `lg` — *"panels, dialogs"* |
+| ~~`.send`, `.composer`~~ | | ⚠️ **corrected — see below** |
+
+> ⚠️ **This table was wrong in two rows, and the error is instructive.** It
+> originally listed `.send` and `.composer` under *"panels, dialogs"* → `lg`.
+> `.send` is a **button** and `.composer`'s element is a **textarea**, and
+> DESIGN.md §Shapes puts *"buttons, inputs, chips, small cards"* at `md`. Both
+> already carried an 8px fallback, so the table was restoring the pre-token
+> **pixels** at the cost of the **role** — which inverts the very rule this
+> finding exists to make. The engineer migrating `chat` checked each row against
+> §Shapes before acting, followed the rule rather than the table, and rendered
+> `.send` at `md`.
+>
+> **The real `md`→`lg` set is two, not four**, and the pixel-neutral claim holds
+> only for the corrected set. A role table assembled by reading fallbacks is the
+> same mistake as picking a token by appearance, one level up.
 
 **How found.** Building the old-vs-new harness for Phase 1's eyeball, then
 comparing each selector's role against §Shapes rather than only its pixel delta.
