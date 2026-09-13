@@ -1,0 +1,281 @@
+---
+title: "The component API contract and the control scale — inspired by shadcn, with sprinkles of Tailwind, derived from what members already built"
+lede: "Members were already converging on Tailwind's radius scale by instinct. They just had no token to spell it with."
+date_created: 2026-09-13
+date_modified: 2026-09-13
+authors:
+  - Michael Staton
+augmented_with:
+  - Claude Code on Claude Opus 5 (1M context)
+semantic_version: 0.0.1.0
+status: Draft
+tags:
+  - Spec
+  - Augment-It
+  - Design-System
+  - Component-Library
+  - Tokens
+  - Platform-Engineering
+site_uuid: 0a5d27c0-a281-4b3a-b303-0ed0e0435ea2
+hex_code: xp5rg6
+date_authored_initial_draft: 2026-09-13
+date_authored_current_draft: 2026-09-13
+publish: true
+---
+
+# The component API contract and the control scale
+
+> **The stance.** We are not adopting a UI kit. We are deriving a vocabulary from
+> kits our agents already know, and documenting every place we depart from them.
+> *Inspired by shadcn, with sprinkles of Tailwind — full docs below.*
+>
+> The reason is legibility, not laziness. A foundation model reads `variant`,
+> `size` and `--primary-foreground` without being taught. A syntax invented here
+> has to be written, read, and remembered before anyone — human or agent — can
+> use it. That is the same argument `DESIGN.md` already makes for the two-tier
+> token split under *"Why two tiers — AI collaboration."* This applies it one
+> layer up.
+
+## Why Care?
+
+The convergence sweep counted **158 button rule-sets and 34 badge treatments,
+none of them components**, and **170 declarations across 10 members reaching for
+tokens that do not exist**. The diagnosis was not indiscipline — the federal layer
+never shipped a spacing, radius or layering scale, so there was nothing to
+converge on.
+
+This spec ships that scale, and the component API that consumes it.
+
+## The finding that decided the scale
+
+Before proposing values, we measured every `border-radius` in member CSS:
+
+| Value in use | Occurrences | Tailwind's own scale |
+|---|---|---|
+| `3px` | 296 | — |
+| `4px` | 251 | ✅ `--radius-sm: 0.25rem` |
+| `999px` | 109 | (pill) |
+| `6px` | 106 | ✅ `--radius-md: 0.375rem` |
+| `8px` | 37 | ✅ `--radius-lg: 0.5rem` |
+| `2px` | 22 | ✅ `--radius-xs: 0.125rem` |
+
+> **Four of the five most-used radii are exactly Tailwind's steps.** Members were
+> not drifting randomly. They were converging on the best-known scale in the
+> field, by instinct, and had no token to spell it with.
+>
+> That is the empirical case for borrowing rather than inventing: **the
+> convention was already here.** It just wasn't named, so every session
+> re-derived it and landed a pixel or two off.
+
+Font sizes tell the density story: members cluster at **10 / 11 / 12 / 13px**,
+roughly 2px below Tailwind's smallest step. augment-it is a dense monospace
+instrument panel, and the scale has to respect that.
+
+## Tier 2 additions — the scales
+
+Three families, all absent today. They join the existing two-tier spine: Tier 1
+named palette → Tier 2 semantic. These are Tier 2.
+
+### `--radius-*`
+
+Enumerated, not derived. shadcn computes its steps from one `--radius` knob via
+`calc()`; our measured set (`2, 3, 4, 6, 8`) is not a clean geometric series, and
+forcing it into one would move ~800 existing declarations for no benefit.
+
+```css
+--radius-xs:   2px;    /* hairline chips, the tightest badges */
+--radius-sm:   3px;    /* the most-used value in the product today */
+--radius-md:   4px;    /* default for controls */
+--radius-lg:   6px;    /* cards, panels */
+--radius-xl:   8px;    /* the largest rectangular surface */
+--radius-pill: 999px;  /* fully-rounded chips */
+--radius-full: 50%;    /* circles — avatars, dots */
+```
+
+**Deviation from shadcn, stated:** they derive, we enumerate. Recorded because
+the `/N` modifier below recovers most of what derivation buys.
+
+### `--space-*`
+
+```css
+--space-2xs: 1px;    --space-xs: 2px;     --space-sm: 4px;
+--space-md:  6px;    --space-lg: 8px;     --space-xl: 12px;
+--space-2xl: 16px;   --space-3xl: 24px;
+```
+
+Denser at the low end than Tailwind's 4px-increment scale, because the measured
+control paddings bottom out at `1px 6px` (the status pills) and cluster around
+`4–8px` vertical.
+
+### `--control-h-*` and `--control-px-*`
+
+Named for **controls**, not for buttons — the input beside a button must match its
+height, and a `--button-lg` token would leave that input inventing its own.
+
+```css
+--control-h-sm:  22px;   --control-px-sm:  8px;
+--control-h-md:  26px;   --control-px-md:  10px;
+--control-h-lg:  32px;   --control-px-lg:  14px;
+```
+
+**Deviation from shadcn, stated:** their sizes are `h-8 / h-9 / h-10`
+(32/36/40px). Ours run a consistent **~8px denser**, derived from measured
+paddings and the 11–12px type. Same scale positions, different values — which is
+the whole point of borrowing positions rather than pixels.
+
+### `--z-*`
+
+F4 already forbids raw `z-index` and mandates these. **They have never existed**,
+so the rule has been unsatisfiable and enforced in two places.
+
+```css
+--z-base: 0;  --z-raised: 10;  --z-sticky: 100;
+--z-popover: 1000;  --z-modal: 2000;  --z-toast: 3000;
+```
+
+## The foreground-pairing convention
+
+Adopted wholesale from shadcn, and it is the single highest-value borrowing here.
+**Every surface token gets a named partner for text drawn on it.**
+
+```css
+--color-primary / --color-primary-foreground
+--color-surface / --color-surface-foreground
+--color-destructive / --color-destructive-foreground
+```
+
+We have exactly one such pair today (`--color-on-accent`), and its absence
+elsewhere is why `.pdr-btn-primary` hardcodes `color: #fff` — **there was no named
+token for "text on this," so someone reached for a literal.** Make the pairing
+total and the literal has no reason to exist.
+
+**Deviation, stated:** shadcn names the accent-filled variant `default`. We use
+`primary`, matching Tailwind and MUI. `default` is less legible to both humans and
+agents when five other variants exist.
+
+## The Button API
+
+```svelte
+<Button variant="primary" size="md">resolve →</Button>
+```
+
+| Prop | Values | Default |
+|---|---|---|
+| `variant` | `primary` · `secondary` · `outline` · `ghost` · `destructive` · `link` | `secondary` |
+| `size` | `sm` · `md` · `lg` · `icon` | `md` |
+
+Mirrors shadcn's `variant` × `size` shape exactly, minus their `default` naming.
+Two enums, not ten props.
+
+## The override ladder
+
+Escape hatches are where design systems die — both ways. No hatch and members fork
+the component; unrestricted hatch and the component is decorative. **shadcn's own
+answer does not transfer**: they pass `className` and resolve conflicts with
+`tailwind-merge`, which works because Tailwind classes are atomic. We have no
+Tailwind, so a raw class passthrough gives specificity wars, not merging.
+
+Four rungs, each more visible than the last, none of them blocked:
+
+### 1 — `variant` + `size`
+The sanctioned API. Covers the large majority.
+
+### 2 — named token overrides
+
+```svelte
+<Button variant="primary" size="lg" radius="xl" />
+```
+
+**Overrides take token names, not values.** `radius="xl"` resolves to
+`--radius-xl`. Never `radius="11px"`.
+
+### 3 — the `/N` modifier
+
+```svelte
+<Button radius="lg/60" />   →  calc(var(--radius-lg) * 0.6)
+```
+
+Tailwind's `/` means *"this token, at N percent"* (`bg-primary/90`). Today it is
+opacity-only; we extend the same reading to dimension.
+
+**This is not a new concept.** shadcn already computes
+`--radius-sm: calc(var(--radius) * 0.6)` — a `/60` modifier is that exact
+operation exposed at the call site instead of baked into a scale step. An agent
+that knows Tailwind reads it correctly with no documentation.
+
+**Why it earns its risk.** A flat scale expresses a value but not a
+*relationship*. Nested radii (inner = outer − padding) and optical rather than
+metric alignment are exactly where a six-step scale is right for consistency and
+wrong for the last two pixels. Responsive design pulls toward generics precisely
+where a detail-oriented eye pulls away from them.
+
+**Why it does not become the new literal.** It is **countable**. A raw `11px` is
+invisible to tooling; `radius="lg/60"` appearing in six members is a measurable
+argument for shipping `--radius-ml`. The escape hatch is also the detection
+mechanism for a missing scale step.
+
+**Scope:** dimension only (`radius`, spacing). On colour, `/N` keeps its Tailwind
+meaning — opacity. **`/` is never overloaded for per-side**; Tailwind uses
+prefixes for axis, and giving one borrowed separator two meanings destroys the
+legibility we borrowed it for.
+
+### 4 — `class` passthrough, declared
+Legal, but requires a `data-deviation` reason and surfaces in the member's catalog
+under *Deviations* (F9). And forking the component entirely is always legal per
+sovereignty — recorded in the registry as `sanctioned`, not as a failure.
+
+> **The cautionary read:** MUI's `sx` prop is the most-studied case of an override
+> that did not stay contained — it became *the* way people write MUI, and the
+> theme went decorative. It is pinned in
+> `studies/frontend-ui-kits-component-libraries/material-ui`. Read it before
+> loosening any rung.
+
+## Focus is not optional
+
+The base recipe carries `:focus-visible` using `--focus-ring`, which exists in all
+three modes and is consumed by **3 of 19 members**. A federal base rule lands the
+rest in one declaration:
+
+```css
+*:focus-visible { box-shadow: var(--focus-ring); outline: none; }
+```
+
+## The proof case
+
+Button first, deliberately — it proves more than the alternatives. The status pill
+has no variants, no sizes and no overrides, so it would prove the promotion
+mechanics and nothing about the API. Button exercises the whole surface, and we
+have the reference implementation pinned.
+
+**The end-to-end loop this has to demonstrate:**
+
+1. The scales ship in `packages/theme`
+2. `<Button>` lands in `packages/shared-ui` with the API above
+3. **One member adopts it and deletes its local button recipes**
+4. That member's gallery catalog shows the Button with its stories
+5. The gallery audit passes — contrast, target size, accessible name, focus, F1a/F2/F3/F4/F8
+6. `pnpm design:drift` shows the member's local button rule-sets gone
+
+**Proposed demo member: `request-reviewer`.** One component, 237 CSS lines, zero
+hex, 49 rule-sets — the most token-pure member in its cluster and **the least
+accessible** (one `aria-*` attribute in the whole member, zero roles, zero focus
+styles). The a11y delta is therefore measurable, not asserted.
+
+If that loop closes once, it closes eighteen more times.
+
+## Open, and deliberately not decided here
+
+**What platform packages become when members leave the monorepo.** Everything is
+`workspace:*` today. A submodule at `apps/org-workbench` still resolves in the
+monorepo checkout, because the workspace globs are directory globs — but a
+standalone clone by the owning team has no parent workspace and cannot resolve
+`@augment-it/theme` at all. Publish, git dependency, or vendor changes what
+"promote to `shared-ui`" *means*, and it is not an agent's call.
+
+## Related
+
+- [[../refactors/The-Federal-Layer-Never-Shipped-Space-Radius-Or-Z]] — the measured gap this closes
+- [[Design-System-Convergence]] — the organ registry; Button is the first PROMOTE
+- [[../loops/Converge-The-Federated-Design-System]] — the loop
+- `studies/frontend-ui-kits-component-libraries` — the pinned sources every claim here is drawn from
+- `DESIGN.md` §Token architecture · §The federation contract (F1, F4, F7, F8, F11)
