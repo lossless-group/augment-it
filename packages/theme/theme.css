@@ -251,8 +251,19 @@
   --color-confidence-med:  var(--color__amber-bright);
   --color-confidence-high: var(--color__green-bright);
 
+  /* Foreground partners. Every surface token has one, so nothing ever has to
+     reach for a literal to answer "what colour is text on this?" — the absence
+     of exactly this pairing is why a primary button once hardcoded #fff. */
+  --color-surface-foreground: var(--color__mist-100);
+
   /* tints derived from the accent */
-  --color-selected-tint:   color-mix(in srgb, var(--color-accent) 9%, transparent);
+  --color-accent-bg:       color-mix(in srgb, var(--color-accent) 9%, transparent);
+  --color-accent-hover:    color-mix(in srgb, var(--color-accent) 86%, var(--color-background));
+  /* A specialisation of accent-bg, not a second value. Members wrote
+     --color-accent-bg 9 times against a token that did not exist, while this one
+     shipped and was found by roughly one of them. Same paint, two names: the
+     general surface, and the selection state. */
+  --color-selected-tint:   var(--color-accent-bg);
   --color-danger-tint:     color-mix(in srgb, var(--color-error-text) 7%, transparent);
 
   /* effect tokens — moderate in dark */
@@ -297,7 +308,10 @@
   --color-confidence-med:  var(--color__amber-ink);
   --color-confidence-high: var(--color__green-ink);
 
-  --color-selected-tint:   color-mix(in srgb, var(--color-accent) 8%, transparent);
+  --color-surface-foreground: var(--color__ink-900);
+  --color-accent-bg:       color-mix(in srgb, var(--color-accent) 8%, transparent);
+  --color-accent-hover:    color-mix(in srgb, var(--color-accent) 86%, var(--color-background));
+  --color-selected-tint:   var(--color-accent-bg);
   --color-danger-tint:     color-mix(in srgb, var(--color-error-text) 8%, transparent);
 
   /* effect tokens — minimal in light */
@@ -340,7 +354,10 @@
   --color-confidence-med:  var(--color__amber-neon);
   --color-confidence-high: var(--color__green-neon);
 
-  --color-selected-tint:   color-mix(in srgb, var(--color-accent) 16%, transparent);
+  --color-surface-foreground: var(--color__halo-100);
+  --color-accent-bg:       color-mix(in srgb, var(--color-accent) 16%, transparent);
+  --color-accent-hover:    color-mix(in srgb, var(--color-accent) 86%, var(--color-background));
+  --color-selected-tint:   var(--color-accent-bg);
   --color-danger-tint:     color-mix(in srgb, var(--color-error-text) 14%, transparent);
 
   /* effect tokens — loud in vibrant */
