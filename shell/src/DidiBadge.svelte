@@ -173,7 +173,7 @@
     cursor: pointer;
     list-style: none;
     font-size: 11px;
-    color: var(--color-text-dim, #9a9a9a);
+    color: var(--color-text-muted);
     background: transparent;
     user-select: none;
   }
@@ -227,7 +227,7 @@
   }
   .didi-row span {
     flex: 0 0 56px;
-    color: var(--color-text-dim, #9a9a9a);
+    color: var(--color-text-muted);
     text-transform: uppercase;
     font-size: 9px;
     letter-spacing: 0.12em;
@@ -270,7 +270,7 @@
   }
   .didi-fine {
     margin: 10px 0 0;
-    color: var(--color-text-dim, #9a9a9a);
+    color: var(--color-text-muted);
     font-size: 10px;
   }
 </style>

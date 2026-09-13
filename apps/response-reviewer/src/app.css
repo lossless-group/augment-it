@@ -271,7 +271,7 @@
   font-size: 11px;
   line-height: 1.2;
   z-index: 10;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--fx-popover-shadow);
   pointer-events: none;
 }
 .resp-app .actions.icon-row .icon[data-tip]:hover::before,
@@ -319,7 +319,7 @@
   font-size: 11px;
   line-height: 1.2;
   z-index: 10;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--fx-popover-shadow);
   pointer-events: none;
 }
 .resp-app .filters .chip .chip-count {

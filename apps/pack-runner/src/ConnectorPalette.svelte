@@ -225,7 +225,7 @@
     background: var(--color-bg, #fff);
     border: 1px solid var(--color-border);
     border-radius: 6px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+    box-shadow: var(--fx-popover-shadow);
     font-size: 0.85rem;
   }
   .palette-menu-header {

@@ -244,34 +244,39 @@
   --color-text:            var(--color__mist-100);
   --color-text-muted:      var(--color__mist-400);
   /* PRIMARY / SECONDARY are the canonical semantic names — the vocabulary every
-     UI kit uses and every agent already knows. --color-accent* are kept as
-     DEPRECATED ALIASES so the 416 member declarations that reference them keep
-     working; they resolve through primary, so changing a value here changes it
-     everywhere. Same protocol as --color-bg. */
+     UI kit uses and every agent already knows. --color-accent* remain as ALIASES
+     that CHAIN to them — var() resolving to var() — so there is one value, two
+     spellings, and they cannot drift. Not deprecated: 416 member declarations
+     read the accent names, and a name the product prefers is a name worth
+     keeping. Edit the value at the canonical name; every alias follows. */
   --color-primary:            var(--color__magenta-electric);
   --color-primary-foreground: var(--color__graphite-950);
   --color-secondary:          var(--color__cyan-bright);
   --color-secondary-foreground: var(--color__graphite-950);
 
-  --color-accent:          var(--color-primary);      /* deprecated → --color-primary */
-  --color-accent-2:        var(--color-secondary);    /* deprecated → --color-secondary */
+  --color-accent:          var(--color-primary);      /* alias → --color-primary */
+  --color-accent-2:        var(--color-secondary);    /* alias → --color-secondary */
   --color-accent-warm:     var(--color__amber-bright);
-  --color-on-accent:       var(--color-primary-foreground);  /* deprecated → --color-primary-foreground */
+  --color-on-accent:       var(--color-primary-foreground);  /* alias → --color-primary-foreground */
   --color-link:            var(--color__cyan-bright);
   --color-thread:          var(--color__graphite-800);
   --color-ok-bg:           var(--color__green-deep);
   --color-ok-fg:           var(--color__green-bright);
-  --color-ok-text:         var(--color-ok-fg);        /* deprecated → --color-ok-fg */
+  --color-ok-text:         var(--color-ok-fg);        /* alias → --color-ok-fg */
   --color-error-bg:        var(--color__red-deep);
   --color-error-fg:        var(--color__red-bright);
-  --color-error-text:      var(--color-error-fg);     /* deprecated → --color-error-fg */
+  --color-error-text:      var(--color-error-fg);     /* alias → --color-error-fg */
   --color-warn-bg:         var(--color__amber-deep);
   --color-warn-fg:         var(--color__amber-bright);
-  --color-warn-text:       var(--color-warn-fg);      /* deprecated → --color-warn-fg */
+  --color-warn-text:       var(--color-warn-fg);      /* alias → --color-warn-fg */
 
   --focus-ring: 0 0 0 2px var(--color__graphite-950), 0 0 0 3px var(--color__magenta-electric);
 
-  /* deprecated alias — Phase 1. Deleted end of Phase 4. */
+  /* ALIAS, not a duplicate — and not deprecated. It chains to --color-background,
+     so there is exactly one value and the two names cannot drift apart.
+     Measured 2026-09-13: --color-bg has 79 uses across 13 members against
+     --color-background's 30. It was marked "deleted end of Phase 4" while being
+     the name two thirds of the product actually reaches for. Kept. */
   --color-bg: var(--color-background);
 
   /* confidence pills — packs-and-bundles. One token per band. */
@@ -315,30 +320,31 @@
   --color-text:            var(--color__ink-900);
   --color-text-muted:      var(--color__ink-500);
   /* PRIMARY / SECONDARY are the canonical semantic names — the vocabulary every
-     UI kit uses and every agent already knows. --color-accent* are kept as
-     DEPRECATED ALIASES so the 416 member declarations that reference them keep
-     working; they resolve through primary, so changing a value here changes it
-     everywhere. Same protocol as --color-bg. */
+     UI kit uses and every agent already knows. --color-accent* remain as ALIASES
+     that CHAIN to them — var() resolving to var() — so there is one value, two
+     spellings, and they cannot drift. Not deprecated: 416 member declarations
+     read the accent names, and a name the product prefers is a name worth
+     keeping. Edit the value at the canonical name; every alias follows. */
   --color-primary:            var(--color__magenta-deep);
   --color-primary-foreground: var(--color__paper-0);
   --color-secondary:          var(--color__cyan-deep);
   --color-secondary-foreground: var(--color__paper-0);
 
-  --color-accent:          var(--color-primary);      /* deprecated → --color-primary */
-  --color-accent-2:        var(--color-secondary);    /* deprecated → --color-secondary */
+  --color-accent:          var(--color-primary);      /* alias → --color-primary */
+  --color-accent-2:        var(--color-secondary);    /* alias → --color-secondary */
   --color-accent-warm:     var(--color__amber-ink);
-  --color-on-accent:       var(--color-primary-foreground);  /* deprecated → --color-primary-foreground */
+  --color-on-accent:       var(--color-primary-foreground);  /* alias → --color-primary-foreground */
   --color-link:            var(--color__cyan-deep);
   --color-thread:          var(--color__paper-300);
   --color-ok-bg:           var(--color__green-wash);
   --color-ok-fg:           var(--color__green-ink);
-  --color-ok-text:         var(--color-ok-fg);        /* deprecated → --color-ok-fg */
+  --color-ok-text:         var(--color-ok-fg);        /* alias → --color-ok-fg */
   --color-error-bg:        var(--color__red-wash);
   --color-error-fg:        var(--color__red-ink);
-  --color-error-text:      var(--color-error-fg);     /* deprecated → --color-error-fg */
+  --color-error-text:      var(--color-error-fg);     /* alias → --color-error-fg */
   --color-warn-bg:         var(--color__amber-wash);
   --color-warn-fg:         var(--color__amber-ink);
-  --color-warn-text:       var(--color-warn-fg);      /* deprecated → --color-warn-fg */
+  --color-warn-text:       var(--color-warn-fg);      /* alias → --color-warn-fg */
 
   --focus-ring: 0 0 0 2px var(--color__paper-0), 0 0 0 3px var(--color__magenta-deep);
 
@@ -374,30 +380,31 @@
   --color-text:            var(--color__halo-100);
   --color-text-muted:      var(--color__halo-400);
   /* PRIMARY / SECONDARY are the canonical semantic names — the vocabulary every
-     UI kit uses and every agent already knows. --color-accent* are kept as
-     DEPRECATED ALIASES so the 416 member declarations that reference them keep
-     working; they resolve through primary, so changing a value here changes it
-     everywhere. Same protocol as --color-bg. */
+     UI kit uses and every agent already knows. --color-accent* remain as ALIASES
+     that CHAIN to them — var() resolving to var() — so there is one value, two
+     spellings, and they cannot drift. Not deprecated: 416 member declarations
+     read the accent names, and a name the product prefers is a name worth
+     keeping. Edit the value at the canonical name; every alias follows. */
   --color-primary:            var(--color__magenta-loud);
   --color-primary-foreground: var(--color__void-950);
   --color-secondary:          var(--color__cyan-loud);
   --color-secondary-foreground: var(--color__void-950);
 
-  --color-accent:          var(--color-primary);      /* deprecated → --color-primary */
-  --color-accent-2:        var(--color-secondary);    /* deprecated → --color-secondary */
+  --color-accent:          var(--color-primary);      /* alias → --color-primary */
+  --color-accent-2:        var(--color-secondary);    /* alias → --color-secondary */
   --color-accent-warm:     var(--color__amber-neon);
-  --color-on-accent:       var(--color-primary-foreground);  /* deprecated → --color-primary-foreground */
+  --color-on-accent:       var(--color-primary-foreground);  /* alias → --color-primary-foreground */
   --color-link:            var(--color__cyan-loud);
   --color-thread:          var(--color__void-800);
   --color-ok-bg:           var(--color__green-void);
   --color-ok-fg:           var(--color__green-neon);
-  --color-ok-text:         var(--color-ok-fg);        /* deprecated → --color-ok-fg */
+  --color-ok-text:         var(--color-ok-fg);        /* alias → --color-ok-fg */
   --color-error-bg:        var(--color__red-void);
   --color-error-fg:        var(--color__red-neon);
-  --color-error-text:      var(--color-error-fg);     /* deprecated → --color-error-fg */
+  --color-error-text:      var(--color-error-fg);     /* alias → --color-error-fg */
   --color-warn-bg:         var(--color__amber-void);
   --color-warn-fg:         var(--color__amber-neon);
-  --color-warn-text:       var(--color-warn-fg);      /* deprecated → --color-warn-fg */
+  --color-warn-text:       var(--color-warn-fg);      /* alias → --color-warn-fg */
 
   --focus-ring: 0 0 0 2px var(--color__void-950), 0 0 0 3px var(--color__magenta-loud);
 
