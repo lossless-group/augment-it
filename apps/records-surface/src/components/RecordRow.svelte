@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Row } from '@augment-it/workspace';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import ConnectorButton from './ConnectorButton.svelte';
   import CandidatesPanel from './CandidatesPanel.svelte';
   import EditableField from './EditableField.svelte';
@@ -121,14 +122,21 @@
         <li class="record-row-accepted">
           <span class="record-row-accepted-label">accepted:</span>
           <a href={a} target="_blank" rel="noopener noreferrer" class="record-row-accepted-url">{a}</a>
-          <button
-            class="record-row-accepted-remove"
+          <Button
+            variant="destructive"
+            size="icon"
             onclick={() => void remove(a)}
             title="Remove this URL from the accepted list"
             aria-label="Remove {a}"
+            class="rs-accepted-remove"
+            data-deviation="grid placement — the accepted row aligns its text on the baseline, and a 28px control has to centre instead. Layout has no rung on the override ladder."
           >
-            ✕
-          </button>
+            <!-- SVG, not the bare ✕ glyph the Button header bans: a glyph is
+                 font-dependent, unstyleable, and screen-reader noise. -->
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M4 4 L12 12 M12 4 L4 12" />
+            </svg>
+          </Button>
         </li>
       {/each}
     </ul>
@@ -214,19 +222,8 @@
     color: var(--color-text);
     overflow-wrap: anywhere;
   }
-  .record-row-accepted-remove {
-    background: transparent;
-    border: 0;
-    color: var(--color-text-muted);
-    font-size: 0.75rem;
-    cursor: pointer;
-    padding: 0 0.3rem;
-    border-radius: 3px;
-    align-self: center;
-  }
-  .record-row-accepted-remove:hover {
-    color: var(--color-error-text);
-    background: var(--color-error-bg, rgba(200, 50, 50, 0.1));
-  }
+  /* Override-ladder rung 4, scoped-member spelling. See CandidatesPanel for
+     why the :global() nesting is required rather than a bare class rule. */
+  .record-row-accepted :global(.ui-btn.rs-accepted-remove) { align-self: center; }
   .record-row-connectors { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 </style>

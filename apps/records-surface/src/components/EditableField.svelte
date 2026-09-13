@@ -2,6 +2,17 @@
   // Inline-editable field. Renders as plain text until clicked, then turns
   // into an input. Enter / blur commits via the passed save callback.
   // Escape aborts. Async save shows a small spinner.
+  //
+  // DELIBERATELY NOT A <Button>. The display state is a real <button> for
+  // keyboard and screen-reader reasons, but it is an INLINE TEXT AFFORDANCE,
+  // not a control: it inherits the surrounding font, carries `cursor: text`,
+  // wraps long URLs with `overflow-wrap: anywhere`, and pulls itself back out
+  // of the text flow with negative margins so the label sits exactly where the
+  // plain text sat. The federal .ui-btn recipe sets `height: --control-h-md`,
+  // `white-space: nowrap`, `line-height: 1` and centres its content — every one
+  // of which breaks that. Adopting Button here would need four rung-4
+  // overrides to undo the component, which is the definition of a fork.
+  // Raised as a candidate organ of its own (InlineEditable), not as debt.
 
   type Props = {
     value: string;

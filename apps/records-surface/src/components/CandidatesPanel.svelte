@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import type { FireResult } from '../types';
 
   type Props = {
@@ -50,19 +51,22 @@
     <ul class="candidates-list">
       {#each result.candidates as c (c.url)}
         <li class="candidate-item">
-          <button class="candidate-pick" onclick={() => on_pick(c.url)} title="Save this URL to the row">
+          <Button variant="primary" size="sm" onclick={() => on_pick(c.url)} title="Save this URL to the row">
             pick
-          </button>
+          </Button>
           <a href={c.url} target="_blank" rel="noopener noreferrer" class="candidate-url">
             {c.url}
           </a>
-          <button
-            class="candidate-edit"
+          <Button
+            variant="outline"
+            size="sm"
             onclick={() => copyToCustom(c.url)}
             title="Copy into the edit input below — trim it, then pick"
+            class="rs-candidate-edit"
+            data-deviation="grid placement — this control is a grid item of .candidate-item and has to right-align in its column. The override ladder has no rung for LAYOUT, only for appearance."
           >
             edit
-          </button>
+          </Button>
           {#if c.title}
             <span class="candidate-title">{c.title}</span>
           {:else if c.anchor_text}
@@ -82,14 +86,15 @@
       bind:value={customUrl}
       onkeydown={onCustomKey}
     />
-    <button
-      class="candidate-pick"
+    <Button
+      variant="primary"
+      size="sm"
       disabled={customUrl.trim().length === 0}
       onclick={pickCustom}
       title="Save the URL above to the row"
     >
       pick
-    </button>
+    </Button>
   </div>
 </div>
 
@@ -125,17 +130,6 @@
     padding: 0.25rem 0;
     font-size: 0.85rem;
   }
-  .candidate-pick {
-    padding: 0.15rem 0.5rem;
-    background: var(--color-accent, var(--color-text));
-    color: var(--color-bg, #fff);
-    border: 0;
-    border-radius: 3px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .candidate-pick:hover { opacity: 0.85; }
   .candidate-url {
     color: var(--color-text);
     text-decoration: none;
@@ -143,17 +137,13 @@
   }
   .candidate-url:hover { text-decoration: underline; }
   .candidate-title { grid-column: 2; color: var(--color-text-muted); font-size: 0.75rem; }
-  .candidate-edit {
-    padding: 0.1rem 0.4rem;
-    background: transparent;
-    color: var(--color-text-muted);
-    border: 1px solid var(--color-border);
-    border-radius: 3px;
-    font-size: 0.65rem;
-    cursor: pointer;
-    justify-self: end;
-  }
-  .candidate-edit:hover { color: var(--color-text); border-color: var(--color-text); }
+  /* Override-ladder rung 4, in the form a SCOPED member has to spell it.
+     A bare `.rs-candidate-edit` rule would compile to
+     `.rs-candidate-edit.svelte-<hash>`, and the class arrives at <Button> as an
+     unhashed prop string — so the rule would never match and Svelte would only
+     say "unused CSS selector". Nesting the :global() under a scoped ancestor
+     restores the match and still contains the rule to this component. */
+  .candidate-item :global(.ui-btn.rs-candidate-edit) { justify-self: end; }
   .candidates-custom {
     display: flex;
     align-items: center;
@@ -178,5 +168,4 @@
     font-family: ui-monospace, monospace;
   }
   .candidates-custom-input:focus { border-color: var(--color-text); outline: none; }
-  .candidate-pick:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>

@@ -6,6 +6,7 @@
   // Mounted at both the top AND bottom of the records list so the user
   // can save without scrolling. Same component, two mount points.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { records } from '../state/records.svelte';
   import { nextVersionName } from '../logic/promote';
   import type { Row } from '@augment-it/workspace';
@@ -93,27 +94,27 @@
         ✓ promoted. New version is active. What's next?
       </span>
       <div class="promote-bar-next">
-        <button
-          class="promote-bar-next-btn"
+        <Button
+          variant="primary"
           onclick={() => navigateTo('enhancedRecordsList')}
           title="Step 5 — review + download the new version"
         >
           → Open Enhanced Records (download)
-        </button>
-        <button
-          class="promote-bar-next-btn"
+        </Button>
+        <Button
+          variant="primary"
           onclick={() => navigateTo('augment')}
           title="Step 2 — start the next augmentation pass"
         >
           → Augment this set again
-        </button>
-        <button
-          class="promote-bar-next-btn subtle"
+        </Button>
+        <Button
+          variant="outline"
           onclick={() => (promotedTo = null)}
           title="stay on Records Surface to keep iterating"
         >
           stay here
-        </button>
+        </Button>
       </div>
     </div>
   {:else}
@@ -125,11 +126,15 @@
         <span class="promote-bar-confirm">
           promote to <code>{newName}</code>?
         </span>
-        <button class="promote-bar-cancel" onclick={() => (confirming = false)}>cancel</button>
+        <Button variant="outline" onclick={() => (confirming = false)}>cancel</Button>
       {/if}
-      <button
-        class="promote-bar-btn"
-        class:confirming
+      <Button
+        variant="primary"
+        size="lg"
+        class={confirming ? 'rs-promote-confirming' : undefined}
+        data-deviation={confirming
+          ? 'confirm-step colour. The variant enum has no success/confirm member, so the are-you-sure state has nowhere sanctioned to live.'
+          : undefined}
         disabled={records.promoting || !activeRs}
         onclick={() => void go()}
       >
@@ -140,7 +145,7 @@
         {:else}
           Go to Save · promote to next version →
         {/if}
-      </button>
+      </Button>
     </div>
   {/if}
 </aside>
@@ -178,31 +183,19 @@
   .promote-bar-confirm { color: var(--color-text-muted); font-size: 0.85rem; }
   .promote-bar-confirm code { font-family: ui-monospace, monospace; }
   .promote-bar-error { color: var(--color-error-text); font-size: 0.85rem; }
-  .promote-bar-btn {
-    padding: 0.45rem 1rem;
-    background: var(--color-accent, var(--color-text));
-    color: var(--color-bg, #fff);
-    border: 0;
-    border-radius: 4px;
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
+  /* Override-ladder rung 4 — the confirm step. Spelled as :global() under a
+     scoped ancestor because a plain `.rs-promote-confirming` rule would be
+     hashed to `.rs-promote-confirming.svelte-<hash>` while the class reaches
+     <Button> unhashed, and would silently never match.
+     Uses the EXISTING --color-ok-bg / --color-ok-text pair rather than
+     inventing a foreground: there is no --color-ok-foreground partner, which
+     is the same gap the foreground-pairing convention was written to close.
+     :not(:disabled) keeps this from out-specifying .ui-btn:disabled. */
+  .promote-bar-action :global(.ui-btn.rs-promote-confirming:not(:disabled)) {
+    background: var(--color-ok-bg);
+    color: var(--color-ok-text);
+    border-color: var(--color-ok-text);
   }
-  .promote-bar-btn:hover:not(:disabled) { opacity: 0.9; }
-  .promote-bar-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .promote-bar-btn.confirming {
-    background: var(--color-ok-text, #2a8a3a);
-  }
-  .promote-bar-cancel {
-    padding: 0.4rem 0.75rem;
-    background: transparent;
-    color: var(--color-text-muted);
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.8rem;
-  }
-  .promote-bar-cancel:hover { color: var(--color-text); border-color: var(--color-text); }
   .promote-bar-success {
     display: flex;
     flex-direction: column;
@@ -217,22 +210,4 @@
     flex-wrap: wrap;
     gap: 0.5rem;
   }
-  .promote-bar-next-btn {
-    padding: 0.4rem 0.8rem;
-    background: var(--color-accent, var(--color-text));
-    color: var(--color-bg, #fff);
-    border: 0;
-    border-radius: 4px;
-    font-weight: 600;
-    font-size: 0.8rem;
-    cursor: pointer;
-  }
-  .promote-bar-next-btn:hover { opacity: 0.9; }
-  .promote-bar-next-btn.subtle {
-    background: transparent;
-    color: var(--color-text-muted);
-    border: 1px solid var(--color-border);
-    font-weight: normal;
-  }
-  .promote-bar-next-btn.subtle:hover { color: var(--color-text); border-color: var(--color-text); opacity: 1; }
 </style>
