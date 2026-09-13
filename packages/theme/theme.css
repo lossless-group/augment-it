@@ -82,7 +82,7 @@
   --color__red-deep:    #3d1b1b;
   --color__red-bright:  #f29a9a;
   --color__red-wash:    #f6dada;
-  --color__red-ink:     #b23b3b;
+  --color__red-ink:     #a83737;   /* darkened 2026-09-13: #b23b3b measured 4.46 on red-wash — below the 4.5 F7 floor */
   --color__red-neon:    #ff8fb0;
   --color__red-void:    #3d1430;
 
@@ -90,7 +90,7 @@
   --color__amber-deep:    #3d2c0c;
   --color__amber-bright:  #f5c971;
   --color__amber-wash:    #fbeed1;
-  --color__amber-ink:     #95621d;
+  --color__amber-ink:     #8f5d1b;   /* darkened 2026-09-13: #95621d measured 4.51 — passing by 0.01 is not passing */
   --color__amber-neon:    #ffd47d;
   --color__amber-void:    #2a1d08;
 
