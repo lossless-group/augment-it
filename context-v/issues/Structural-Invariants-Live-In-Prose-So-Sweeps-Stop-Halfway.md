@@ -8,7 +8,7 @@ authors:
 augmented_with:
   - Claude Code on Claude Opus 5 (1M context)
 semantic_version: 0.0.1.0
-status: Open
+status: Resolved
 tags:
   - Issue
   - Augment-It
@@ -240,15 +240,38 @@ one change, on the warn rung of the adoption ramp. Not the script alone.
 
 ## Resolution
 
-Unresolved. The four concrete defects are fixed ([[../plans/Give-The-Services-A-Shared-Tsconfig-Base]],
-shipped as `changelog/2026-09-13_03`); the condition that produced them is not.
+**Resolved 2026-09-13, same day.** The four concrete defects were fixed by
+[[../plans/Give-The-Services-A-Shared-Tsconfig-Base]] (`changelog/2026-09-13_03`),
+and the condition that produced them is now enforced rather than described.
 
-Open decisions, none of which should be made by an agent mid-sweep:
+Rules 1–3 shipped as **S1–S3** in `scripts/design-drift.mjs` — same file, per the
+lean below, because a second linter nobody runs is this issue one level up. They
+are pure file-tree logic with no `tsc`, no `DESIGN.md` and no `theme.css` in the
+path, so they **gate CI** (`pnpm design:structure`) while F6/F8 still cannot.
+Every branch was mutation-tested — each failure mode introduced on purpose,
+confirmed to fire, reverted — because a new check that only ever prints "all
+pass" has not been shown to work, and this script has a documented history of
+exactly that.
 
-- Do rules 1–3 go into `design-drift.mjs`, or into a separate `structure-drift.mjs`?
-  (Lean: same file. A second linter nobody runs is the same failure again.)
+Exemptions are **derived from the disk, not listed**: a directory with no source
+is not a unit, which is how the two README-only app placeholders and
+`deploy-relay`'s single plain-JS function stay silent without an allowlist that
+can rot.
+
+`pnpm typecheck` now sweeps all three checker shapes — the root project,
+`typecheck` (tsc) for services and packages, `check` (svelte-check) for apps and
+shell — and gates CI. Three coverage gaps were closed so S3 passes honestly
+rather than by loosening: `packages/shared-ui` (2 `.svelte`, no config, no
+script), `packages/gallery` (config, no script), `e2e` (config, no script).
+
+### Still open
+
 - Does `design-drift.mjs` derive its member list from disk, or keep the
-  `DESIGN.md` registry as the source of truth with a disagreement warning?
+  `DESIGN.md` registry as the source of truth with a disagreement warning? **This
+  is now the largest remaining instance of the pattern** — the linter's own scope
+  is still a hand-maintained list registering 16 of 20 microfrontends, 2 of 7
+  packages, and zero services. S1–S3 do not check it, so `design:drift` remains
+  able to report clean on units it never looked at.
 - Is the rsbuild factory worth doing, after reading `person-enrichment`'s 86-line
   config? It is the last mechanical duplication of any size in the repo.
 
