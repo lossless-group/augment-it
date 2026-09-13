@@ -128,18 +128,22 @@ The next sweep compares. Three outcomes:
 because it is the only one that catches drift *while it is happening* rather than
 years later. It is also the signal a one-off inventory can never produce.
 
-> **This is not hypothetical.** The root `DESIGN.md` recorded four standing
-> promotion candidates on 2026-07-30. Measured again 2026-09-13:
-> `ConnectorChip` and `ConnectorPalette` are **still byte-identical** across
-> `pack-runner` and `response-reviewer` — six weeks, no drift, genuinely ready to
-> promote. But `ColumnMapper` (`person-db-resolver`, `affiliation-rating-resolver`)
-> and `RecordCard` (`person-db-resolver`, `record-db-resolver`) were byte-identical
-> then and have **2 distinct versions each** now.
+> **This is not hypothetical, and the real case is sharper than the expected one.**
+> The root `DESIGN.md` recorded four "byte-identical" promotion candidates on
+> 2026-07-30. Measured by `git show` at birth, at 2026-07-30, and at HEAD:
+> `ConnectorChip` and `ConnectorPalette` are genuinely identical at all three
+> points — six weeks stable, real candidates. **`ColumnMapper` and `RecordCard`
+> were never identical at any commit in the repository's history**, and neither has
+> changed since. Both were copy-pasted at birth from a sibling, each already
+> carrying its own types and prefix in its first commit.
 >
-> They drifted **while sitting in a queue whose entire purpose was to catch
-> drift.** A list that is written once and never re-measured decays into a
-> historical document that reads like a live one — which is worse than no list,
-> because it is believed.
+> Nothing drifted. **The list was wrong the day it was written**, because
+> byte-identity was asserted rather than measured — and every reader inherited the
+> error for six weeks, including the first draft of this loop.
+>
+> That is why the fingerprint is **generated, never hand-written.** A hand-written
+> measurement is a claim wearing the costume of evidence, and it is believed
+> precisely because it looks like data.
 
 ## The loop
 

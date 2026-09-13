@@ -116,23 +116,33 @@ members. That ratio is the whole problem in one line.
 These four were recorded in the root `DESIGN.md` on **2026-07-30** as byte-identical
 promotion candidates. Re-measured six weeks later, by hash:
 
-| Organ | Members | 2026-07-30 | 2026-09-13 | Signal |
-|---|---|---|---|---|
-| `ConnectorChip` | `pack-runner`, `response-reviewer` | identical | **identical** | ✅ stable six weeks — strongest promotion candidate in the product |
-| `ConnectorPalette` | `pack-runner`, `response-reviewer` | identical | **identical** | ✅ same |
-| `ColumnMapper` | `person-db-resolver`, `affiliation-rating-resolver` | identical | ⚠️ **2 distinct versions** | **diverged in the queue** |
-| `RecordCard` | `person-db-resolver`, `record-db-resolver` | identical | ⚠️ **2 distinct versions** | **diverged in the queue** |
+Re-measured by `git show` at four points in history — birth, 2026-07-30, and HEAD:
 
-> **The finding that justifies the fingerprint ledger.** Two of the four drifted
-> *while sitting in a list whose entire purpose was to catch drift*. Nobody
-> re-measured for six weeks, so the list kept asserting "byte-identical" long after
-> it stopped being true.
+| Organ | Members | at birth | 2026-07-30 | 2026-09-13 | Verdict |
+|---|---|---|---|---|---|
+| `ConnectorChip` | `pack-runner`, `response-reviewer` | identical | identical | **identical** | ✅ real candidate, six weeks stable |
+| `ConnectorPalette` | `pack-runner`, `response-reviewer` | identical | identical | **identical** | ✅ real candidate |
+| `ColumnMapper` | `person-db-resolver`, `affiliation-rating-resolver` | ❌ different | ❌ different | ❌ different | **never identical — the claim was false when written** |
+| `RecordCard` | `person-db-resolver`, `record-db-resolver` | ❌ different | ❌ different | ❌ different | **never identical — and unchanged since birth** |
+
+> **The finding that justifies the ledger — and it is not the one we expected.**
 >
-> A list written once and never re-measured decays into a historical document that
-> reads like a live one — which is **worse than no list, because it is believed.**
-> This is the same failure as a config comment claiming a scope it no longer has,
-> and it has the same fix: measure it on a trigger, and record the measurement date
-> next to the claim.
+> The first reading of this table was "two of the four drifted while sitting in a
+> queue meant to catch drift." **That was wrong, and the truth is worse.**
+> `ColumnMapper` and `RecordCard` were **never byte-identical at any commit in the
+> repository's history.** Both were copy-pasted at birth from a sibling — the copy
+> happened in someone's clipboard, not in version control — and each was already
+> carrying its own types, prefix and field list in its very first commit. Neither
+> file has changed since 2026-07-30 at all.
+>
+> So nothing drifted. **The list was wrong on the day it was written**, because
+> "byte-identical" was asserted rather than measured, and for six weeks every
+> reader inherited the error — including the first draft of this document.
+>
+> A hand-written measurement is a claim wearing the costume of evidence. The fix is
+> not "re-measure more often"; it is **never hand-write the measurement.**
+> `pnpm organ:drift` generates this table, which is why it can be trusted and why
+> the prose above it can not.
 
 ---
 
@@ -143,7 +153,116 @@ promotion candidates. Re-measured six weeks later, by hash:
 
 <!-- SWEEP:2026-09-13 -->
 
-_Sweep in progress — entries land as scanner inventories are merged and triaged._
+**Sweep 1 complete.** Four read-only scanners across 19 members + the platform
+layer. 24 organs identified; the 17 with cross-member evidence are registered
+below. Counts are measured, not estimated.
+
+### PROMOTE — evidence is sufficient
+
+| Organ | Members | Similarity | Evidence | Blocker |
+|---|---|---|---|---|
+| **WsConnectionStatusPill** | **11+** | 3 byte-identical (`saa`/`ow`/`srq`) + 8 variants | **17 of 19 packages depend on `@augment-it/workspace`** and observe the *same* `connection_status`, then render it 11 ways. `sort-filter-lens` and `person-enrichment` need it and render **nothing**. | none — **start here** |
+| **ConnectorChip** + **ConnectorPalette** | `pack-runner`, `response-reviewer` | **identical** (md5 `3aab2e76…` / `e0aa8368…`) | 6 weeks zero drift. Discriminated-union `ChipState`, inventory-as-prop, exported types. Suspected 3rd copy in `search-and-add` **checked and ruled out** — `ProviderPalette` is a different organ. | 4 mechanical fixes, below |
+
+**`ConnectorChip` pre-promotion fixes** (≈2 hours, not a redesign): `color: white`
+×2 → `var(--color-on-accent)`; `role="menu"` declares no `role="menuitem"` children
+(invalid — copy `chat/ChatSurface.svelte`, the one correct ARIA menu in the
+product); add `aria-haspopup`/`aria-expanded` (it *is* a menu button); add the
+first `:focus-visible` consumer of `--focus-ring`. Also `box-shadow` literal →
+`var(--fx-popover-shadow)`, which exists and is used by nobody.
+
+### CONVERGE — should be one dialect
+
+| Organ | Members | Canonical | Why |
+|---|---|---|---|
+| **CandidateGate** | 4 (**3 inside `org-workbench`**) | `org-workbench/OrgCreateInline` | Triplicated *within one member*, plus a `srq-`-prefixed copy in `search-results`. **`AddAffiliationInline` dropped the `.ow-gate-score` span** — it fetches score + `match_reason` and throws them away, so one gate shows candidates without the evidence that justifies them. |
+| **AdditiveUrlList** | 5 | `org-workbench/AdditiveList` (384L) | The only version that is a *contract*: typed props, 6 optional callbacks, edit-in-place, destructive-action confirm, `:focus-within` keyboard reveal. `person-enrichment` has the same 46-line skeleton **three times** (`LinkList`/`DomainList`/`EmailListField`); `affiliation-rating-resolver` has it **four times inline in one file**. |
+| **ResultRow** | `search-and-add`, `search-results` | `search-and-add/ResultRow` | Per-row component owning its own state vs. flattened into the list. **Self-documented**: the copy's header cites the source file *and* the tracking issue. |
+| **DebouncedAutocomplete** | `org-workbench`, `person-enrichment` | **hybrid** | Split: `person-enrichment` has the correct *behaviour* (sequence-number stale guard, Enter-picks-first, Escape, edit-dissociates-pick) in **keyboard-inaccessible markup** (`<li onclick>` with a11y warnings suppressed). `org-workbench` has the correct *markup* (`role="listbox"` + `<button>`) and weaker behaviour. Promote behaviour into markup. |
+| **EditableField** | `records-surface`, `record-collector`, `person-db-resolver` | `records-surface/EditableField` | Only one treating focus, Escape and accessible name as first-class; its comment records rejecting `autofocus` for a11y reasons. `record-collector`'s `contenteditable` + `role="textbox"` has **no accessible name at all**. |
+| **ConfidencePill** | **published** + `record-collector` | `packages/shared-ui` | Already federal; `record-collector` reimplemented it inline with the same bands, thresholds and `color-mix` formula — **and does not depend on `@augment-it/shared-ui` at all**. The federal one clamps out-of-range input; the copy renders `142` raw. |
+| **InlineErrorNotice** | **all 19** | — | ~25 error sites product-wide. **Zero `role="alert"`, zero `aria-live`, anywhere.** `prompt-template-manager` renders errors *grey* (`saveStatus = 'error: …'` lands in `.muted`) while defining an unused red `.warn`. `pack-runner` renders `fan_out failed` into `.result`, which has an **ok-tinted green background**. |
+
+### SANCTION — differ on purpose
+
+| Organ | Members | Why it stays local |
+|---|---|---|
+| **MessageBubbleTranscript** | `chat` | Sole holder; turn-kind dispatch is chat-specific. *(Separately: worst token purity in the product — 6 phantom tokens.)* |
+| **FilterAndSortControl** | `sort-filter-lens`, `org-workbench` | Genuinely different capability, not drift. `sort-filter-lens`'s persisted 3-key sort with rank badges is the most capable control in the product; `org-workbench`'s is a one-field search. |
+| **PromptEditorSurface** | `prompt-template-manager`, `chat`, `request-reviewer` | Three legitimate views of one artifact — author / refine / resolved-preview. |
+| **FileIngestUploader** | `record-collector` | Sole holder. Flagged as the *least-designed* surface in the product, not a candidate. |
+
+### WATCH — evidence insufficient
+
+`EmptyState` (best copy: `chat`, `search-results` — the only ones naming the action
+that fills them) · `SpinnerIndicator` (3 copies, 3 keyframe names, 3 durations — two
+on screen rotate out of sync) · `CardChrome` · `CollapsibleDisclosure`
+(`record-collector` is the **only** one setting `aria-expanded`) · `FireAndForgetQueue`
+· `CrossRemoteHandoff` ⚠️ *(`enhanced-records-list` omits the localStorage step the
+other two treat as mandatory — a latent bug, not a design variant)*.
+
+### BLOCKED on the platform, not on agreement
+
+| Organ | Scale | Blocker |
+|---|---|---|
+| **ButtonRecipe** | **158 rule-sets** federation-wide; 16 distinct ways in `response-reviewer` alone | [[../refactors/The-Federal-Layer-Never-Shipped-Space-Radius-Or-Z]] |
+| **StatusBadge / Pill** | **34 treatments**; 12 distinct recipes in `response-reviewer` alone | same |
+
+> **Do not promote these yet.** A promoted `Button` must pick one radius and one
+> padding. Picking them from literals rather than a named scale makes one member's
+> accident into federal law. **The token families come first.**
+
+---
+
+## What the sweep found that nobody asked about
+
+Three findings surfaced by **all four scanners independently**, none of which was
+in any scanner's brief:
+
+1. **170 declarations across 10 members reference tokens that do not exist.**
+   `--space-*`, `--radius-*` and `--z-*` have **zero declarations** in
+   `packages/theme`. Members invented the names they expected and let the CSS
+   fallback carry the value. → [[../refactors/The-Federal-Layer-Never-Shipped-Space-Radius-Or-Z]]
+
+2. **`sort-filter-lens` leaks 61 unnamespaced classes**, and `.error` / `.row` /
+   `.muted` collide with 16 / 19 / 14 other surfaces **today**. →
+   [[../refactors/The-Sort-Filter-Lens-Containment-Breach]]
+
+3. **Zero of 19 members have a `DESIGN.md`.** All 19 `doc:` paths in the federal
+   registry are dangling references. `design-index.json` and every
+   `.design-context.json` — the documented *agent entry points* — do not exist
+   either. The portal reads none of them: `docs-portal` has no glob and no markdown
+   renderer, and its member list is a hand-maintained array with **one** entry.
+
+> **The pattern under all three.** The federal layer documented a vocabulary, a
+> per-member doc layer, and an agent context contract. Members complied with what
+> existed and improvised the rest. **Nothing ever compared the contract to the
+> runtime** — `design-drift.mjs` compares CSS to CSS, so a token members consume
+> and the theme never declares is invisible to it.
+>
+> This is the same disease as
+> [[../issues/Structural-Invariants-Live-In-Prose-So-Sweeps-Stop-Halfway]], in a
+> different layer, and it has the same fix.
+
+## The push channel already existed — informally, with nowhere to go
+
+The strongest evidence for the governance model is that **teams were already
+flagging their own duplication in code comments**:
+
+- `search-results/ResultsAccept.svelte`: *"copy-adapted from search-and-add (spec
+  D7: per-remote copies, no shared runtime; **knowingly more fuel for the component
+  library, gh #22**)"*
+- `search-and-add/ProviderPalette.svelte`: *"Borrowed shape: apps/pack-runner's
+  ConnectorPalette/ConnectorChip"*
+- `affiliation-rating-resolver/app.css`: *"trimmed subset of person-db-resolver's
+  `pdr-*` sheet"*
+
+Nobody was careless. Three teams **named the file they copied and the debt they
+were taking on**, in the commit, at the time. There was simply no registry for that
+declaration to land in, so it stayed in a comment nobody aggregates.
+
+**That is what this document is for.** The push channel does not need to be built —
+it needs somewhere to write to.
 
 ---
 
