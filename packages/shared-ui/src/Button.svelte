@@ -233,10 +233,10 @@
 
   .ui-btn[data-variant='destructive'] {
     background: var(--color-error-bg);
-    color: var(--color-error-text);
+    color: var(--color-error-fg);
   }
   .ui-btn[data-variant='destructive']:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-error-text) 16%, var(--color-error-bg));
+    background: color-mix(in srgb, var(--color-error-fg) 16%, var(--color-error-bg));
   }
 
   .ui-btn[data-variant='link'] {
