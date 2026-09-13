@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { workspace, type PromptTemplate, type PromptTool, resolveWsUrl } from '@augment-it/workspace';
 
   const TOKEN_KEY = 'augment-it:session-token';
@@ -203,7 +204,7 @@
   <div class="ptm-layout">
     <aside>
       <h2>Prompts</h2>
-      <button onclick={newPrompt}>+ new prompt</button>
+      <Button onclick={newPrompt}>+ new prompt</Button>
       <ul class="prompts">
         {#each prompts as p (p.prompt_id)}
           <li class:selected={p.prompt_id === selectedPromptId}>
@@ -211,13 +212,21 @@
               <strong>{p.name}</strong>
               <span class="muted">→ {p.output_column}{p.tools.includes('web_search') ? ' · web' : ''}</span>
             </button>
-            <button
-              type="button"
-              class="prompt-delete"
+            <!-- size="icon" refuses to render without an accessible name; the
+                 aria-label this row already had satisfies it. The bare '×'
+                 glyph it carried is now an <svg> — Button sizes it from
+                 --icon-* and a glyph is font-dependent and unstyleable. -->
+            <Button
+              size="icon"
+              variant="ghost"
               title="Delete this prompt"
               aria-label="delete {p.name}"
               onclick={() => void deletePromptById(p.prompt_id, p.name)}
-            >×</button>
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                <path d="M4 4l8 8M12 4l-8 8" />
+              </svg>
+            </Button>
           </li>
         {/each}
         {#if prompts.length === 0}
@@ -256,8 +265,8 @@
       </div>
 
       <div class="row">
-        <button
-          class="primary"
+        <Button
+          variant="primary"
           onclick={savePrompt}
           disabled={!isDirty || !hasRequiredContent}
           title={!hasRequiredContent
@@ -267,9 +276,9 @@
               : selectedPromptId
                 ? 'Save changes to this prompt'
                 : 'Create this prompt'}
-        >{selectedPromptId ? 'save' : 'create'}</button>
-        <button
-          class="apply"
+        >{selectedPromptId ? 'save' : 'create'}</Button>
+        <Button
+          variant="secondary"
           onclick={applyToRequestReviewer}
           disabled={!canApply}
           title={!selectedPromptId
@@ -277,9 +286,9 @@
             : isDirty
               ? 'Save your changes before applying'
               : 'Send this prompt to Request Reviewer'}
-        >apply →</button>
+        >apply →</Button>
         {#if selectedPromptId}
-          <button class="danger" onclick={deletePrompt}>delete</button>
+          <Button variant="destructive" onclick={deletePrompt}>delete</Button>
         {/if}
         <span class="muted">{saveStatus}</span>
       </div>
