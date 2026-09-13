@@ -137,9 +137,32 @@ against the wrong member's DOM and returned another member's markup **while the
 tab title still said the right thing** — a failure that produces confidently
 wrong verification rather than an error.
 
-**Make navigate-and-assert atomic.** Open a throwaway page and do the navigation
-and the reads inside a single call, so nothing can move between them. Check the
-root class in what you read back, not the tab title.
+**Make navigate-and-assert atomic — and the MCP browser cannot do this.**
+`browser_navigate` and `browser_evaluate` are separate tool calls, so there is
+always a window for another agent to move your tab. One engineer was navigated
+away *mid-evaluate* and received a different member's DOM.
+
+**Launch your own headless chromium from a node script via Bash instead.** Fully
+isolated, and navigate + assert + measure genuinely is one call. Gotcha:
+`chromium.launch()` may fail with *"Executable doesn't exist at
+…chromium_headless_shell-…"* — pass `executablePath` pointing at an installed
+revision under `~/Library/Caches/ms-playwright/`.
+
+Either way, **assert on the member's root class inside the evaluate**, never the
+tab title. A title can be right while the DOM is someone else's.
+
+**Reaching buttons behind `{#if}`.** Rendering leaf components with fixture props
+only reaches the leaves. The high-leverage move for data-driven members is to
+**alias `@augment-it/workspace` to a fixture stub** in the probe's
+`resolve.alias` — every capability call funnels through `workspace.invoke()`, so
+one small stub renders the member's *real* `App.svelte` end-to-end. Two traps: a
+probe outside the pnpm workspace cannot resolve `@augment-it/*` at all (use
+relative paths), and fixture shapes must match `packages/workspace/src/types.ts`
+exactly.
+
+**Put the probe outside `apps/`.** `design:drift` treats any directory there as a
+member and will silently add an F6 to the federation count. Delete it before your
+final measurement either way.
 
 ### Verify what you cannot see
 
