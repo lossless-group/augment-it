@@ -57,7 +57,7 @@ Before proposing values, we measured every `border-radius` in member CSS:
 | `999px` | 109 | (pill) |
 | `6px` | 106 | ✅ `--radius-md: 0.375rem` |
 | `8px` | 37 | ✅ `--radius-lg: 0.5rem` |
-| `2px` | 22 | ✅ `--radius-xs: 0.125rem` |
+| `2px` | 22 | ✅ Tailwind `--radius-xs: 0.125rem` → ships as our `--radius-sm` |
 
 > **Four of the five most-used radii are exactly Tailwind's steps.** Members were
 > not drifting randomly. They were converging on the best-known scale in the
@@ -66,6 +66,16 @@ Before proposing values, we measured every `border-radius` in member CSS:
 > That is the empirical case for borrowing rather than inventing: **the
 > convention was already here.** It just wasn't named, so every session
 > re-derived it and landed a pixel or two off.
+
+> ⚠️ **Corrected 2026-09-13.** A first draft of this section used these counts to
+> argue for a 6px `--radius-md`, against DESIGN.md §Shapes' 4px. The counts were
+> inflated threefold by `dist/` artifacts — the command that produced them piped
+> match-only output into a filename filter, so nothing was ever filtered. Real
+> source counts are 11 and 4, **exactly what DESIGN.md measured** before calling
+> the split a live defect: *one name, two radii, depending which app you are
+> looking at.* The federal scale shipped unchanged. Left in place rather than
+> deleted, because the failure mode — building an argument on a bad measurement
+> and then overriding a document with it — is the one this spec exists to prevent.
 
 Font sizes tell the density story: members cluster at **10 / 11 / 12 / 13px**,
 roughly 2px below Tailwind's smallest step. augment-it is a dense monospace
@@ -83,13 +93,11 @@ Enumerated, not derived. shadcn computes its steps from one `--radius` knob via
 forcing it into one would move ~800 existing declarations for no benefit.
 
 ```css
---radius-xs:   2px;    /* hairline chips, the tightest badges */
---radius-sm:   3px;    /* the most-used value in the product today */
---radius-md:   4px;    /* default for controls */
---radius-lg:   6px;    /* cards, panels */
---radius-xl:   8px;    /* the largest rectangular surface */
---radius-pill: 999px;  /* fully-rounded chips */
---radius-full: 50%;    /* circles — avatars, dots */
+--radius-sm:    2px;    /* tight inline elements, tag stamps */
+--radius-md:    4px;    /* HOUSE DEFAULT — buttons, inputs, chips, small cards */
+--radius-lg:    8px;    /* cards, panels, dialogs */
+--radius-pill:  999px;  /* pills, confidence badges, corpus chips */
+--radius-round: 50%;    /* avatars, dots, icon circles */
 ```
 
 **Deviation from shadcn, stated:** they derive, we enumerate. Recorded because
@@ -187,7 +195,7 @@ The sanctioned API. Covers the large majority.
 ```
 
 **Overrides take token names, not values.** `radius="lg"` resolves to
-`--radius-xl`. Never `radius="11px"`.
+`--radius-lg`. Never `radius="11px"`.
 
 ### 3 — the `/N` modifier
 
