@@ -13,7 +13,7 @@
  * Usage:
  *   pnpm design:drift                           full sweep
  *   pnpm design:contrast                        contrast-only
- *   pnpm design:structure                       S1-S3 structural invariants only (gating)
+ *   pnpm design:structure                       S1-S5 structural invariants only (gating)
  *   node scripts/design-drift.mjs --resolve     dump resolved Tier-2/3 values
  *   node scripts/design-drift.mjs --member sc   sweep one member
  *   node scripts/design-drift.mjs --json        machine-readable output
@@ -681,6 +681,53 @@ function runStructureChecks() {
     }
   }
 
+  /* S5 — the member registry covers every member on disk.
+   *
+   * design-drift reads its member list from DESIGN.md frontmatter and checks
+   * only what that list names. So a member missing from the registry is not
+   * "unchecked" in a way anyone notices — it is INVISIBLE, and the federation
+   * count reads green for a surface nobody looked at.
+   *
+   * Measured 2026-09-13: org-workbench, search-and-add and search-results were
+   * all live federated remotes, all shipping their own app.css, and none of them
+   * had ever been checked. Registering them added 13 findings that had existed
+   * the whole time — including org-workbench, which has 61 buttons and, at the
+   * time, zero aria attributes.
+   *
+   * This is the same failure as every other hand-maintained list in this repo:
+   * it was true when written and nothing re-measured it. A carve-out is fine —
+   * docs-portal documents the federation rather than joining it — but it has to
+   * live in out_of_federation where a check can read it, not in a comment in the
+   * member's own build config. */
+  {
+    const fm = parseFrontmatter(readIf(DESIGN_MD) ?? '').data;
+    const registered = new Set(parseMemberList(fm).map((m) => m.path));
+    // out_of_federation is a TOP-LEVEL key — this frontmatter parser flattens
+    // nested YAML — and its entries arrive as raw strings, same as members.
+    const carved = new Set(
+      (Array.isArray(fm?.out_of_federation) ? fm.out_of_federation : [])
+        .map((row) => String(row).match(/path:\s*([^\s,}]+)/)?.[1])
+        .filter(Boolean),
+    );
+    const appsDir = resolve(REPO_ROOT, 'apps');
+    if (existsSync(appsDir)) {
+      for (const e of readdirSync(appsDir, { withFileTypes: true })) {
+        if (!e.isDirectory() || e.name === 'node_modules') continue;
+        const rel = `apps/${e.name}`;
+        if (registered.has(rel) || carved.has(rel)) continue;
+        const src = countSource(resolve(REPO_ROOT, rel));
+        if (src.ts + src.svelte === 0) continue; // README-only placeholder
+        results.push({
+          check: 'S5',
+          status: 'fail',
+          file: rel,
+          detail:
+            'ships source but is absent from DESIGN.md federation.members — it is invisible to every F-check, so its violations are not in the federation count',
+        });
+      }
+    }
+  }
+
   return results;
 }
 
@@ -693,7 +740,7 @@ function main() {
     if (FLAG.json) {
       console.log(JSON.stringify({ fail: structureResults.length, warn: 0, results: structureResults }, null, 2));
     } else if (structureResults.length === 0) {
-      console.log('S1-S3 structural invariants: all pass');
+      console.log('S1-S5 structural invariants: all pass');
     } else {
       for (const r of structureResults) console.log(`FAIL ${r.check} [${r.file}]: ${r.detail}`);
       console.log(`\n${structureResults.length} structural violation(s)`);

@@ -110,6 +110,32 @@ function describe(el: Element): string {
 }
 
 function accessibleName(el: Element): string {
+  // A native <label> IS an accessible name, and it is the BEST one — it is what
+  // the platform computes, and it gives a click target the aria-* forms do not.
+  // Omitting it here meant every correctly-labelled form control reported as
+  // unnamed, and the obvious "fix" for that is to bolt a redundant aria-label
+  // onto markup that was already right. The check was pushing authors away from
+  // the correct pattern.
+  const labels = (el as HTMLInputElement).labels;
+  if (labels && labels.length > 0) {
+    const fromLabel = Array.from(labels)
+      .map((l) => (l.textContent ?? '').trim())
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+    if (fromLabel) return fromLabel;
+  }
+  // aria-labelledby resolves against other elements; honour it before the
+  // attribute forms, since it also outranks them in the platform's own order.
+  const labelledBy = el.getAttribute('aria-labelledby');
+  if (labelledBy) {
+    const named = labelledBy
+      .split(/\s+/)
+      .map((id) => el.ownerDocument.getElementById(id)?.textContent ?? '')
+      .join(' ')
+      .trim();
+    if (named) return named;
+  }
   return (
     el.getAttribute('aria-label') ??
     el.getAttribute('title') ??
@@ -283,7 +309,23 @@ export function audit(root: HTMLElement, opts: AuditOptions): AuditReport {
     const covered = focusRules.some((r) =>
       r.selectorText
         .split(',')
-        .map((s) => s.replace(/::?[a-zA-Z-]+(\([^()]*\))?/g, '').trim())
+        // Strip the pseudo-class so the remainder can be matches()-ed.
+        //
+        // A BARE pseudo-class selector strips to the empty string, and the empty
+        // string means "this applied to every element" — not "this applied to
+        // nothing". The browser normalises `*:focus-visible` to `:focus-visible`,
+        // so the federal focus rule landed here as '' and was then dropped by
+        // filter(Boolean): every control relying on it reported "no
+        // :focus-visible rule matches this control".
+        //
+        // That inverted the meaning of Phase 2 — one federal declaration gave
+        // nineteen members a focus ring, and the audit read it as a defect in all
+        // of them. Worse, it gets worse as migrations proceed, because members
+        // are now instructed to DELETE their local focus rules in favour of it.
+        .map((s) => {
+          const stripped = s.replace(/::?[a-zA-Z-]+(\([^()]*\))?/g, '').trim();
+          return stripped === '' ? '*' : stripped;
+        })
         .filter(Boolean)
         .some((sel) => {
           try {

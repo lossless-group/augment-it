@@ -36,6 +36,7 @@ federation:
     full_manifest: "design-manifest.json"
   out_of_federation:
     - { path: splash, reason: "Separate design system — marketing site, light-default, different accent. Not a member; never a token source." }
+    - { path: apps/docs-portal, reason: "The portal that RENDERS the system. It documents the federation rather than joining it; holding it to F1-F11 would mean auditing the auditor. Carve-out was previously recorded only in its rsbuild.config.ts, where no check could read it." }
   # status: registered = prefix and root_class READ FROM CODE. proposed = this document's proposal; no code exists.
   # tier   = documentation depth, from design surface area (components + owned patterns). NOT CSS volume — see §Local design systems.
   # debt   = remediation weight. Independent of tier: a member can own little design and carry large debt.
@@ -49,6 +50,9 @@ federation:
     - { name: record-collector,            path: apps/record-collector,          prefix: rc,    root_class: ".rc-app",          tier: B, debt: low,  status: registered, doc: apps/record-collector/DESIGN.md }
     - { name: pack-runner,                 path: apps/pack-runner,               prefix: pr,    root_class: ".pr-app",          tier: B, debt: high, status: registered, doc: apps/pack-runner/DESIGN.md }
     - { name: enhanced-records-list,       path: apps/enhanced-records-list,     prefix: erl,   root_class: ".erl-app",         tier: B, debt: low,  status: registered, doc: apps/enhanced-records-list/DESIGN.md }
+    - { name: org-workbench,              path: apps/org-workbench,             prefix: ow,    root_class: ".ow-app",           tier: A, debt: high, status: registered, doc: apps/org-workbench/DESIGN.md }
+    - { name: search-and-add,             path: apps/search-and-add,            prefix: saa,   root_class: ".saa-app",          tier: B, debt: low,  status: registered, doc: apps/search-and-add/DESIGN.md }
+    - { name: search-results,             path: apps/search-results,            prefix: srq,   root_class: ".srq-app",          tier: B, debt: med,  status: registered, doc: apps/search-results/DESIGN.md }
     - { name: sort-filter-lens,            path: apps/sort-filter-lens,          prefix: sfl,   root_class: ".sort-filter-lens", tier: B, debt: critical, status: registered, doc: apps/sort-filter-lens/DESIGN.md }
     - { name: request-reviewer,            path: apps/request-reviewer,          prefix: req,   root_class: ".req-app",         tier: C, debt: none, status: registered, doc: apps/request-reviewer/DESIGN.md }
     - { name: prompt-template-manager,     path: apps/prompt-template-manager,   prefix: ptm,   root_class: ".ptm-app",         tier: C, debt: low,  status: registered, doc: apps/prompt-template-manager/DESIGN.md }
