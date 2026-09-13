@@ -53,35 +53,6 @@
 .resp-app .status-closed,
 .resp-app .status-error { background: var(--color-error-bg); color: var(--color-error-text); }
 
-.resp-app button {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border: 0;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font: inherit;
-  cursor: pointer;
-}
-.resp-app button:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.resp-app .chip {
-  background: var(--color-field);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-}
-.resp-app .chip.active {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border-color: var(--color-accent);
-}
-.resp-app .chip.danger {
-  color: var(--color-error-text);
-  border-color: var(--color-error-text);
-}
-.resp-app .chip.danger:hover:not(:disabled) {
-  background: var(--color-danger-tint);
-}
-
 .resp-app .filters,
 .resp-app .flags,
 .resp-app .actions { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; }
@@ -130,22 +101,14 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.resp-app ul.links .link-remove {
+/* Layout only — rung 0. The control itself is a shared Button; where it sits
+   in the row (pushed to the end, centred against a baseline-aligned row) is
+   the container's job and is not a deviation. */
+.resp-app ul.links .link-remove-slot {
   flex: 0 0 auto;
   margin-left: auto;
-  background: transparent;
-  color: var(--color-text-muted);
-  border: 1px solid transparent;
-  padding: 0 6px;
-  border-radius: 3px;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-}
-.resp-app ul.links .link-remove:hover {
-  color: var(--color-error-text);
-  border-color: var(--color-error-text);
-  background: var(--color-danger-tint);
+  align-self: center;
+  display: inline-flex;
 }
 
 .resp-app .link-form {
@@ -167,21 +130,6 @@
   outline: none;
   border-color: var(--color-accent);
 }
-.resp-app .link-form button {
-  align-self: flex-start;
-  padding: 0.3rem 0.65rem;
-  font-size: 12px;
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border: 0;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.resp-app .link-form button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .resp-app .save-state {
   display: inline-block;
   margin-left: 0.6rem;
@@ -207,56 +155,15 @@
   gap: 0.25rem;
   margin-top: 0.4rem;
 }
-.resp-app .actions.icon-row .icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  font-size: 1rem;
-  line-height: 1;
-  background: var(--color-field);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-}
-.resp-app .actions.icon-row .icon:hover:not(:disabled) {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-.resp-app .actions.icon-row .icon.accept {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border-color: var(--color-accent);
-}
-.resp-app .actions.icon-row .icon.accept:hover:not(:disabled) {
-  filter: brightness(1.1);
-}
-.resp-app .actions.icon-row .icon.danger {
-  color: var(--color-error-text);
-  border-color: var(--color-error-text);
-}
-.resp-app .actions.icon-row .icon.danger:hover:not(:disabled) {
-  background: var(--color-danger-tint);
-}
-.resp-app .actions.icon-row .icon.with-count {
-  width: auto;
-  padding: 0 0.5rem;
-  gap: 0.25rem;
-}
-.resp-app .actions.icon-row .icon.with-count .count {
-  font-size: 0.75rem;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.85;
-}
-
-/* CSS tooltip — appears instantly on hover, no browser delay. */
-.resp-app .actions.icon-row .icon[data-tip] {
+/* CSS tooltip — appears instantly on hover, no browser delay. Anchored on the
+   ROW plus [data-tip] rather than on a class riding the control, so it needs no
+   rung on the override ladder: `position` and the pseudo-elements are things
+   Button never declares. */
+.resp-app .actions.icon-row [data-tip] {
   position: relative;
 }
-.resp-app .actions.icon-row .icon[data-tip]:hover::after,
-.resp-app .actions.icon-row .icon[data-tip]:focus-visible::after {
+.resp-app .actions.icon-row [data-tip]:hover::after,
+.resp-app .actions.icon-row [data-tip]:focus-visible::after {
   content: attr(data-tip);
   position: absolute;
   bottom: calc(100% + 6px);
@@ -274,8 +181,8 @@
   box-shadow: var(--fx-popover-shadow);
   pointer-events: none;
 }
-.resp-app .actions.icon-row .icon[data-tip]:hover::before,
-.resp-app .actions.icon-row .icon[data-tip]:focus-visible::before {
+.resp-app .actions.icon-row [data-tip]:hover::before,
+.resp-app .actions.icon-row [data-tip]:focus-visible::before {
   content: '';
   position: absolute;
   bottom: 100%;
@@ -288,24 +195,14 @@
 }
 .resp-app .filters .refresh { margin-left: auto; }
 .resp-app .filters .refresh-age { font-size: 11px; }
-.resp-app .filters .filter-clear {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  color: var(--color-error-text);
-  border-color: var(--color-error-text);
-  position: relative;
-}
-.resp-app .filters .filter-clear:hover:not(:disabled) {
-  background: var(--color-danger-tint);
-}
-.resp-app .filters .filter-clear .count {
+.resp-app .filters [data-tip] { position: relative; }
+.resp-app .filters .count {
   font-size: 0.85em;
   font-variant-numeric: tabular-nums;
   opacity: 0.85;
 }
-.resp-app .filters .filter-clear[data-tip]:hover::after,
-.resp-app .filters .filter-clear[data-tip]:focus-visible::after {
+.resp-app .filters [data-tip]:hover::after,
+.resp-app .filters [data-tip]:focus-visible::after {
   content: attr(data-tip);
   position: absolute;
   top: calc(100% + 6px);
@@ -322,7 +219,7 @@
   box-shadow: var(--fx-popover-shadow);
   pointer-events: none;
 }
-.resp-app .filters .chip .chip-count {
+.resp-app .filters .chip-count {
   display: inline-block;
   margin-left: 0.3rem;
   padding: 0 0.35rem;
@@ -470,18 +367,6 @@
   font-size: 0.72rem;
 }
 
-.resp-app .snippet-toggle {
-  margin-top: 0.4rem;
-  background: transparent;
-  color: var(--color-text-muted);
-  padding: 1px 4px;
-  font-size: 0.75rem;
-}
-.resp-app .snippet-toggle:hover {
-  color: var(--color-text);
-  background: transparent;
-}
-
 .resp-app .candidate-snippet {
   margin: 0.35rem 0 0;
   padding: 0.4rem 0.55rem;
@@ -558,41 +443,12 @@
   border-bottom: 1px solid var(--color-border);
   background: var(--color-background);
 }
-.resp-app .resp-record-set-scope .chip.orphan-chip {
-  color: var(--color-text-muted);
-  border-style: dashed;
-}
-.resp-app .resp-record-set-scope .chip.orphan-chip.active {
-  color: var(--color-on-accent);
-  border-style: solid;
-}
-
 .resp-app .resp-view-switch {
   display: flex;
   gap: 0.4rem;
   padding: 0.5rem 1.5rem;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-background);
-}
-
-.resp-app .resp-view {
-  background: transparent;
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-  padding: 0.35rem 0.85rem;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-.resp-app .resp-view:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-.resp-app .resp-view.active {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border-color: var(--color-accent);
-  cursor: default;
 }
 
 .resp-app .by-record-hint {
@@ -955,30 +811,6 @@
   gap: 0.3rem;
 }
 
-.resp-app .inline-btn {
-  background: var(--color-field);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  padding: 0.2rem 0.5rem;
-  border-radius: 3px;
-  font: 600 0.78rem var(--font-mono);
-  cursor: pointer;
-}
-.resp-app .inline-btn:hover { border-color: var(--color-accent); }
-.resp-app .inline-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.resp-app .inline-btn.good { color: var(--color-confidence-high); }
-.resp-app .inline-btn.good:hover { border-color: var(--color-confidence-high); }
-.resp-app .inline-btn.wrong { color: var(--color-confidence-low); }
-.resp-app .inline-btn.wrong:hover { border-color: var(--color-confidence-low); }
-.resp-app .inline-btn.partial { color: var(--color-confidence-med); }
-.resp-app .inline-btn.partial:hover { border-color: var(--color-confidence-med); }
-.resp-app .inline-btn.accept {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border-color: var(--color-accent);
-}
-.resp-app .inline-btn.accept:hover:not(:disabled) { box-shadow: var(--fx-accent-glow); }
-
 /* ============================================================
  * Content Reader — view mode 'content-reader'
  * Per context-v/specs/Funder-Content-Corpus-Workflow.md
@@ -1021,19 +853,6 @@
   background: var(--color-field);
   color: var(--color-text-muted);
 }
-
-.resp-app .cr-preview-btn {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border: 1px solid var(--color-accent);
-  padding: 0.4rem 0.85rem;
-  border-radius: 4px;
-  font: 600 0.8rem var(--font-mono);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.resp-app .cr-preview-btn:hover:not(:disabled) { filter: brightness(1.08); }
-.resp-app .cr-preview-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .resp-app .cr-fix-msg,
 .resp-app .cr-empty-msg {
@@ -1145,19 +964,6 @@
 }
 .resp-app .cr-tags:focus { outline: 1px solid var(--color-accent); }
 
-.resp-app .cr-add-btn {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border: 1px solid var(--color-accent);
-  padding: 0.3rem 0.7rem;
-  border-radius: 3px;
-  font: 600 0.78rem var(--font-mono);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.resp-app .cr-add-btn:hover:not(:disabled) { filter: brightness(1.08); }
-.resp-app .cr-add-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
 .resp-app .cr-fail {
   font-size: 0.78rem;
   color: var(--color-error-text, #d33);
@@ -1192,18 +998,6 @@
   min-width: 0;
 }
 .resp-app .cr-url-input:focus { outline: 1px solid var(--color-accent); }
-.resp-app .cr-url-save {
-  background: var(--color-field);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  padding: 0.25rem 0.6rem;
-  border-radius: 3px;
-  font: 600 0.74rem var(--font-mono);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.resp-app .cr-url-save:hover:not(:disabled) { border-color: var(--color-accent); }
-.resp-app .cr-url-save:disabled { opacity: 0.5; cursor: not-allowed; }
 .resp-app .cr-url-row label.cr-url-label {
   display: flex; align-items: center; gap: 0.4rem; flex: 1; min-width: 0; margin: 0;
 }
@@ -1219,21 +1013,6 @@
  * Collapsed by default; expands into a paste field + preview + add. */
 .resp-app .cr-manual {
   display: flex; flex-direction: column; gap: 0.4rem;
-}
-.resp-app .cr-manual-toggle {
-  align-self: flex-start;
-  background: transparent;
-  color: var(--color-text-muted);
-  border: 1px dashed var(--color-border);
-  border-radius: 3px;
-  padding: 0.2rem 0.55rem;
-  font: 0.74rem var(--font-mono);
-  cursor: pointer;
-}
-.resp-app .cr-manual-toggle:hover { color: var(--color-text); border-color: var(--color-accent); }
-.resp-app .cr-manual-toggle[aria-expanded="true"] {
-  color: var(--color-text);
-  border-style: solid;
 }
 .resp-app .cr-manual-body {
   display: flex; flex-direction: column; gap: 0.4rem;
@@ -1253,18 +1032,6 @@
   min-width: 0;
 }
 .resp-app .cr-manual-input:focus { outline: 1px solid var(--color-accent); }
-.resp-app .cr-manual-preview-btn {
-  background: var(--color-field);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  padding: 0.3rem 0.7rem;
-  border-radius: 3px;
-  font: 600 0.74rem var(--font-mono);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.resp-app .cr-manual-preview-btn:hover:not(:disabled) { border-color: var(--color-accent); }
-.resp-app .cr-manual-preview-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .resp-app .cr-manual-preview {
   background: var(--color-surface, rgba(255, 255, 255, 0.02));
 }

@@ -249,7 +249,21 @@
     flex-direction: column;
     gap: 0.1rem;
   }
+  /* NOT a shared <Button>, deliberately. This is a full-width four-column grid
+     MENU ITEM: left-aligned, wrapping, variable height, inside role="menu".
+     Button is inline-flex / justify-content: center / white-space: nowrap at a
+     fixed height, so adopting it would need simultaneous rung-4 overrides for
+     display, grid-template-columns, width, height, justify-content, text-align
+     and white-space — every geometric property the component contributes. That
+     negates the base recipe rather than adjusting it, which makes this a
+     different organ (a MenuItem), not a deviation. Raised in the migration
+     report; leave raw until the organ exists.
+
+     `font` and `color` are declared here because they used to arrive from
+     `.resp-app button`, the bare element selector the Button migration deleted. */
   .palette-menu-item {
+    font: inherit;
+    color: var(--color-text);
     display: grid;
     grid-template-columns: 1.75rem 1fr auto auto;
     gap: 0.5rem;

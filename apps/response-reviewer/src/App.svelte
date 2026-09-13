@@ -10,6 +10,7 @@
     type HelpfulLink,
     type SocialProfile, resolveWsUrl } from '@augment-it/workspace';
   import ConfidencePill from '@augment-it/shared-ui/ConfidencePill.svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { MOCK_PACKS_FIXTURE } from './fixtures/mock-packs';
   import ConnectorPalette from './ConnectorPalette.svelte';
   import type { PaletteConnector, PalettePack } from './ConnectorPalette.svelte';
@@ -1399,57 +1400,50 @@
   <div class="resp-body">
     <!-- View-mode toggle: By Response (single-card stepper, original UI) vs
          By Record (row-grouped triage for pack-firehose workflows). -->
-    <div class="resp-view-switch" role="tablist" aria-label="Review mode">
-      <button
-        class="resp-view"
-        class:active={viewMode === 'single'}
-        role="tab"
-        aria-selected={viewMode === 'single'}
+    <div class="resp-view-switch" role="group" aria-label="Review mode">
+      <Button
+        variant={viewMode === 'single' ? 'primary' : 'secondary'}
+        aria-pressed={viewMode === 'single'}
         onclick={() => (viewMode = 'single')}
       >
         By Response
-      </button>
-      <button
-        class="resp-view"
-        class:active={viewMode === 'by-record'}
-        role="tab"
-        aria-selected={viewMode === 'by-record'}
+      </Button>
+      <Button
+        variant={viewMode === 'by-record' ? 'primary' : 'secondary'}
+        aria-pressed={viewMode === 'by-record'}
         onclick={() => (viewMode = 'by-record')}
         title="Group all responses for a row into one card — efficient for pack triage"
       >
         By Record
-      </button>
-      <button
-        class="resp-view"
-        class:active={viewMode === 'content-reader'}
-        role="tab"
-        aria-selected={viewMode === 'content-reader'}
+      </Button>
+      <Button
+        variant={viewMode === 'content-reader' ? 'primary' : 'secondary'}
+        aria-pressed={viewMode === 'content-reader'}
         onclick={() => (viewMode = 'content-reader')}
         title="Per-record content preview + add to corpus (funder content corpus workflow)"
       >
         Content Reader
-      </button>
+      </Button>
     </div>
 
     <!-- Record-set scope chips. Only render the tier when there's more
          than one bucket (single-set datasets stay uncluttered). -->
     {#if recordSetBuckets.length > 1}
-      <div class="resp-record-set-scope" role="tablist" aria-label="Record-set scope">
-        <button
-          class="chip"
-          class:active={recordSetFilter === 'all'}
+      <div class="resp-record-set-scope" role="group" aria-label="Record-set scope">
+        <Button
+          variant={recordSetFilter === 'all' ? 'primary' : 'secondary'}
+          aria-pressed={recordSetFilter === 'all'}
           onclick={() => setRecordSetFilter('all')}
-        >all sets <span class="chip-count">{responses.length}</span></button>
+        >all sets <span class="chip-count">{responses.length}</span></Button>
         {#each recordSetBuckets as b (b.id)}
-          <button
-            class="chip"
-            class:active={recordSetFilter === b.id}
-            class:orphan-chip={b.id === '__orphan__'}
+          <Button
+            variant={recordSetFilter === b.id ? 'primary' : 'secondary'}
+            aria-pressed={recordSetFilter === b.id}
             onclick={() => setRecordSetFilter(b.id)}
             title={b.id === '__orphan__'
               ? 'Responses whose parent record set was deleted (still in history, no rows to resolve)'
               : `Scope to record set: ${b.label}`}
-          >{b.label} <span class="chip-count">{b.count}</span></button>
+          >{b.label} <span class="chip-count">{b.count}</span></Button>
         {/each}
       </div>
     {/if}
@@ -1458,27 +1452,28 @@
       <h2>Response Reviewer</h2>
       <div class="filters">
         {#each ['all', 'unflagged', 'good', 'partial', 'wrong', 'needs-human'] as f (f)}
-          <button
-            class="chip"
-            class:active={filter === f}
+          <Button
+            variant={filter === f ? 'primary' : 'secondary'}
+            aria-pressed={filter === f}
             onclick={() => {
               filter = f as typeof filter;
               index = 0;
-            }}>{f} <span class="chip-count">{counts[f] ?? 0}</span></button>
+            }}>{f} <span class="chip-count">{counts[f] ?? 0}</span></Button>
         {/each}
-        <button
-          class="chip refresh"
-          onclick={() => void manualRefresh()}
-          disabled={refreshing}
-          title="Pull the latest responses from the server"
-        >{refreshing ? 'refreshing…' : '↻ refresh'}</button>
-        <button
-          class="chip danger filter-clear"
+        <div class="refresh">
+          <Button
+            onclick={() => void manualRefresh()}
+            disabled={refreshing}
+            title="Pull the latest responses from the server"
+          >{refreshing ? 'refreshing…' : '↻ refresh'}</Button>
+        </div>
+        <Button
+          variant="destructive"
           onclick={() => void clearVisible()}
           disabled={filtered.length === 0}
           data-tip={`Clear ${filter === 'all' ? 'all' : `"${filter}"`} responses (${filtered.length})`}
           aria-label={`Clear ${filter === 'all' ? 'all' : filter} responses, ${filtered.length} total`}
-        >🧹 <span class="count">{filtered.length}</span></button>
+        >🧹 <span class="count">{filtered.length}</span></Button>
         <span class="muted refresh-age">
           {responses.length} loaded · updated {formatAge(lastRefreshAt)}
         </span>
@@ -1687,30 +1682,34 @@
                     {#if resp.accepted}
                       <span class="flag accepted">accepted</span>
                     {:else}
-                      <button
-                        class="inline-btn good"
+                      <Button
+                        size="sm"
                         disabled={rowBusyId === resp.response_id}
                         onclick={() => void flagInline(resp.response_id, 'good')}
+                        aria-label="Mark good"
                         title="Mark good"
-                      >✓</button>
-                      <button
-                        class="inline-btn wrong"
+                      >✓</Button>
+                      <Button
+                        size="sm"
                         disabled={rowBusyId === resp.response_id}
                         onclick={() => void flagInline(resp.response_id, 'wrong')}
+                        aria-label="Mark wrong"
                         title="Mark wrong"
-                      >✗</button>
-                      <button
-                        class="inline-btn partial"
+                      >✗</Button>
+                      <Button
+                        size="sm"
                         disabled={rowBusyId === resp.response_id}
                         onclick={() => void flagInline(resp.response_id, 'partial')}
+                        aria-label="Mark partial"
                         title="Mark partial"
-                      >~</button>
-                      <button
-                        class="inline-btn accept"
+                      >~</Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
                         disabled={rowBusyId === resp.response_id || !resp.structured}
                         onclick={() => void acceptInline(resp.response_id)}
                         title={resp.structured ? 'Accept → write to row.socials' : 'No structured payload to accept'}
-                      >→ accept</button>
+                      >→ accept</Button>
                     {/if}
                   </div>
                 </li>
@@ -1775,14 +1774,14 @@
                   </span>
                 </div>
                 {#if cr.status.kind === 'has-content'}
-                  <button
-                    class="cr-preview-btn"
+                  <Button
+                    variant="primary"
                     onclick={() => void previewContentForRow(cr.row_id)}
                     disabled={busy || previewBusyRowId.length > 0}
                     title="Fetch markdown body for this record's content responses via Jina"
                   >
                     {#if busy}fetching…{:else}Preview content →{/if}
-                  </button>
+                  </Button>
                 {/if}
               </header>
 
@@ -1807,8 +1806,8 @@
                     }}
                   />
                 </label>
-                <button
-                  class="cr-url-save"
+                <Button
+                  size="sm"
                   onclick={() => void saveRowUrl(cr.row_id)}
                   disabled={
                     urlSavingRowId === cr.row_id ||
@@ -1822,7 +1821,7 @@
                   {:else}
                     save
                   {/if}
-                </button>
+                </Button>
               </div>
 
               {#if cr.status.kind === 'invalid-url'}
@@ -1868,15 +1867,17 @@
                    trumps). See feedback memory: manual-corpus-bypasses-
                    same-host. -->
               <div class="cr-manual">
-                <button
-                  class="cr-manual-toggle"
-                  type="button"
-                  onclick={() => toggleManual(cr.row_id)}
-                  aria-expanded={manualOpen}
-                  title="Paste a URL you found via your own search — bypasses Rule 1 same-host filter"
-                >
-                  {manualOpen ? '▾' : '▸'} + add URL manually
-                </button>
+                <div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onclick={() => toggleManual(cr.row_id)}
+                    aria-expanded={manualOpen}
+                    title="Paste a URL you found via your own search — bypasses Rule 1 same-host filter"
+                  >
+                    {manualOpen ? '▾' : '▸'} + add URL manually
+                  </Button>
+                </div>
                 {#if manualOpen}
                   <div class="cr-manual-body">
                     <div class="cr-manual-input-row">
@@ -1895,14 +1896,13 @@
                           }
                         }}
                       />
-                      <button
-                        class="cr-manual-preview-btn"
-                        type="button"
+                      <Button
+                        size="sm"
                         onclick={() => void previewManualUrl(cr.row_id)}
                         disabled={manualBusy || !(manualUrlDrafts[cr.row_id] ?? '').trim()}
                       >
                         {#if manualBusy}fetching…{:else}Preview ↓{/if}
-                      </button>
+                      </Button>
                     </div>
                     {#if manualErr}
                       <p class="cr-error">{manualErr}</p>
@@ -1975,8 +1975,9 @@
                                   })
                               }
                             />
-                            <button
-                              class="cr-add-btn"
+                            <Button
+                              variant="primary"
+                              size="sm"
                               onclick={() => void addManualToCorpus(cr)}
                               disabled={addingResponseId === manualPreview.response_id}
                               title={inboxBound
@@ -1990,7 +1991,7 @@
                               {:else}
                                 + add to corpus
                               {/if}
-                            </button>
+                            </Button>
                           </div>
                           <label class="cr-inbox-toggle" title="Send to corpus/inbox/ for later triage instead of the per-funder corpus directory. Required for PDFs — only the inbox path downloads the binary today.">
                             <input
@@ -2069,14 +2070,15 @@
                                   })
                               }
                             />
-                            <button
-                              class="cr-add-btn"
+                            <Button
+                              variant="primary"
+                              size="sm"
                               onclick={() => void addToCorpus(cr, p)}
                               disabled={addingResponseId === p.response_id}
                               title="Write the Jina markdown as a corpus file"
                             >
                               {#if addingResponseId === p.response_id}adding…{:else}+ add to corpus{/if}
-                            </button>
+                            </Button>
                           </div>
                         {/if}
                       </li>
@@ -2100,9 +2102,9 @@
       {/if}
     {:else if current}
       <div class="stepper">
-        <button onclick={() => step(-1)} disabled={index === 0}>◀</button>
+        <Button size="icon" aria-label="Previous response" onclick={() => step(-1)} disabled={index === 0}>◀</Button>
         <span>response {index + 1} / {filtered.length}</span>
-        <button onclick={() => step(1)} disabled={index >= filtered.length - 1}>▶</button>
+        <Button size="icon" aria-label="Next response" onclick={() => step(1)} disabled={index >= filtered.length - 1}>▶</Button>
         {#if current.flag}<span class="flag flag-{current.flag}">{current.flag}</span>{/if}
         {#if current.accepted}<span class="flag accepted">accepted</span>{/if}
         {#if current.pack_id}<span class="flag pack-badge" title="response produced by pack">{current.pack_id}</span>{/if}
@@ -2111,11 +2113,11 @@
           <span class="muted stepper-label">triage:</span>
           <div class="flags inline">
             {#each FLAGS as f (f)}
-              <button
-                class="chip"
-                class:active={current.flag === f}
+              <Button
+                variant={current.flag === f ? 'primary' : 'secondary'}
+                aria-pressed={current.flag === f}
                 onclick={() => flag(f)}
-              >{f}</button>
+              >{f}</Button>
             {/each}
           </div>
         {:else}
@@ -2152,12 +2154,15 @@
               <li>
                 <a href={link.url} target="_blank" rel="noopener noreferrer">{linkLabel(link)}</a>
                 {#if link.note}<span class="link-note">{link.note}</span>{/if}
-                <button
-                  class="link-remove"
-                  onclick={() => void removeHelpfulLink(link.link_id)}
-                  aria-label="remove link"
-                  title="Remove this link"
-                >×</button>
+                <span class="link-remove-slot">
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onclick={() => void removeHelpfulLink(link.link_id)}
+                    aria-label="remove link"
+                    title="Remove this link"
+                  >×</Button>
+                </span>
               </li>
             {/each}
             {#if helpfulLinks.length === 0}
@@ -2182,9 +2187,11 @@
               placeholder="optional note — why this link?"
               disabled={addingLink}
             />
-            <button type="submit" disabled={addingLink || !newLinkUrl.trim()}>
-              {addingLink ? 'saving…' : '+ add link'}
-            </button>
+            <div>
+              <Button variant="primary" type="submit" disabled={addingLink || !newLinkUrl.trim()}>
+                {addingLink ? 'saving…' : '+ add link'}
+              </Button>
+            </div>
           </form>
           {#if linkBusy}<p class="result muted">{linkBusy}</p>{/if}
         </aside>
@@ -2208,13 +2215,14 @@
                 {/if}
               </div>
               {#if current.structured.snippet}
-                <button
-                  class="snippet-toggle"
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onclick={() => (snippetExpanded = !snippetExpanded)}
                   aria-expanded={snippetExpanded}
                 >
                   {snippetExpanded ? '▾' : '▸'} snippet
-                </button>
+                </Button>
                 {#if snippetExpanded}
                   <p class="candidate-snippet">{current.structured.snippet}</p>
                 {/if}
@@ -2240,30 +2248,32 @@
             ></textarea>
 
             <div class="actions icon-row">
-              <button
-                class="icon accept"
+              <Button
+                variant="primary"
+                size="icon"
                 onclick={accept}
                 data-tip="Accept whole response → cell"
                 aria-label="Accept whole response and write to row cell"
-              >✓</button>
-              <button
-                class="icon"
+              >✓</Button>
+              <Button
+                size="icon"
                 onclick={rerun}
                 data-tip="Re-run this row in Request Reviewer"
                 aria-label="Re-run in Request Reviewer"
-              >↻</button>
-              <button
-                class="icon"
+              >↻</Button>
+              <Button
+                size="icon"
                 disabled
                 data-tip="Distill in Highlight Collector — a future stage"
                 aria-label="Distill in Highlight Collector"
-              >✦</button>
-              <button
-                class="icon danger"
+              >✦</Button>
+              <Button
+                variant="destructive"
+                size="icon"
                 onclick={() => void deleteCurrent()}
                 data-tip="Delete this response"
                 aria-label="Delete this response"
-              >🗑</button>
+              >🗑</Button>
             </div>
           {:else if current.outcome === 'not_found'}
             <div class="thin-row outcome-not-found">
@@ -2274,18 +2284,18 @@
             <div class="thin-row outcome-error">
               <span class="thin-row-icon">✕</span>
               <span class="thin-row-body">{current.response_text || 'unknown error'}</span>
-              <button
-                class="icon"
+              <Button
                 disabled
                 data-tip="Retry coming in a later feature"
                 aria-label="Retry — coming in a later feature"
-              >↻ retry</button>
-              <button
-                class="icon danger"
+              >↻ retry</Button>
+              <Button
+                variant="destructive"
+                size="icon"
                 onclick={() => void deleteCurrent()}
                 data-tip="Delete this response"
                 aria-label="Delete this response"
-              >🗑</button>
+              >🗑</Button>
             </div>
           {:else if current.outcome === 'skipped'}
             <div class="thin-row outcome-skipped">

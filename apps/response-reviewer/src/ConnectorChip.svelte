@@ -151,6 +151,14 @@
 </button>
 
 <style>
+  /* NOT a shared <Button>, deliberately. Every surface of this control is
+     painted from --chip-accent, a PER-INSTANCE colour handed in as a prop (one
+     per connector pack), across eight mutually-exclusive state classes; it also
+     carries an absolutely-positioned overflow badge and its own press/long-press
+     gesture handling. Button's variants are fixed token pairs and it declares no
+     `position`, so expressing this would take ~12 rung-4 overrides — a data-driven
+     accent chip is a different organ, not a deviation. Raised in the migration
+     report; leave raw until the organ exists. */
   .connector-chip {
     --chip-accent: var(--color-text);
     position: relative;
