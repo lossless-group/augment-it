@@ -100,6 +100,14 @@
 
   /* typeface — augment-it is a monospace tool surface */
   --font__mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  /* The second face. augment-it is a monospace instrument panel for DATA, and
+     ten members set their root to --font-mono accordingly — but nine set theirs
+     to --font-sans, which until now did not exist. Those nine were not wrong;
+     prose next to a data grid wants a proportional face. What was wrong is that
+     each of them had to invent a fallback stack, and four different ones shipped.
+     One definition, decided once. Leads with the modern generic, matching the
+     mono stack above. */
+  --font__sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
 /* -----------------------------------------------------------------------------
@@ -124,6 +132,13 @@
      destroying the instrument-panel density that is its identity (P5).
      Max displacement against measured values is 1.6px, median under 1px.
      WARNING: space-hairline may NEVER be a control's vertical padding (P10, F7). */
+  /* TYPEFACE — Tier 2, and mode-independent like the scales below. It does not
+     belong in the three mode blocks: a font does not change between dark, light
+     and vibrant, and declaring it there made the drift checker correctly report
+     it "missing in light vibrant" for a variance that does not exist. */
+  --font-mono: var(--font__mono);
+  --font-sans: var(--font__sans);
+
   --space-hairline: 1px;
   --space-3xs:      2px;
   --space-2xs:      4px;
@@ -272,7 +287,6 @@
   --fx-popover-shadow: 0 4px 16px color-mix(in srgb, var(--color__shadow-black) 45%, transparent);
   --fx-flash:        color-mix(in srgb, var(--color-accent-2) 30%, transparent);
 
-  --font-mono: var(--font__mono);
 }
 
 [data-mode='light'] {
