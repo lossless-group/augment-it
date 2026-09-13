@@ -10,6 +10,7 @@
   // Spec: ../../../context-v/specs/Records-Surface-Sort-Step-and-UI.md
 
   import { onMount } from 'svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import {
     type SortSpec,
@@ -471,29 +472,34 @@
     </div>
     <div class="record-set-picker">
       {#if selectedRecordSet}
-        <button class="picker-btn" onclick={() => (pickerOpen = !pickerOpen)} title="Switch record set">
+        <Button
+          onclick={() => (pickerOpen = !pickerOpen)}
+          title="Switch record set"
+          aria-expanded={pickerOpen}
+        >
           <span class="picker-name">{selectedRecordSet.name}</span>
           <span class="picker-meta">{rows.length} rows · {selectedRecordSet.schema.fields.length} cols</span>
           <span class="picker-caret">{pickerOpen ? '▴' : '▾'}</span>
-        </button>
+        </Button>
       {:else}
-        <button class="picker-btn" onclick={() => (pickerOpen = !pickerOpen)}>
+        <Button onclick={() => (pickerOpen = !pickerOpen)} aria-expanded={pickerOpen}>
           <span class="picker-name">pick a record set</span>
           <span class="picker-caret">▾</span>
-        </button>
+        </Button>
       {/if}
       {#if pickerOpen}
         <div class="picker-popover" role="menu">
           {#each recordSets as rs (rs.record_set_id)}
-            <button
-              type="button"
-              class="picker-row"
-              class:active={rs.record_set_id === selectedRecordSetId}
+            <Button
+              variant={rs.record_set_id === selectedRecordSetId ? 'secondary' : 'ghost'}
+              aria-current={rs.record_set_id === selectedRecordSetId ? 'true' : undefined}
               onclick={() => { selectRecordSet(rs.record_set_id); pickerOpen = false; }}
             >
-              <span class="picker-row-name">{rs.name}</span>
-              <span class="picker-row-meta">{rs.row_ids.length} rows</span>
-            </button>
+              <span class="sfl-btn-content-row">
+                <span class="picker-row-name">{rs.name}</span>
+                <span class="picker-row-meta">{rs.row_ids.length} rows</span>
+              </span>
+            </Button>
           {/each}
         </div>
       {/if}
@@ -503,11 +509,12 @@
   <div class="sort-toolbar" role="toolbar" aria-label="Sort">
     <span class="toolbar-label">Sort by</span>
     {#each sortSpec.sort as key, i (key.column + i)}
-      <button
-        type="button"
-        class="sort-chip active"
+      <Button
+        variant="outline"
+        size="sm"
         onclick={() => toggleDirection(i)}
         title="Click to toggle direction"
+        aria-label={`Sort key ${i + 1}: ${key.column}, ${key.direction === 'asc' ? 'ascending' : 'descending'} — activate to toggle direction`}
       >
         <span class="chip-rank">{i + 1}</span>
         <span class="chip-col">{key.column}</span>
@@ -520,7 +527,7 @@
           onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); removeSortKey(i); } }}
           title="Remove this sort key"
         >×</span>
-      </button>
+      </Button>
     {/each}
     {#if sortSpec.sort.length < 3}
       <details class="add-sort">
@@ -530,14 +537,17 @@
             <div class="add-sort-group-label">{g}</div>
             {#each sortableColumns.filter((c) => c.group === g) as col (col.name)}
               {#if sortSpec.sort.some((k) => k.column === col.name)}
-                <button type="button" class="add-sort-col" disabled title="already in sort">{col.display}</button>
+                <Button variant="ghost" disabled title="already in sort">
+                  <span class="sfl-btn-content-row">{col.display}</span>
+                </Button>
               {:else}
-                <button
-                  type="button"
-                  class="add-sort-col"
+                <Button
+                  variant="ghost"
                   onclick={() => addSortKey(col.name)}
                   title={`Sort by ${col.name}`}
-                >{col.display}</button>
+                >
+                  <span class="sfl-btn-content-row">{col.display}</span>
+                </Button>
               {/if}
             {/each}
           {/each}
@@ -545,7 +555,9 @@
       </details>
     {/if}
     {#if sortSpec.sort.length > 0}
-      <button type="button" class="reset-btn" onclick={resetSort} title="Clear sort">Reset</button>
+      <div class="sfl-toolbar-end">
+        <Button variant="outline" size="sm" onclick={resetSort} title="Clear sort">Reset</Button>
+      </div>
     {/if}
   </div>
 
@@ -594,20 +606,21 @@
                     disabled={urlSavingRowId === row.row_id}
                     autofocus
                   />
-                  <button
-                    type="button"
-                    class="row-url-save"
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onclick={() => void saveRowUrl(row)}
                     disabled={urlSavingRowId === row.row_id}
                     title="Save via row.update — survives the next /promote-snapshot if v(N+1) is emitted afterwards"
-                  >{urlSavingRowId === row.row_id ? 'saving…' : 'Save'}</button>
-                  <button
-                    type="button"
-                    class="row-url-cancel"
+                  >{urlSavingRowId === row.row_id ? 'saving…' : 'Save'}</Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="cancel URL edit"
                     onclick={cancelUrlEdit}
                     disabled={urlSavingRowId === row.row_id}
                     title="cancel (Esc)"
-                  >×</button>
+                  >×</Button>
                 </div>
                 {#if urlEditErrByRowId[row.row_id]}
                   <p class="row-url-err">{urlEditErrByRowId[row.row_id]}</p>
@@ -615,21 +628,23 @@
               {:else if u && u !== 'unknown'}
                 <div class="row-url-row">
                   <a class="row-url" href={u} target="_blank" rel="noopener noreferrer">{u}</a>
-                  <button
-                    type="button"
-                    class="row-url-edit-btn"
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onclick={() => startUrlEdit(row)}
                     title="Edit URL — saves to row-store immediately"
                     aria-label="edit URL"
-                  >✎</button>
+                  >✎</Button>
                 </div>
               {:else}
-                <button
-                  type="button"
-                  class="row-url-add"
-                  onclick={() => startUrlEdit(row)}
-                  title="Add a primary URL for this record (saves to row-store)"
-                >+ add URL</button>
+                <div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onclick={() => startUrlEdit(row)}
+                    title="Add a primary URL for this record (saves to row-store)"
+                  >+ add URL</Button>
+                </div>
               {/if}
             </div>
             <div class="row-meta">
@@ -647,14 +662,13 @@
               {:else}
                 <span class="corpus-chip warm" title={`${n} corpus ${n === 1 ? 'file' : 'files'} on disk`}>corpus {n}</span>
               {/if}
-              <button
-                type="button"
-                class="add-trigger"
-                class:open={expanded}
+              <Button
+                variant={expanded ? 'secondary' : 'outline'}
+                size="sm"
                 onclick={() => toggleAddRow(row.row_id)}
                 title="Add a URL to this record's corpus"
                 aria-expanded={expanded}
-              >+ URL</button>
+              >+ URL</Button>
             </div>
           </div>
           {#if expanded}
@@ -682,13 +696,13 @@
                     }
                   }}
                 />
-                <button
-                  type="button"
-                  class="row-add-btn"
+                <Button
+                  variant="primary"
+                  size="sm"
                   onclick={() => submitAdd(row)}
                   disabled={!(urlDraftByRowId[row.row_id] ?? '').trim()}
                   title="Queue this URL — backend Jina-fetch + corpus.add run in background"
-                >Add</button>
+                >Add</Button>
               </div>
               {#if validationErr}
                 <p class="row-add-err">{validationErr}</p>
@@ -709,13 +723,13 @@
                       {:else}
                         <span class="pending-meta">added</span>
                       {/if}
-                      <button
-                        type="button"
-                        class="pending-dismiss"
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onclick={() => dismissPending(row.row_id, p.id)}
                         title={p.status === 'pending' ? 'dismiss (request keeps running in background)' : 'dismiss'}
                         aria-label="dismiss"
-                      >×</button>
+                      >×</Button>
                     </li>
                   {/each}
                 </ul>

@@ -41,19 +41,6 @@
 
 /* --- record-set picker --- */
 .record-set-picker { position: relative; }
-.picker-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.4rem 0.7rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md, 6px);
-  background: var(--color-field, var(--color-bg));
-  color: var(--color-text);
-  cursor: pointer;
-  font-size: 12px;
-}
-.picker-btn:hover { border-color: var(--color-accent); }
 .picker-name { font-weight: 500; max-width: 24rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .picker-meta { color: var(--color-text-muted); font-size: 11px; }
 .picker-caret { color: var(--color-text-muted); font-size: 11px; }
@@ -70,24 +57,17 @@
   box-shadow: var(--fx-popover-shadow);
   z-index: 20;
   padding: 0.3rem;
-}
-.picker-row {
+  /* Rung 0 — a Button never positions itself. The popover is the only thing
+     that knows its items are a full-width column, so the column lives here. */
   display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0.45rem 0.6rem;
-  border: none;
-  background: transparent;
-  color: var(--color-text);
-  text-align: left;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 12px;
+  flex-direction: column;
+  gap: var(--space-3xs);
 }
-.picker-row:hover { background: var(--color-bg); }
-.picker-row.active { background: var(--color-accent-bg, rgba(120, 160, 255, 0.12)); }
+/* A column-flex container shrinks its items when it runs out of room, and both
+   popovers cap their height — which silently crushed every item to 17px against
+   a 24px WCAG floor. Measured in the probe, not reasoned about. Still rung 0:
+   how children flex is the container's business, never the control's. */
+.picker-popover > * { flex: 0 0 auto; }
 .picker-row-name { font-weight: 500; }
 .picker-row-meta { color: var(--color-text-muted); font-size: 11px; }
 
@@ -103,21 +83,6 @@
 }
 .toolbar-label { font-size: 11px; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
 
-.sort-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.55rem;
-  border: 1px solid var(--color-accent, #9ab8ff);
-  border-radius: 999px;
-  background: var(--color-accent-bg, rgba(120, 160, 255, 0.12));
-  color: var(--color-text);
-  font-size: 11px;
-  font-family: var(--font-mono, monospace);
-  cursor: pointer;
-  transition: filter 0.12s ease;
-}
-.sort-chip:hover { filter: brightness(1.1); }
 .chip-rank {
   display: inline-flex; align-items: center; justify-content: center;
   width: 16px; height: 16px;
@@ -162,7 +127,12 @@
   border-radius: var(--radius-md, 6px);
   box-shadow: var(--fx-popover-shadow);
   z-index: 15;
+  /* Rung 0, as above — the popover owns the column, the Button owns the control. */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
 }
+.add-sort-popover > * { flex: 0 0 auto; }
 .add-sort-group-label {
   font-size: 10px;
   text-transform: uppercase;
@@ -170,32 +140,21 @@
   color: var(--color-text-muted);
   padding: 0.3rem 0.5rem 0.15rem;
 }
-.add-sort-col {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 0.4rem 0.55rem;
-  border: none;
-  background: transparent;
-  color: var(--color-text);
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 12px;
-}
-.add-sort-col:hover:not(:disabled) { background: var(--color-bg); }
-.add-sort-col:disabled { color: var(--color-text-muted); cursor: not-allowed; opacity: 0.5; }
+/* Rung 0 — Reset sits at the end of the toolbar. Placement is the container's
+   job, so it is a wrapper, not a class on the control. */
+.sfl-toolbar-end { margin-inline-start: auto; }
 
-.reset-btn {
-  margin-left: auto;
-  padding: 0.25rem 0.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md, 6px);
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 11px;
-  cursor: pointer;
+/* Layout for a Button whose label is a full-width row rather than a centred
+   word — the popover items. The Button centres one child; this child is that
+   child, and it fills. Structure, not an override: no rung is used. */
+.sfl-btn-content-row {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  min-width: 0;
 }
-.reset-btn:hover { color: var(--color-text); border-color: var(--color-accent); }
 
 /* --- row list --- */
 .row-list {
@@ -238,30 +197,6 @@
   align-items: center;
   gap: 0.35rem;
 }
-.row-url-edit-btn {
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-size: 11px;
-  padding: 0 0.25rem;
-  border-radius: 3px;
-  opacity: 0.4;
-  transition: opacity 0.12s, color 0.12s;
-}
-.row-url-edit-btn:hover { opacity: 1; color: var(--color-accent); background: rgba(255, 255, 255, 0.04); }
-.row-url-add {
-  align-self: flex-start;
-  padding: 0.1rem 0.5rem;
-  border: 1px dashed var(--color-border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-family: var(--font-mono, monospace);
-  cursor: pointer;
-}
-.row-url-add:hover { color: var(--color-accent); border-color: var(--color-accent); border-style: solid; }
 .row-url-edit {
   display: flex;
   align-items: center;
@@ -279,31 +214,11 @@
   font-family: var(--font-mono, monospace);
   min-width: 0;
 }
-.row-url-input:focus { outline: none; border-color: var(--color-accent, #9ab8ff); box-shadow: 0 0 0 2px var(--color-accent-bg, rgba(120, 160, 255, 0.18)); }
+/* No :focus rule here. It declared the same border-colour the base rule
+   already sets, and its box-shadow OVERRODE the federal *:focus-visible ring
+   with an undefined token — so the input's focus ring was a literal blue the
+   theme never chose. Deleting it hands the ring back to --focus-ring. */
 .row-url-input:disabled { opacity: 0.5; }
-.row-url-save {
-  padding: 0.3rem 0.7rem;
-  border: 1px solid var(--color-accent, #9ab8ff);
-  background: var(--color-accent, #9ab8ff);
-  color: var(--color-on-accent, var(--color-bg));
-  border-radius: var(--radius-md, 6px);
-  font-size: 11px;
-  font-weight: 500;
-  cursor: pointer;
-}
-.row-url-save:disabled { opacity: 0.45; cursor: not-allowed; }
-.row-url-cancel {
-  width: 22px; height: 22px;
-  display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-text-muted);
-  border-radius: 999px;
-  font-size: 14px;
-  cursor: pointer;
-  padding: 0;
-}
-.row-url-cancel:hover { color: var(--color-text); border-color: var(--color-text-muted); }
 .row-url-err {
   margin: 0.2rem 0 0;
   font-size: 11px;
@@ -342,29 +257,6 @@
 .loading, .empty { padding: 1.5rem 1rem; text-align: center; }
 
 /* --- per-row corpus-add affordance --- */
-.add-trigger {
-  padding: 0.2rem 0.55rem;
-  border: 1px dashed var(--color-border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-family: var(--font-mono, monospace);
-  cursor: pointer;
-  transition: color 0.12s, border-color 0.12s, background 0.12s;
-}
-.add-trigger:hover {
-  color: var(--color-accent, #9ab8ff);
-  border-color: var(--color-accent, #9ab8ff);
-  border-style: solid;
-}
-.add-trigger.open {
-  color: var(--color-accent, #9ab8ff);
-  border-color: var(--color-accent, #9ab8ff);
-  background: var(--color-accent-bg, rgba(120, 160, 255, 0.12));
-  border-style: solid;
-}
-
 .row-add {
   display: flex;
   flex-direction: column;
@@ -399,18 +291,6 @@
 }
 .row-add-input:focus { outline: none; border-color: var(--color-accent, #9ab8ff); }
 .row-add-input:disabled { opacity: 0.5; }
-.row-add-btn {
-  padding: 0.4rem 0.9rem;
-  border: 1px solid var(--color-accent, #9ab8ff);
-  background: var(--color-accent, #9ab8ff);
-  color: var(--color-on-accent, var(--color-bg));
-  border-radius: var(--radius-md, 6px);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-}
-.row-add-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.row-add-btn:hover:not(:disabled) { filter: brightness(1.08); }
 .row-add-err {
   margin: 0;
   font-size: 11px;
@@ -496,16 +376,3 @@
   white-space: nowrap;
 }
 .pending-item.p-failed .pending-meta { color: var(--color-warn-fg); max-width: 50%; }
-.pending-dismiss {
-  flex-shrink: 0;
-  width: 18px; height: 18px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  border-radius: 999px;
-  font-size: 14px;
-  line-height: 1;
-  padding: 0;
-}
-.pending-dismiss:hover { color: var(--color-text); background: rgba(255, 255, 255, 0.08); }
