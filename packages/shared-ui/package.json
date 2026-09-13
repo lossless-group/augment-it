@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./Button.svelte": "./src/Button.svelte",
     "./ConfidencePill.svelte": "./src/ConfidencePill.svelte",
     "./ToggleHeader__PromptOrPackage--Icons.svelte": "./src/ToggleHeader__PromptOrPackage--Icons.svelte"
   },
