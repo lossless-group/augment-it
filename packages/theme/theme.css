@@ -35,7 +35,7 @@
   --color__graphite-950:  #0f1115;
   --color__graphite-900:  #16181f;
   --color__graphite-850:  #1a1d27;
-  --color__graphite-800:  #232634;
+  --color__graphite-800:  #343a54;   /* separated 2026-09-13: was #232634, IDENTICAL to graphite-700, so dark-mode --color-border on --color-surface measured 1.00:1. Now 1.34:1 on surface / 1.69:1 on background — inside gate A22's intended 1.2-1.5 hairline band, matching light (1.41) and vibrant (1.45). */
   --color__graphite-700:  #232634;
   --color__graphite-600:  #646785;
   --color__mist-100:      #e8eaf0;

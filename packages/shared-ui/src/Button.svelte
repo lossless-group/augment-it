@@ -220,7 +220,8 @@
     border-color: var(--color-border-strong);
   }
   .ui-btn[data-variant='outline']:hover:not(:disabled) {
-    background: var(--color-selected-tint);
+    /* Same reasoning as ghost above. */
+    background: color-mix(in srgb, var(--color-text) 10%, transparent);
   }
 
   .ui-btn[data-variant='ghost'] {
@@ -228,12 +229,24 @@
     color: var(--color-text);
   }
   .ui-btn[data-variant='ghost']:hover:not(:disabled) {
-    background: var(--color-selected-tint);
+    /* NOT --color-selected-tint: that token is what chips, selected rows and
+       tinted panels are already painted with, so a ghost control hosted on one
+       composited to 1.122:1 hover-vs-rest — present, imperceptible. A
+       translucent wash of the *text* colour is surface-independent: it lightens
+       on a dark host and darkens on a light one, whatever the host chose. */
+    background: color-mix(in srgb, var(--color-text) 10%, transparent);
   }
 
   .ui-btn[data-variant='destructive'] {
     background: var(--color-error-bg);
     color: var(--color-error-fg);
+    /* A filled control's boundary is its fill against the surround, and
+       --color-error-bg measures 1.02-1.32:1 on every plausible parent — under
+       F7's 3:1 floor in BOTH modes. Every contrast gate we run is a *text*
+       gate, and the text here is 7.19:1, which is why this shipped unnoticed
+       through nineteen migrations. The one control where the edge matters most
+       is the one that deletes things. */
+    border-color: color-mix(in srgb, var(--color-error-fg) 65%, var(--color-error-bg));
   }
   .ui-btn[data-variant='destructive']:hover:not(:disabled) {
     background: color-mix(in srgb, var(--color-error-fg) 16%, var(--color-error-bg));
