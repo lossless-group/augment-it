@@ -7,3 +7,9 @@
 # Left in, it dominates community detection and buries the code structure the
 # graph exists to expose. Each client corpus should get its own graph instead.
 clients/
+
+# Generated diagram artifacts: the delivered HTML and its visual-check captures
+# are renders/evidence, not architecture. The typed JSON spec is the durable
+# source and stays in the corpus.
+context-v/diagrams/*.html
+context-v/diagrams/*.png
