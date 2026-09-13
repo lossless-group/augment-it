@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from '@augment-it/shared-ui/Button.svelte';
   // DidiBadge — the shell's didi.sh identity affordance (spec increment 2,
   // shell half). Lives in the header so it carries across every mounted
   // micro-app: the identity is shell-level, not per-remote.
@@ -138,10 +139,12 @@
       {#if me?.email}<p class="didi-row"><span>email</span>{me.email}</p>{/if}
       <p class="didi-row"><span>sub</span>{didiId}</p>
       <p class="didi-row"><span>verified</span>on WS upgrade · JWKS</p>
-      <button class="didi-btn" onclick={signOut}>Sign out everywhere</button>
+      <div class="didi-action">
+        <Button variant="outline" onclick={signOut}>Sign out everywhere</Button>
+      </div>
     {:else}
       <p class="didi-pop__head">Connect your didi.sh ID</p>
-      <form onsubmit={signIn}>
+      <form class="didi-form" onsubmit={signIn}>
         <input
           class="didi-input"
           type="email"
@@ -149,9 +152,12 @@
           bind:value={email}
           required
         />
-        <button class="didi-btn didi-btn--primary" disabled={busy}>
+        <!-- type="submit" is NOT optional. A bare <button> in a form defaults
+             to submit; <Button> defaults to type="button", so dropping this
+             would silently stop the magic-link form from submitting. -->
+        <Button variant="primary" type="submit" disabled={busy}>
           {busy ? 'signing in…' : 'Send magic link'}
-        </button>
+        </Button>
       </form>
       {#if notice}<p class="didi-notice">{notice}</p>{/if}
       <p class="didi-fine">Invite-only · no passwords · one login across didi.sh</p>
@@ -243,25 +249,13 @@
     color: var(--color-text, #eee);
     font-size: 12px;
   }
-  .didi-btn {
-    width: 100%;
-    padding: 7px 9px;
-    border: 1px solid var(--color-border-strong, rgba(255, 255, 255, 0.25));
-    border-radius: 5px;
-    background: transparent;
-    color: var(--color-text, #eee);
-    font-size: 12px;
-    cursor: pointer;
-  }
-  .didi-btn--primary {
-    background: var(--color-accent, #4ecf95);
-    border-color: var(--color-accent, #4ecf95);
-    color: var(--color-bg, #101014);
-    font-weight: 600;
-  }
-  .didi-btn:disabled {
-    opacity: 0.6;
-    cursor: wait;
+  /* Rung 0 — the popover's action area and its form are the only things that
+     know these controls run full-bleed across a 280px card. A column flex
+     stretches them; the control never pins its own width. */
+  .didi-action,
+  .didi-form {
+    display: flex;
+    flex-direction: column;
   }
   .didi-notice {
     margin: 8px 0 0;

@@ -21,6 +21,7 @@
    * `orientation`, and callbacks. Owns no state.
    */
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { slotById, type Slot } from './remotes';
   import type { LayoutMode, FlowWidgetPosition } from './layout.svelte';
 
@@ -66,15 +67,15 @@
 </script>
 
 <div class="flow-widget" class:orientation-top={orientation === 'top'} class:orientation-left={orientation === 'left'}>
-  <button
-    type="button"
-    class="flow-parent"
-    class:active={mode === 'peek-flow'}
+  <Button
+    variant={mode === 'peek-flow' ? 'secondary' : 'ghost'}
+    size="sm"
+    aria-pressed={mode === 'peek-flow'}
     title="Flow — left-to-right workflow across the rotation"
     onclick={() => onSelectMode('peek-flow')}
   >
     Flow
-  </button>
+  </Button>
 
   <ol class="bubble-strip" aria-label="Workflow steps">
     {#each steps as step, i (step.id)}
@@ -108,15 +109,15 @@
     {/each}
   </ol>
 
-  <button
-    type="button"
-    class="position-toggle"
+  <Button
+    variant="ghost"
+    size="icon"
     aria-label={orientation === 'top' ? 'Move Flow widget to left rail' : 'Move Flow widget to top'}
     title={orientation === 'top' ? 'Move to left rail' : 'Move to top'}
     onclick={onTogglePosition}
   >
     <span aria-hidden="true">{orientation === 'top' ? '⇲' : '⇱'}</span>
-  </button>
+  </Button>
 </div>
 
 <style>
@@ -131,25 +132,6 @@
     gap: 1rem;
     padding: 1rem 0.5rem;
     align-items: center;
-  }
-
-  .flow-parent {
-    background: transparent;
-    color: var(--color-accent);
-    border: 0;
-    padding: 0;
-    font: inherit;
-    font-size: 0.95rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    cursor: pointer;
-    text-transform: uppercase;
-  }
-  .flow-parent:hover { color: var(--color-text); }
-  .flow-parent.active {
-    text-decoration: underline;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 4px;
   }
 
   /* Bubble progress strip — bubbles connected by a state-aware line.
@@ -177,6 +159,14 @@
     flex-direction: column;
   }
 
+  /* The bubbles stay raw <button>s, deliberately. Their four states —
+     visited / current / upcoming / active — are painted by ANCESTOR selectors
+     (.step.visited .bubble), which land at the same specificity as the shared
+     control's own variant rules once Svelte hashes both; a tie across two
+     stylesheets is decided by chunk load order, which under independent
+     deploys is not decidable at all. On top of that the left-rail orientation
+     re-geometries them into 28px circles with the label hidden. That is a
+     Stepper organ, not a Button with overrides. Raised, not forced. */
   .bubble {
     background: transparent;
     color: var(--color-text-muted);
@@ -296,15 +286,4 @@
     opacity: 0.65;
   }
 
-  .position-toggle {
-    background: transparent;
-    border: 0;
-    color: var(--color-text-muted);
-    padding: 0.2rem 0.3rem;
-    cursor: pointer;
-    font-size: 0.95rem;
-    line-height: 1;
-    border-radius: 4px;
-  }
-  .position-toggle:hover { color: var(--color-accent); }
 </style>

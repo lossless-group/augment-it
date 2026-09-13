@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from '@augment-it/shared-ui/Button.svelte';
   // JumboPopdown — a large, content-rich header dropdown. Svelte port of
   // the Lossless "jumbo popdown" convention
   // (astro-knots/context-v/blueprints/Jumbotron-Popdown-Patterns.md;
@@ -94,10 +95,9 @@
   onmouseenter={onMouseEnter}
   onmouseleave={onMouseLeave}
 >
-  <button
-    type="button"
-    class="trigger"
-    class:open
+  <Button
+    variant={open ? 'secondary' : 'outline'}
+    size="sm"
     aria-haspopup="menu"
     aria-expanded={open}
     onclick={toggle}
@@ -105,7 +105,7 @@
     <span class="grid-mark" aria-hidden="true">{triggerIcon}</span>
     <span class="label">{triggerLabel}</span>
     <span class="chev" aria-hidden="true">{open ? '▴' : '▾'}</span>
-  </button>
+  </Button>
 
   {#if open}
     <div class="panel" role="menu" aria-label={triggerLabel}>
@@ -129,29 +129,6 @@
     position: relative;
     display: inline-flex;
     align-items: center;
-  }
-  .trigger {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: transparent;
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-    padding: 4px 10px;
-    border-radius: 4px;
-    font: inherit;
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.12s ease;
-  }
-  .trigger:hover {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-  }
-  .trigger.open {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-    background: var(--color-selected-tint);
   }
   .grid-mark {
     font-size: 11px;
@@ -184,6 +161,13 @@
     border-radius: 8px;
     box-shadow: var(--fx-card-shadow);
   }
+  /* The panel item stays a raw <button>, deliberately. It is a two-line card —
+     a title stacked over a wrapping description at line-height 1.35 — so its
+     height is content-driven and left-aligned. The shared control is
+     inline-flex, centred, nowrap and fixed-height; adopting it here would mean
+     overriding display, flex-direction, height, white-space, justify-content,
+     text-align and padding at once, which negates the base recipe rather than
+     adjusting it. That is a MenuItem organ. Raised, not forced. */
   .item {
     display: flex;
     flex-direction: column;
@@ -214,7 +198,6 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .trigger,
     .item {
       transition: none;
     }

@@ -9,6 +9,7 @@
   import SignInWall from './SignInWall.svelte';
   import JumboPopdown, { type PopdownItem } from './JumboPopdown.svelte';
   import ToggleHeader from '@augment-it/shared-ui/ToggleHeader__PromptOrPackage--Icons.svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { workspace, bootMark, resolveWsUrl, resolveHttpBase } from '@augment-it/workspace';
   import {
     PAIRINGS,
@@ -566,9 +567,9 @@
     </div>
     <div class="ds-header-right">
       <ModeToggle />
-      <button class="ds-back" onclick={closeDesignSystem}>
+      <Button size="sm" onclick={closeDesignSystem}>
         {showWall ? 'Back to sign in' : 'Back to app'}
-      </button>
+      </Button>
     </div>
   </header>
   <div class="ds-surface">
@@ -579,7 +580,7 @@
   <div class="wall-dev">
     <!-- Wrapped, not passed directly: openDesignSystem now takes a view, and a
          bare handler would hand it the MouseEvent. -->
-    <button class="ds-back" onclick={() => openDesignSystem('tokens')}>⚙ Design system</button>
+    <Button size="sm" onclick={() => openDesignSystem('tokens')}>⚙ Design system</Button>
   </div>
 {:else}
 <header>
@@ -608,52 +609,48 @@
        controls. Separating them visually from the bubble strip makes
        the hierarchy clearer at a glance. They sit centered between the
        Flow widget (left) and the metrics (right). -->
-  <div class="header-layout-toggles" role="tablist" aria-label="Layout sub-option">
-    <button
-      type="button"
-      class="layout-toggle"
-      class:active={layout.mode === 'co-existence'}
-      role="tab"
-      aria-selected={layout.mode === 'co-existence'}
+  <div class="header-layout-toggles" role="group" aria-label="Layout sub-option">
+    <Button
+      variant={layout.mode === 'co-existence' ? 'primary' : 'outline'}
+      size="icon"
+      aria-pressed={layout.mode === 'co-existence'}
       aria-label="Split — two cooperating panes"
       title="Split — two cooperating panes"
       onclick={() => selectMode('co-existence')}
     >
       <span aria-hidden="true">⊟</span>
-    </button>
-    <button
-      type="button"
-      class="layout-toggle"
-      class:active={layout.mode === 'full'}
-      role="tab"
-      aria-selected={layout.mode === 'full'}
+    </Button>
+    <Button
+      variant={layout.mode === 'full' ? 'primary' : 'outline'}
+      size="icon"
+      aria-pressed={layout.mode === 'full'}
       aria-label="Full — one pane, full bleed"
       title="Full — one pane, full bleed"
       onclick={() => selectMode('full')}
     >
       <span aria-hidden="true">▢</span>
-    </button>
+    </Button>
   </div>
 
   <div class="metrics">
-    <button
-      class="chat-toggle"
-      class:on={chatVisible}
+    <Button
+      variant={chatVisible ? 'secondary' : 'outline'}
+      size="sm"
       onclick={() => toggleChat()}
       aria-pressed={chatVisible}
       title={chatVisible ? 'Hide chat rail' : 'Show chat rail'}
     >
       💬 chat
-    </button>
-    <button
-      class="chat-toggle"
-      class:on={queueVisible}
+    </Button>
+    <Button
+      variant={queueVisible ? 'secondary' : 'outline'}
+      size="sm"
       onclick={() => setQueueVisible(!queueVisible)}
       aria-pressed={queueVisible}
       title={queueVisible ? 'Hide the search queue' : 'Show the search queue'}
     >
       🔎 queue{#if queueDoneCount > 0}<span class="queue-badge">{queueDoneCount}</span>{/if}
-    </button>
+    </Button>
     <DevelopersMenu wsHttpBase={WS_HTTP_BASE} onOpenDesignSystem={openDesignSystem} />
     <DidiBadge />
     <ModeToggle />
@@ -802,53 +799,9 @@
     gap: 0.3rem;
     justify-self: center;
   }
-  .layout-toggle {
-    background: transparent;
-    color: var(--color-text-muted);
-    border: 1px solid var(--color-border);
-    width: 1.6rem;
-    height: 1.6rem;
-    padding: 0;
-    border-radius: 4px;
-    font: inherit;
-    font-size: 0.95rem;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-  .layout-toggle:hover {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-  }
-  .layout-toggle.active {
-    background: var(--color-accent);
-    color: var(--color-on-accent);
-    border-color: var(--color-accent);
-    cursor: default;
-  }
   .metrics { display: flex; gap: 0.75rem; align-items: center; font-size: 11px; }
   .muted { color: var(--color-text-muted); }
 
-  /* ---- chat toggle in the header ---- */
-  .chat-toggle {
-    background: transparent;
-    color: var(--color-text-muted);
-    border: 1px solid var(--color-border);
-    padding: 4px 10px;
-    border-radius: 4px;
-    font: inherit;
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.12s ease;
-  }
-  .chat-toggle:hover { border-color: var(--color-accent); color: var(--color-text); }
-  .chat-toggle.on {
-    background: var(--color-selected-tint);
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-  }
   /* done-count on the 🔎 queue toggle — arrival stays visible while the
      rail is collapsed (Search-Results-Queue-Remote spec D4). */
   .queue-badge {
@@ -961,6 +914,14 @@
      are landmarks, not floating titles. Uniform left-anchor across prev
      and next peeks for now; if the right-peek's inner-edge label reads
      wrong against the focused pane, revisit with role-aware positioning. */
+  /* NOT a <Button>, deliberately. This is a full-bleed panel hit-area:
+     position:absolute; inset:0, a translucent scrim, and a label written in
+     vertical writing-mode anchored to the top-left. Adopting the shared
+     control would mean overriding position, inset, display, justify-content,
+     align-items, padding, background, border and both intrinsic dimensions —
+     every geometric property the component contributes — leaving only a focus
+     ring the federal *:focus-visible rule already provides. That is a missing
+     organ (a slot hit-area), not a deviation. Raised, not forced. */
   .peek-overlay {
     position: absolute;
     inset: 0;
@@ -1040,18 +1001,11 @@
     align-items: center;
     gap: 10px;
   }
-  .ds-back {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    padding: 5px 11px;
-    background: var(--color-field);
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-    border-radius: 3px;
-    cursor: pointer;
-  }
-  .ds-back:hover { background: var(--color-field-focus); }
-  .ds-back:focus-visible { outline: var(--focus-ring, 2px solid var(--color-accent)); outline-offset: 2px; }
+  /* .ds-back and its :focus-visible rule are gone with the buttons. The focus
+     rule never painted anything in its life: --focus-ring holds a box-shadow
+     value, so `outline: var(--focus-ring, …)` is invalid at computed-value
+     time and dropped — and because the token IS defined, the fallback after
+     the comma never applied either. Button declares the real ring. */
 
   .ds-surface {
     height: calc(100vh - 45px);

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from '@augment-it/shared-ui/Button.svelte';
   // SignInWall — the shell's full pre-auth wall (Build-Order Step 7).
   // Mounted INSTEAD OF the header + stage when the instance reports
   // DIDI_AUTH=required (workspace.didi_auth_mode) and no didi_id has
@@ -96,7 +97,7 @@
     <img class="wall-mark" src="/didi-avatar.png" alt="" aria-hidden="true" />
     <h1>Sign in to augment-it</h1>
     <p class="wall-sub">This instance requires a didi.sh ID with access to its workspace.</p>
-    <form onsubmit={signIn}>
+    <form class="wall-form" onsubmit={signIn}>
       <input
         class="wall-input"
         type="email"
@@ -105,9 +106,10 @@
         bind:this={emailInput}
         required
       />
-      <button class="wall-btn" disabled={busy}>
+      <!-- type="submit" is NOT optional here — see DidiBadge. -->
+      <Button variant="primary" size="lg" type="submit" disabled={busy}>
         {busy ? 'signing in…' : 'Send magic link'}
-      </button>
+      </Button>
     </form>
     {#if notice}<p class="wall-notice">{notice}</p>{/if}
     <p class="wall-fine">Invite-only · no passwords · one login across didi.sh</p>
@@ -161,21 +163,10 @@
     color: var(--color-text);
     font-size: 13px;
   }
-  .wall-btn {
-    width: 100%;
-    padding: 9px 11px;
-    border: 1px solid var(--color-accent, #4ecf95);
-    border-radius: 6px;
-    background: var(--color-accent, #4ecf95);
-    color: var(--color-on-accent, #101014);
-    font: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .wall-btn:disabled {
-    opacity: 0.6;
-    cursor: wait;
+  /* Rung 0 — the card's form owns the full-bleed CTA width. */
+  .wall-form {
+    display: flex;
+    flex-direction: column;
   }
   .wall-notice {
     margin: 12px 0 0;

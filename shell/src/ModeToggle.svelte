@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { getMode, cycleMode, onModeChange, type Mode } from '@augment-it/theme/mode-switcher';
 
   // The 3-mode cycle button — light → dark → vibrant. The mode-switcher
@@ -12,8 +13,11 @@
   const NEXT: Record<Mode, Mode> = { light: 'dark', dark: 'vibrant', vibrant: 'light' };
 </script>
 
-<button
-  class="mode-toggle"
+<!-- A three-state cycle, not a binary toggle, so no aria-pressed: there is no
+     "pressed" to be true or false. The aria-label carries current + next. -->
+<Button
+  variant="outline"
+  size="sm"
   onclick={() => cycleMode()}
   title={`Mode: ${mode} — click for ${NEXT[mode]}`}
   aria-label={`Theme mode: ${mode}. Click to switch to ${NEXT[mode]}.`}
@@ -36,27 +40,8 @@
     </svg>
   {/if}
   <span class="mode-label">{mode}</span>
-</button>
+</Button>
 
 <style>
-  .mode-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: transparent;
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    padding: 3px 9px;
-    font: inherit;
-    font-size: 11px;
-    cursor: pointer;
-    text-transform: capitalize;
-  }
-  .mode-toggle:hover {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-    box-shadow: var(--fx-accent-glow);
-  }
-  .mode-label { letter-spacing: 0.03em; }
+  .mode-label { letter-spacing: 0.03em; text-transform: capitalize; }
 </style>

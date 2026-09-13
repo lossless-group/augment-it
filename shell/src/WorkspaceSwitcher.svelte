@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from '@augment-it/shared-ui/Button.svelte';
   // Workspace switcher — top-right header chrome.
   //
   // Reads workspace.workspaces (populated by workspace.list) and the
@@ -84,44 +85,42 @@
 </script>
 
 <div class="workspace-switcher" bind:this={menuEl}>
-  <button
-    type="button"
-    class="trigger"
-    class:open
-    class:empty
+  <Button
+    variant={open ? 'secondary' : 'outline'}
+    size="sm"
     aria-haspopup="listbox"
     aria-expanded={open}
     disabled={empty || switching}
     title={tooltip}
     onclick={toggle}
   >
-    <span class="dot" aria-hidden="true"></span>
+    <span class="dot" class:empty aria-hidden="true"></span>
     <span class="label">{label}</span>
     <span class="chev" aria-hidden="true">{open ? '▴' : '▾'}</span>
-  </button>
+  </Button>
 
   {#if open}
     <ul class="menu" role="listbox" aria-label="Workspaces">
       {#each workspace.workspaces as w (w.client_id)}
         {@const isActive = w.client_id === workspace.active_client_id}
         <li>
-          <button
-            type="button"
-            class="row"
-            class:active={isActive}
+          <Button
+            variant={isActive ? 'secondary' : 'ghost'}
             role="option"
             aria-selected={isActive}
             onclick={() => pick(w.client_id)}
           >
-            <span class="row-label">{w.display_name}</span>
-            <span class="row-slug">{w.client_id}</span>
-            {#if w.has_env}
-              <span class="env-chip" title="per-workspace .env present">env</span>
-            {/if}
-            {#if isActive}
-              <span class="check" aria-hidden="true">✓</span>
-            {/if}
-          </button>
+            <span class="row-grid">
+              <span class="row-label">{w.display_name}</span>
+              <span class="row-slug">{w.client_id}</span>
+              {#if w.has_env}
+                <span class="env-chip" title="per-workspace .env present">env</span>
+              {/if}
+              {#if isActive}
+                <span class="check" aria-hidden="true">✓</span>
+              {/if}
+            </span>
+          </Button>
         </li>
       {/each}
     </ul>
@@ -134,34 +133,6 @@
     display: inline-flex;
     align-items: center;
   }
-  .trigger {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: transparent;
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-    padding: 4px 10px;
-    border-radius: 4px;
-    font: inherit;
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.12s ease;
-  }
-  .trigger:hover:not(:disabled) {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-  }
-  .trigger.open {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-    background: var(--color-selected-tint);
-  }
-  .trigger.empty,
-  .trigger:disabled {
-    color: var(--color-text-muted);
-    cursor: not-allowed;
-  }
   .dot {
     width: 6px;
     height: 6px;
@@ -169,7 +140,7 @@
     background: var(--color-accent);
     flex-shrink: 0;
   }
-  .trigger.empty .dot { background: var(--color-text-muted); }
+  .dot.empty { background: var(--color-text-muted); }
   .label {
     font-weight: 500;
     letter-spacing: 0.02em;
@@ -195,26 +166,25 @@
     max-height: 60vh;
     overflow: auto;
   }
-  .row {
+  /* Rung 0 — the menu owns the column, the control owns itself. A GRID, not a
+     flex row: a flex item is sized to its content, which measured 179px inside
+     a 210px menu. Grid stretches it. */
+  .menu > li { display: grid; }
+  /* The option's label is a full-width row of its own, so it is a child
+     element laid out as a grid rather than an override on the control: the
+     shared control centres one child, and this child fills. No rung used. */
+  .row-grid {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    flex: 1;
+    /* Four columns, not the three the old .row carried: label · slug · env
+       chip · check. With three, a workspace that has BOTH an env chip and the
+       active check wrapped to a second implicit row — which the old rule
+       absorbed by growing to 53px and the fixed-height control cannot. */
+    grid-template-columns: 1fr auto auto auto;
     align-items: center;
     gap: 0.5rem;
-    width: 100%;
-    background: transparent;
-    color: var(--color-text);
-    border: 0;
-    padding: 6px 10px;
-    border-radius: 4px;
-    font: inherit;
-    font-size: 12px;
+    min-width: 0;
     text-align: left;
-    cursor: pointer;
-  }
-  .row:hover { background: var(--color-selected-tint); }
-  .row.active {
-    background: var(--color-selected-tint);
-    color: var(--color-accent);
   }
   .row-label {
     font-weight: 500;
