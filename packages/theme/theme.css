@@ -243,18 +243,31 @@
   --color-border-strong:   var(--color__graphite-600);
   --color-text:            var(--color__mist-100);
   --color-text-muted:      var(--color__mist-400);
-  --color-accent:          var(--color__magenta-electric);
-  --color-accent-2:        var(--color__cyan-bright);
+  /* PRIMARY / SECONDARY are the canonical semantic names — the vocabulary every
+     UI kit uses and every agent already knows. --color-accent* are kept as
+     DEPRECATED ALIASES so the 416 member declarations that reference them keep
+     working; they resolve through primary, so changing a value here changes it
+     everywhere. Same protocol as --color-bg. */
+  --color-primary:            var(--color__magenta-electric);
+  --color-primary-foreground: var(--color__graphite-950);
+  --color-secondary:          var(--color__cyan-bright);
+  --color-secondary-foreground: var(--color__graphite-950);
+
+  --color-accent:          var(--color-primary);      /* deprecated → --color-primary */
+  --color-accent-2:        var(--color-secondary);    /* deprecated → --color-secondary */
   --color-accent-warm:     var(--color__amber-bright);
-  --color-on-accent:       var(--color__graphite-950);
+  --color-on-accent:       var(--color-primary-foreground);  /* deprecated → --color-primary-foreground */
   --color-link:            var(--color__cyan-bright);
   --color-thread:          var(--color__graphite-800);
   --color-ok-bg:           var(--color__green-deep);
-  --color-ok-text:         var(--color__green-bright);
+  --color-ok-fg:           var(--color__green-bright);
+  --color-ok-text:         var(--color-ok-fg);        /* deprecated → --color-ok-fg */
   --color-error-bg:        var(--color__red-deep);
-  --color-error-text:      var(--color__red-bright);
+  --color-error-fg:        var(--color__red-bright);
+  --color-error-text:      var(--color-error-fg);     /* deprecated → --color-error-fg */
   --color-warn-bg:         var(--color__amber-deep);
-  --color-warn-text:       var(--color__amber-bright);
+  --color-warn-fg:         var(--color__amber-bright);
+  --color-warn-text:       var(--color-warn-fg);      /* deprecated → --color-warn-fg */
 
   --focus-ring: 0 0 0 2px var(--color__graphite-950), 0 0 0 3px var(--color__magenta-electric);
 
@@ -272,8 +285,8 @@
   --color-surface-foreground: var(--color__mist-100);
 
   /* tints derived from the accent */
-  --color-accent-bg:       color-mix(in srgb, var(--color-accent) 9%, transparent);
-  --color-accent-hover:    color-mix(in srgb, var(--color-accent) 86%, var(--color-background));
+  --color-accent-bg:       color-mix(in srgb, var(--color-primary) 9%, transparent);
+  --color-accent-hover:    color-mix(in srgb, var(--color-primary) 86%, var(--color-background));
   /* A specialisation of accent-bg, not a second value. Members wrote
      --color-accent-bg 9 times against a token that did not exist, while this one
      shipped and was found by roughly one of them. Same paint, two names: the
@@ -301,18 +314,31 @@
   --color-border-strong:   var(--color__paper-400);
   --color-text:            var(--color__ink-900);
   --color-text-muted:      var(--color__ink-500);
-  --color-accent:          var(--color__magenta-deep);
-  --color-accent-2:        var(--color__cyan-deep);
+  /* PRIMARY / SECONDARY are the canonical semantic names — the vocabulary every
+     UI kit uses and every agent already knows. --color-accent* are kept as
+     DEPRECATED ALIASES so the 416 member declarations that reference them keep
+     working; they resolve through primary, so changing a value here changes it
+     everywhere. Same protocol as --color-bg. */
+  --color-primary:            var(--color__magenta-deep);
+  --color-primary-foreground: var(--color__paper-0);
+  --color-secondary:          var(--color__cyan-deep);
+  --color-secondary-foreground: var(--color__paper-0);
+
+  --color-accent:          var(--color-primary);      /* deprecated → --color-primary */
+  --color-accent-2:        var(--color-secondary);    /* deprecated → --color-secondary */
   --color-accent-warm:     var(--color__amber-ink);
-  --color-on-accent:       var(--color__paper-0);
+  --color-on-accent:       var(--color-primary-foreground);  /* deprecated → --color-primary-foreground */
   --color-link:            var(--color__cyan-deep);
   --color-thread:          var(--color__paper-300);
   --color-ok-bg:           var(--color__green-wash);
-  --color-ok-text:         var(--color__green-ink);
+  --color-ok-fg:           var(--color__green-ink);
+  --color-ok-text:         var(--color-ok-fg);        /* deprecated → --color-ok-fg */
   --color-error-bg:        var(--color__red-wash);
-  --color-error-text:      var(--color__red-ink);
+  --color-error-fg:        var(--color__red-ink);
+  --color-error-text:      var(--color-error-fg);     /* deprecated → --color-error-fg */
   --color-warn-bg:         var(--color__amber-wash);
-  --color-warn-text:       var(--color__amber-ink);
+  --color-warn-fg:         var(--color__amber-ink);
+  --color-warn-text:       var(--color-warn-fg);      /* deprecated → --color-warn-fg */
 
   --focus-ring: 0 0 0 2px var(--color__paper-0), 0 0 0 3px var(--color__magenta-deep);
 
@@ -323,8 +349,8 @@
   --color-confidence-high: var(--color__green-ink);
 
   --color-surface-foreground: var(--color__ink-900);
-  --color-accent-bg:       color-mix(in srgb, var(--color-accent) 8%, transparent);
-  --color-accent-hover:    color-mix(in srgb, var(--color-accent) 86%, var(--color-background));
+  --color-accent-bg:       color-mix(in srgb, var(--color-primary) 8%, transparent);
+  --color-accent-hover:    color-mix(in srgb, var(--color-primary) 86%, var(--color-background));
   --color-selected-tint:   var(--color-accent-bg);
   --color-danger-tint:     color-mix(in srgb, var(--color-error-text) 8%, transparent);
 
@@ -347,18 +373,31 @@
   --color-border-strong:   var(--color__void-600);
   --color-text:            var(--color__halo-100);
   --color-text-muted:      var(--color__halo-400);
-  --color-accent:          var(--color__magenta-loud);
-  --color-accent-2:        var(--color__cyan-loud);
+  /* PRIMARY / SECONDARY are the canonical semantic names — the vocabulary every
+     UI kit uses and every agent already knows. --color-accent* are kept as
+     DEPRECATED ALIASES so the 416 member declarations that reference them keep
+     working; they resolve through primary, so changing a value here changes it
+     everywhere. Same protocol as --color-bg. */
+  --color-primary:            var(--color__magenta-loud);
+  --color-primary-foreground: var(--color__void-950);
+  --color-secondary:          var(--color__cyan-loud);
+  --color-secondary-foreground: var(--color__void-950);
+
+  --color-accent:          var(--color-primary);      /* deprecated → --color-primary */
+  --color-accent-2:        var(--color-secondary);    /* deprecated → --color-secondary */
   --color-accent-warm:     var(--color__amber-neon);
-  --color-on-accent:       var(--color__void-950);
+  --color-on-accent:       var(--color-primary-foreground);  /* deprecated → --color-primary-foreground */
   --color-link:            var(--color__cyan-loud);
   --color-thread:          var(--color__void-800);
   --color-ok-bg:           var(--color__green-void);
-  --color-ok-text:         var(--color__green-neon);
+  --color-ok-fg:           var(--color__green-neon);
+  --color-ok-text:         var(--color-ok-fg);        /* deprecated → --color-ok-fg */
   --color-error-bg:        var(--color__red-void);
-  --color-error-text:      var(--color__red-neon);
+  --color-error-fg:        var(--color__red-neon);
+  --color-error-text:      var(--color-error-fg);     /* deprecated → --color-error-fg */
   --color-warn-bg:         var(--color__amber-void);
-  --color-warn-text:       var(--color__amber-neon);
+  --color-warn-fg:         var(--color__amber-neon);
+  --color-warn-text:       var(--color-warn-fg);      /* deprecated → --color-warn-fg */
 
   --focus-ring: 0 0 0 2px var(--color__void-950), 0 0 0 3px var(--color__magenta-loud);
 
@@ -369,8 +408,8 @@
   --color-confidence-high: var(--color__green-neon);
 
   --color-surface-foreground: var(--color__halo-100);
-  --color-accent-bg:       color-mix(in srgb, var(--color-accent) 16%, transparent);
-  --color-accent-hover:    color-mix(in srgb, var(--color-accent) 86%, var(--color-background));
+  --color-accent-bg:       color-mix(in srgb, var(--color-primary) 16%, transparent);
+  --color-accent-hover:    color-mix(in srgb, var(--color-primary) 86%, var(--color-background));
   --color-selected-tint:   var(--color-accent-bg);
   --color-danger-tint:     color-mix(in srgb, var(--color-error-text) 14%, transparent);
 
