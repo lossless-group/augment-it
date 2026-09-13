@@ -17,6 +17,7 @@
   //  2. Contrast is measured from getComputedStyle AFTER paint, not computed
   //     from the theme source. Same reason.
   import { onMount } from 'svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { MODES, getMode, setMode, onModeChange, type Mode } from '@augment-it/theme/mode-switcher';
   import manifest from '../../../design-manifest.json';
   import MemberLibraries from './MemberLibraries.svelte';
@@ -205,21 +206,32 @@
       </p>
     </div>
     <div class="head-nav">
+      <!-- Both rows are aria-pressed toggle groups, not tablists. The portal is
+           the page people come to in order to see what the system looks like, so
+           its own chrome is the shipped Button at its shipped sizes: nothing here
+           is drawn by eye any more. -->
       <nav class="views" aria-label="Portal view">
-        <button class:active={view === 'tokens'} onclick={() => selectView('tokens')} aria-pressed={view === 'tokens'}>
-          tokens
-        </button>
-        <button
-          class:active={view === 'components'}
-          onclick={() => selectView('components')}
+        <Button
+          size="sm"
+          variant={view === 'tokens' ? 'primary' : 'secondary'}
+          aria-pressed={view === 'tokens'}
+          onclick={() => selectView('tokens')}
+        >tokens</Button>
+        <Button
+          size="sm"
+          variant={view === 'components' ? 'primary' : 'secondary'}
           aria-pressed={view === 'components'}
-        >
-          components
-        </button>
+          onclick={() => selectView('components')}
+        >components</Button>
       </nav>
       <nav class="modes" aria-label="Theme mode">
         {#each MODES as m}
-          <button class:active={mode === m} onclick={() => pick(m)} aria-pressed={mode === m}>{m}</button>
+          <Button
+            size="sm"
+            variant={mode === m ? 'primary' : 'secondary'}
+            aria-pressed={mode === m}
+            onclick={() => pick(m)}
+          >{m}</Button>
         {/each}
       </nav>
     </div>

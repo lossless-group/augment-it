@@ -6,6 +6,7 @@
   // callable it finds. Members keep distinct export names because Module
   // Federation exposes them by name; nothing here needs to know them.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { MEMBER_LIBRARIES, type MemberLibrary } from './members';
 
   let selected = $state<MemberLibrary | null>(null);
@@ -51,7 +52,15 @@
 
 {#if selected}
   <div class="lib-bar">
-    <button class="lib-back" onclick={() => (selected = null)}>‹ all libraries</button>
+    <!-- The '‹' this carried was a glyph doing an icon's job. On the page that
+         renders the design system that is the worst place for one, so it is an
+         <svg> now and Button sizes it from --icon-sm. -->
+    <Button size="sm" onclick={() => (selected = null)}>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M10 3L5 8l5 5" />
+      </svg>
+      all libraries
+    </Button>
     <strong>{selected.name}</strong>
     <code>{selected.prefix}</code>
     <span class="lib-spacer"></span>
