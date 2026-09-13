@@ -13,6 +13,7 @@
   // and the helpful_links count. The promotion mechanic lands in v0.0.2.
 
   import { onMount } from 'svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { workspace } from '@augment-it/workspace';
   import {
     enhancedState,
@@ -252,14 +253,21 @@
     </div>
   {/if}
 
-  <!-- Filter row stubbed. v0.0.1 ships sortable table; filters land in v0.0.2. -->
-  <div class="erl-filters">
-    <span class="filter-chip active">all {records.length}</span>
-    <span class="filter-chip disabled">unflagged 0</span>
-    <span class="filter-chip disabled">good 0</span>
-    <span class="filter-chip disabled">needs-human 0</span>
-    <span class="filter-chip disabled">has-edits 0</span>
-    <span class="filter-chip disabled">has-links 0</span>
+  <!-- Filter row stubbed. v0.0.1 ships sortable table; filters land in v0.0.2.
+       These were six non-interactive <span>s styled to look clickable: no role,
+       no tabindex, and the "not yet wired" five said so with a .disabled class
+       and opacity: 0.5 — an appearance change, not a state. They are Buttons
+       now, so the five stubs carry a real `disabled` the AT announces and the
+       active one carries aria-pressed instead of signalling selection by colour
+       alone. role="group", not role="tablist": a tablist needs aria-controls,
+       role="tabpanel" and arrow keys, which belongs to FilterChipRow. -->
+  <div class="erl-filters" role="group" aria-label="Filter records by triage state">
+    <Button size="sm" variant="primary" aria-pressed={true}>all {records.length}</Button>
+    <Button size="sm" disabled aria-pressed={false}>unflagged 0</Button>
+    <Button size="sm" disabled aria-pressed={false}>good 0</Button>
+    <Button size="sm" disabled aria-pressed={false}>needs-human 0</Button>
+    <Button size="sm" disabled aria-pressed={false}>has-edits 0</Button>
+    <Button size="sm" disabled aria-pressed={false}>has-links 0</Button>
     <span class="filter-row-note">filter chips wire to triage_states in v0.0.2</span>
   </div>
 
@@ -275,12 +283,12 @@
           archived <strong>{promoteSuccess.archivedCount}</strong> predecessor set{promoteSuccess.archivedCount === 1 ? '' : 's'}
         </div>
         <div class="success-actions">
-          <button class="success-primary" onclick={anotherRound}>
+          <Button variant="primary" onclick={anotherRound}>
             Do another round of enhancements →
-          </button>
-          <button class="success-secondary" onclick={dismissSuccess}>
+          </Button>
+          <Button variant="secondary" onclick={dismissSuccess}>
             Continue working with this canonical
-          </button>
+          </Button>
         </div>
         <div class="success-howto">
           Next: open <strong>Prompt Templates</strong>, author a new prompt, then click
@@ -332,14 +340,14 @@
   </div>
 
   <div class="erl-action-bar">
-    <button
-      class="promote-btn"
+    <Button
+      variant="primary"
       disabled={!canPromote}
       onclick={() => promote()}
       title={canPromote ? 'Snapshot every record into a new canonical set; archive the source' : 'Loading…'}
     >
       {promoting ? '…promoting' : `✓ Promote ${records.length} records to new canonical set`}
-    </button>
+    </Button>
     {#if promoteError}
       <span class="erl-error">promote failed: {promoteError}</span>
     {:else}
