@@ -15,6 +15,6 @@
     "useDefineForClassFields": true,
     "types": ["svelte"]
   },
-  "include": ["src/**/*.ts", "src/**/*.svelte.ts"],
+  "include": ["src/**/*.ts", "src/**/*.svelte.ts", "src/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }
