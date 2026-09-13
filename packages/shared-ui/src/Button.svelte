@@ -190,17 +190,17 @@
   }
 
   /* --- variant. Every filled variant takes its text from the token PAIRED with
-         its surface. augment-it spells the pairing --color-accent /
-         --color-on-accent and --color-error-bg / --color-error-text rather than
+         its surface. The canonical spelling is --color-primary /
+         --color-primary-foreground and --color-error-bg / --color-error-fg rather than
          shadcn's -foreground suffix; the convention is what matters, and adding
          alias names would be two federal names for one value. This is the rule
          that stops `.pdr-btn-primary { color: #fff }` from ever being written. */
   .ui-btn[data-variant='primary'] {
-    background: var(--color-accent);
-    color: var(--color-on-accent);
+    background: var(--color-primary);
+    color: var(--color-primary-foreground);
   }
   .ui-btn[data-variant='primary']:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-accent) 86%, var(--color-background));
+    background: var(--color-accent-hover);
   }
 
   .ui-btn[data-variant='secondary'] {
@@ -248,7 +248,7 @@
     text-underline-offset: 2px;
   }
   .ui-btn[data-variant='link']:hover:not(:disabled) {
-    color: var(--color-accent);
+    color: var(--color-primary);
   }
 
   /* --- disabled. LAST, deliberately: `.ui-btn:disabled` and
