@@ -76,6 +76,10 @@
   --color__cyan-bright:      #5bbcfb;
   --color__cyan-deep:        #2563a8;
   --color__cyan-loud:        #54c8ff;
+  --color__cyan-deepest:     #10293f;   /* info chip ground, dark    — cyan-bright reads 7.11:1 on it */
+  --color__cyan-wash:        #d3e8fa;   /* info chip ground, light   — cyan-ink reads 5.56:1 on it */
+  --color__cyan-ink:         #1a5c94;   /* info foreground, light */
+  --color__cyan-void:        #0d2136;   /* info chip ground, vibrant — cyan-loud reads 8.61:1 on it */
 
   /* status — success */
   --color__green-deep:    #1b3d2f;
@@ -156,6 +160,23 @@
   --space-xl:      16px;
   --space-2xl:     24px;
   --space-3xl:     32px;
+
+  /* Type scale — the six steps DESIGN.md L738-775 specifies, shipped 2026-09-13.
+     ROLE-NAMED on purpose: the doc rejects --text-sm / --text-md BY NAME, because
+     "which small?" is the exact question that produced 35 font sizes in the wild.
+     An earlier nine-step draft put six steps inside a 5px range and was rejected
+     in review — a scale whose adjacent steps are perceptually indistinguishable
+     does not force a choice, it just moves the arbitrariness.
+     Tier 2 only: --text-* is dimensional and has no Tier 1, by rule.
+     Known cost, stated in the doc: folding 12px (123 declarations) into
+     --text-body (13px) is a 1px INCREASE across dense table content and can
+     reflow fixed-width columns. That is the price of a scale that functions. */
+  --text-micro:    10px;
+  --text-label:    11px;
+  --text-body:     13px;
+  --text-emphasis: 15px;
+  --text-heading:  18px;
+  --text-display:  28px;
 
   /* Shapes — five values, promoted from DESIGN.md's Shapes table verbatim.
      radius-md (4px) is the house default: buttons, inputs, chips, small cards.
@@ -278,6 +299,9 @@
   --color-warn-bg:         var(--color__amber-deep);
   --color-warn-fg:         var(--color__amber-bright);
   --color-warn-text:       var(--color-warn-fg);      /* alias → --color-warn-fg */
+  --color-info-bg:         var(--color__cyan-deepest);
+  --color-info-fg:         var(--color__cyan-bright);
+  --color-info-text:       var(--color-info-fg);      /* alias → --color-info-fg */
 
   --focus-ring: 0 0 0 2px var(--color__graphite-950), 0 0 0 3px var(--color__magenta-electric);
 
@@ -356,6 +380,9 @@
   --color-warn-bg:         var(--color__amber-wash);
   --color-warn-fg:         var(--color__amber-ink);
   --color-warn-text:       var(--color-warn-fg);      /* alias → --color-warn-fg */
+  --color-info-bg:         var(--color__cyan-wash);
+  --color-info-fg:         var(--color__cyan-ink);
+  --color-info-text:       var(--color-info-fg);      /* alias → --color-info-fg */
 
   --focus-ring: 0 0 0 2px var(--color__paper-0), 0 0 0 3px var(--color__magenta-deep);
 
@@ -418,6 +445,9 @@
   --color-warn-bg:         var(--color__amber-void);
   --color-warn-fg:         var(--color__amber-neon);
   --color-warn-text:       var(--color-warn-fg);      /* alias → --color-warn-fg */
+  --color-info-bg:         var(--color__cyan-void);
+  --color-info-fg:         var(--color__cyan-loud);
+  --color-info-text:       var(--color-info-fg);      /* alias → --color-info-fg */
 
   --focus-ring: 0 0 0 2px var(--color__void-950), 0 0 0 3px var(--color__magenta-loud);
 
