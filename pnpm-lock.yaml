@@ -51,6 +51,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -85,6 +88,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -122,6 +128,9 @@ importers:
       '@augment-it/gallery':
         specifier: workspace:*
         version: link:../../packages/gallery
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -165,6 +174,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -196,6 +208,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -264,6 +279,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -298,6 +316,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -332,6 +353,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -369,6 +393,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -403,6 +430,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -437,6 +467,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -471,6 +504,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -505,6 +541,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/gallery':
+        specifier: workspace:*
+        version: link:../../packages/gallery
       '@augment-it/shared-ui':
         specifier: workspace:*
         version: link:../../packages/shared-ui
@@ -579,6 +618,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -613,6 +655,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -647,6 +692,9 @@ importers:
       '@augment-it/federation':
         specifier: workspace:*
         version: link:../../packages/federation
+      '@augment-it/shared-ui':
+        specifier: workspace:*
+        version: link:../../packages/shared-ui
       '@augment-it/theme':
         specifier: workspace:*
         version: link:../../packages/theme
