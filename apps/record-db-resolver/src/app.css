@@ -66,7 +66,6 @@
 .rdr-stat { color: var(--color-text-muted, #9aa0aa); }
 .rdr-stat-add { color: var(--color-ok-text, #6ee7a8); }
 .rdr-stat-zero { color: var(--color-text-muted, #9aa0aa); }
-.rdr-toggle { background: none; border: none; color: var(--color-link, #6fb3ff); cursor: pointer; font-size: 0.74rem; padding: 0.3rem 0; text-align: left; }
 .rdr-preview { border-top: 1px dashed var(--color-border, #2a2c33); margin-top: 0.3rem; padding-top: 0.4rem; }
 .rdr-preview-group { margin: 0.3rem 0; }
 .rdr-candidate-actions { margin-top: 0.5rem; }
@@ -104,9 +103,3 @@
 
 .rdr-actions { display: flex; align-items: center; margin-top: 1rem; }
 .rdr-spacer { flex: 1; }
-
-.rdr-btn { background: var(--color-surface, #1c1e25); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 5px; padding: 0.4rem 0.8rem; cursor: pointer; font-size: 0.85rem; }
-.rdr-btn:hover:not(:disabled) { border-color: var(--color-text-muted, #9aa0aa); }
-.rdr-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.rdr-btn-primary { background: var(--color-accent, #5b7cfa); color: #fff; border-color: transparent; }
-.rdr-btn-create { border-style: dashed; }

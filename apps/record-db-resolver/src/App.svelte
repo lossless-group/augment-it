@@ -10,6 +10,7 @@
   // context-v/specs/Record-DB-Resolver.md.
 
   import { onMount } from 'svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import RecordCard from './components/RecordCard.svelte';
   import CandidateList from './components/CandidateList.svelte';
@@ -379,7 +380,7 @@
       <div class="rdr-card">
         <h3>All done</h3>
         <p class="rdr-muted">No more records in this set. ← back to revisit.</p>
-        <button type="button" class="rdr-btn" onclick={back} disabled={idx === 0}>← back</button>
+        <Button variant="secondary" onclick={back} disabled={idx === 0}>← back</Button>
       </div>
     {:else if record}
       <div class="rdr-grid">
@@ -406,9 +407,9 @@
             <CandidateList {candidates} busy={applyBusy} onMatch={doMatch} />
 
             <div class="rdr-create">
-              <button type="button" class="rdr-btn rdr-btn-create" disabled={applyBusy || !record.name} onclick={doCreate}>
+              <Button variant="outline" disabled={applyBusy || !record.name} onclick={doCreate}>
                 + create new org from this record
-              </button>
+              </Button>
               <span class="rdr-muted rdr-create-hint">slug: {record.slug_hint || '(from name)'}</span>
             </div>
 
@@ -421,14 +422,14 @@
                   placeholder="type ≥2 chars, Enter to search"
                   onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void doSearch(); } }}
                 />
-                <button type="button" class="rdr-btn" disabled={searching} onclick={() => void doSearch()}>search</button>
+                <Button variant="secondary" disabled={searching} onclick={() => void doSearch()}>search</Button>
               </div>
               {#if searchResults.length}
                 <ul class="rdr-search-results">
                   {#each searchResults as s (s.slug)}
                     <li>
                       <span>{s.complete_name || s.slug} <code class="rdr-candidate-slug">{s.slug}</code></span>
-                      <button type="button" class="rdr-btn rdr-btn-primary" disabled={applyBusy} onclick={() => void doMatchSlug(s.slug)}>match</button>
+                      <Button variant="primary" size="sm" disabled={applyBusy} onclick={() => void doMatchSlug(s.slug)}>match</Button>
                     </li>
                   {/each}
                 </ul>
@@ -462,9 +463,9 @@
                 </p>
               {/if}
 
-              <button type="button" class="rdr-toggle" onclick={() => (showEdit = !showEdit)}>
+              <Button variant="link" size="sm" aria-expanded={showEdit} onclick={() => (showEdit = !showEdit)}>
                 {showEdit ? '▾ hide edits' : '▸ edit org / opportunity names'}
-              </button>
+              </Button>
               {#if showEdit}
                 <div class="rdr-edit">
                   <div class="rdr-edit-group">organization</div>
@@ -480,9 +481,9 @@
                       <input type="text" bind:value={editOppName} placeholder="Accelerate the Future (NCAD)" /></label>
                   {/if}
                   <div class="rdr-edit-actions">
-                    <button type="button" class="rdr-btn rdr-btn-primary" disabled={editBusy} onclick={() => void saveCanonicalEdits()}>
+                    <Button variant="primary" disabled={editBusy} onclick={() => void saveCanonicalEdits()}>
                       {editBusy ? 'saving…' : 'save edits'}
-                    </button>
+                    </Button>
                     {#if editSaved}<span class="rdr-stamp-ok">✓ saved</span>{/if}
                   </div>
                   {#if editError}<div class="rdr-error">{editError}</div>{/if}
@@ -501,12 +502,12 @@
       </div>
 
       <div class="rdr-actions">
-        <button type="button" class="rdr-btn" onclick={back} disabled={idx === 0}>← back</button>
+        <Button variant="secondary" onclick={back} disabled={idx === 0}>← back</Button>
         <span class="rdr-spacer"></span>
         {#if lastResult}
-          <button type="button" class="rdr-btn rdr-btn-primary" onclick={advance}>next →</button>
+          <Button variant="primary" onclick={advance}>next →</Button>
         {:else}
-          <button type="button" class="rdr-btn" onclick={skip}>skip →</button>
+          <Button variant="secondary" onclick={skip}>skip →</Button>
         {/if}
       </div>
     {/if}

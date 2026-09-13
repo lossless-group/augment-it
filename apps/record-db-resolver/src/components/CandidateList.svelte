@@ -5,6 +5,7 @@
   // operator confirms ONE (or falls through to create / manual search in the
   // parent). One at a time; no batch accept in v0.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import type { Candidate } from '../lib/types';
 
   let {
@@ -58,9 +59,9 @@
         </div>
 
         {#if adds > 0}
-          <button type="button" class="rdr-toggle" onclick={() => toggle(c.slug)}>
+          <Button variant="link" size="sm" aria-expanded={expanded === c.slug} onclick={() => toggle(c.slug)}>
             {expanded === c.slug ? '▾ hide what would be added' : '▸ preview what would be added'}
-          </button>
+          </Button>
           {#if expanded === c.slug}
             <div class="rdr-preview">
               {#if c.append_preview.org_links.length}
@@ -83,9 +84,9 @@
         {/if}
 
         <div class="rdr-candidate-actions">
-          <button type="button" class="rdr-btn rdr-btn-primary" disabled={busy} onclick={() => onMatch(c)}>
+          <Button variant="primary" disabled={busy} onclick={() => onMatch(c)}>
             {adds > 0 ? `match → enrich (+${adds}) + opportunity` : 'match → record opportunity'}
-          </button>
+          </Button>
           <span class="rdr-match-note">every match records an opportunity for this org — even when there's nothing new to enrich</span>
         </div>
       </li>
