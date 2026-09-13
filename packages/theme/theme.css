@@ -353,7 +353,29 @@
 /* -----------------------------------------------------------------------------
  * Accessibility — global blocks.
  * Phase 1: prefers-reduced-motion and forced-colors.
+ * Phase 2: the federal focus ring.
  * -------------------------------------------------------------------------- */
+
+/* The federal focus ring (F7: ":focus-visible only", "every interactive element
+   has an accessible name"). --focus-ring is defined in all three modes and was
+   consumed by only 3 of 19 members; this lands the other sixteen in one
+   declaration, and a member that wants a different ring overrides it locally.
+
+   :focus-visible, NOT :focus — a mouse click on a button must not paint a ring.
+   That distinction is the whole reason this is safe to apply universally.
+
+   ORDER IS LOAD-BEARING. This rule MUST stay above the forced-colors block
+   below. Both are `*:focus-visible`, so specificity ties and source order
+   decides. Forced-colors mode (Windows High Contrast) discards box-shadow, so
+   if this rule's `outline: none` won, high-contrast users would get NO focus
+   indicator at all — the accessibility floor would be lower after this phase
+   than before it. Moving this declaration below the forced-colors block is a
+   silent a11y regression that no drift check catches. */
+*:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   body,
   body * {
