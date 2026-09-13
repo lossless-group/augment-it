@@ -5,6 +5,7 @@
   // organization.links.add / streams.add with the crawl's kind/name carried
   // through; added ✓ sticks (server-side dedup), errors stay on the row.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { addCrawlResult } from './lib/search-client';
   import type { ConnectorResult } from './lib/types';
 
@@ -51,6 +52,13 @@
     }
   }
 
+  // size="icon" has no text to name it, so the label is the accessible name AND
+  // the tooltip — the same shape search-and-add's ResultRow landed on, because
+  // this ➕ is the same organ it was copy-adapted from.
+  function addLabel(row: Row): string {
+    return row.added ? 'added to the entity' : `add ${row.result.url} to the entity`;
+  }
+
   function host(u: string): string {
     try {
       return new URL(u).hostname.replace(/^www\./, '');
@@ -76,16 +84,15 @@
           {#if row.result.content}<p class="srq-row-snippet">{row.result.content.slice(0, 220)}</p>{/if}
           {#if row.error}<div class="srq-error">{row.error}</div>{/if}
         </div>
-        <button
-          type="button"
-          class="srq-add"
-          class:added={row.added}
+        <Button
+          size="icon"
           disabled={row.adding || row.added}
           onclick={() => add(row)}
-          title={row.added ? 'added to the entity' : 'add to the entity'}
+          aria-label={addLabel(row)}
+          title={addLabel(row)}
         >
           {row.added ? '✓' : row.adding ? '…' : '+'}
-        </button>
+        </Button>
       </li>
     {/each}
   </ul>

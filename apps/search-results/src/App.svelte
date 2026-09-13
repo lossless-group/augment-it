@@ -8,6 +8,7 @@
 
   import { onMount } from 'svelte';
   import { workspace, resolveWsUrl } from '@augment-it/workspace';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import SearchCard from './SearchCard.svelte';
   import { dismissSearch, listSearches } from './lib/search-client';
   import type { SearchCard as SearchCardT } from './lib/types';
@@ -129,7 +130,9 @@
     {/if}
     <span class="srq-right">
       {#if doneCount > 1}
-        <button type="button" class="srq-clear" title="Dismiss every done card" onclick={clearDone}>clear done</button>
+        <Button variant="secondary" size="sm" title="Dismiss every done card" onclick={clearDone}>
+          clear done
+        </Button>
       {/if}
       <span class="srq-ws status-{status}">{status}</span>
     </span>

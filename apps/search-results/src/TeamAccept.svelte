@@ -8,6 +8,7 @@
   // not duplicative). An accepted row is CONSUMED (gh #37); the entity-updated
   // broadcast refreshes the org card's People list. Skip discards a row.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import {
     addOrgObservation,
     addPersonLink,
@@ -181,8 +182,8 @@
               {#if row.phase === 'writing'}
                 <span class="srq-busy">writing…</span>
               {:else}
-                <button type="button" class="srq-action" onclick={() => accept(row)}>Accept</button>
-                <button type="button" class="srq-action" onclick={() => (row.consumed = true)}>Skip</button>
+                <Button variant="primary" size="sm" onclick={() => accept(row)}>Accept</Button>
+                <Button variant="secondary" size="sm" onclick={() => (row.consumed = true)}>Skip</Button>
               {/if}
             </span>
           </div>
@@ -202,10 +203,10 @@
                 {/each}
               </ul>
               <span class="srq-staged-actions">
-                <button type="button" class="srq-action" onclick={() => write(row, 'create')}>
+                <Button variant="primary" size="sm" onclick={() => write(row, 'create')}>
                   Create new person + affiliate
-                </button>
-                <button type="button" class="srq-action" onclick={() => (row.phase = 'staged')}>Back</button>
+                </Button>
+                <Button variant="secondary" size="sm" onclick={() => (row.phase = 'staged')}>Back</Button>
               </span>
             </div>
           {/if}

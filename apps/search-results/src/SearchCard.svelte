@@ -6,6 +6,7 @@
   // still hold unreviewed candidates asks once inline before dismissing
   // (spec open question — leaning yes, as specced).
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import ResultsAccept from './ResultsAccept.svelte';
   import TeamAccept from './TeamAccept.svelte';
   import { dismissSearch, fetchSearchResults, fmtDuration, submitSearch } from './lib/search-client';
@@ -86,8 +87,17 @@
   // the expanded Mark complete.
   let quickConfirm = $state(false);
   let quickConfirmTimer: ReturnType<typeof setTimeout> | undefined;
+  const unreviewedCount = $derived(results ? remaining : (card.result_summary?.count ?? 0));
+  // The ×'s explanation used to live only in `title=`, which no screen reader
+  // announces as a name — the same gap search-and-add's ResultRow closed on its
+  // ➕. One derived string is both the accessible name and the tooltip.
+  const quickLabel = $derived(
+    quickConfirm
+      ? `${unreviewedCount} candidate${unreviewedCount === 1 ? '' : 's'} not reviewed — click again to dismiss`
+      : 'Dismiss this search',
+  );
   function quickDismiss() {
-    const unreviewed = results ? remaining : (card.result_summary?.count ?? 0);
+    const unreviewed = unreviewedCount;
     if (card.status === 'done' && unreviewed > 0 && !quickConfirm) {
       quickConfirm = true;
       clearTimeout(quickConfirmTimer);
@@ -135,20 +145,25 @@
     {/if}
   </button>
   <span class="srq-card-side">
-    <button
-      type="button"
-      class="srq-quick-x"
-      class:confirming={quickConfirm}
-      title={quickConfirm
-        ? `${results ? remaining : (card.result_summary?.count ?? 0)} candidate${(results ? remaining : (card.result_summary?.count ?? 0)) === 1 ? '' : 's'} not reviewed — click again to dismiss`
-        : 'Dismiss this search'}
+    <!-- The confirm step was a font-size change on the same grey glyph; it is
+         now a variant shift to destructive, which is a colour-token change
+         rather than a size one, and the label says what the second click does. -->
+    <Button
+      size="icon"
+      variant={quickConfirm ? 'destructive' : 'ghost'}
+      aria-label={quickLabel}
+      title={quickLabel}
       onclick={quickDismiss}
     >
-      {quickConfirm ? '✓?' : '×'}
-    </button>
-    <button type="button" class="srq-caret-btn" onclick={toggle} aria-expanded={expanded} aria-label={expanded ? 'Collapse' : 'Expand'}>
-      {expanded ? '▾' : '▸'}
-    </button>
+      {#if quickConfirm}
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5 L6.5 12 L13 4" /></svg>
+      {:else}
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4 L12 12 M12 4 L4 12" /></svg>
+      {/if}
+    </Button>
+    <Button size="icon" variant="ghost" onclick={toggle} aria-expanded={expanded} aria-label={expanded ? 'Collapse' : 'Expand'}>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={expanded ? 'M3 6 L8 11 L13 6' : 'M6 3 L11 8 L6 13'} /></svg>
+    </Button>
   </span>
   </div>
 
@@ -188,19 +203,22 @@
 
       <footer class="srq-card-actions">
         {#if card.status === 'failed'}
-          <button type="button" class="srq-action" disabled={retrying} onclick={retry}>
+          <!-- Recovery on the exception path, not the card's commit — the
+               terminal act for every card is Mark complete, which carries the
+               accent. -->
+          <Button variant="secondary" size="sm" disabled={retrying} onclick={retry}>
             {retrying ? 'resubmitting…' : 'Retry'}
-          </button>
+          </Button>
         {/if}
         {#if !inFlight}
           {#if confirmDismiss}
             <span class="srq-confirm">
               {remaining} candidate{remaining === 1 ? '' : 's'} not reviewed —
-              <button type="button" class="srq-action srq-danger" onclick={ondismiss}>dismiss anyway</button>
-              <button type="button" class="srq-action" onclick={() => (confirmDismiss = false)}>keep</button>
+              <Button variant="destructive" size="sm" onclick={ondismiss}>dismiss anyway</Button>
+              <Button variant="secondary" size="sm" onclick={() => (confirmDismiss = false)}>keep</Button>
             </span>
           {:else}
-            <button type="button" class="srq-action" onclick={markComplete}>Mark complete</button>
+            <Button variant="primary" size="sm" onclick={markComplete}>Mark complete</Button>
           {/if}
         {/if}
       </footer>
