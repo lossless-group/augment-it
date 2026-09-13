@@ -67,30 +67,78 @@ Override rungs, in order of preference — **never a raw value**:
 ## Steps
 
 1. **Read the member's CSS first, all of it.** You are about to delete from it.
-2. **Add the dependency** — `"@augment-it/shared-ui": "workspace:*"`.
+2. **Add the dependency** — `"@augment-it/shared-ui": "workspace:*"` — then run
+   `pnpm install`. **Do not stage `pnpm-lock.yaml`**: it is shared, every
+   concurrent migration writes it, and the manager stages it once.
 3. **Map each `<button>` to a variant** by what it *does*, not by how it looks.
    The accent-filled commit action is `primary`; the quiet default is `secondary`;
    a destructive action is `destructive` even if the member drew it grey.
+
+   > **Preserving the member's current appearance is not a goal.** If the new
+   > variant looks different from what the member drew, *that is the migration
+   > working.* An agent's default instinct is to keep the pixels, and keeping them
+   > is how a member that was drawn by eye manufactures false evidence for a
+   > variant nobody needs.
+
 4. **Replace, then delete.** Every recipe the replacement orphaned comes out.
    Verify with a search that nothing still references the class.
-5. **Run the gates** (below) and stop.
+
+   **Look past the button recipes.** In the first migration the highest-value
+   deletion was not a button rule at all — it was
+   `.member select:focus, .member input:focus { outline: … }`, made redundant by
+   the *federal focus ring* and actively painting a second ring in a second colour
+   over it. A local `:focus` rule at class specificity beats `*:focus-visible`.
+   Check for one.
+
+   **Count the recipes yourself.** A central sweep undercounts: the first member's
+   plan said four, the real number was eight.
+
+5. **Run the gates** (below), **verify what you cannot see**, and stop.
 
 ## Gates
 
 ```
 pnpm --filter @augment-it/<member> check     must be clean
+pnpm --filter @augment-it/<member> build     a typecheck is not a build
 pnpm design:drift --member <prefix>          must not INCREASE
 pnpm design:drift                            federation count must not increase
 ```
 
-The federation baseline is **93** as of 2026-09-13. Know the number before you
-start and report it after. A count that moves without explanation is the finding.
+The federation baseline is **93** as of 2026-09-13.
+
+> ⚠️ **The federation count is not attributable to you while other migrations are
+> running.** Several members migrate in parallel in one working tree, so
+> `git status` will show files that are not yours and the federation number
+> reflects everyone. **The member-scoped count is your attributable gate.** Report
+> both, and name exactly which files are yours.
+
+### Verify what you cannot see
+
+Most members hide most of their buttons behind `{#if}`. In the first migration
+**six of nine** never rendered without NATS and seven Docker services running.
+
+An agent told to "run the gates and stop" will report success having *seen* three
+of nine. **State your visual coverage explicitly** — how many buttons you actually
+looked at, and how.
+
+Where a button will not render, the probe technique that works: a throwaway
+rsbuild app aliased at the member's real sources, importing the member's own
+`app.css`, rendering the components directly with fixture props. Delete it
+afterwards.
 
 ## Judgement calls that are yours
 
-- **Are the member's chips Buttons?** Toggles with an active state may be
-  `variant="ghost"` plus `aria-pressed`, or may be a different organ entirely —
-  `FilterChipRow` is registered separately. Decide, record why.
+- **Are the member's chips Buttons?** The first migration answered **yes**, and
+  the reasoning generalises: a chip is a button with a variant, a size, a focus
+  ring and a disabled state. What makes a chip *row* a separate organ is the
+  **group** behaviour — single-selection, roving tabindex, arrow keys — which
+  lives in the row. So `FilterChipRow` composes Buttons rather than replacing
+  them.
+
+  **Use `aria-pressed`, not `role="tab"`.** Correct tab semantics needs
+  `aria-controls`, `role="tabpanel"` and arrow-key handling; half-implemented
+  tabs are worse for a screen reader than honest toggle buttons. Full
+  radiogroup/tab semantics is a `FilterChipRow` job, not yours.
 - **Does anything need an override?** Use rung 2 or 3 if so, and **say so in your
   report.** A recurring override is evidence for a missing variant, which is a
   finding rather than a failure.
