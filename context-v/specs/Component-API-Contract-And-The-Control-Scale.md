@@ -106,9 +106,10 @@ the `/N` modifier below recovers most of what derivation buys.
 ### `--space-*`
 
 ```css
---space-2xs: 1px;    --space-xs: 2px;     --space-sm: 4px;
---space-md:  6px;    --space-lg: 8px;     --space-xl: 12px;
---space-2xl: 16px;   --space-3xl: 24px;
+--space-hairline: 1px;  --space-3xs: 2px;   --space-2xs: 4px;
+--space-xs:  6px;       --space-sm:  8px;   --space-md:  10px;
+--space-lg:  12px;      --space-xl:  16px;  --space-2xl: 24px;
+--space-3xl: 32px;
 ```
 
 Denser at the low end than Tailwind's 4px-increment scale, because the measured
@@ -121,9 +122,13 @@ Named for **controls**, not for buttons — the input beside a button must match
 height, and a `--button-lg` token would leave that input inventing its own.
 
 ```css
---control-h-sm:  22px;   --control-px-sm:  8px;
---control-h-md:  26px;   --control-px-md:  10px;
---control-h-lg:  32px;   --control-px-lg:  14px;
+--control-h-sm:  24px;   /* THE FLOOR — WCAG 2.2 2.5.8 target minimum */
+--control-h-md:  28px;
+--control-h-lg:  32px;
+
+/* No --control-px-*. Horizontal padding comes from --space-sm/md/lg (8/10/12).
+   The control group is heights only: an input beside a button must match its
+   height, but its padding is spacing and belongs on the spacing scale. */
 ```
 
 **Deviation from shadcn, stated:** their sizes are `h-8 / h-9 / h-10`
@@ -137,8 +142,13 @@ F4 already forbids raw `z-index` and mandates these. **They have never existed**
 so the rule has been unsatisfiable and enforced in two places.
 
 ```css
---z-base: 0;  --z-raised: 10;  --z-sticky: 100;
---z-popover: 1000;  --z-modal: 2000;  --z-toast: 3000;
+/* Banded by OWNERSHIP, not by a flat ladder — remotes deploy independently, so
+   ranges are reserved in advance. Remotes use the four remote-local tokens and
+   nothing else. */
+--z-base: 0;  --z-raised: 10;  --z-sticky: 30;  --z-remote-overlay: 60;   /* remote-local */
+--z-slot-peek: 900;  --z-slot-hover: 910;  --z-slot-focus: 920;           /* shell-assigned */
+--z-shell-chrome: 1000;  --z-flow-widget: 1100;  --z-overlay: 1200;
+--z-modal: 1300;  --z-tooltip: 1400;  --z-toast: 1500;                    /* shell chrome */
 ```
 
 ## The foreground-pairing convention
@@ -247,6 +257,21 @@ rest in one declaration:
 ```css
 *:focus-visible { box-shadow: var(--focus-ring); outline: none; }
 ```
+
+> ⚠️ **Corrected 2026-09-13, after three independent engineers flagged it.** The
+> spacing, control and layering tables above originally carried values I derived
+> from measuring member CSS, written before I had read `DESIGN.md`'s own §Spacing,
+> §Sizing and §Layering sections — which already proposed all three, better
+> reasoned. Every name in the spacing family was shifted one step, so an agent
+> sizing from this document landed one step off; `--control-h-sm` was 22px, below
+> the WCAG 2.2 floor the same document commits to; and `--control-px-*` was
+> specified but never shipped.
+>
+> The tables now match `packages/theme/theme.css` exactly. **Where this spec and
+> the runtime disagree, the runtime is right** — this document has been the stale
+> artifact twice, and the loop's "where they disagree, the spec wins" rule is
+> about the *contract* (the API, the override ladder, the naming), not about
+> values that can be read off the theme in one command.
 
 ## Proving it
 

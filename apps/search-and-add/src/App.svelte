@@ -11,6 +11,7 @@
 
   import { onMount } from 'svelte';
   import { workspace, resolveWsUrl } from '@augment-it/workspace';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import TermBar from './TermBar.svelte';
   import ProviderPalette from './ProviderPalette.svelte';
   import ResultsList from './ResultsList.svelte';
@@ -190,9 +191,16 @@
         <span class="saa-scan-label">scanning stream</span>
         <a class="saa-scan-url" href={req.stream.url} target="_blank" rel="noreferrer">{req.stream.url}</a>
         {#if req.stream.kind}<span class="saa-scan-kind">{req.stream.kind}</span>{/if}
-        <button type="button" class="saa-fire" disabled={firing} onclick={scan}>
+        <Button
+          variant="primary"
+          size="lg"
+          disabled={firing}
+          onclick={scan}
+          class="saa-scan-fire"
+          data-deviation="layout only — margin-inline-start:auto ends the scanbar row; no visual property overridden"
+        >
           {firing ? 'scanning…' : 'Re-scan'}
-        </button>
+        </Button>
       </div>
     {:else}
       <TermBar bind:term {firing} onfire={fire} />

@@ -4,6 +4,8 @@
   // because phrasing intuition beats any fixed template. Enter or the button
   // re-fires; the parent owns the actual firing.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
+
   let {
     term = $bindable(),
     firing,
@@ -29,7 +31,7 @@
     autocomplete="off"
     spellcheck="false"
   />
-  <button type="submit" class="saa-fire" disabled={firing || !term.trim()}>
+  <Button type="submit" variant="primary" size="lg" disabled={firing || !term.trim()}>
     {firing ? 'searching…' : 'Search'}
-  </button>
+  </Button>
 </form>

@@ -4,6 +4,7 @@
   // per-row: "added ✓" sticks (re-adding is server-side dedup'd anyway),
   // errors stay localized to the row.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import type { ConnectorResult } from './lib/types';
 
   let {
@@ -20,6 +21,13 @@
 
   // Scan mode: the corpus already holds this URL — badge it, park the ➕.
   const known = $derived(result.known === true);
+
+  // size="icon" has no text to name it, so the label is the accessible name
+  // AND the tooltip. Before the migration this string existed only as title=,
+  // which no screen reader announces as a name.
+  const label = $derived(
+    known ? 'already in the corpus' : added ? 'added to the entity' : `add ${result.url} to the entity`,
+  );
 
   async function add() {
     adding = true;
@@ -52,14 +60,13 @@
     {#if result.content}<p class="saa-row-snippet">{result.content.slice(0, 220)}</p>{/if}
     {#if error}<div class="saa-error">{error}</div>{/if}
   </div>
-  <button
-    type="button"
-    class="saa-add"
-    class:added={added || known}
+  <Button
+    size="icon"
     disabled={adding || added || known}
     onclick={add}
-    title={known ? 'already in the corpus' : added ? 'added to the entity' : 'add to the entity'}
+    aria-label={label}
+    title={label}
   >
     {added || known ? '✓' : adding ? '…' : '+'}
-  </button>
+  </Button>
 </li>
