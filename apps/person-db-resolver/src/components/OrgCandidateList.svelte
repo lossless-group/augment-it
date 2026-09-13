@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import type { OrgCandidate } from '../lib/types';
 
   let {
@@ -31,9 +32,9 @@
           </div>
         </div>
         <div class="pdr-candidate-actions">
-          <button type="button" class="pdr-btn pdr-btn-primary" disabled={busy} onclick={() => onMatch(c)}>
+          <Button variant="primary" disabled={busy} onclick={() => onMatch(c)}>
             match this org
-          </button>
+          </Button>
         </div>
       </li>
     {/each}

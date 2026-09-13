@@ -7,6 +7,7 @@
   // context-v/plans/Person-Aware-Canonical-Resolver-Extension.md.
 
   import { onMount } from 'svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import RecordCard from './components/RecordCard.svelte';
   import ColumnMapper from './components/ColumnMapper.svelte';
@@ -550,7 +551,7 @@
             onkeydown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
           /> / {rows.length}
         </span>
-        <button type="button" class="pdr-btn" onclick={() => (showMapper = true)}>edit column mapping</button>
+        <Button variant="secondary" onclick={() => (showMapper = true)}>edit column mapping</Button>
       {/if}
     </div>
   </header>
@@ -564,7 +565,7 @@
       <div class="pdr-card">
         <h3>All done</h3>
         <p class="pdr-muted">No more records in this set. ← back to revisit.</p>
-        <button type="button" class="pdr-btn" onclick={back} disabled={idx === 0}>← back</button>
+        <Button variant="secondary" onclick={back} disabled={idx === 0}>← back</Button>
       </div>
     {:else if record}
       <div class="pdr-grid">
@@ -593,12 +594,12 @@
             </label>
             <PersonCandidateList candidates={personCandidates} busy={personBusy} onMatch={doMatchPerson} />
             <div class="pdr-create">
-              <button type="button" class="pdr-btn pdr-btn-create" disabled={personBusy || !personRecord?.name} onclick={doCreatePerson}>
+              <Button variant="outline" disabled={personBusy || !personRecord?.name} onclick={doCreatePerson}>
                 + create new person from this record
-              </button>
-              <button type="button" class="pdr-btn" disabled={personBusy} onclick={doSkipPerson}>
+              </Button>
+              <Button variant="secondary" disabled={personBusy} onclick={doSkipPerson}>
                 skip — not worth tracking as a person
-              </button>
+              </Button>
             </div>
             <details class="pdr-search">
               <summary>search persons manually</summary>
@@ -609,14 +610,14 @@
                   placeholder="type ≥2 chars, Enter to search"
                   onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void doPersonSearch(); } }}
                 />
-                <button type="button" class="pdr-btn" disabled={personSearching} onclick={() => void doPersonSearch()}>search</button>
+                <Button variant="secondary" disabled={personSearching} onclick={() => void doPersonSearch()}>search</Button>
               </div>
               {#if personSearchResults.length}
                 <ul class="pdr-search-results">
                   {#each personSearchResults as s (s.person_uuid)}
                     <li>
                       <span>{s.name || '(no name)'} {#if s.headline}<span class="pdr-muted">— {s.headline}</span>{/if}</span>
-                      <button type="button" class="pdr-btn pdr-btn-primary" disabled={personBusy} onclick={() => doMatchPerson(s)}>match</button>
+                      <Button variant="primary" size="sm" disabled={personBusy} onclick={() => doMatchPerson(s)}>match</Button>
                     </li>
                   {/each}
                 </ul>
@@ -625,7 +626,7 @@
           {:else if personSkipped}
             <div class="pdr-result pdr-skipped">
               <p>Person skipped for this row.</p>
-              <button type="button" class="pdr-btn" onclick={() => (personSkipped = false)}>undo skip</button>
+              <Button variant="secondary" onclick={() => (personSkipped = false)}>undo skip</Button>
             </div>
           {:else if personResult}
             <div class="pdr-result">
@@ -654,9 +655,9 @@
               <div class="pdr-add-obs">
                 <label><span>predicate (optional)</span><input type="text" bind:value={obsPredicate} placeholder="defaults to 'note'" /></label>
                 <label><span>value</span><input type="text" bind:value={obsValue} placeholder="e.g. confirmed 2026-07-07" /></label>
-                <button type="button" class="pdr-btn" disabled={obsBusy || !obsValue.trim()} onclick={doAddObservation}>
+                <Button variant="primary" size="sm" disabled={obsBusy || !obsValue.trim()} onclick={doAddObservation}>
                   + add observation
-                </button>
+                </Button>
                 {#if obsSaved}<span class="pdr-stamp-ok">✓ saved</span>{/if}
                 {#if obsError}<div class="pdr-error">{obsError}</div>{/if}
               </div>
@@ -678,9 +679,9 @@
               </label>
               <OrgCandidateList candidates={orgCandidates} busy={orgBusy} onMatch={doMatchOrg} />
               <div class="pdr-create">
-                <button type="button" class="pdr-btn pdr-btn-create" disabled={orgBusy || !orgNameInput.trim()} onclick={doCreateOrg}>
+                <Button variant="outline" disabled={orgBusy || !orgNameInput.trim()} onclick={doCreateOrg}>
                   + create new org from this name
-                </button>
+                </Button>
                 <span class="pdr-muted">skip — just don't act on the org for this row</span>
               </div>
               <details class="pdr-search">
@@ -692,14 +693,14 @@
                     placeholder="type ≥2 chars, Enter to search"
                     onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void doOrgSearch(); } }}
                   />
-                  <button type="button" class="pdr-btn" disabled={orgSearching} onclick={() => void doOrgSearch()}>search</button>
+                  <Button variant="secondary" disabled={orgSearching} onclick={() => void doOrgSearch()}>search</Button>
                 </div>
                 {#if orgSearchResults.length}
                   <ul class="pdr-search-results">
                     {#each orgSearchResults as s (s.slug)}
                       <li>
                         <span>{s.complete_name || s.slug} <code class="pdr-candidate-slug">{s.slug}</code></span>
-                        <button type="button" class="pdr-btn pdr-btn-primary" disabled={orgBusy} onclick={() => void doMatchOrgSlug(s.slug)}>match</button>
+                        <Button variant="primary" size="sm" disabled={orgBusy} onclick={() => void doMatchOrgSlug(s.slug)}>match</Button>
                       </li>
                     {/each}
                   </ul>
@@ -723,12 +724,12 @@
       </div>
 
       <div class="pdr-actions">
-        <button type="button" class="pdr-btn" onclick={back} disabled={idx === 0}>← back</button>
+        <Button variant="secondary" onclick={back} disabled={idx === 0}>← back</Button>
         <span class="pdr-spacer"></span>
         {#if personResult || personSkipped}
-          <button type="button" class="pdr-btn pdr-btn-primary" onclick={advance}>next →</button>
+          <Button variant="primary" onclick={advance}>next →</Button>
         {:else}
-          <button type="button" class="pdr-btn" onclick={skipRow}>skip →</button>
+          <Button variant="secondary" onclick={skipRow}>skip →</Button>
         {/if}
       </div>
     {/if}

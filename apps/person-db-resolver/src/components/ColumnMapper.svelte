@@ -6,6 +6,7 @@
   // fix for record-db-resolver's hardcoded-column-name bug, generalized:
   // dynamic schema in, explicit mapping, not assumed columns.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import type { FieldMapping } from '../lib/types';
   import { MAPPING_NONE } from '../lib/normalize';
 
@@ -59,9 +60,9 @@
     {/each}
   </div>
   <div class="pdr-mapper-actions">
-    <button type="button" class="pdr-btn pdr-btn-primary" disabled={draft.name === MAPPING_NONE} onclick={save}>
+    <Button variant="primary" disabled={draft.name === MAPPING_NONE} onclick={save}>
       save mapping
-    </button>
-    <button type="button" class="pdr-btn" onclick={onCancel}>cancel</button>
+    </Button>
+    <Button variant="secondary" onclick={onCancel}>cancel</Button>
   </div>
 </div>
