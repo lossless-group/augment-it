@@ -2,7 +2,13 @@
    @augment-it/theme :root tokens with literal fallbacks so the remote
    still renders standalone if a token is absent. Trimmed subset of
    person-db-resolver's pdr-* sheet — same tokens, same shapes, no
-   candidate-list / mapper-row types this app doesn't need. */
+   candidate-list / mapper-row types this app doesn't need.
+
+   Buttons are NOT here: every control is @augment-it/shared-ui's <Button>,
+   whose variant/size enums carry surface, border, disabled and focus. The
+   .arr-btn* recipes this file used to hold were a third copy of the block
+   already deleted from record-db-resolver — including the same untokenised
+   white text colour. Do not re-add a button rule; reach for a variant. */
 
 .arr-app {
   font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
@@ -65,23 +71,6 @@
 
 .arr-actions { display: flex; align-items: center; margin-top: 1rem; gap: 0.6rem; }
 .arr-spacer { flex: 1; }
-
-.arr-btn { background: var(--color-surface, #1c1e25); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 5px; padding: 0.4rem 0.8rem; cursor: pointer; font-size: 0.85rem; }
-.arr-btn:hover:not(:disabled) { border-color: var(--color-text-muted, #9aa0aa); }
-.arr-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.arr-btn-primary { background: var(--color-accent, #5b7cfa); color: #fff; border-color: transparent; }
-
-.arr-pick-different {
-  margin-bottom: 0.75rem;
-  font-size: 0.8rem;
-  color: var(--color-accent, #5b7cfa);
-  background: transparent;
-  border-color: transparent;
-  padding-left: 0;
-}
-.arr-pick-different:hover {
-  text-decoration: underline;
-}
 
 /* Column mapper */
 .arr-mapper-rows { display: flex; flex-direction: column; gap: 0.5rem; margin: 0.75rem 0; }

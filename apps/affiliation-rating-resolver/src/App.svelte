@@ -8,6 +8,7 @@
   // context-v/specs/Augment-From-Affiliations.md.
 
   import { onMount } from 'svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import ColumnMapper from './components/ColumnMapper.svelte';
   import { normalizeRatingRecord, guessMapping, MAPPING_NONE } from './lib/normalize';
@@ -399,7 +400,7 @@
       </select>
       {#if rows.length}
         <span class="arr-progress">{Math.min(idx + 1, rows.length)} / {rows.length}</span>
-        <button type="button" class="arr-btn" onclick={() => (showMapper = true)}>edit column mapping</button>
+        <Button variant="secondary" onclick={() => (showMapper = true)}>edit column mapping</Button>
       {/if}
     </div>
   </header>
@@ -429,9 +430,9 @@
       />
     {:else if mapping}
       <div class="arr-actions">
-        <button type="button" class="arr-btn arr-btn-primary" disabled={bulkRunning} onclick={applyAllRemaining}>
+        <Button variant="destructive" disabled={bulkRunning} onclick={applyAllRemaining}>
           {bulkRunning ? 'applying…' : `apply all remaining ratings (from row ${idx + 1})`}
-        </button>
+        </Button>
       </div>
 
       {#if bulkApplied || bulkSkippedBlank || bulkFlagged.length}
@@ -455,7 +456,7 @@
         <div class="arr-card">
           <h3>All done</h3>
           <p class="arr-muted">No more rows in this set. ← back to revisit.</p>
-          <button type="button" class="arr-btn" onclick={back} disabled={idx === 0}>← back</button>
+          <Button variant="secondary" onclick={back} disabled={idx === 0}>← back</Button>
         </div>
       {:else if record}
         <div class="arr-card">
@@ -488,9 +489,9 @@
               <div class="arr-result-head">✓ applied — <strong>{rowResult.relevance}</strong></div>
             </div>
           {/if}
-          <button type="button" class="arr-btn arr-btn-primary" disabled={rowBusy || !relevanceInput.trim()} onclick={applyCurrent}>
+          <Button variant="primary" disabled={rowBusy || !relevanceInput.trim()} onclick={applyCurrent}>
             {rowBusy ? 'applying…' : 'apply this rating'}
-          </button>
+          </Button>
 
           <div class="arr-two-col">
             <section class="arr-subsection">
@@ -507,7 +508,7 @@
               <div class="arr-add-row">
                 <input type="url" bind:value={personLinkUrl} placeholder="paste a canonical link (LinkedIn, website, X…)" disabled={!detail}
                   onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void submitPersonLink(); } }} />
-                <button type="button" class="arr-btn" disabled={personLinkBusy || !personLinkUrl.trim() || !detail} onclick={submitPersonLink}>+ add</button>
+                <Button variant="secondary" aria-label="Add person link" disabled={personLinkBusy || !personLinkUrl.trim() || !detail} onclick={submitPersonLink}>+ add</Button>
               </div>
               {#if personLinkError}<div class="arr-error">{personLinkError}</div>{/if}
             </section>
@@ -526,7 +527,7 @@
               <div class="arr-add-row">
                 <input type="url" bind:value={personCorpusUrl} placeholder="content ABOUT them — a press mention, an interview" disabled={!detail}
                   onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void submitPersonCorpus(); } }} />
-                <button type="button" class="arr-btn" disabled={personCorpusBusy || !personCorpusUrl.trim() || !detail} onclick={submitPersonCorpus}>+ add</button>
+                <Button variant="secondary" aria-label="Add person corpus entry" disabled={personCorpusBusy || !personCorpusUrl.trim() || !detail} onclick={submitPersonCorpus}>+ add</Button>
               </div>
               {#if personCorpusError}<div class="arr-error">{personCorpusError}</div>{/if}
             </section>
@@ -545,7 +546,7 @@
               <div class="arr-add-row">
                 <input type="url" bind:value={orgLinkUrl} placeholder="paste a canonical link (website, LinkedIn company…)" disabled={!detail}
                   onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void submitOrgLink(); } }} />
-                <button type="button" class="arr-btn" disabled={orgLinkBusy || !orgLinkUrl.trim() || !detail} onclick={submitOrgLink}>+ add</button>
+                <Button variant="secondary" aria-label="Add organization link" disabled={orgLinkBusy || !orgLinkUrl.trim() || !detail} onclick={submitOrgLink}>+ add</Button>
               </div>
               {#if orgLinkError}<div class="arr-error">{orgLinkError}</div>{/if}
             </section>
@@ -564,7 +565,7 @@
               <div class="arr-add-row">
                 <input type="url" bind:value={orgCorpusUrl} placeholder="content ABOUT the org — press, a feature" disabled={!detail}
                   onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void submitOrgCorpus(); } }} />
-                <button type="button" class="arr-btn" disabled={orgCorpusBusy || !orgCorpusUrl.trim() || !detail} onclick={submitOrgCorpus}>+ add</button>
+                <Button variant="secondary" aria-label="Add organization corpus entry" disabled={orgCorpusBusy || !orgCorpusUrl.trim() || !detail} onclick={submitOrgCorpus}>+ add</Button>
               </div>
               {#if orgCorpusError}<div class="arr-error">{orgCorpusError}</div>{/if}
             </section>
@@ -572,9 +573,9 @@
         </div>
 
         <div class="arr-actions">
-          <button type="button" class="arr-btn" onclick={back} disabled={idx === 0}>← back</button>
+          <Button variant="secondary" onclick={back} disabled={idx === 0}>← back</Button>
           <span class="arr-spacer"></span>
-          <button type="button" class="arr-btn arr-btn-primary" onclick={advance}>next →</button>
+          <Button variant="primary" onclick={advance}>next →</Button>
         </div>
       {/if}
     {/if}

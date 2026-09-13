@@ -4,6 +4,7 @@
   // export-affiliation-ratings-csv.mjs's own column names on the first
   // pass), the operator confirms or corrects, then it's remembered.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import type { RatingFieldMapping } from '../lib/types';
   import { MAPPING_NONE } from '../lib/normalize';
 
@@ -46,9 +47,9 @@
 </script>
 
 <div class="arr-card arr-mapper">
-  <button type="button" class="arr-btn arr-pick-different" onclick={onPickDifferent}>
+  <Button variant="link" size="sm" onclick={onPickDifferent}>
     ← wrong file? pick a different record set
-  </button>
+  </Button>
   <h3>Map this record set's columns</h3>
   <p class="arr-muted">
     Asked once per record set — every row in <strong>{recordSetName}</strong> reuses this.
@@ -77,14 +78,13 @@
     {/each}
   </div>
   <div class="arr-mapper-actions">
-    <button
-      type="button"
-      class="arr-btn arr-btn-primary"
+    <Button
+      variant="primary"
       disabled={draft.person_uuid === MAPPING_NONE || draft.org_slug === MAPPING_NONE || draft.relevance === MAPPING_NONE}
       onclick={save}
     >
       save mapping
-    </button>
-    <button type="button" class="arr-btn" onclick={onCancel}>cancel</button>
+    </Button>
+    <Button variant="secondary" onclick={onCancel}>cancel</Button>
   </div>
 </div>
