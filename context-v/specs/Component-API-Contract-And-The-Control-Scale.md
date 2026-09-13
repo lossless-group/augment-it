@@ -183,10 +183,10 @@ The sanctioned API. Covers the large majority.
 ### 2 — named token overrides
 
 ```svelte
-<Button variant="primary" size="lg" radius="xl" />
+<Button variant="primary" size="lg" radius="lg" />
 ```
 
-**Overrides take token names, not values.** `radius="xl"` resolves to
+**Overrides take token names, not values.** `radius="lg"` resolves to
 `--radius-xl`. Never `radius="11px"`.
 
 ### 3 — the `/N` modifier

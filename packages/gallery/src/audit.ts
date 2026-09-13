@@ -302,6 +302,18 @@ export function audit(root: HTMLElement, opts: AuditOptions): AuditReport {
   for (const el of Array.from(root.querySelectorAll<HTMLElement>('[class]'))) {
     for (const cls of Array.from(el.classList)) {
       if (exempt.has(cls) || cls.startsWith(`${opts.prefix}-`)) continue;
+      // Svelte scoping hash. NOT a leak — it is the mechanism that makes a
+      // component NOT leak, and it is the opposite of what F3 is policing.
+      //
+      // It cannot be handled with exemptClasses: the hash is derived from the
+      // component CSS, so it changes on every edit and any listed value is stale
+      // the next time someone touches the file.
+      //
+      // This never surfaced before 2026-09-13 because the only catalog in
+      // existence (corpora-curator) styles all five of its components from
+      // app.css with prefixed classes — not one carries a <style> block, so the
+      // audit had never met a scoped component. shared-ui Button is the first.
+      if (/^svelte-[a-z0-9]+$/.test(cls)) continue;
       if (seenLeak.has(cls)) continue;
       seenLeak.add(cls);
       report.leaks.push({ label: `.${cls}`, detail: describe(el) });
