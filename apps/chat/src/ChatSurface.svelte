@@ -4,6 +4,7 @@
   // which dispatches by turn.kind.
 
   import { workspace, suggest, type Suggestion } from '@augment-it/workspace';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { chatState } from './chat-state.svelte';
   import ResponseModeRenderer from './ResponseModeRenderer.svelte';
 
@@ -215,10 +216,10 @@
   {#if suggestions.length > 0}
     <div class="suggestions">
       {#each suggestions as s, i (i)}
-        <button class="suggest-pill" onclick={() => quickSuggest(s)}>
+        <Button variant="outline" size="sm" radius="pill" onclick={() => quickSuggest(s)}>
           <span class="verb">{s.capability}</span>
           <span class="hint">{s.hint}</span>
-        </button>
+        </Button>
       {/each}
     </div>
   {/if}
@@ -232,16 +233,16 @@
       onkeydown={handleKey}
       disabled={chatState.sending}
     ></textarea>
-    <button class="send" onclick={() => send()} disabled={chatState.sending || !composer.trim()}>
+    <Button variant="primary" onclick={() => send()} disabled={chatState.sending || !composer.trim()}>
       Send
-    </button>
+    </Button>
   </div>
 
   <div class="commands-bar" bind:this={commandsContainerEl}>
-    <button
-      type="button"
-      class="commands-trigger"
-      class:open={commandsOpen}
+    <Button
+      variant={commandsOpen ? 'secondary' : 'outline'}
+      size="sm"
+      radius="pill"
       aria-haspopup="menu"
       aria-expanded={commandsOpen}
       onclick={toggleCommands}
@@ -250,7 +251,7 @@
       <span class="caret">{commandsOpen ? '▾' : '▴'}</span>
       <span>Commands</span>
       <span class="muted">({COMMANDS.length})</span>
-    </button>
+    </Button>
     {#if commandsOpen}
       <div class="commands-popover" role="menu">
         <div class="commands-popover-head">Slash commands</div>

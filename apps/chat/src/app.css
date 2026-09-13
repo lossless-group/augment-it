@@ -200,25 +200,6 @@
 }
 .chat-app .proposal-line strong { font-family: var(--font-mono, monospace); font-size: 12px; color: var(--color-accent); }
 .chat-app .proposal-hint { color: var(--color-text-muted); font-size: 12px; margin-left: 0.4rem; }
-.chat-app .proposal-actions button.run {
-  padding: 0.25rem 0.6rem;
-  border: 1px solid var(--color-accent);
-  background: var(--color-accent);
-  color: var(--color-on-accent, var(--color-bg));
-  border-radius: var(--radius-sm, 4px);
-  font-size: 12px;
-  cursor: pointer;
-}
-.chat-app button.decline {
-  align-self: flex-start;
-  padding: 0.2rem 0.5rem;
-  border: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-text-muted);
-  border-radius: var(--radius-sm, 4px);
-  font-size: 11px;
-  cursor: pointer;
-}
 
 /* --- Draft panel --- */
 .chat-app .bubble.draft {
@@ -261,45 +242,24 @@
   margin-bottom: 0.4rem;
 }
 .chat-app .draft-actions { display: flex; gap: 0.4rem; }
-.chat-app .draft-actions button {
-  padding: 0.3rem 0.7rem;
-  border-radius: var(--radius-sm, 4px);
-  font-size: 12px;
-  cursor: pointer;
+.chat-app .refine-row {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
 }
-.chat-app .draft-actions button.refine {
-  background: transparent;
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-}
-.chat-app .draft-actions button.run {
-  background: var(--color-accent);
-  border: 1px solid var(--color-accent);
-  color: var(--color-on-accent, var(--color-bg));
-}
-.chat-app .refine-row { margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem; }
 .chat-app .refine-row textarea {
   width: 100%;
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-md);
   background: var(--color-bg);
   color: var(--color-text);
   font-family: inherit;
   font-size: 12px;
   resize: vertical;
 }
-.chat-app .submit-refine {
-  align-self: flex-end;
-  padding: 0.3rem 0.7rem;
-  border: 1px solid var(--color-accent);
-  background: var(--color-accent);
-  color: var(--color-on-accent, var(--color-bg));
-  border-radius: var(--radius-sm, 4px);
-  font-size: 12px;
-  cursor: pointer;
-}
-.chat-app .submit-refine:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* --- Suggestions strip --- */
 .chat-app .suggestions {
@@ -308,26 +268,12 @@
   padding: 0.5rem 0.8rem 0;
   flex-wrap: wrap;
 }
-.chat-app .suggest-pill {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  padding: 0.3rem 0.7rem;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-text);
-  font-size: 11px;
-  cursor: pointer;
-  transition: background 0.12s ease;
-}
-.chat-app .suggest-pill:hover { background: var(--color-field); }
-.chat-app .suggest-pill .verb {
+.chat-app .suggestions .verb {
   font-family: var(--font-mono, monospace);
   color: var(--color-accent);
   font-weight: 500;
 }
-.chat-app .suggest-pill .hint { color: var(--color-text-muted); }
+.chat-app .suggestions .hint { color: var(--color-text-muted); }
 
 /* --- Composer --- */
 .chat-app .composer {
@@ -351,16 +297,6 @@
   min-height: 4em;
 }
 .chat-app .composer textarea:disabled { opacity: 0.5; }
-.chat-app .composer .send {
-  padding: 0.55rem 1rem;
-  border: 1px solid var(--color-accent);
-  background: var(--color-accent);
-  color: var(--color-on-accent, var(--color-bg));
-  border-radius: var(--radius-md, 8px);
-  font-size: 13px;
-  cursor: pointer;
-}
-.chat-app .composer .send:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* --- Commands popover (lives below the composer, opens upward) --- */
 .chat-app .commands-bar {
@@ -369,27 +305,8 @@
   border-top: 1px solid var(--color-border);
   background: var(--color-bg);
 }
-.chat-app .commands-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.55rem;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 11px;
-  cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
-}
-.chat-app .commands-trigger:hover,
-.chat-app .commands-trigger.open {
-  background: var(--color-field);
-  color: var(--color-text);
-  border-color: var(--color-accent);
-}
-.chat-app .commands-trigger .caret { font-size: 10px; line-height: 1; }
-.chat-app .commands-trigger .muted { color: var(--color-text-muted); }
+.chat-app .commands-bar .caret { font-size: 10px; line-height: 1; }
+.chat-app .commands-bar .muted { color: var(--color-text-muted); }
 
 .chat-app .commands-popover {
   position: absolute;

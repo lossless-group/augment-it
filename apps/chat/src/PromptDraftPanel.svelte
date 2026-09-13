@@ -11,6 +11,7 @@
   // discipline intact.
 
   import { chatState } from './chat-state.svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
 
   type DraftResult = {
     ok?: boolean;
@@ -70,10 +71,10 @@
       <div class="draft-id">id: {draft.prompt_id}</div>
     {/if}
     <div class="draft-actions">
-      <button class="refine" onclick={() => (refineOpen = !refineOpen)}>
+      <Button variant="outline" size="sm" onclick={() => (refineOpen = !refineOpen)}>
         {refineOpen ? 'Cancel' : 'Refine this'}
-      </button>
-      <button class="run" onclick={() => runThis()}>Run this</button>
+      </Button>
+      <Button variant="primary" size="sm" onclick={() => runThis()}>Run this</Button>
     </div>
     {#if refineOpen}
       <div class="refine-row">
@@ -82,9 +83,9 @@
           placeholder="What should be different about the next version?"
           rows="2"
         ></textarea>
-        <button class="submit-refine" onclick={() => submitRefine()} disabled={!refineText.trim()}>
+        <Button variant="primary" size="sm" onclick={() => submitRefine()} disabled={!refineText.trim()}>
           Send feedback
-        </button>
+        </Button>
       </div>
     {/if}
   </div>

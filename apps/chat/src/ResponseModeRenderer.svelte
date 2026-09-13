@@ -13,6 +13,7 @@
   import type { ChatTurn } from './chat-state.svelte';
   import { chatState } from './chat-state.svelte';
   import PromptDraftPanel from './PromptDraftPanel.svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
 
   type Props = { turn: ChatTurn };
   let { turn }: Props = $props();
@@ -92,15 +93,17 @@
               <span class="proposal-hint">{p.hint}</span>
             </div>
             <div class="proposal-actions">
-              <button class="run" onclick={() => chatState.acceptProposal(turn.id, i)}>
+              <Button variant="primary" size="sm" onclick={() => chatState.acceptProposal(turn.id, i)}>
                 Run this
-              </button>
+              </Button>
             </div>
           </div>
         {/each}
-        <button class="decline" onclick={() => chatState.declineProposals(turn.id)}>
-          Not now
-        </button>
+        <div class="decline-row">
+          <Button variant="outline" size="sm" onclick={() => chatState.declineProposals(turn.id)}>
+            Not now
+          </Button>
+        </div>
       </div>
     {:else}
       <div class="meta muted">— affordance dismissed —</div>
