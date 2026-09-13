@@ -9,6 +9,7 @@
   // Expanded: full card with role + name fields + autocomplete + links
   //           + corpus + domains.
 
+  import Button     from '@augment-it/shared-ui/Button.svelte';
   import LinkList   from './LinkList.svelte';
   import DomainList from './DomainList.svelte';
   import type { AffiliationState, Link, OrgDomain, OrgSuggestion } from '../lib/types';
@@ -120,8 +121,16 @@
     <div class="pe-affiliation-header">
       <h3 class="pd-title">Affiliation {#if hydrating}<span class="pd-hint">— loading org details…</span>{/if} {#if savedFlash}<span class="pd-saved">✓ saved</span>{/if}</h3>
       <span class="pe-spacer"></span>
-      <button type="button" class="pe-btn pe-btn-ghost" onclick={collapse} title="Collapse">collapse</button>
-      <button type="button" class="pd-icon-btn" onclick={onRemove} title="Remove from this person's affiliations (does not delete the org)">×</button>
+      <Button variant="ghost" size="sm" onclick={collapse} title="Collapse">collapse</Button>
+      <Button
+        variant="secondary"
+        size="icon"
+        onclick={onRemove}
+        title="Remove from this person's affiliations (does not delete the org)"
+        aria-label="Remove the affiliation with {affiliation.conventionalName || affiliation.completeName || 'this org'} from this person"
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4 L12 12 M12 4 L4 12" /></svg>
+      </Button>
     </div>
 
     {#if affiliation.autoDetectedFrom}

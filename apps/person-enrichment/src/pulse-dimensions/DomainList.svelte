@@ -5,6 +5,7 @@
   // …). No dropdown — same flexibility principle as LinkList. Enter on
   // either input commits the row.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import type { OrgDomain } from '../lib/types';
 
   let {
@@ -68,10 +69,20 @@
             placeholder="primary · secondary · alias · parent_domain · subunit"
           />
           {#if saved[i]}<span class="pd-saved">✓</span>{/if}
-          <button type="button" class="pd-icon-btn" onclick={() => remove(i)} title="Remove">×</button>
+          <Button
+            variant="secondary"
+            size="icon"
+            onclick={() => remove(i)}
+            title="Remove this domain row"
+            aria-label="Remove domain row {i + 1}"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4 L12 12 M12 4 L4 12" /></svg>
+          </Button>
         </div>
       {/each}
     </div>
   {/if}
-  <button type="button" class="pd-ghost-btn" onclick={add}>+ add domain</button>
+  <Button variant="outline" size="sm" onclick={add} class="pd-add" data-deviation="placement only — a Button inside the column-flex .pd-section stretches to full width; the ladder has no rung for layout">
+    + add domain
+  </Button>
 </section>

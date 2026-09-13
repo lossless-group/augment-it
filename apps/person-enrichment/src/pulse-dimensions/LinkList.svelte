@@ -4,6 +4,7 @@
   // input — kind auto-infers from the URL pattern and shows as a
   // small read-only badge. Enter commits the row.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import type { Link, LinkKind } from '../lib/types';
 
   let {
@@ -91,10 +92,20 @@
             <span class="pd-link-kind">{links[i].kind}</span>
           {/if}
           {#if saved[i]}<span class="pd-saved">✓</span>{/if}
-          <button type="button" class="pd-icon-btn" onclick={() => remove(i)} title="Remove">×</button>
+          <Button
+            variant="secondary"
+            size="icon"
+            onclick={() => remove(i)}
+            title="Remove this link row"
+            aria-label="Remove {label} row {i + 1}"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4 L12 12 M12 4 L4 12" /></svg>
+          </Button>
         </div>
       {/each}
     </div>
   {/if}
-  <button type="button" class="pd-ghost-btn" onclick={add}>+ add link</button>
+  <Button variant="outline" size="sm" onclick={add} class="pd-add" data-deviation="placement only — a Button inside the column-flex .pd-section stretches to full width; the ladder has no rung for layout">
+    + add link
+  </Button>
 </section>

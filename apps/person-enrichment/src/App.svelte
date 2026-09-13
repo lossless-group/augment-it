@@ -31,6 +31,7 @@
   import { getDb, disconnect, CLIENT } from './lib/surreal';
   import type { Person, EventRow, Link, OrgDomain, OrgSuggestion } from './lib/types';
 
+  import Button           from '@augment-it/shared-ui/Button.svelte';
   import NameFields       from './pulse-dimensions/NameFields.svelte';
   import EmailListField   from './pulse-dimensions/EmailListField.svelte';
   import LinkList         from './pulse-dimensions/LinkList.svelte';
@@ -758,6 +759,16 @@
   });
 </script>
 
+<!-- The external-link mark for the two search controls. A snippet, so the
+     markup exists once rather than once per call site — and an <svg> rather
+     than the bare U+2197 glyph the Button header bans. -->
+{#snippet newTab()}
+  <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"
+       stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 3 H13 V10" /><path d="M13 3 L4 12" />
+  </svg>
+{/snippet}
+
 <div class="pe-app">
   <header class="pe-header">
     <div class="pe-event">
@@ -818,8 +829,12 @@
           {/if}
           {#if current.email}
             <div class="pe-search-row">
-              <button class="pe-btn pe-btn-ghost" type="button" onclick={searchGoogle}>↗ google {current.email}</button>
-              <button class="pe-btn pe-btn-ghost" type="button" onclick={searchDuck}>↗ duckduckgo</button>
+              <Button variant="link" size="sm" onclick={searchGoogle}>
+                {@render newTab()}google {current.email}
+              </Button>
+              <Button variant="link" size="sm" onclick={searchDuck}>
+                {@render newTab()}duckduckgo
+              </Button>
             </div>
           {/if}
         </div>
@@ -848,17 +863,19 @@
               {/each}
             </div>
           {/if}
-          <button type="button" class="pd-ghost-btn" onclick={addAffiliation}>+ add affiliation</button>
+          <Button variant="outline" size="sm" onclick={addAffiliation} class="pd-add" data-deviation="placement only — a Button inside the column-flex .pe-affiliations-section stretches to full width; the ladder has no rung for layout">
+            + add affiliation
+          </Button>
         </section>
 
         <div class="pe-actions">
-          <button class="pe-btn pe-btn-ghost" type="button" onclick={back} disabled={worklistIdx === 0}>← back</button>
+          <Button variant="secondary" onclick={back} disabled={worklistIdx === 0}>← back</Button>
           <span class="pe-spacer"></span>
           <span class="pe-hint">Enter in a field = save it • next → reviews what you saved</span>
           <span class="pe-spacer"></span>
-          <button class="pe-btn pe-btn-primary" type="button" onclick={requestAdvance}>
+          <Button variant="primary" onclick={requestAdvance}>
             next → {#if saveLog.length}({saveLog.length} writes){/if}
-          </button>
+          </Button>
         </div>
 
         {#if pendingAdvance && !showSummary}
@@ -895,11 +912,11 @@
               {/each}
             </ul>
             <div class="pe-summary-actions">
-              <button class="pe-btn pe-btn-ghost" type="button" onclick={() => showSummary = false}>← keep editing</button>
+              <Button variant="secondary" onclick={() => (showSummary = false)}>← keep editing</Button>
               <span class="pe-spacer"></span>
-              <button class="pe-btn pe-btn-primary" type="button" onclick={advance}>
+              <Button variant="primary" onclick={advance}>
                 confirm + next →
-              </button>
+              </Button>
             </div>
           </div>
         {/if}
