@@ -7,6 +7,7 @@
   // tuck into an "Earlier generations (archived)" sub-section
   // collapsed by default.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import type { RecordSet } from '@augment-it/workspace';
   import RecordSetCard from './RecordSetCard.svelte';
   import { buildFamilyGroups, type FamilyGroup, type FamilyMember } from '../logic/family';
@@ -113,7 +114,7 @@
 <div class="rs-list-wrap">
   <header class="rs-list-head">
     <h2>Record sets</h2>
-    <button type="button" class="rs-refresh" onclick={onrefresh}>refresh</button>
+    <Button variant="secondary" size="sm" onclick={onrefresh}>refresh</Button>
   </header>
 
   <ul class="rs-list">
@@ -136,20 +137,20 @@
               </span>
             </button>
             <div class="rs-family-actions">
-              <button
-                type="button"
-                class="rs-family-action"
+              <Button
+                variant="ghost"
+                size="icon"
                 title="Rename this family"
                 onclick={() => onRenameFamily(g.group_id, g.label)}
                 aria-label={`rename family ${g.label}`}
-              >✎</button>
-              <button
-                type="button"
-                class="rs-family-action rs-family-action-destructive"
+              >✎</Button>
+              <Button
+                variant="destructive"
+                size="icon"
                 title="Dissolve this family — the member sets stay, the grouping goes"
                 onclick={() => onDissolveFamily(g.group_id, g.label)}
                 aria-label={`dissolve family ${g.label}`}
-              >×</button>
+              >×</Button>
             </div>
           </div>
           {#if !isCollapsed}
@@ -241,16 +242,6 @@
   .rs-list-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
   .rs-list-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
   .rs-list-head h2 { margin: 0; }
-  .rs-refresh {
-    padding: 0.2rem 0.6rem;
-    background: transparent;
-    border: 1px solid var(--color-border);
-    border-radius: 3px;
-    color: var(--color-text);
-    font-size: 0.75rem;
-    cursor: pointer;
-  }
-  .rs-refresh:hover { border-color: var(--color-text); }
   .rs-list {
     list-style: none;
     margin: 0;
@@ -301,25 +292,6 @@
     align-items: center;
     gap: 0.15rem;
     padding-right: 0.35rem;
-  }
-  .rs-family-action {
-    width: 1.5rem;
-    height: 1.5rem;
-    padding: 0;
-    background: transparent;
-    color: var(--color-text-muted);
-    border: 0;
-    border-radius: 3px;
-    font-size: 0.85rem;
-    cursor: pointer;
-  }
-  .rs-family-action:hover {
-    color: var(--color-text);
-    background: var(--color-surface, rgba(255, 255, 255, 0.06));
-  }
-  .rs-family-action-destructive:hover {
-    color: var(--color-error-text);
-    background: var(--color-error-bg, rgba(200, 50, 50, 0.1));
   }
   .rs-family-chevron {
     display: inline-block;

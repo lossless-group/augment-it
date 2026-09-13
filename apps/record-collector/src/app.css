@@ -63,22 +63,6 @@
   flex-direction: column;
   gap: 0.4rem;
 }
-.rc-app .augment-this-set {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border: 1px solid var(--color-accent);
-  padding: 0.4rem 0.85rem;
-  border-radius: 4px;
-  font: inherit;
-  font-size: 0.8rem;
-  cursor: pointer;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-}
-.rc-app .augment-this-set:hover {
-  filter: brightness(1.08);
-}
-
 /* Variant-family suggestion — non-blocking prompt below the ingest
    status. Pale accent background so it reads as friendly information,
    not an error. */
@@ -101,27 +85,6 @@
   display: flex;
   gap: 0.4rem;
 }
-.rc-app .vf-link,
-.rc-app .vf-dismiss {
-  padding: 0.3rem 0.65rem;
-  border-radius: 3px;
-  font: inherit;
-  font-size: 0.75rem;
-  cursor: pointer;
-}
-.rc-app .vf-link {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border: 1px solid var(--color-accent);
-}
-.rc-app .vf-link:hover { filter: brightness(1.08); }
-.rc-app .vf-dismiss {
-  background: transparent;
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-}
-.rc-app .vf-dismiss:hover { color: var(--color-text); border-color: var(--color-text); }
-
 .rc-app .muted {
   color: var(--color-text-muted);
 }
@@ -162,23 +125,6 @@
   border-radius: 6px;
   padding: 1rem;
   min-width: 0;
-}
-
-.rc-app button {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border: 0;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font: inherit;
-  cursor: pointer;
-  margin-right: 0.5rem;
-}
-
-.rc-app button.secondary {
-  background: transparent;
-  color: var(--color-accent);
-  border: 1px solid var(--color-accent);
 }
 
 .rc-app input[type=file] {
@@ -292,23 +238,6 @@
 .rc-app .row-id {
   color: var(--color-text-muted);
   font-size: 10px;
-}
-
-.rc-app .enrich-one {
-  flex: 0 0 auto;
-  background: transparent;
-  color: var(--color-accent);
-  border: 1px solid var(--color-border);
-  padding: 1px 8px;
-  margin: 0;
-  border-radius: 3px;
-  font-size: 10px;
-  cursor: pointer;
-}
-
-.rc-app .enrich-one:hover {
-  border-color: var(--color-accent);
-  box-shadow: var(--fx-accent-glow);
 }
 
 .rc-app .fields {

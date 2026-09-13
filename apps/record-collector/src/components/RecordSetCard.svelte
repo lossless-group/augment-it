@@ -2,6 +2,7 @@
   // One record-set card. Name, dimensions, select/delete/download actions.
   // Components are dumb; logic is passed in as callbacks.
 
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import type { RecordSet } from '@augment-it/workspace';
   import { downloadRecordSetAsCsv } from '../logic/download';
 
@@ -36,23 +37,23 @@
     <span class="rs-dims">{rs.schema.fields.length} cols · {rs.row_ids.length} rows</span>
   </button>
   <div class="rs-actions">
-    <button
-      type="button"
-      class="rs-download"
+    <Button
+      variant="secondary"
+      size="sm"
       title="Download this record set as CSV"
       onclick={() => void download()}
       disabled={downloading}
       aria-label="download {rs.name}"
     >
       {#if downloading}…{:else}↓ CSV{/if}
-    </button>
-    <button
-      type="button"
-      class="rs-delete"
+    </Button>
+    <Button
+      variant="destructive"
+      size="icon"
       title="Delete this record set and all its rows"
       onclick={ondelete}
       aria-label="delete {rs.name}"
-    >×</button>
+    >×</Button>
   </div>
   {#if downloadError}
     <p class="rs-error">download failed: {downloadError}</p>
@@ -86,31 +87,6 @@
   .rs-select strong { color: var(--color-accent, var(--color-text)); overflow-wrap: anywhere; }
   .rs-dims { color: var(--color-text-muted); font-size: 0.75rem; }
   .rs-actions { display: flex; gap: 0.25rem; align-items: center; }
-  .rs-download {
-    padding: 0.2rem 0.5rem;
-    background: transparent;
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-    border-radius: 3px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .rs-download:hover:not(:disabled) { border-color: var(--color-text); background: var(--color-surface, rgba(0,0,0,0.05)); }
-  .rs-download:disabled { opacity: 0.5; cursor: not-allowed; }
-  .rs-delete {
-    width: 1.4rem;
-    height: 1.4rem;
-    padding: 0;
-    background: transparent;
-    color: var(--color-text-muted);
-    border: 0;
-    border-radius: 3px;
-    font-size: 0.9rem;
-    cursor: pointer;
-  }
-  .rs-delete:hover { color: var(--color-error-text); background: var(--color-error-bg, rgba(200, 50, 50, 0.1)); }
   .rs-error {
     grid-column: 1 / -1;
     margin: 0;

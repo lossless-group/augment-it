@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import Button from '@augment-it/shared-ui/Button.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import RecordSetsList from './components/RecordSetsList.svelte';
   import { formatFieldValue } from './logic/format';
@@ -375,7 +376,7 @@
 
     <h2>Ingest</h2>
     <input type="file" accept=".csv,.xlsx,text/csv" bind:this={fileInput} />
-    <button onclick={uploadFile}>upload</button>
+    <Button variant="primary" onclick={uploadFile}>upload</Button>
     <pre class="muted">{ingestStatus}</pre>
     {#if suggestion}
       <!-- Variant-family suggestion. Non-blocking — the user can ignore
@@ -390,10 +391,10 @@
           link as family?
         </p>
         <div class="vf-suggestion-actions">
-          <button class="vf-link" onclick={() => void acceptSuggestion()}>
+          <Button variant="primary" size="sm" onclick={() => void acceptSuggestion()}>
             {suggestion.variant_family_id ? 'Join family' : 'Link'}
-          </button>
-          <button class="vf-dismiss" onclick={dismissSuggestion}>Dismiss</button>
+          </Button>
+          <Button variant="secondary" size="sm" onclick={dismissSuggestion}>Dismiss</Button>
         </div>
       </div>
     {/if}
@@ -409,26 +410,26 @@
         <div class="augment-this-set-panel" role="group" aria-label="Augment this Set">
           <div class="augment-this-set-heading">Augment this Set</div>
           <div class="augment-this-set-actions">
-            <button
-              class="augment-this-set"
+            <Button
+              variant="primary"
               title="Send the whole set to Prompt Templates — author or run a prompt against every row"
               onclick={() => augmentThisSet(selectedRs, 'promptTemplateManager')}
-            >Run a Prompt →</button>
-            <button
-              class="augment-this-set"
+            >Run a Prompt →</Button>
+            <Button
+              variant="primary"
               title="Send the whole set to Pack Runner — run a bundle / packs against every row"
               onclick={() => augmentThisSet(selectedRs, 'packRunner')}
-            >Run a Bundle / Packs →</button>
-            <button
-              class="augment-this-set"
+            >Run a Bundle / Packs →</Button>
+            <Button
+              variant="primary"
               title="Send the whole set to DB Resolver — match or create canonical organizations for every row (use for orgs — sponsors, exhibitors, funders)"
               onclick={() => augmentThisSet(selectedRs, 'recordDbResolver')}
-            >Resolve Orgs to Canonical DB →</button>
-            <button
-              class="augment-this-set"
+            >Resolve Orgs to Canonical DB →</Button>
+            <Button
+              variant="primary"
               title="Send the whole set to Person DB Resolver — match or create canonical persons + their org/role for every row (use for people — speakers, attendees)"
               onclick={() => augmentThisSet(selectedRs, 'personDbResolver')}
-            >Resolve People to Canonical DB →</button>
+            >Resolve People to Canonical DB →</Button>
           </div>
         </div>
       </div>
@@ -447,11 +448,12 @@
               <!-- single-record enrichment: tells the shell to open the
                    co-existence split (record-collector + prompt-template-
                    manager side by side) for this one record. -->
-              <button
-                class="enrich-one"
+              <Button
+                variant="outline"
+                size="sm"
                 title="Enrich just this record — open the prompt panel beside it"
                 onclick={() => enrichRecord(row)}
-              >enrich ›</button>
+              >enrich ›</Button>
             </div>
             {#if socials.length > 0}
               <!-- Socials chip row — accepted pack profiles. One badge per
