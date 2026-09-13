@@ -141,6 +141,60 @@ commit. Mechanical once the scale exists.
 candidates. They are the two largest duplication surfaces in the product and both
 are **blocked on Phase 1**, not on anyone's agreement.
 
+## The second-order defect — discovered 2026-09-13, when the scales shipped
+
+Shipping the token families fixed the first-order problem: 170 declarations that
+resolved to a hardcoded fallback now resolve to a token. But it exposed a second
+one that was invisible while the tokens were missing, and this one is more
+interesting.
+
+> **While a token is undefined, the fallback is the real declaration and the name
+> is decorative.** An author writing `var(--radius-md, 6px)` was shipping `6px`;
+> `--radius-md` was a label nobody could check, so they picked whichever name sat
+> next to the pixel value they wanted. **The moment the token ships, the name
+> becomes load-bearing — and every mismatch surfaces at once.**
+
+`apps/chat` is the worked example, found during Phase 1's visual check. All
+eleven of its radius declarations sit **one scale step below** the role DESIGN.md
+§Shapes assigns them: seven `--radius-sm` uses are a small card, a panel, an input
+and four buttons — every one of them `--radius-md` work — and its four
+`--radius-md` uses are a bubble, a composer, a send button and a popover, all
+`--radius-lg` work.
+
+**The correction is pixel-neutral.** `sm`→`md` restores 4px; `md`→`lg` restores
+8px. Chat renders identically and its vocabulary becomes true.
+
+### Why this matters beyond chat
+
+**All 22 radius declarations in the product carried a fallback** — there is not a
+single bare `var(--radius-*)` anywhere. So the conditions that produced chat's
+mismatch existed in every member that referenced a phantom token, across all six
+phantom families and all 170 declarations. Chat is not special; it is the first
+member anyone checked.
+
+That reframes the remaining migration work:
+
+- A member adopting the scales is **not** a find-and-replace. Every
+  `var(--token, literal)` needs its *role* checked against the token's documented
+  meaning, not just its pixel delta measured.
+- **The pixel delta is the wrong diff to review.** Chat's most alarming change
+  (4px → 2px, a visible flattening) was not the scale being wrong — it was the
+  scale correctly revealing a wrong name. Reviewing only "did it move" would have
+  concluded the scale was too tight and softened it, entrenching the bug.
+- Some corrections will be pixel-neutral like chat's. Some will not, and those are
+  the ones worth arguing about.
+
+### What to do about it
+
+Nothing federation-wide yet, deliberately. Each member's radius roles get checked
+**when that member is migrated**, by the engineer already reading its CSS — which
+is the cheapest possible moment and the only one where the context is loaded.
+A pre-emptive sweep would produce a list nobody is positioned to act on.
+
+Recorded here so that migration engineers are told to look, and so the next reader
+does not repeat Phase 1's near-miss: reading the pixel change and concluding the
+scale was wrong.
+
 ## A check that would have caught this
 
 Phantom tokens are mechanically detectable: every `var(--x)` in a member, minus
