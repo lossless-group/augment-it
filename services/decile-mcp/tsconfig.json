@@ -1,15 +1,24 @@
 {
+  "_comment": [
+    "The one service that does not run through tsx. decile-mcp is an MCP server",
+    "compiled to dist/ and started with `node dist/server.js`, so it differs",
+    "from its ten siblings on exactly one axis: it emits.",
+    "",
+    "Everything on the shared axis — target, lib, strict, esModuleInterop,",
+    "skipLibCheck, types — comes from tsconfig.services.json and is no longer a",
+    "second copy. The overrides below are the emit/module axis and nothing else.",
+    "",
+    "NodeNext (not the base's ESNext/bundler) because the output is executed",
+    "directly by node, which needs real extension-bearing specifiers resolved",
+    "the way node resolves them — not the way a bundler would."
+  ],
+  "extends": "../../tsconfig.services.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022"],
-    "types": ["node"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "noEmit": false,
     "outDir": "dist",
     "rootDir": "src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
     "declaration": true,
     "sourceMap": true
   },
