@@ -11,6 +11,7 @@ augmented_with:
   - Claude Code on Claude Opus 5 (1M context)
 semantic_version: 0.0.1.0
 revisions:
+  - 2026-09-13 — Executed, same day, on `rebuild/turbo-rsbuild`. All five phases ran as written. The ten identical services resolved to byte-identical `tsc --showConfig` output before and after — the fold is provably a no-op, not probably fine. `decile-mcp` emitted six checksum-identical files in `dist/`, and the open question about `noUnusedLocals`/`noUnusedParameters` settled in the base's favour: it inherited them plus `verbatimModuleSyntax` and stayed green, so no loosening override was needed. `deploy-relay` closed as a verified non-gap. The completeness audit then found three defects the plan had not anticipated — `packages/federation` red on TS2882 since it first imported CSS (missing both halves of the `css.d.ts` fix, unseen because no root script sweeps per-unit `typecheck`), `packages/gallery` type-checked twice under two option sets, and `e2e/` claimed by no project at all. All three fixed. Repo-wide sweep ends at 34 of 35 green; the one red (`apps/corpora-curator`, TS2614) was proven pre-existing by reproducing it at 5c00a54 and filed separately. Shipped as changelog/2026-09-13_03.
   - 2026-09-13 — Initial draft. Surfaced by diffing two Graphify builds five weeks apart and carried into [[../handoffs/Pickup-2026-09-13-Retrofit-Arc-And-The-Services-Tsconfig]] as the cheapest verified item that session produced. Baseline established before drafting — all 11 services typecheck green, so the refactor has a green bar to hold.
 tags:
   - Plan
@@ -20,7 +21,7 @@ tags:
   - Services
   - Refactor
   - Graphify
-status: Draft
+status: Implemented
 site_uuid: c7515b89-2512-4083-81ff-63276ada9e29
 hex_code: 0qq8zv
 date_authored_initial_draft: 2026-09-13
