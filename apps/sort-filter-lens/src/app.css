@@ -307,7 +307,7 @@
 .row-url-err {
   margin: 0.2rem 0 0;
   font-size: 11px;
-  color: var(--color-warn, #c66);
+  color: var(--color-warn-fg);
 }
 .row-meta { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
 .row-socials { font-size: 11px; color: var(--color-text-muted); }
@@ -334,9 +334,9 @@
 .error {
   margin: 0.8rem 1rem;
   padding: 0.5rem 0.7rem;
-  border: 1px solid var(--color-warn, #c66);
+  border: 1px solid var(--color-warn-fg);
   border-radius: var(--radius-md, 6px);
-  color: var(--color-warn, #c66);
+  color: var(--color-warn-fg);
   font-size: 12px;
 }
 .loading, .empty { padding: 1.5rem 1rem; text-align: center; }
@@ -414,7 +414,7 @@
 .row-add-err {
   margin: 0;
   font-size: 11px;
-  color: var(--color-warn, #c66);
+  color: var(--color-warn-fg);
 }
 .row-add-ok {
   margin: 0;
@@ -438,8 +438,8 @@
   background: transparent;
 }
 .failed-chip {
-  color: var(--color-warn, #c66);
-  border-color: var(--color-warn, #c66);
+  color: var(--color-warn-fg);
+  border-color: var(--color-warn-fg);
   background: transparent;
 }
 
@@ -468,7 +468,7 @@
   color: var(--color-ok-text, #6c6);
   opacity: 0.75;
 }
-.pending-item.p-failed { border-color: var(--color-warn, #c66); color: var(--color-warn, #c66); }
+.pending-item.p-failed { border-color: var(--color-warn-fg); color: var(--color-warn-fg); }
 .pending-icon {
   display: inline-flex;
   align-items: center;
@@ -495,7 +495,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.pending-item.p-failed .pending-meta { color: var(--color-warn, #c66); max-width: 50%; }
+.pending-item.p-failed .pending-meta { color: var(--color-warn-fg); max-width: 50%; }
 .pending-dismiss {
   flex-shrink: 0;
   width: 18px; height: 18px;

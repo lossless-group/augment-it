@@ -1269,8 +1269,8 @@
   background: var(--color-surface, rgba(255, 255, 255, 0.02));
 }
 .resp-app .cr-domain-off {
-  background: var(--color-warning-bg, #5a3d00);
-  color: var(--color-warning-text, #ffd28a);
+  background: var(--color-warn-bg);
+  color: var(--color-warn-fg);
 }
 .resp-app .cr-pdf-chip {
   display: inline-flex;

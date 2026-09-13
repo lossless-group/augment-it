@@ -171,7 +171,7 @@
 }
 .erl-app .erl-error {
   font-size: 11px;
-  color: var(--color-warn, #c66);
+  color: var(--color-warn-fg);
   font-family: var(--font-mono, monospace);
 }
 
