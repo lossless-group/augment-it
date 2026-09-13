@@ -67,7 +67,9 @@ Override rungs, in order of preference — **never a raw value**:
 ## Steps
 
 1. **Read the member's CSS first, all of it.** You are about to delete from it.
-2. **Add the dependency** — `"@augment-it/shared-ui": "workspace:*"` — then run
+2. **Check the dependency.** `@augment-it/shared-ui` has been pre-installed into
+   every member — if it is already in your `package.json`, skip this step and do
+   **not** edit the file. If it is somehow missing, add — `"@augment-it/shared-ui": "workspace:*"` — then run
    `pnpm install`. **Do not stage `pnpm-lock.yaml`**: it is shared, every
    concurrent migration writes it, and the manager stages it once.
 3. **Map each `<button>` to a variant** by what it *does*, not by how it looks.
@@ -104,13 +106,40 @@ pnpm design:drift --member <prefix>          must not INCREASE
 pnpm design:drift                            federation count must not increase
 ```
 
-The federation baseline is **93** as of 2026-09-13.
+> ⚠️ **Do not trust a baseline written in this document.** It has moved five times
+> in one day — 99, 93, 56, 69, 72 — as checks were fixed and invisible members
+> were registered. **Measure it yourself at the top of your run** and report
+> before-and-after. The gate is *relative*: the number you measured must not go
+> up. An absolute number here would have given one engineer 21 points of slack it
+> did not know it had.
 
 > ⚠️ **The federation count is not attributable to you while other migrations are
 > running.** Several members migrate in parallel in one working tree, so
 > `git status` will show files that are not yours and the federation number
 > reflects everyone. **The member-scoped count is your attributable gate.** Report
 > both, and name exactly which files are yours.
+
+### The drift gate is blind to the actual deliverable
+
+**`design:drift` has no button check at all.** A member can delete fourteen
+rule-sets and seventy-seven lines and the gate will not move a single point.
+
+Say that plainly to yourself before you start, because it has a sharp edge: **an
+agent optimising for the gate would delete nothing.** The gate proves you did no
+*harm*; only the diff proves you did the *work*. Report both, and treat a net
+diff that is not strongly negative as a sign you have not finished.
+
+### One browser, several agents
+
+Under parallel migration the Playwright browser is **shared**, and other agents
+will navigate your tab out from under you. This has happened: an `evaluate` ran
+against the wrong member's DOM and returned another member's markup **while the
+tab title still said the right thing** — a failure that produces confidently
+wrong verification rather than an error.
+
+**Make navigate-and-assert atomic.** Open a throwaway page and do the navigation
+and the reads inside a single call, so nothing can move between them. Check the
+root class in what you read back, not the tab title.
 
 ### Verify what you cannot see
 
