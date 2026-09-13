@@ -193,6 +193,71 @@ flowchart TD
 8. **Report.** Counts by verdict, every divergence, and the list of organs whose
    evidence is now strong enough to promote.
 
+## Bugs found along the way — raise, don't chase
+
+A migration agent working inside a member will find things that are wrong and not
+its job: a dead CSS rule, a mislabelled control, an `aria-*` that lies, a handler
+that swallows an error, a token that resolves to nothing. **This is the most
+valuable side effect the loop produces** — nobody else is reading that file that
+closely, and nobody will again for months.
+
+It is also the fastest way to lose a clean commit.
+
+### The rule
+
+> **Raise it. Do not chase it.**
+>
+> An agent migrating a member reports what it found and keeps going. It does not
+> open a debugging session, does not fix the unrelated thing, and does not widen
+> its diff by one line to make a finding go away.
+
+Rogue debugging is not helpful to the task at hand. It costs three things at
+once: the commit stops being attributable, the gate stops meaning what it said,
+and the finding stops being reviewable because it arrives already "fixed."
+
+**A finding is a deliverable.** It ships in the agent's report, not in its diff.
+
+### What the agent reports
+
+For each one, and no more than this:
+
+- **What** — one sentence
+- **Where** — `path:line`
+- **How found** — the thing it was actually doing when it surfaced
+- **Blast radius** — this member only, or federation-wide?
+- **Confidence** — measured, or suspected?
+
+### What the manager does
+
+1. **Collect them per member**, into
+   `context-v/issues/Issues-Raised-by-Subagent-for-<Microfrontend-Name>.md`.
+   One file per member, appended across phases — not one file per agent run, and
+   not scattered into the main issues folder where the pattern disappears.
+2. **Triage on arrival**, not at the end. A finding that is genuinely blocking the
+   migration gets fixed now, in its own commit, before the phase proceeds.
+   Everything else is queued.
+3. **Fix them as they return** — as separate, attributable commits, never folded
+   into the migration commit that surfaced them.
+4. **Escalate the federation-wide ones.** A finding in one member's file that
+   turns out to be true in nine is not a member issue; it is a platform defect,
+   and it graduates to `context-v/refactors/` with its own gh issue.
+
+### Why one file per member
+
+Nineteen members are coming through this loop. Per-member files make two things
+visible that a single issues pile would bury:
+
+- **Which members are actually in trouble** — a member with fourteen findings and
+  a member with one are different problems, and the file length says so at a
+  glance.
+- **Which findings repeat.** The same defect raised independently in five member
+  files is the strongest promotion evidence the loop can produce, and it is only
+  legible when the files are separate. *The same defect in one file is a bug; in
+  five files it is a platform gap.*
+
+These files are also what a member takes with it when it leaves the monorepo — a
+standing record of what is known-wrong in the surface its new owners inherit.
+
 ## When to run it
 
 **Structural triggers, not a calendar** — the same conclusion the Graphify cadence
@@ -212,15 +277,17 @@ none to the passage of time.
 
 1. **Scanners never edit.** Read-only, always. A scanner that fixes what it finds
    has destroyed the evidence and skipped the human decision.
-2. **Never self-authorise a promotion.** The loop produces verdicts as
+2. **Migration agents raise, they do not chase.** A bug found while migrating is
+   reported, never fixed in the migration diff. See *Bugs found along the way*.
+3. **Never self-authorise a promotion.** The loop produces verdicts as
    *recommendations*. Promotion touches every consuming member and is a platform-
    team decision.
-3. **`intent-only` similarity is not duplication.** Two members solving the same
+4. **`intent-only` similarity is not duplication.** Two members solving the same
    problem differently is the system working. Only flag it if the *product*
    reads inconsistently to a user, and say so in those terms.
-4. **Count before recommending.** Every verdict cites implementations, members,
+5. **Count before recommending.** Every verdict cites implementations, members,
    and line counts. No adjectives standing in for measurements.
-5. **A member may always decline.** Record the reason; move on.
+6. **A member may always decline.** Record the reason; move on.
 
 ## Related
 
