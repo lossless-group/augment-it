@@ -66,3 +66,6 @@ tools/
 
 # Local-only compose overrides (host port remaps, etc.)
 docker-compose.override.yml
+
+# staged images — CDN is the source of truth for served bytes
+.image-staging/

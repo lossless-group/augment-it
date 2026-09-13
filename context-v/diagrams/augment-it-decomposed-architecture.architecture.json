@@ -1,0 +1,369 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Augment-It \u2014 Decomposed Architecture",
+    "output": "augment-it-decomposed-architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "federation",
+        "label": "The federation boundary",
+        "focus": [
+          "shell",
+          "pkg",
+          "fe-records",
+          "fe-resolvers",
+          "fe-review",
+          "fe-workbench"
+        ],
+        "note": "One host, twenty independently deployable remotes, one injected token layer."
+      },
+      {
+        "id": "read-path",
+        "label": "Read path to canonical state",
+        "focus": [
+          "fe-records",
+          "fe-resolvers",
+          "svc-store",
+          "surreal"
+        ],
+        "note": "How a surface reaches the canonical entity layer without owning it."
+      },
+      {
+        "id": "async-work",
+        "label": "Asynchronous work",
+        "focus": [
+          "svc-ingest",
+          "svc-prompt",
+          "nats",
+          "svc-store"
+        ],
+        "note": "Ingest and prompt-firing are decoupled from the surfaces that request them."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "operator",
+      "type": "external",
+      "label": "Operator",
+      "sublabel": "Analyst in the browser",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        140,
+        62
+      ]
+    },
+    {
+      "id": "shell",
+      "type": "frontend",
+      "label": "Shell",
+      "sublabel": "Module Federation host",
+      "tag": "rsbuild",
+      "pos": [
+        250,
+        292
+      ],
+      "size": [
+        170,
+        78
+      ]
+    },
+    {
+      "id": "pkg",
+      "type": "frontend",
+      "label": "Shared packages",
+      "sublabel": "theme \u00b7 shared-ui \u00b7 federation",
+      "tag": "7 packages",
+      "pos": [
+        240,
+        480
+      ],
+      "size": [
+        190,
+        66
+      ]
+    },
+    {
+      "id": "fe-records",
+      "type": "frontend",
+      "label": "Records & Curation",
+      "sublabel": "records-surface \u00b7 corpora-curator",
+      "tag": "7 remotes",
+      "pos": [
+        510,
+        60
+      ],
+      "size": [
+        220,
+        66
+      ]
+    },
+    {
+      "id": "fe-resolvers",
+      "type": "frontend",
+      "label": "Resolver family",
+      "sublabel": "person \u00b7 record \u00b7 affiliation",
+      "tag": "3 remotes",
+      "pos": [
+        510,
+        420
+      ],
+      "size": [
+        220,
+        66
+      ]
+    },
+    {
+      "id": "fe-review",
+      "type": "frontend",
+      "label": "Review & Insight",
+      "sublabel": "request / response reviewer",
+      "tag": "4 remotes",
+      "pos": [
+        510,
+        180
+      ],
+      "size": [
+        220,
+        66
+      ]
+    },
+    {
+      "id": "fe-workbench",
+      "type": "frontend",
+      "label": "Workbench, Chat & Packs",
+      "sublabel": "org-workbench \u00b7 chat \u00b7 packs",
+      "tag": "6 remotes",
+      "pos": [
+        510,
+        300
+      ],
+      "size": [
+        220,
+        66
+      ]
+    },
+    {
+      "id": "svc-ingest",
+      "type": "backend",
+      "label": "Ingest & Connectors",
+      "sublabel": "content-ingest \u00b7 xlsx \u00b7 decile-mcp",
+      "tag": "5 services",
+      "pos": [
+        820,
+        120
+      ],
+      "size": [
+        220,
+        66
+      ]
+    },
+    {
+      "id": "svc-store",
+      "type": "backend",
+      "label": "Store & Workspace",
+      "sublabel": "row-store \u00b7 workspace \u00b7 resolver",
+      "tag": "4 services",
+      "pos": [
+        820,
+        400
+      ],
+      "size": [
+        220,
+        66
+      ]
+    },
+    {
+      "id": "svc-prompt",
+      "type": "backend",
+      "label": "Prompt & Response",
+      "sublabel": "prompt-runner \u00b7 stores",
+      "tag": "3 services",
+      "pos": [
+        820,
+        260
+      ],
+      "size": [
+        220,
+        66
+      ]
+    },
+    {
+      "id": "nats",
+      "type": "messagebus",
+      "label": "NATS",
+      "sublabel": "service bus",
+      "pos": [
+        1140,
+        250
+      ],
+      "size": [
+        160,
+        62
+      ]
+    },
+    {
+      "id": "surreal",
+      "type": "database",
+      "label": "SurrealDB Cloud",
+      "sublabel": "canonical layer",
+      "pos": [
+        1140,
+        520
+      ],
+      "size": [
+        180,
+        66
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Browser runtime \u2014 one Module Federation host",
+      "wraps": [
+        "shell",
+        "pkg",
+        "fe-records",
+        "fe-resolvers",
+        "fe-review",
+        "fe-workbench"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Railway \u2014 services and bus",
+      "wraps": [
+        "svc-ingest",
+        "svc-store",
+        "svc-prompt",
+        "nats"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "operator-shell",
+      "from": "operator",
+      "to": "shell",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "mount-records",
+      "from": "shell",
+      "to": "fe-records",
+      "label": "mounts remote"
+    },
+    {
+      "id": "mount-resolvers",
+      "from": "shell",
+      "to": "fe-resolvers"
+    },
+    {
+      "id": "mount-review",
+      "from": "shell",
+      "to": "fe-review"
+    },
+    {
+      "id": "mount-workbench",
+      "from": "shell",
+      "to": "fe-workbench"
+    },
+    {
+      "id": "tokens-injected",
+      "from": "pkg",
+      "to": "shell",
+      "label": "tokens injected once (F10)",
+      "variant": "dashed"
+    },
+    {
+      "id": "records-ingest",
+      "from": "fe-records",
+      "to": "svc-ingest",
+      "label": "corpus add",
+      "labelDy": -22
+    },
+    {
+      "id": "resolvers-store",
+      "from": "fe-resolvers",
+      "to": "svc-store",
+      "label": "canonical resolve"
+    },
+    {
+      "id": "review-prompt",
+      "from": "fe-review",
+      "to": "svc-prompt",
+      "label": "fire \u00b7 review"
+    },
+    {
+      "id": "workbench-prompt",
+      "from": "fe-workbench",
+      "to": "svc-prompt",
+      "label": "run pack"
+    },
+    {
+      "id": "ingest-bus",
+      "from": "svc-ingest",
+      "to": "nats",
+      "label": "publish",
+      "variant": "dashed"
+    },
+    {
+      "id": "prompt-bus",
+      "from": "svc-prompt",
+      "to": "nats",
+      "label": "publish",
+      "variant": "dashed",
+      "labelDy": 16
+    },
+    {
+      "id": "store-bus",
+      "from": "svc-store",
+      "to": "nats",
+      "label": "subscribe",
+      "variant": "dashed"
+    },
+    {
+      "id": "store-canonical",
+      "from": "svc-store",
+      "to": "surreal",
+      "label": "canonical writes",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "Decomposition",
+      "items": [
+        "40 independently deployable units in one git repo",
+        "20 federated remotes mount into a single shell",
+        "12 services behind a NATS bus"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Federal design layer",
+      "items": [
+        "packages/theme is the sole token source",
+        "F10 \u2014 the shell injects the token layer once",
+        "Members declare deviations, not redefinitions"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Where the contracts are missing",
+      "items": [
+        "0 of 40 units carry an API contract",
+        "0 of 40 carry a component DESIGN.md",
+        "14 of 40 carry a README"
+      ]
+    }
+  ]
+}
