@@ -216,10 +216,58 @@ That is today's lesson applied — *a sandbox that is not asserted is not a
 sandbox*. A convention that only lives in this file will be violated by the
 fourth engineer who never reads it.
 
-### Which one is actually the default — measured, and it is a surprise
+### The variant family — and the axis problem worth naming
 
-**Every row-rendering surface in the federation contains controls. Minimum 3,
-maximum 23. Not one has zero.**
+The operator proposed `SelectWrapper--SingleControl` and `SelectWrapper--ClickBody`
+and asked for a read. **Those two names sit on different axes**, and that is the
+useful thing to surface:
+
+| axis | reads as | examples |
+|---|---|---|
+| **A — what you click** | the thing the engineer is *choosing* | `--ClickBody`, `--ClickPrimary`, `--Checkbox` |
+| **B — what the card contains** | a *constraint*, derived not chosen | `--SingleControl`, `--MultiControls` |
+
+`--ClickBody` is axis A. `--SingleControl` is axis B. Mixing them means two
+variants can both be true of one card, which is where families rot.
+
+**Leaning: name on axis A, enforce axis B.** The engineer picks what you click;
+the component *checks* whether the card's contents make that legal.
+
+### The family, grounded in what is actually in the tree
+
+Measured 2026-09-13:
+
+| mechanism | sightings | variant |
+|---|---|---|
+| row's primary control is a `<button>` | **8** | `SelectWrapper--ClickPrimary` |
+| whole-surface click intent | (the `--ClickBody` case) | `SelectWrapper--ClickBody` |
+| `<input type="checkbox">` in a list | **5 members** | `SelectWrapper--Checkbox` |
+| `<input type="radio">` | **0** | *do not build* |
+| row is an `<a href>` | **4** | **not selection** — see below |
+
+`aria-pressed` 29 · `aria-current` 2 · `aria-selected` 1. The aria vocabulary is
+almost entirely toggle-shaped today, which is itself a finding.
+
+**Two calls inside this:**
+
+- **Rename `--SingleControl` → `--ClickPrimary`.** It then reads as a set with
+  `--ClickBody`: *what do you click — the body, or the primary?* `--SingleControl`
+  describes the card's composition, which is the constraint, not the choice. This
+  is a genuine coin-flip if the team thinks in terms of card composition rather
+  than click target — overturn it freely.
+- **Row-as-anchor is not a `SelectWrapper` at all.** Four sightings, and they
+  *navigate* rather than select. That is `CardRow--Link`, a different organ
+  concern, and conflating it would put a navigation affordance inside a selection
+  component.
+
+- **Do not build `--Radio`.** Zero sightings. Same discipline that keeps the
+  federal layer honest — a spacing scale sitting at 0 uses against 912 raw
+  paddings is what happens when you ship ahead of consumers.
+
+### Axis B becomes the enforcement, not a name
+
+Measured: **every row-rendering surface in the federation contains controls.
+Minimum 3, maximum 23. Not one has zero.**
 
 | surface | controls |
 |---|---|
@@ -227,22 +275,23 @@ maximum 23. Not one has zero.**
 | `affiliation-rating-resolver/App` | 21 |
 | `org-workbench/RelatedOrgs` | 16 |
 | `prompt-template-manager/App` | 11 |
-| `record-collector/App` | 9 |
 | `docs-portal/MemberLibraries` | 4 |
 | `person-enrichment/LinkList` | 3 |
 
-*(File-level counts, so an upper bound on any single card — but the shape is
-confirmed by reading: `prompt-template-manager`'s `<li>` holds a primary button
-**and** a sibling icon Button.)*
+*(File-level counts, so an upper bound per card — confirmed by reading:
+`prompt-template-manager`'s `<li>` holds a primary button **and** a sibling icon
+Button.)*
 
-**So `--MultiControls` is the common case and plain `SelectWrapper` currently has
-zero users.** Build `--MultiControls` first; leave plain `SelectWrapper` unbuilt
-until a control-free card actually appears. Shipping a component with no
-consumers is how the federal layer ends up with a spacing scale at 0 uses
-against 912 raw paddings.
+So `--ClickBody` is the variant that needs the overlay, always, in this codebase.
+The check earns its place: on mount, query the subtree for
+`button, a[href], input, select, textarea, [tabindex]`; if `--ClickBody` finds
+any and is not using the overlay, console-error and set `data-a11y-error`. Same
+mechanism `Button` uses for `size="icon"` without a name and `Chip` for
+`dismissible` without a label.
 
-**Decided:** `SelectWrapper--MultiControls`, overlay pattern, dev-time
-enforcement, built first. Plain `SelectWrapper` deferred until it has a consumer.
+**Decided:** name on axis A — `--ClickBody`, `--ClickPrimary`, `--Checkbox`.
+Axis B is enforced at runtime, not spelled in a name. `CardRow--Link` is separate.
+`--Radio` unbuilt until it has a consumer.
 
 ---
 
