@@ -317,6 +317,35 @@ switches strategy silently. That rule is settled.
 None of these blocks writing code. The first `--ClickBody` call site forces the
 first one; the rest can stay open indefinitely.
 
+### The checkbox variant's invariant — added 2026-09-13 from its first sweep
+
+`SelectWrapper--Checkbox` is the only selection variant that needs **neither an
+overlay nor a MultiControls sibling**, and the reason is load-bearing rather than
+incidental:
+
+> **Its label is sized to its own content and must never be stretched to the row.**
+
+In every multi-control row it was adopted into, the label is a **sibling** of the
+other controls, not an ancestor — so nothing nests and nothing is captured. That
+works *because it shrink-wraps*. Give it `flex: 1` or `position: absolute;
+inset: 0` to make "the whole row" clickable and it swallows the neighbouring
+buttons, landing straight back in the `--ClickBody` problem this variant avoids.
+
+A future *"make the checkbox row bigger"* request will look entirely reasonable
+and is the one change that breaks it. The note is in the component too, so the
+request meets the reason before it meets the CSS.
+
+### The sweep corrected the premise it was launched on
+
+The brief said *one* member ships a 13×13 checkbox. Measured: **all nine
+hand-rolled checkboxes across all five members are 13×13** — 54% of the WCAG 2.2
+SC 2.5.8 floor, every one, without exception. Two of them had **no accessible name
+at all**.
+
+Worth keeping as a pattern beyond this component: **a native control is not an
+accessible one if nobody sized it.** *"We use the platform control"* reads as a
+safety claim and measured as a uniform failure.
+
 ---
 
 ## D4 · Is `Selector` its own component, a wrapper, or both?
