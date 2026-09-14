@@ -6,6 +6,7 @@
   // either input commits the row.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import type { OrgDomain } from '../lib/types';
 
   let {
@@ -49,36 +50,39 @@
   {#if domains.length > 0}
     <div class="pd-stack">
       {#each domains as _d, i (i)}
-        <div class="pd-domain-row">
-          <input
-            type="text"
-            class="pd-domain-host"
-            class:pd-flash={saved[i]}
-            bind:value={domains[i].domain}
-            oninput={() => { saved[i] = false; }}
-            onkeydown={(e) => onKey(i, e)}
-            placeholder="theihs.org · ihs.gmu.edu — Enter to save"
-          />
-          <input
-            type="text"
-            class="pd-domain-kind"
-            class:pd-flash={saved[i]}
-            bind:value={domains[i].kind}
-            oninput={() => { saved[i] = false; }}
-            onkeydown={(e) => onKey(i, e)}
-            placeholder="primary · secondary · alias · parent_domain · subunit"
-          />
-          {#if saved[i]}<span class="pd-saved">✓</span>{/if}
-          <Button
-            variant="secondary"
-            size="icon"
-            onclick={() => remove(i)}
-            title="Remove this domain row"
-            aria-label="Remove domain row {i + 1}"
-          >
-            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4 L12 12 M12 4 L4 12" /></svg>
-          </Button>
-        </div>
+        <CardRow density="compact">
+          <!-- rung 0: .pd-domain-row is a 4-TRACK GRID — same story as LinkList. -->
+          <span class="pd-domain-row">
+            <input
+              type="text"
+              class="pd-domain-host"
+              class:pd-flash={saved[i]}
+              bind:value={domains[i].domain}
+              oninput={() => { saved[i] = false; }}
+              onkeydown={(e) => onKey(i, e)}
+              placeholder="theihs.org · ihs.gmu.edu — Enter to save"
+            />
+            <input
+              type="text"
+              class="pd-domain-kind"
+              class:pd-flash={saved[i]}
+              bind:value={domains[i].kind}
+              oninput={() => { saved[i] = false; }}
+              onkeydown={(e) => onKey(i, e)}
+              placeholder="primary · secondary · alias · parent_domain · subunit"
+            />
+            {#if saved[i]}<span class="pd-saved">✓</span>{/if}
+            <Button
+              variant="secondary"
+              size="icon"
+              onclick={() => remove(i)}
+              title="Remove this domain row"
+              aria-label="Remove domain row {i + 1}"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4 L12 12 M12 4 L4 12" /></svg>
+            </Button>
+          </span>
+        </CardRow>
       {/each}
     </div>
   {/if}

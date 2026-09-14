@@ -9,6 +9,8 @@
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import PersonCard from './PersonCard.svelte';
   import AddPersonInline from './AddPersonInline.svelte';
   import { fetchOrgAffiliations } from './lib/org-client';
@@ -130,20 +132,26 @@
         <ul class="ow-people-list" id="ow-people-list">
           {#each people as p (p.person_uuid)}
             <li class="ow-person">
-              <button
-                type="button"
-                class="ow-person-row"
-                aria-expanded={expanded === p.person_uuid}
-                onclick={() => (expanded = expanded === p.person_uuid ? null : p.person_uuid)}
-              >
-                <span class="ow-person-name">{p.name ?? p.person_uuid}</span>
-                {#if p.role}<span class="ow-person-role">{p.role}</span>{/if}
-                {#if p.relevance}<Chip size="sm" class="ow-person-relevance">{p.relevance}</Chip>{/if}
-                <span class="ow-person-meta">
-                  {p.personal_links.length} link{p.personal_links.length === 1 ? '' : 's'} ·
-                  {p.personal_corpus_count} corpus
-                </span>
-              </button>
+              <CardRow density="compact" selected={expanded === p.person_uuid}>
+                <SelectWrapperClickBody
+                  label={p.name ?? p.person_uuid}
+                  selected={expanded === p.person_uuid}
+                  aria-expanded={expanded === p.person_uuid}
+                  onselect={() => (expanded = expanded === p.person_uuid ? null : p.person_uuid)}
+                >
+                  <!-- rung 0: CardRow is align-items:flex-start at (0,2,0); this
+                       row reads on a shared baseline, so the member owns it. -->
+                  <span class="ow-person-line">
+                    <span class="ow-person-name">{p.name ?? p.person_uuid}</span>
+                    {#if p.role}<span class="ow-person-role">{p.role}</span>{/if}
+                    {#if p.relevance}<Chip size="sm" class="ow-person-relevance">{p.relevance}</Chip>{/if}
+                    <span class="ow-person-meta">
+                      {p.personal_links.length} link{p.personal_links.length === 1 ? '' : 's'} ·
+                      {p.personal_corpus_count} corpus
+                    </span>
+                  </span>
+                </SelectWrapperClickBody>
+              </CardRow>
               {#if expanded === p.person_uuid}
                 <PersonCard person={p} {org_slug} {orgName} {client} onchanged={load} />
               {/if}

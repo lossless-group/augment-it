@@ -8,6 +8,8 @@
   // Per gh #32 (layer 2 of the corpus-coverage issue).
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { fetchOrgRoster } from './lib/org-client';
   import type { OrgRosterRow } from './lib/types';
 
@@ -99,22 +101,25 @@
   {:else}
     <ul class="ow-roster-list">
       {#each visible as r (r.slug)}
-        <li>
-          <button
-            type="button"
-            class="ow-roster-row"
-            class:active={r.slug === activeSlug}
-            onclick={() => onpick(r.slug)}
-          >
-            <span class="ow-roster-name">{displayName(r)}</span>
-            <span class="ow-roster-counts">
-              <span class="ow-roster-corpus" class:zero={r.corpus_count === 0}>
-                {r.corpus_count} corpus
+        <CardRow as="li" density="compact" selected={r.slug === activeSlug}>
+            <SelectWrapperClickBody
+              label={displayName(r)}
+              selected={r.slug === activeSlug}
+              onselect={() => onpick(r.slug)}
+            >
+              <!-- rung 0: CardRow is row-flex at (0,2,0); the roster row stacks
+                   name over counts, so the member owns that with a wrapper. -->
+              <span class="ow-roster-stack">
+                <span class="ow-roster-name">{displayName(r)}</span>
+                <span class="ow-roster-counts">
+                  <span class="ow-roster-corpus" class:zero={r.corpus_count === 0}>
+                    {r.corpus_count} corpus
+                  </span>
+                  · {r.link_count} links · {r.stream_count} streams · {r.people_count} people
+                </span>
               </span>
-              · {r.link_count} links · {r.stream_count} streams · {r.people_count} people
-            </span>
-          </button>
-        </li>
+          </SelectWrapperClickBody>
+        </CardRow>
       {/each}
     </ul>
   {/if}

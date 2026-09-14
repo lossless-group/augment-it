@@ -10,6 +10,8 @@
   //           + corpus + domains.
 
   import Button     from '@augment-it/shared-ui/Button.svelte';
+  import CardRow    from '@augment-it/shared-ui/CardRow.svelte';
+  import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import LinkList   from './LinkList.svelte';
   import DomainList from './DomainList.svelte';
   import type { AffiliationState, Link, OrgDomain, OrgSuggestion } from '../lib/types';
@@ -175,15 +177,20 @@
         {#if suggestOpen && suggestions.length > 0}
           <ul class="pe-org-suggest">
             {#each suggestions as o, i (String(o.id))}
-              <!-- svelte-ignore a11y_click_events_have_key_events -->
-              <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-              <li class="pe-org-suggest-row" onclick={() => pick(o)}>
-                <span class="pe-org-suggest-name">{o.complete_name ?? '(unnamed)'}</span>
-                {#if o.conventional_name && o.conventional_name !== o.complete_name}
-                  <span class="pe-org-suggest-conv">{o.conventional_name}</span>
-                {/if}
-                {#if i === 0}<span class="pe-org-suggest-enter">↵</span>{/if}
-              </li>
+              <CardRow as="li" density="compact">
+                  <SelectWrapperClickBody
+                    label="Use existing organization {o.complete_name ?? o.conventional_name ?? '(unnamed)'}"
+                    onselect={() => pick(o)}
+                  >
+                    <span class="pe-org-suggest-row">
+                      <span class="pe-org-suggest-name">{o.complete_name ?? '(unnamed)'}</span>
+                      {#if o.conventional_name && o.conventional_name !== o.complete_name}
+                        <span class="pe-org-suggest-conv">{o.conventional_name}</span>
+                      {/if}
+                      {#if i === 0}<span class="pe-org-suggest-enter">↵</span>{/if}
+                    </span>
+                </SelectWrapperClickBody>
+              </CardRow>
             {/each}
             <li class="pe-org-suggest-hint">Click or press <kbd>↵</kbd> to use existing · keep typing to create new</li>
           </ul>

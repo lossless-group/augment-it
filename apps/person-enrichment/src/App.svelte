@@ -32,6 +32,7 @@
   import type { Person, EventRow, Link, OrgDomain, OrgSuggestion } from './lib/types';
 
   import Button           from '@augment-it/shared-ui/Button.svelte';
+  import CardRow          from '@augment-it/shared-ui/CardRow.svelte';
   import NameFields       from './pulse-dimensions/NameFields.svelte';
   import EmailListField   from './pulse-dimensions/EmailListField.svelte';
   import LinkList         from './pulse-dimensions/LinkList.svelte';
@@ -893,22 +894,28 @@
             </div>
             <ul class="pe-summary-list">
               {#each saveLog as e (e.id)}
-                <li class="pe-summary-row" data-icon={e.icon}>
-                  <span class="pe-summary-icon" data-state={e.icon === '…' ? 'pending' : e.icon === '✓' ? 'ok' : 'err'}>{e.icon}</span>
-                  <span class="pe-summary-time">{e.at.toLocaleTimeString()}</span>
-                  <span class="pe-summary-targets">
-                    {#each e.targets as t, i}
-                      <code class="pe-summary-target">{t}</code>{#if i < e.targets.length - 1}<span class="pe-summary-arrow">+</span>{/if}
-                    {/each}
+                <CardRow as="li" density="compact" data-icon={e.icon}
+                  tone={e.icon === '…' ? 'info' : e.icon === '✓' ? 'ok' : 'error'}>
+                    <!-- rung 0: the log line is a 4-track grid; CardRow fixes
+                         display:flex inside its own scoped <style> at (0,2,0),
+                         so the member owns the grid on an element it controls. -->
+                    <span class="pe-log-line">
+                      <span class="pe-summary-icon" data-state={e.icon === '…' ? 'pending' : e.icon === '✓' ? 'ok' : 'err'}>{e.icon}</span>
+                      <span class="pe-summary-time">{e.at.toLocaleTimeString()}</span>
+                      <span class="pe-summary-targets">
+                        {#each e.targets as t, i}
+                          <code class="pe-summary-target">{t}</code>{#if i < e.targets.length - 1}<span class="pe-summary-arrow">+</span>{/if}
+                        {/each}
+                      </span>
+                      {#if e.verify}
+                        <span class="pe-summary-verify">
+                          {#if e.verify.verified === null}<em>verifying…</em>
+                          {:else if e.verify.verified}<span class="pe-ok-tag">cross-doc id matches</span>
+                          {:else}<span class="pe-err-tag">mismatch</span>{/if}
+                        </span>
+                      {/if}
                   </span>
-                  {#if e.verify}
-                    <span class="pe-summary-verify">
-                      {#if e.verify.verified === null}<em>verifying…</em>
-                      {:else if e.verify.verified}<span class="pe-ok-tag">cross-doc id matches</span>
-                      {:else}<span class="pe-err-tag">mismatch</span>{/if}
-                    </span>
-                  {/if}
-                </li>
+                </CardRow>
               {/each}
             </ul>
             <div class="pe-summary-actions">
@@ -924,17 +931,20 @@
         {#if saveLog.length > 0 && !showSummary}
           <ul class="pe-savelog-stack">
             {#each saveLog as e (e.id)}
-              <li class="pe-savelog-row">
-                <span class="pe-savelog-icon" data-state={e.icon === '…' ? 'pending' : e.icon === '✓' ? 'ok' : 'err'}>{e.icon}</span>
-                <span class="pe-savelog-time">{e.at.toLocaleTimeString()}</span>
-                <span class="pe-savelog-targets">
-                  {#each e.targets as t, i}
-                    <code>{t}</code>{#if i < e.targets.length - 1}<span> + </span>{/if}
-                  {/each}
+              <CardRow as="li" density="compact"
+                tone={e.icon === '…' ? 'info' : e.icon === '✓' ? 'ok' : 'error'}>
+                  <span class="pe-log-line">
+                    <span class="pe-savelog-icon" data-state={e.icon === '…' ? 'pending' : e.icon === '✓' ? 'ok' : 'err'}>{e.icon}</span>
+                    <span class="pe-savelog-time">{e.at.toLocaleTimeString()}</span>
+                    <span class="pe-savelog-targets">
+                      {#each e.targets as t, i}
+                        <code>{t}</code>{#if i < e.targets.length - 1}<span> + </span>{/if}
+                      {/each}
+                    </span>
+                    {#if e.verify && e.verify.verified}<span class="pe-ok-tag">cross-doc ✓</span>{/if}
+                    {#if e.verify && e.verify.verified === false}<span class="pe-err-tag">mismatch</span>{/if}
                 </span>
-                {#if e.verify && e.verify.verified}<span class="pe-ok-tag">cross-doc ✓</span>{/if}
-                {#if e.verify && e.verify.verified === false}<span class="pe-err-tag">mismatch</span>{/if}
-              </li>
+              </CardRow>
             {/each}
           </ul>
         {/if}

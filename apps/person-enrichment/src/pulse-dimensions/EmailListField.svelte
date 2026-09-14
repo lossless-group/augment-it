@@ -3,6 +3,7 @@
   // email on Enter; visual confirmation per row.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
 
   let {
     emails = $bindable<string[]>([]),
@@ -36,19 +37,25 @@
   {#if emails.length > 0}
     <div class="pd-stack">
       {#each emails as _email, i (i)}
-        <div class="pd-row">
-          <input type="email" class:pd-flash={saved[i]} bind:value={emails[i]} oninput={() => saved[i] = false} onkeydown={(e) => onKey(i, e)} placeholder="other@example.com — Enter to save" />
-          {#if saved[i]}<span class="pd-saved">✓</span>{/if}
-          <Button
-            variant="secondary"
-            size="icon"
-            onclick={() => remove(i)}
-            title="Remove this email row"
-            aria-label="Remove email row {i + 1}"
-          >
-            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4 L12 12 M12 4 L4 12" /></svg>
-          </Button>
-        </div>
+        <CardRow density="compact">
+          <!-- rung 0: .pd-row carries the row's own flex tracks. CardRow is
+               display:flex / align-items:flex-start at (0,2,0); this repeater
+               needs align-items:stretch so the remove control matches the
+               input's height, which a member class at (0,1,0) cannot reach. -->
+          <span class="pd-row">
+            <input type="email" class:pd-flash={saved[i]} bind:value={emails[i]} oninput={() => saved[i] = false} onkeydown={(e) => onKey(i, e)} placeholder="other@example.com — Enter to save" />
+            {#if saved[i]}<span class="pd-saved">✓</span>{/if}
+            <Button
+              variant="secondary"
+              size="icon"
+              onclick={() => remove(i)}
+              title="Remove this email row"
+              aria-label="Remove email row {i + 1}"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4 L12 12 M12 4 L4 12" /></svg>
+            </Button>
+          </span>
+        </CardRow>
       {/each}
     </div>
   {/if}

@@ -13,6 +13,8 @@
   // create a thin, domain-matchable one.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { searchOrgs, affiliatePerson } from './lib/org-client';
   import type { OrgSuggestion, ShapedLink } from './lib/types';
 
@@ -104,12 +106,17 @@
     {#if candidates.length > 0}
       <ul class="ow-gate-list">
         {#each candidates as c (c.slug)}
-          <li>
-            <button type="button" class="ow-gate-pick" onclick={() => resolve('match', c.slug)}>
-              <strong>{c.complete_name ?? c.conventional_name ?? c.slug}</strong>
-              <span class="ow-gate-headline">{c.slug}</span>
-            </button>
-          </li>
+          <CardRow as="li" density="compact">
+              <SelectWrapperClickBody
+                label="Affiliate with {c.complete_name ?? c.conventional_name ?? c.slug}"
+                onselect={() => resolve('match', c.slug)}
+              >
+                <span class="ow-gate-pick">
+                  <strong>{c.complete_name ?? c.conventional_name ?? c.slug}</strong>
+                  <span class="ow-gate-headline">{c.slug}</span>
+                </span>
+              </SelectWrapperClickBody>
+              </CardRow>
         {/each}
       </ul>
     {:else if searched}

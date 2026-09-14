@@ -7,6 +7,7 @@
   // Per context-v/plans/Org-Relations-Parent-Child-Peer-Plus-Org-Tags.md §2.1.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import OrgSearch from './OrgSearch.svelte';
   import { fetchOrgRelations, relateOrg, unrelateOrg, patchOrgRelation } from './lib/org-client';
@@ -156,7 +157,13 @@
 </script>
 
 {#snippet relRow(r: RelatedOrg)}
-  <li class="ro-row">
+  <!-- CardRow with NO SelectWrapper: a relation row is displayed and acted on,
+         never selected. Its 3 (display) / 6 (edit) sibling controls are exactly
+         the population --ClickBody's overlay would bury. rung 0: .ro-row is the
+         inner layout line, because CardRow is align-items:flex-start at (0,2,0)
+         and this row reads on a baseline. -->
+  <CardRow as="li" density="compact">
+    <span class="ro-row">
     {#if editingSlug === r.slug}
       <form class="ow-add ro-edit" onsubmit={commitEdit}>
         <span class="ro-edit-name">{r.display_name}</span>
@@ -181,7 +188,8 @@
         <Button variant="ghost" size="sm" aria-label="Remove the relation to {r.display_name}" title="remove relation" onclick={() => (pendingRemove = r)}>×</Button>
       </span>
     {/if}
-  </li>
+    </span>
+  </CardRow>
 {/snippet}
 
 <section class="ro-section">
@@ -262,7 +270,7 @@
   .ro-section { display: flex; flex-direction: column; gap: 0.35rem; }
   .ro-group { margin: 0.35rem 0 0.1rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.65; }
   .ro-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; }
-  .ro-row { display: flex; align-items: baseline; gap: 0.5rem; min-width: 0; }
+  .ro-row { display: flex; align-items: baseline; gap: 0.5rem; min-width: 0; flex: 1; }
   .ro-desc { font-size: 0.78rem; opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
   .ro-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 0.25rem; }
   /* opacity, not visibility — the buttons stay focusable/clickable for

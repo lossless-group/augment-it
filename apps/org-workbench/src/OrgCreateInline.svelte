@@ -10,6 +10,8 @@
   // Per context-v/issues/Org-Workbench-Needs-Create-Organization-Behind-A-No-Match-Gate.md.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { fetchOrgCandidates, createOrg, addOrgLink } from './lib/org-client';
   import type { OrgCandidate } from './lib/types';
 
@@ -114,17 +116,22 @@
         </p>
         <ul class="ow-gate-list">
           {#each candidates as c (c.slug)}
-            <li>
-              <button type="button" class="ow-gate-pick" onclick={() => onopen(c.slug)}>
-                <strong>{c.complete_name ?? c.conventional_name ?? c.slug}</strong>
-                <span class="ow-gate-headline">{c.slug}</span>
-                <span class="ow-gate-score">
-                  {c.score} · {c.match_reason.join(', ')} ·
-                  {c.existing.org_links} links · {c.existing.media_streams} streams ·
-                  {c.existing.org_corpus} corpus
-                </span>
-              </button>
-            </li>
+            <CardRow as="li" density="compact">
+                <SelectWrapperClickBody
+                  label="Open {c.complete_name ?? c.conventional_name ?? c.slug} instead of creating a duplicate"
+                  onselect={() => onopen(c.slug)}
+                >
+                  <span class="ow-gate-pick">
+                    <strong>{c.complete_name ?? c.conventional_name ?? c.slug}</strong>
+                    <span class="ow-gate-headline">{c.slug}</span>
+                    <span class="ow-gate-score">
+                      {c.score} · {c.match_reason.join(', ')} ·
+                      {c.existing.org_links} links · {c.existing.media_streams} streams ·
+                      {c.existing.org_corpus} corpus
+                    </span>
+                  </span>
+                </SelectWrapperClickBody>
+                </CardRow>
           {/each}
         </ul>
       {:else}

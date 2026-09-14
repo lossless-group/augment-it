@@ -1,19 +1,20 @@
-/* THE ROW HOLDOUT (referenced from four rule-sets below).
-   .ow-search-item, .ow-roster-row, .ow-person-row and .ow-gate-pick stay raw
-   <button> elements and are NOT migrated to @augment-it/shared-ui's Button.
-   They are full-bleed, left-aligned, variable-height LIST ROWS that happen to
-   be buttons, not controls. Button is inline-flex / justify-content:center /
-   white-space:nowrap at a fixed height from --control-h-*; adopting one here
-   would need simultaneous rung-4 overrides of display, justify-content,
-   text-align, white-space, height and (for .ow-roster-row) flex-direction.
-   Every one of those is a property Button declares inside its own scoped
-   <style>, which hashes to (0,2,0) — a member's global class is (0,1,0), so
-   rung 4 CANNOT WIN and the next move would be !important. An override that
-   negates the base recipe rather than adjusting it is a different organ.
-   Measured at 33.2 / 51.9 / 36.8 / 33.8px against a 32px max control height;
-   all four already clear the 24px WCAG 2.2 SC 2.5.8 floor. The missing organ
-   (a "Row" / selectable list item) is raised in the migration report rather
-   than forked in place. */
+/* THE ROW HOLDOUT, now down to ONE (referenced from the rule-set below).
+   .ow-search-item stays a raw <button>: it is a combobox option inside a
+   popover, not an object card, and the listbox it lives in needs role="option"
+   semantics that CardRow does not carry. Raised, not forked.
+
+   .ow-roster-row, .ow-person-row and .ow-gate-pick are GONE — they were the
+   "missing organ (a Row / selectable list item)" this file raised during the
+   Button migration, and @augment-it/shared-ui's <CardRow> + <SelectWrapper>
+   is that organ. Each is now <CardRow> wrapping <SelectWrapper--ClickBody>,
+   which renders ONE real <button> per row with a real accessible name instead
+   of a button whose name was whatever text happened to be inside it.
+
+   What survives here is layout only (rung 0): CardRow fixes display,
+   flex-direction, align-items and wrap inside its own scoped <style> at
+   (0,2,0), so a member that needs a column, a baseline or a wrap owns that
+   with a wrapper element of its own. Hence .ow-roster-stack / .ow-person-line
+   and the reshaped .ow-gate-pick. */
 
 /* org-workbench — scoped ow-* surface styles. Uses @augment-it/theme :root
    tokens with literal fallbacks so the remote still renders standalone if a
@@ -78,10 +79,8 @@
 .ow-roster-filter { flex: 1; min-width: 0; box-sizing: border-box; background: var(--color-bg, #14151a); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; padding: 0.35rem 0.55rem; font: inherit; font-size: 0.85rem; }
 .ow-roster-note { padding: 0.75rem; margin: 0; color: var(--color-text-muted, #9aa0aa); font-size: 0.85rem; }
 .ow-roster-list { margin: 0; padding: 0.25rem; list-style: none; overflow-y: auto; }
-/* ROW HOLDOUT — see the note at the top of this file. */
-.ow-roster-row { display: flex; flex-direction: column; gap: 0.1rem; width: 100%; text-align: left; background: none; border: none; color: inherit; font: inherit; padding: 0.4rem 0.55rem; border-radius: 5px; cursor: pointer; }
-.ow-roster-row:hover { background: var(--color-border, #2a2c33); }
-.ow-roster-row.active { background: var(--color-border, #2a2c33); outline: 1px solid var(--color-text-muted, #9aa0aa); }
+/* rung 0 — the roster row stacks name over counts inside its CardRow. */
+.ow-roster-stack { display: flex; flex-direction: column; gap: 0.1rem; flex: 1; min-width: 0; }
 .ow-roster-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; }
 .ow-roster-counts { font-size: 0.72rem; color: var(--color-text-muted, #9aa0aa); }
 .ow-roster-corpus.zero { color: var(--color-error-text, #f3a3a3); font-weight: 600; }
@@ -123,10 +122,8 @@
 /* people reveal (Phase 4) */
 .ow-people { border-top: 1px solid var(--color-border, #2a2c33); padding-top: 0.75rem; }
 .ow-people-list { list-style: none; margin: 0.5rem 0 0.75rem; padding: 0; display: grid; gap: 0.35rem; }
-/* ROW HOLDOUT — see the note at the top of this file. */
-.ow-person-row { display: flex; align-items: baseline; gap: 0.6rem; width: 100%; text-align: left; background: var(--color-bg, #14151a); border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; color: inherit; font: inherit; padding: 0.45rem 0.7rem; cursor: pointer; }
-.ow-person-row:hover { background: var(--color-border, #2a2c33); }
-.ow-person-row { min-width: 0; }
+/* rung 0 — the person row reads on one baseline inside its CardRow. */
+.ow-person-line { display: flex; align-items: baseline; gap: 0.6rem; flex: 1; min-width: 0; }
 /* Grid/flex children default to min-width:auto and won't shrink below their
    content — a long nowrap role pushed person rows (and list entries) wider
    than the card. Zero it down the chains so the ellipsis rules can work. */
@@ -148,9 +145,8 @@
 .ow-gate { margin-top: 0.5rem; }
 .ow-gate-note { color: var(--color-text-muted, #9aa0aa); font-size: 0.8rem; margin: 0 0 0.4rem; }
 .ow-gate-list { list-style: none; margin: 0 0 0.5rem; padding: 0; display: grid; gap: 0.3rem; }
-/* ROW HOLDOUT — see the note at the top of this file. */
-.ow-gate-pick { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; width: 100%; text-align: left; background: var(--color-bg, #14151a); border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; color: inherit; font: inherit; font-size: 0.82rem; padding: 0.4rem 0.7rem; cursor: pointer; }
-.ow-gate-pick:hover { background: var(--color-border, #2a2c33); }
+/* rung 0 — the candidate line wraps inside its CardRow (CardRow does not wrap). */
+.ow-gate-pick { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; font-size: 0.82rem; flex: 1; min-width: 0; }
 .ow-gate-headline { color: var(--color-text-muted, #9aa0aa); font-size: 0.75rem; }
 .ow-gate-score { margin-left: auto; color: var(--color-text-muted, #9aa0aa); font-size: 0.7rem; font-variant-numeric: tabular-nums; }
 

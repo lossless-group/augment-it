@@ -5,6 +5,7 @@
   // small read-only badge. Enter commits the row.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import type { Link, LinkKind } from '../lib/types';
 
   let {
@@ -79,29 +80,35 @@
   {#if links.length > 0}
     <div class="pd-stack">
       {#each links as _link, i (i)}
-        <div class="pd-link-row">
-          <input
-            type="url"
-            class:pd-flash={saved[i]}
-            bind:value={links[i].url}
-            oninput={() => onInput(i)}
-            onkeydown={(e) => onKey(i, e)}
-            placeholder="paste any URL — Enter to save"
-          />
-          {#if links[i].url && links[i].kind !== 'other'}
-            <span class="pd-link-kind">{links[i].kind}</span>
-          {/if}
-          {#if saved[i]}<span class="pd-saved">✓</span>{/if}
-          <Button
-            variant="secondary"
-            size="icon"
-            onclick={() => remove(i)}
-            title="Remove this link row"
-            aria-label="Remove {label} row {i + 1}"
-          >
-            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4 L12 12 M12 4 L4 12" /></svg>
-          </Button>
-        </div>
+        <CardRow density="compact">
+          <!-- rung 0: .pd-link-row is a 3-TRACK GRID. CardRow hard-codes
+               display:flex inside its own scoped <style> at (0,2,0), so the
+               member cannot make the CardRow itself the grid — the tracks live
+               on an element the member owns. -->
+          <span class="pd-link-row">
+            <input
+              type="url"
+              class:pd-flash={saved[i]}
+              bind:value={links[i].url}
+              oninput={() => onInput(i)}
+              onkeydown={(e) => onKey(i, e)}
+              placeholder="paste any URL — Enter to save"
+            />
+            {#if links[i].url && links[i].kind !== 'other'}
+              <span class="pd-link-kind">{links[i].kind}</span>
+            {/if}
+            {#if saved[i]}<span class="pd-saved">✓</span>{/if}
+            <Button
+              variant="secondary"
+              size="icon"
+              onclick={() => remove(i)}
+              title="Remove this link row"
+              aria-label="Remove {label} row {i + 1}"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4 L12 12 M12 4 L4 12" /></svg>
+            </Button>
+          </span>
+        </CardRow>
       {/each}
     </div>
   {/if}

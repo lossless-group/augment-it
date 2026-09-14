@@ -7,6 +7,8 @@
   // later (N-affiliation assumption, never 1:1).
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { fetchPersonCandidates, applyPerson, affiliatePerson } from './lib/org-client';
   import type { PersonCandidate, PersonNormRecord } from './lib/types';
 
@@ -108,13 +110,18 @@
           <p class="ow-gate-note">Existing persons that might be “{name}” — pick one or create new:</p>
           <ul class="ow-gate-list">
             {#each candidates as c (c.person_uuid)}
-              <li>
-                <button type="button" class="ow-gate-pick" onclick={() => resolve('match', c.person_uuid)}>
-                  <strong>{c.name ?? c.person_uuid}</strong>
-                  {#if c.headline}<span class="ow-gate-headline">{c.headline}</span>{/if}
-                  <span class="ow-gate-score">{c.score} · {c.match_reason.join(', ')}</span>
-                </button>
-              </li>
+              <CardRow as="li" density="compact">
+                  <SelectWrapperClickBody
+                    label="Match {c.name ?? c.person_uuid}"
+                    onselect={() => resolve('match', c.person_uuid)}
+                  >
+                    <span class="ow-gate-pick">
+                      <strong>{c.name ?? c.person_uuid}</strong>
+                      {#if c.headline}<span class="ow-gate-headline">{c.headline}</span>{/if}
+                      <span class="ow-gate-score">{c.score} · {c.match_reason.join(', ')}</span>
+                    </span>
+                  </SelectWrapperClickBody>
+                  </CardRow>
             {/each}
           </ul>
         {:else}
