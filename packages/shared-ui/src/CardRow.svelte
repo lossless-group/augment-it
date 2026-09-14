@@ -159,7 +159,13 @@
      Svelte cannot see them statically and PRUNES the whole rule as unused —
      silently, at build time, which svelte-check reports only as a warning. */
   .ui-cardrow:hover:has(:global(button), :global(a[href]), :global(input), :global(select), :global(textarea)) {
-    border-color: var(--color-border);
+    /* --color-text-muted, NOT --color-border. The first version of this rule used
+       the FAINT token, so hovering an interactive row made its boundary weaker —
+       2.73:1 at rest dropping to 1.34:1 on hover. A hover cue that reduces
+       contrast is worse than no hover cue, and it shipped because "add a hover
+       state" was reasoned about and never measured. Caught by a probe comparing
+       rest and hover on the same row. */
+    border-color: var(--color-text-muted);
   }
 
   /* Tones paint the BOUNDARY, not the fill — a row's content has to stay legible
