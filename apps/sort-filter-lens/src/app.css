@@ -304,24 +304,36 @@
   flex-direction: column;
   gap: 0.2rem;
 }
-.pending-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md, 6px);
-  background: var(--color-bg);
-  font-size: 11px;
-  font-family: var(--font-mono, monospace);
-}
-.pending-item.p-pending { border-color: var(--color-accent-2, var(--color-accent, #9ab8ff)); }
-.pending-item.p-ok {
-  border-color: var(--color-ok-text, #6c6);
-  color: var(--color-ok-text, #6c6);
-  opacity: 0.75;
-}
-.pending-item.p-failed { border-color: var(--color-warn-fg); color: var(--color-warn-fg); }
+/* Each queued add is a <CardRow density="compact"> from @augment-it/shared-ui.
+   The whole surface recipe — display, gap, padding, border, radius, background
+   — came out with it, along with three dead hex-literal fallbacks the theme
+   has never not defined; see the note at the top of this file.
+
+   Three things had to move rather than simply disappear:
+
+   1. TYPOGRAPHY moved onto the children. CardRow sets font-family and
+      font-size on ITSELF, so a rule on the <li> no longer reaches inside it.
+      These rows are URLs; mono is load-bearing, not decoration.
+   2. STATUS COLOUR moved onto the children, same reason — CardRow sets
+      `color` on itself and an inherited colour cannot cross it.
+   3. The BOUNDARY colour had nowhere to go but rung 4 (`style=` in App.svelte,
+      with a data-deviation). CardRow has no `tone` and Chip does. Raised.
+
+   Also removed with the recipe: `.p-ok { opacity: 0.75 }` — appearance
+   standing in for state, and it dimmed a success row's text against the same
+   background it was already low-contrast on. The ✓ glyph and the ok-token
+   colour carry the state now. */
+.pending-item { display: block; }
+.pending-icon,
+.pending-url,
+.pending-meta { font-family: var(--font-mono, monospace); }
+.pending-icon,
+.pending-url { font-size: 11px; }
+
+.pending-item.p-ok .pending-icon,
+.pending-item.p-ok .pending-url { color: var(--color-ok-text); }
+.pending-item.p-failed .pending-icon,
+.pending-item.p-failed .pending-url { color: var(--color-warn-fg); }
 .pending-icon {
   display: inline-flex;
   align-items: center;
@@ -338,7 +350,6 @@
   white-space: nowrap;
   color: var(--color-text);
 }
-.pending-item.p-ok .pending-url, .pending-item.p-failed .pending-url { color: inherit; }
 .pending-meta {
   color: var(--color-text-muted);
   font-size: 10px;

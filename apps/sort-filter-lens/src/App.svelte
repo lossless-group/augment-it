@@ -12,6 +12,7 @@
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import {
     type SortSpec,
@@ -410,6 +411,21 @@
     }
   }
 
+  // RUNG 4, and a deliberate one. CardRow paints a single neutral boundary and
+  // exposes no `tone`, but a queued-add row IS its status — that is the only
+  // thing the row reports. Tokens only, never a literal: the accent fallback
+  // this replaced was one of the member's dead hex literals, which the theme
+  // has never not defined — see the note at the top of app.css.
+  // Maps this member's three pending states onto CardRow's semantic tone axis.
+  // Was a style-string builder against rung 4; now a tone name, which is the
+  // whole point of the axis existing.
+  function pendingTone(status: string): 'info' | 'ok' | 'error' | 'neutral' {
+    if (status === 'pending') return 'info';
+    if (status === 'ok') return 'ok';
+    if (status === 'failed') return 'error';
+    return 'neutral';
+  }
+
   function fmtElapsed(ms: number): string {
     const s = Math.floor(ms / 1000);
     if (s < 60) return `${s}s`;
@@ -745,6 +761,12 @@
                   {#each pendingList as p (p.id)}
                     {@const elapsed = nowMs - p.started_at}
                     <li class="pending-item" class:p-pending={p.status === 'pending'} class:p-ok={p.status === 'ok'} class:p-failed={p.status === 'failed'}>
+                      <!-- The engineer who migrated this reached rung 4 here and said
+                           plainly that meant the API was wrong: CardRow had no `tone`,
+                           though Chip already shipped one. It does now — two other
+                           members hit the same gap the same night — so the deviation
+                           is retired rather than left to rot as a stale annotation. -->
+                      <CardRow density="compact" tone={pendingTone(p.status)}>
                       <span class="pending-icon" aria-hidden="true">
                         {#if p.status === 'pending'}⟳{:else if p.status === 'ok'}✓{:else}✗{/if}
                       </span>
@@ -763,6 +785,7 @@
                         title={p.status === 'pending' ? 'dismiss (request keeps running in background)' : 'dismiss'}
                         aria-label="dismiss"
                       >×</Button>
+                      </CardRow>
                     </li>
                   {/each}
                 </ul>

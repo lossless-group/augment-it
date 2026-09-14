@@ -3,6 +3,7 @@
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import {
     BUNDLES, getBundle, packDisplayName, inferEntityNameField,
     PACK_PALETTE_META,
@@ -594,7 +595,8 @@
         <ul class="rows">
           {#each visibleRows as row (row.row_id)}
             {@const status = classifyRow(row)}
-            <li class="row-line">
+            <li>
+              <CardRow density="compact" selected={selectedRowIds.has(row.row_id)}>
               <label class="row-label">
                 <input
                   type="checkbox"
@@ -624,6 +626,7 @@
                   />
                 </span>
               {/if}
+              </CardRow>
             </li>
           {/each}
           {#if visibleRows.length === 0}

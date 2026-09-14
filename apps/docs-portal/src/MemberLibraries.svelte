@@ -15,6 +15,7 @@
 
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import { FEDERAL_LIBRARY, MEMBER_LIBRARIES, type FederalLibrary, type MemberLibrary } from './members';
 
   type Selection =
@@ -148,18 +149,34 @@
 
     <div class="lib-cards">
       {#each MEMBER_LIBRARIES as member (member.id)}
-        <div class="lib-card">
-          <button class="lib-card-main" onclick={() => (selected = { kind: 'member', lib: member })}>
-            <span class="lib-card-head">
-              <strong>{member.name}</strong>
-              <code>.{member.prefix}-*</code>
-            </span>
-            <span class="lib-card-summary">{member.summary}</span>
-          </button>
-          <a class="lib-link" href={`${member.origin}/#/gallery`} target="_blank" rel="noopener noreferrer">
-            {member.origin} ↗
-          </a>
-        </div>
+        <CardRow density="compact">
+          <!-- CardRow is a one-direction flex and this card stacks, so the
+               member owns the internal arrangement in a single slot child.
+               That is rung 0 — placement, not a deviation. -->
+          <div class="lib-card-body">
+            <!-- NOT <SelectWrapper--ClickBody>, and it was measured rather than
+                 assumed. That component renders its <button> as
+                 `display: contents`, and a display:contents button generates no
+                 box in Chromium: getBoundingClientRect() is 0x0 and .focus() is
+                 a no-op even though tabIndex is 0. Driven with real Tab presses,
+                 the card's primary action disappeared from the tab order
+                 entirely — a WCAG 2.1.1 (Keyboard, Level A) failure, strictly
+                 worse than this raw button. The mouse half works perfectly
+                 (the ::after overlay covers the card and the sibling link stays
+                 on top), so the defect is invisible to anyone who only clicks.
+                 Raised against packages/shared-ui, not worked around here. -->
+            <button class="lib-card-main" onclick={() => (selected = { kind: 'member', lib: member })}>
+              <span class="lib-card-head">
+                <strong>{member.name}</strong>
+                <code>.{member.prefix}-*</code>
+              </span>
+              <span class="lib-card-summary">{member.summary}</span>
+            </button>
+            <a class="lib-link" href={`${member.origin}/#/gallery`} target="_blank" rel="noopener noreferrer">
+              {member.origin} ↗
+            </a>
+          </div>
+        </CardRow>
       {/each}
     </div>
 

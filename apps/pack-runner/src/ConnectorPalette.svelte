@@ -250,6 +250,15 @@
     flex-direction: column;
     gap: 0.1rem;
   }
+  /* HOLDOUT — raw <button>, and checked against CardRow on 2026-09-13.
+     Same verdict as chat's `.command-row`, reached independently: a popdown
+     menu item must be FLUSH inside a container that already draws the border,
+     the radius and the surface. CardRow paints all three itself, so adopting it
+     here costs background + border + border-radius + padding overrides on the
+     first try — rung 4 four times, which is redrawing the component, not
+     configuring it. It is also a grid (glyph / name / cost / status chip),
+     where CardRow is a one-direction flex.
+     This is the `Selector` organ of decision-doc D4, not CardRow. */
   .palette-menu-item {
     display: grid;
     grid-template-columns: 1.75rem 1fr auto auto;

@@ -15,6 +15,7 @@
   import PromptDraftPanel from './PromptDraftPanel.svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
 
   type Props = { turn: ChatTurn };
   let { turn }: Props = $props();
@@ -88,7 +89,7 @@
     {#if !turn.resolved}
       <div class="proposals">
         {#each turn.proposals as p, i (i)}
-          <div class="proposal-card">
+          <CardRow density="compact">
             <div class="proposal-line">
               <Chip size="sm">{p.capability}</Chip>
               <span class="proposal-hint">{p.hint}</span>
@@ -98,7 +99,7 @@
                 Run this
               </Button>
             </div>
-          </div>
+          </CardRow>
         {/each}
         <div class="decline-row">
           <Button variant="outline" size="sm" onclick={() => chatState.declineProposals(turn.id)}>

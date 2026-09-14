@@ -164,16 +164,14 @@
   gap: 0.35rem;
   max-width: 32em;
 }
-.chat-app .proposal-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm, 4px);
-  background: var(--color-bg);
-}
+/* `.proposal-card` is now <CardRow density="compact"> from @augment-it/shared-ui.
+   The surface recipe — border, radius, background, padding — came out with it.
+   What is left is RUNG 0: CardRow is a flex row and does not decide which of its
+   children grows, because it cannot know. The member does: the description line
+   takes the slack, the action sits at its natural width on the end. This is
+   placement, not a deviation. */
+.chat-app .proposal-line { flex: 1 1 auto; min-width: 0; }
+.chat-app .proposal-actions { flex: 0 0 auto; }
 .chat-app .proposal-hint { color: var(--color-text-muted); font-size: 12px; margin-left: 0.4rem; }
 
 /* --- Draft panel --- */
@@ -304,6 +302,20 @@
   margin: 0;
   padding: 0;
 }
+/* HOLDOUT — deliberately a raw <button>, twice over.
+   1. Button: full-bleed, left-aligned, wrapping, multi-line, variable height
+      against Button's inline-flex/centred/nowrap/fixed-height recipe. Eight
+      overrides to adopt; the override would negate the base recipe, not adjust
+      it, so it is a different organ.
+   2. CardRow (checked 2026-09-13, after CardRow shipped): still no. CardRow
+      paints a card — its own surface, its own 1px border, its own radius. A
+      popdown menu item must be FLUSH inside a container that already draws all
+      three, separated by a hairline rather than boxed. Adopting CardRow here
+      means overriding background, border, border-radius and padding on the
+      first try, which is rung 4 four times over.
+   This is the `Selector` organ in the decision doc's D4 (popdown-shaped and
+   column-shaped are the same widget rendered differently), not CardRow.
+   See context-v/decisions/The-List-Surface-Paradigm-CardRow-ListContainer-And-Selection.md */
 .chat-app .commands-popover .command-row {
   display: block;
   width: 100%;

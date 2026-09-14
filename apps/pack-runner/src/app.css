@@ -121,11 +121,14 @@
   background: var(--color-background);
 }
 
-.pr-app .rows li {
-  padding: 0.3rem 0.55rem;
-  border-bottom: 1px solid var(--color-border);
-}
-.pr-app .rows li:last-child { border-bottom: 0; }
+/* `.pr-app .rows li` used to own the row's padding and hairline separator.
+   Each row is now a <CardRow density="compact">, which paints its own surface,
+   border and padding — so an li padding here would nest inside the card's and
+   double it. Deleted rather than reduced. `.empty-row` is the one li that is
+   NOT a CardRow and carries its own padding already.
+   Note this selector was (0,1,1) and would have out-specified `.ui-cardrow`
+   had it stayed: the delete-what-you-made-dead rule and the
+   do-not-out-specify-the-component rule both point at the same line. */
 
 .pr-app .rows label {
   display: flex;
@@ -245,13 +248,14 @@
 
 /* Per-row palette layout — checkbox + name on the left, chip palette on the
    right of each row in the Augment record-picker. Lets the user fire one
-   pack on one record in-place instead of bulk fan-out. */
-.row-line {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
+   pack on one record in-place instead of bulk fan-out.
+
+   `.row-line` is gone: <CardRow> is the flex row now, and it paints the
+   surface too. What survives is RUNG 0 — which child takes the slack and which
+   sits at its natural width. CardRow cannot know that; this member does.
+   `.row-palette` keeps `position: relative` for its own popdown anchor, which
+   is also what would keep it clickable above a --ClickBody overlay if this row
+   ever grew one. Selection here is the native checkbox, not a SelectWrapper. */
 .row-label {
   display: flex;
   align-items: center;
