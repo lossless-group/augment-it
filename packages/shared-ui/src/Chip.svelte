@@ -213,8 +213,12 @@
   }
   .ui-chip[data-tone='accent'] {
     background: var(--color-accent-bg);
-    color: var(--color-primary);
-    border-color: var(--color-primary);
+    /* --color-accent-fg, NOT --color-primary. The accent ground is an 8-9% wash
+       of primary over the page, and in LIGHT mode primary on that ground measures
+       4.42:1 — under the 4.5 floor this component's header promises. Two
+       independent migrations measured it before anyone read the header. */
+    color: var(--color-accent-fg);
+    border-color: var(--color-accent-fg);
   }
   .ui-chip[data-tone='ok'] {
     background: var(--color-ok-bg);

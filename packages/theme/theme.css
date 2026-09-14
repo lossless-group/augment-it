@@ -73,6 +73,7 @@
   --color__magenta-electric: #c75bfb;
   --color__magenta-deep:     #9a3fd4;
   --color__magenta-loud:     #d96bff;
+  --color__magenta-ink:      #873ab9;   /* light-mode accent FOREGROUND. magenta-deep on the 8% accent ground measures 4.42:1 — under the 4.5 floor. This is 5.35:1. Same role red-ink / amber-ink / green-ink play for their families. */
   --color__cyan-bright:      #5bbcfb;
   --color__cyan-deep:        #2563a8;
   --color__cyan-loud:        #54c8ff;
@@ -292,7 +293,8 @@
   --color-tertiary:           var(--color__amber-bright);
   --color-tertiary-foreground: var(--color__graphite-950);
 
-  --color-accent:          var(--color-primary);      /* alias → --color-primary */
+  --color-accent:          var(--color-primary);
+  --color-accent-fg:       var(--color-primary);      /* 5.16:1 on the accent ground */
   --color-accent-2:        var(--color-secondary);    /* alias → --color-secondary */
   --color-accent-warm:     var(--color-tertiary);      /* alias → --color-tertiary */
   --color-on-accent:       var(--color-primary-foreground);  /* alias → --color-primary-foreground */
@@ -374,6 +376,7 @@
   --color-tertiary-foreground: var(--color__paper-0);
 
   --color-accent:          var(--color-primary);      /* alias → --color-primary */
+  --color-accent-fg:       var(--color__magenta-ink);  /* NOT --color-primary: magenta-deep on the 8% accent ground measures 4.42:1, under the 4.5 floor. This is 5.35:1. */
   --color-accent-2:        var(--color-secondary);    /* alias → --color-secondary */
   --color-accent-warm:     var(--color-tertiary);      /* alias → --color-tertiary */
   --color-on-accent:       var(--color-primary-foreground);  /* alias → --color-primary-foreground */
@@ -439,6 +442,7 @@
   --color-tertiary-foreground: var(--color__void-950);
 
   --color-accent:          var(--color-primary);      /* alias → --color-primary */
+  --color-accent-fg:       var(--color-primary);      /* 6.42:1 on the accent ground */
   --color-accent-2:        var(--color-secondary);    /* alias → --color-secondary */
   --color-accent-warm:     var(--color-tertiary);      /* alias → --color-tertiary */
   --color-on-accent:       var(--color-primary-foreground);  /* alias → --color-primary-foreground */
