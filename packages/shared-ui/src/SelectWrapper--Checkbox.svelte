@@ -35,6 +35,23 @@
     indeterminate?: boolean;
     disabled?: boolean;
     onchange?: (checked: boolean) => void;
+    /**
+     * `comfortable` (default) gives the label a 28px floor. `compact` drops it to
+     * the 24px box itself, for dense data tables.
+     *
+     * Added because the label's own floor set the ROW HEIGHT of any table that
+     * adopted this: one 12px-font data table measured 34.7px -> 44.7px, a 29%
+     * increase, purely from the 4px the label carried above its own control. The
+     * control never shrinks below 24px in either density — the WCAG floor is not
+     * a density setting.
+     */
+    density?: 'comfortable' | 'compact';
+    /**
+     * Attributes for the LABEL rather than the input — `title`, `id`, `data-*`.
+     * `{...rest}` lands on the input, so without this a member wanting a tooltip
+     * on the whole toggle had to wrap the component in a span to get one.
+     */
+    labelProps?: Record<string, unknown>;
     /** Merged, never replacing the component's own class. */
     class?: string;
     children?: Snippet;
@@ -47,6 +64,8 @@
     indeterminate = false,
     disabled = false,
     onchange,
+    density = 'comfortable',
+    labelProps = {},
     class: klass = '',
     children,
     ...rest
@@ -61,7 +80,7 @@
   });
 </script>
 
-<label class="ui-selectcheck {klass}" class:is-disabled={disabled}>
+<label class="ui-selectcheck {klass}" data-density={density} class:is-disabled={disabled} {...labelProps}>
   <input
     bind:this={input}
     type="checkbox"
@@ -83,10 +102,17 @@
     gap: var(--space-sm);
     /* The label is the target, so it carries the floor — not the box. */
     min-block-size: var(--control-h-md);
+    /* A shrink-wrapped label is what makes this variant safe beside other
+       controls in the same row: it is a SIBLING, never an ancestor, so it
+       captures nothing. Do not give it flex:1 or an inset overlay to make "the
+       whole row" clickable — that swallows the neighbouring buttons and lands
+       back in the --ClickBody problem. The property is load-bearing. */
     font: inherit;
     color: inherit;
     cursor: pointer;
   }
+  .ui-selectcheck[data-density='compact'] { min-block-size: var(--control-h-sm); }
+
   .ui-selectcheck.is-disabled { cursor: not-allowed; color: var(--color-text-muted); }
 
   .ui-selectcheck input {
@@ -106,5 +132,18 @@
     border-radius: var(--radius-sm);
   }
 
-  .ui-selectcheck__label { min-inline-size: 0; }
+  .ui-selectcheck__label {
+    /* display: flex, NOT inline. The first version was inline, which did two
+       silent things: it re-parented children that had been flex items of the
+       member's own row into one inline box, and it made `text-overflow: ellipsis`
+       dead — one member's truncating org name measured scrollWidth 423 before and
+       0 after. `min-inline-size: 0` is also a NO-OP on an inline box, so the
+       declaration meant to permit truncation could not have worked either.
+       Two of two members with children had to add this back at rung 0, which is
+       the evidence that it belongs here. */
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-inline-size: 0;
+  }
 </style>
