@@ -44,6 +44,8 @@
     /** Do not query below this length. Two members independently chose 2. */
     minLength?: number;
     debounceMs?: number;
+    /** Classes for the INPUT itself — see the core. `class` lands on the wrapper. */
+    inputClass?: string;
     option?: Snippet<[SearchOption]>;
     class?: string;
     [key: string]: unknown;
@@ -57,6 +59,7 @@
     onselect,
     minLength = 2,
     debounceMs = 180,
+    inputClass = '',
     option,
     class: klass = '',
     ...rest

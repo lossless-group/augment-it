@@ -24,6 +24,8 @@
     match?: (option: SearchOption, query: string) => boolean;
     /** Empty the box after a pick — for surfaces that PICK rather than search. */
     clearOnSelect?: boolean;
+    /** Classes for the INPUT itself — see the core. `class` lands on the wrapper. */
+    inputClass?: string;
     option?: Snippet<[SearchOption]>;
     class?: string;
     [key: string]: unknown;
@@ -37,6 +39,7 @@
     onselect,
     match,
     clearOnSelect = false,
+    inputClass = '',
     option,
     class: klass = '',
     ...rest
@@ -60,6 +63,7 @@
   {placeholder}
   {onselect}
   {clearOnSelect}
+  {inputClass}
   {option}
   class={klass}
 />

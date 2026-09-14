@@ -48,6 +48,15 @@
     clearOnSelect?: boolean;
     oninput?: (text: string) => void;
     onselect?: (id: string) => void;
+    /**
+     * Classes for the INPUT itself, not the wrapper.
+     *
+     * `class` lands on the wrapper and `rest.class` is overridden, so a member
+     * had no way to put a per-field state cue on the field — an invalid ring, a
+     * dirty marker, a save flash. One adoption lost a 1.2s save-confirmation
+     * pulse that its two sibling fields still have.
+     */
+    inputClass?: string;
     /** Rendered inside the popup instead of options — loading, empty, error. */
     status?: Snippet;
     option?: Snippet<[SearchOption]>;
@@ -62,6 +71,7 @@
     placeholder,
     suppressed = false,
     clearOnSelect = false,
+    inputClass = '',
     oninput,
     onselect,
     status,
@@ -90,6 +100,17 @@
     }
   });
 
+  // The delegation recipe tells a member to listen on a wrapper. A wrapper sees
+  // DOM events — so when the widget writes `value` itself (Escape-to-clear, or
+  // clearOnSelect) it has to dispatch one, or the member's listener never learns
+  // the box emptied and keeps state pointing at something no longer shown.
+  let inputEl: HTMLInputElement | undefined;
+  function writeValue(next: string) {
+    value = next;
+    oninput?.(next);
+    queueMicrotask(() => inputEl?.dispatchEvent(new Event('input', { bubbles: true })));
+  }
+
   const uid = `ui-searchbox-${Math.random().toString(36).slice(2, 10)}`;
   const listId = `${uid}-list`;
   const optId = (i: number) => `${uid}-opt-${i}`;
@@ -108,10 +129,7 @@
     if (!o) return;
     open = false;
     active = -1;
-    if (clearOnSelect) {
-      value = '';
-      oninput?.('');
-    }
+    if (clearOnSelect) writeValue('');
     onselect?.(o.id);
   }
 
@@ -135,7 +153,7 @@
     } else if (k === 'Escape') {
       e.preventDefault();
       if (isOpen) { open = false; active = -1; }
-      else if (value) { value = ''; oninput?.(''); }
+      else if (value) writeValue('');
       // No focus to return — it never left.
     }
   }
@@ -164,7 +182,8 @@
     oninput={handleInput}
     {onkeydown}
     onblur={() => queueMicrotask(() => { open = false; })}
-    class="ui-searchbox__input"
+    class="ui-searchbox__input {inputClass}"
+    bind:this={inputEl}
   />
 
   {#if isOpen}

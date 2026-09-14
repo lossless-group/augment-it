@@ -255,3 +255,30 @@ describe('SearchBox — the seams two adoptions were blocked on', () => {
     vi.restoreAllMocks();
   });
 });
+
+describe('SearchBox — the two seams the third adoption lost', () => {
+  it('inputClass reaches the INPUT, not the wrapper', async () => {
+    mount(LiveFilter, {
+      target: host,
+      props: { options: OPTIONS, label: 'Fruit', inputClass: 'pd-flash', class: 'wrap' },
+    });
+    await tick();
+    expect(input().className).toContain('pd-flash');
+    expect(host.querySelector('.ui-searchbox')!.className).toContain('wrap');
+    expect(host.querySelector('.ui-searchbox')!.className).not.toContain('pd-flash');
+  });
+
+  it('a programmatic clear dispatches a real input event, so a wrapper listener sees it', async () => {
+    let seen: string[] = [];
+    mount(LiveFilter, { target: host, props: { options: OPTIONS, label: 'Fruit' } });
+    // The delegation recipe: the member listens on a wrapper, not the component.
+    host.addEventListener('input', (e) => seen.push((e.target as HTMLInputElement).value));
+    input().focus();
+    await type('ap');
+    await key('Escape');   // closes
+    await key('Escape');   // clears
+    await new Promise((r) => queueMicrotask(r as never));
+    expect(input().value).toBe('');
+    expect(seen.at(-1)).toBe('');
+  });
+});
