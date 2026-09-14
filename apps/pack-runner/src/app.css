@@ -163,16 +163,10 @@
   font-size: 0.8rem;
 }
 .pr-app .pack-chip:hover { border-color: var(--color-accent); }
-/* SelectWrapper--Checkbox zeroes the input's margin itself, so the rule that
-   used to live here is gone. What it cannot do is give the chip's own children
-   a flex context: the component wraps them in a single span that is
-   `display: inline`, so the text and the opt-in Chip stop being flex items of
-   the chip and lose its gap. RUNG 0 — layout is the parent's job. */
-.pr-app .pack-chip > span {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
+/* `.pack-chip input { margin: 0 }` is gone — SelectWrapper--Checkbox zeroes its
+   own input margin. A `.pack-chip > span` rung-0 rule lived here briefly too,
+   restoring the flex context the component's children lost; the component's
+   own `__label` span is `display: flex` as of 2026-09-13, so it came back out. */
 
 /* Bundle picker — dropdown form (matches Step 1's Record Set select for
    sibling-symmetry per the cross-cutting principles §2). The picker is
@@ -281,19 +275,11 @@
   flex: 1 1 auto;
   min-width: 0;
 }
-/* The component's children go inside ONE span it owns, and that span is
-   `display: inline` — so `.row-name` stops being a flex item and its
-   ellipsis stops working (measured: scrollWidth 0). RUNG 0 restores the flex
-   context and the min-width:0 chain that truncation needs.
-   Prefixed, unlike its `.row-label` neighbours above — those three predate the
-   namespacing rule and are raised, not chased. */
-.pr-app .row-label > span {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  flex: 1 1 auto;
-  min-width: 0;
-}
+/* A `.row-label > span` rung-0 rule lived here briefly: the component's children
+   span was `display: inline`, which took `.row-name`'s ellipsis out (measured
+   scrollWidth 423 -> 0). `.ui-selectcheck__label` is `display: flex` with a
+   working `min-inline-size: 0` as of 2026-09-13, so the workaround is gone and
+   truncation comes from the component. */
 .row-name {
   white-space: nowrap;
   overflow: hidden;

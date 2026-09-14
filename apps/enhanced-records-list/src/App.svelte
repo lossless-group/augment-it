@@ -336,7 +336,7 @@
         <thead>
           <tr>
             <th class="col-check">
-              <SelectCheck label="Select all records" disabled />
+              <SelectCheck label="Select all records" density="compact" disabled />
             </th>
             <th class="col-identity">identity</th>
             {#each enrichmentColumns as col (col)}
@@ -350,7 +350,7 @@
             {@const formatted = (col: string) => formatCell(rec.latest_fields[col])}
             <tr>
               <td class="col-check">
-                <SelectCheck label="Select {rec.identity}" disabled />
+                <SelectCheck label="Select {rec.identity}" density="compact" disabled />
               </td>
               <td class="col-identity">{rec.identity}</td>
               {#each enrichmentColumns as col (col)}

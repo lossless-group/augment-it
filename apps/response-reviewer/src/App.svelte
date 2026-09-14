@@ -2063,17 +2063,23 @@
                               {/if}
                             </Button>
                           </div>
-                          <!-- The title lives on a RUNG-0 wrapper, not on the
-                               component: SelectWrapper--Checkbox spreads `...rest`
-                               onto the <input>, so a `title` passed to it would
-                               shrink the tooltip's hover surface from the whole
-                               toggle to the 24px box. -->
-                          <span
-                            class="cr-inbox-toggle"
-                            title="Send to corpus/inbox/ for later triage instead of the per-funder corpus directory. Required for PDFs — only the inbox path downloads the binary today."
-                          >
+                          <!-- The tooltip goes through `labelProps` (the `...rest`
+                               spread lands on the <input>, which would shrink the
+                               hover surface to the 24px box). The wrapper survives
+                               for ONE reason, measured: `.ui-selectcheck` declares
+                               `font: inherit; color: inherit`, so it is designed to
+                               take its type from an ANCESTOR. Move `.cr-inbox-toggle`
+                               onto the component and it ties at (0,2,0) with the
+                               component's own scoped rule and loses on source order —
+                               the muted 12px becomes 13px body text. Only a parent
+                               can say "this option is secondary". -->
+                          <span class="cr-inbox-toggle">
                           <SelectCheck
                             label="Save to inbox instead of the per-funder corpus directory"
+                            labelProps={{
+                              title:
+                                'Send to corpus/inbox/ for later triage instead of the per-funder corpus directory. Required for PDFs — only the inbox path downloads the binary today.',
+                            }}
                             checked={inboxBound}
                             onchange={(v) => {
                               manualSaveToInboxByRowId = {

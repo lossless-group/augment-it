@@ -50,6 +50,15 @@
      * Attributes for the LABEL rather than the input — `title`, `id`, `data-*`.
      * `{...rest}` lands on the input, so without this a member wanting a tooltip
      * on the whole toggle had to wrap the component in a span to get one.
+     *
+     * IT SOLVES ATTRIBUTES, NOT TYPOGRAPHY. `.ui-selectcheck` declares
+     * `font: inherit; color: inherit` on purpose, so the control takes its type
+     * from an ancestor — which means ONLY A PARENT CAN SAY "this option is
+     * secondary". A member class passed via `class=` ties the component's own
+     * scoped rule at (0,2,0) and loses on source order: one member measured its
+     * muted 12px option silently promoted to 13px body text, directly under the
+     * primary Button it qualifies. If you need non-inherited type, you still need
+     * a wrapper, and that wrapper is not dead weight.
      */
     labelProps?: Record<string, unknown>;
     /** Merged, never replacing the component's own class. */
@@ -102,6 +111,12 @@
     gap: var(--space-sm);
     /* The label is the target, so it carries the floor — not the box. */
     min-block-size: var(--control-h-md);
+    /* NOTE ON DENSITY, measured rather than assumed: this label is INLINE-LEVEL,
+       so a container whose only content is the control still reserves leading for
+       text it does not have. One dense table paid ~5.4px of phantom leading —
+       more than the `density` prop is worth. The fix is `line-height: 0` on that
+       container, which is the PARENT's job and therefore rung 0. Do not set it
+       here: a label with children does need its leading. */
     /* A shrink-wrapped label is what makes this variant safe beside other
        controls in the same row: it is a SIBLING, never an ancestor, so it
        captures nothing. Do not give it flex:1 or an inset overlay to make "the

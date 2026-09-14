@@ -89,6 +89,10 @@
  * SelectWrapper--Checkbox and became 24x24 inside a 28px label. It is still
  * `disabled` pending v0.0.2 — sized now, operable later — so the target it
  * presents is correct before the behaviour that needs it exists.
+ *
+ * `density="compact"`: this is a 12px-font table and the label's default 28px
+ * floor set the ROW height, not the cell's. Compact drops the floor to the 24px
+ * box; the control itself never goes below 24px in either density.
  */
 .erl-app .erl-table-wrap {
   flex: 1;
@@ -130,8 +134,19 @@
 }
 /* The column is sized to the control, not the other way round: a 24px
    SelectWrapper--Checkbox plus the table cell's own 0.6rem inline padding.
-   The prior raw 28px predated the 24px target floor and would have clipped. */
-.erl-app .col-check { width: calc(var(--control-h-sm) + var(--space-md) * 2); }
+   The prior raw 28px predated the 24px target floor and would have clipped.
+
+   `line-height: 0` is RUNG 0 and it is worth more than `density="compact"` was.
+   Measured, per row: 34.7px with the old 13x13 input -> 44.7px comfortable ->
+   42.7px compact -> 37.3px with the strut removed. The label is inline-level, so
+   the cell's line box was reserving ~5.4px of leading for text this cell never
+   contains — it holds the checkbox and nothing else. Compact recovered 2px of
+   the 10; this recovers 5.4 more, leaving +2.6px as the honest price of a
+   control that is 24px instead of 13px. */
+.erl-app .col-check {
+  width: calc(var(--control-h-sm) + var(--space-md) * 2);
+  line-height: 0;
+}
 .erl-app .col-identity {
   font-weight: 500;
   max-width: 24em;
