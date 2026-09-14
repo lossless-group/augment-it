@@ -167,23 +167,82 @@ Every row surface **already contains controls**:
 content inside interactive content.** Invalid HTML, broken accessible names,
 unreachable inner controls.
 
-**Leaning — the wrapper is never a button.** The row's primary label is the real
-control, stretched across the card by a pseudo-element:
+**DECIDED 2026-09-13 — a `SelectWrapper` may not be wrapped around a card that
+contains controls. The multi-control case gets its own named component:
+`SelectWrapper--MultiControls`.**
+
+This is better than hiding the distinction behind one component, which was the
+earlier leaning. A single `SelectWrapper` that quietly switched strategies would
+mean an engineer reaching for it **never learns that the multi-control case is
+dangerous**. The named variant puts the hazard at the call site, where the
+decision is actually made.
+
+It is the same principle as the override ladder's rung 3: `radius="lg/60"` is
+deliberately countable, because *the escape hatch is also the detection
+mechanism*. A name you can `rg` for is a population you can measure.
+
+The operator's reasoning, which applies well beyond this component: **spell the
+variant even when it is not strictly necessary.** It organises, it cues the
+reader, it makes `rg` trivial, it enables script-based rollups, and it gives
+Graphify a real edge to draw. A distinction that exists only in a maintainer's
+head cannot be counted.
+
+### How each one works
+
+| | when | mechanism |
+|---|---|---|
+| `SelectWrapper` | the card holds **no** interactive descendants | may render a real `<button>` — simplest, best names, no tricks |
+| `SelectWrapper--MultiControls` | the card holds **any** control | never a button. The row's primary label is the real control, stretched across the card by a pseudo-element; sibling controls sit above it |
 
 ```css
 .cardrow__primary::after { content: ''; position: absolute; inset: 0; }
-.cardrow__action        { position: relative; }  /* sits above the overlay */
+.cardrow__action        { position: relative; }  /* above the overlay */
 ```
 
 Click anywhere selects; the delete button still works; one accessible name; no
 nesting. `CheckBoxSelect` needs none of this — a real `<input type="checkbox">`
 with a `<label>` is simpler and better.
 
-**What settles it:** a probe on `search-results/SearchCard` (7 controls, the
-worst case). If the overlay pattern keeps all seven reachable by keyboard and
-pointer, adopt it federally.
+### Enforce it, do not just document it
 
-**Decided:** *(open)*
+Both `Button` (`size="icon"` without an accessible name) and `Chip`
+(`dismissible` without `dismissLabel`) already **fail loudly in the console and
+mark themselves with `data-a11y-error`**. `SelectWrapper` gets the same
+treatment: on mount, query its own subtree for
+`button, a[href], input, select, textarea, [tabindex]` and, if it finds any,
+console-error telling the author to use `--MultiControls`.
+
+That is today's lesson applied — *a sandbox that is not asserted is not a
+sandbox*. A convention that only lives in this file will be violated by the
+fourth engineer who never reads it.
+
+### Which one is actually the default — measured, and it is a surprise
+
+**Every row-rendering surface in the federation contains controls. Minimum 3,
+maximum 23. Not one has zero.**
+
+| surface | controls |
+|---|---|
+| `person-db-resolver/App` | 23 |
+| `affiliation-rating-resolver/App` | 21 |
+| `org-workbench/RelatedOrgs` | 16 |
+| `prompt-template-manager/App` | 11 |
+| `record-collector/App` | 9 |
+| `docs-portal/MemberLibraries` | 4 |
+| `person-enrichment/LinkList` | 3 |
+
+*(File-level counts, so an upper bound on any single card — but the shape is
+confirmed by reading: `prompt-template-manager`'s `<li>` holds a primary button
+**and** a sibling icon Button.)*
+
+**So `--MultiControls` is the common case and plain `SelectWrapper` currently has
+zero users.** Build `--MultiControls` first; leave plain `SelectWrapper` unbuilt
+until a control-free card actually appears. Shipping a component with no
+consumers is how the federal layer ends up with a spacing scale at 0 uses
+against 912 raw paddings.
+
+**Decided:** `SelectWrapper--MultiControls`, overlay pattern, dev-time
+enforcement, built first. Plain `SelectWrapper` deferred until it has a consumer.
 
 ---
 
@@ -271,6 +330,28 @@ not, we learn it at three members instead of sixteen.
 **Decided:** *(open)*
 
 ---
+
+## The naming principle, promoted out of D3
+
+D3 produced a rule general enough to outlive it:
+
+> **Spell the variant, even when it is not strictly necessary.**
+
+A `SelectWrapper--MultiControls` that behaved identically to `SelectWrapper`
+would still be worth naming, because the name:
+
+- **organises** — related things sort together
+- **cues the reader** — the modifier says *this case is different* before anyone
+  opens the file
+- **is trivially greppable** — `rg 'SelectWrapper--'` is the whole query
+- **enables script rollups** — `rg -o 'CardRow--\w+' | sort | uniq -c` is a
+  living catalogue with no doc to maintain
+- **gives Graphify a real edge to draw** — a distinction that exists only in a
+  maintainer's head is invisible to every tool we own
+
+This is the same argument the override ladder makes for rung 3 and the same one
+the organ registry makes for fingerprints: **a thing you can count is a thing you
+can govern.** It applies to any variant, in any organ, from here on.
 
 ## Non-goals, stated
 
