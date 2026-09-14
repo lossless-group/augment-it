@@ -54,13 +54,45 @@
     /** The selected option's id. */
     value?: string;
     onselect?: (id: string) => void;
+    /**
+     * `vertical` (default) or `horizontal`.
+     *
+     * The handler already treated ArrowLeft/Right as equivalent to Up/Down, so
+     * the component was half-aware of horizontal and then refused to DRAW it.
+     * One adopter spent this rollout's only rung-4 escape on
+     * `style="flex-direction: row"` plus a hand-written `aria-orientation`,
+     * which per the loop means the API was wrong. It sets both.
+     */
+    orientation?: 'vertical' | 'horizontal';
+    /**
+     * Move focus to the active option on mount. OFF by default here, unlike
+     * Selector--Menu — a listbox is often always-present rather than opened, and
+     * stealing focus on mount would be wrong. Pass `true` for a popdown.
+     */
+    autofocus?: boolean;
+    /** Called on Escape. Pair with `trigger`. */
+    onclose?: () => void;
+    /** The element that opened this listbox. Escape returns focus to it. */
+    trigger?: HTMLElement;
     /** Render one option. Receives the option; defaults to its label. */
     option?: Snippet<[Option]>;
     class?: string;
     [key: string]: unknown;
   };
 
-  let { options, label, value, onselect, option, class: klass = '', ...rest }: Props = $props();
+  let {
+    options,
+    label,
+    value,
+    onselect,
+    orientation = 'vertical',
+    autofocus = false,
+    onclose,
+    trigger,
+    option,
+    class: klass = '',
+    ...rest
+  }: Props = $props();
 
   // The active index is the roving tab stop. It follows `value` when there is
   // one, and otherwise rests on the first option a keyboard user could reach —
@@ -78,6 +110,7 @@
   // the listbox, so `currentTarget` is always it — no binding to go stale, and
   // nothing to be undefined on the first keypress.
   let box: HTMLElement | undefined;
+  let didFocus = false;
 
   function focusIndex(i: number) {
     active = i;
@@ -138,6 +171,16 @@
       e.preventDefault();
       const o = options[activeIndex];
       if (o && !o.disabled) onselect?.(o.id);
+    } else if (k === 'Escape') {
+      e.preventDefault();
+      // Capture before onclose, and claim the one-shot before releasing focus.
+      // Both of those are scars from Selector--Menu — see its header. `trigger`
+      // is a live getter that a member's onclose usually clears, and an
+      // attachment that has not yet run will steal focus back a tick later.
+      const returnTo = trigger;
+      didFocus = true;
+      onclose?.();
+      returnTo?.focus();
     } else if (k.length === 1 && /\S/.test(k) && !e.ctrlKey && !e.metaKey && !e.altKey) {
       const i = typeahead(k);
       if (i !== null) {
@@ -151,8 +194,16 @@
 <div
   role="listbox"
   aria-label={label}
+  aria-orientation={orientation}
+  data-orientation={orientation}
   class="ui-listbox {klass}"
   {onkeydown}
+  {@attach (node) => {
+    box = node as HTMLElement;
+    if (!autofocus || didFocus) return;
+    didFocus = true;
+    node.querySelector<HTMLElement>('[role="option"][tabindex="0"]')?.focus();
+  }}
   {...rest}
 >
   {#each options as o, i (o.id)}
@@ -180,6 +231,11 @@
     display: flex;
     flex-direction: column;
     min-inline-size: 0;
+  }
+  .ui-listbox[data-orientation='horizontal'] {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-2xs);
   }
 
   .ui-listbox__option {

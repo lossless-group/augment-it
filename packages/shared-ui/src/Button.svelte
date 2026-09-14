@@ -71,6 +71,16 @@
     radius?: string;
     type?: 'button' | 'submit' | 'reset';
     disabled?: boolean;
+    /**
+     * Receives the rendered <button> node.
+     *
+     * `{...rest}` cannot carry a node, so without this a member that opens a
+     * popup from a shared Button has no way to pass it as the popup's `trigger`
+     * — and two members independently wrapped the Button in a span and
+     * `querySelector('button')`-ed it back out. Two copies of the same seven
+     * lines on the first two call sites is the threshold this codebase uses.
+     */
+    ref?: (el: HTMLButtonElement) => void;
     /** Rung 4 — requires a data-deviation reason alongside it. */
     class?: string;
     children?: Snippet;
@@ -83,6 +93,7 @@
     radius,
     type: btnType = 'button',
     disabled = false,
+    ref,
     class: className,
     children,
     ...rest
@@ -144,6 +155,7 @@
 
 <button
   {...rest}
+  {@attach (node) => ref?.(node as HTMLButtonElement)}
   type={btnType}
   class={className ? `ui-btn ${className}` : 'ui-btn'}
   data-variant={variant}
