@@ -25,7 +25,9 @@
     "design:contrast": "node scripts/design-drift.mjs --contrast",
     "design:structure": "node scripts/design-drift.mjs --structure",
     "organ:drift": "node scripts/organ-drift.mjs",
-    "organ:record": "node scripts/organ-drift.mjs --record"
+    "organ:record": "node scripts/organ-drift.mjs --record",
+    "verify": "node scripts/verify-federation.mjs",
+    "verify:fast": "node scripts/verify-federation.mjs --fast"
   },
   "devDependencies": {
     "@module-federation/enhanced": "^2.6.0",
