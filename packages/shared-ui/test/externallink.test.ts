@@ -109,3 +109,24 @@ describe('ExternalLink — iconOnly, the gap that cost two adoptions', () => {
     expect(a.hasAttribute('data-truncate')).toBe(false);
   });
 });
+
+describe('ExternalLink — inheritColor, for a link inside a coloured container', () => {
+  it('declares the opt-out rather than leaving it to specificity', () => {
+    const a = render({ label: 'Retry', inheritColor: true });
+    expect(a.hasAttribute('data-inherit-color')).toBe(true);
+    const src = readFileSync(resolve('src/ExternalLink.svelte'), 'utf8');
+    const rule = src.match(/\.ui-extlink\[data-inherit-color\][^{]*\{[^}]*\}/)![0];
+    expect(rule).toMatch(/color:\s*inherit/);
+  });
+
+  it('covers :visited too, or a followed link breaks the container contrast', () => {
+    const src = readFileSync(resolve('src/ExternalLink.svelte'), 'utf8');
+    const rule = src.match(/\.ui-extlink\[data-inherit-color\][^{]*\{[^}]*\}/)![0];
+    expect(rule).toMatch(/:visited/);
+  });
+
+  it('is off unless asked', () => {
+    const a = render({ label: 'x' });
+    expect(a.hasAttribute('data-inherit-color')).toBe(false);
+  });
+});
