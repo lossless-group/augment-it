@@ -13,6 +13,7 @@
   //
   // Spec: context-v/specs/Connector-Inventory-and-Per-Record-Palette.md
 
+  import SelectorMenu from '@augment-it/shared-ui/Selector--Menu.svelte';
   import ConnectorChip from './ConnectorChip.svelte';
   import type { ChipState } from './ConnectorChip.svelte';
 
@@ -119,7 +120,15 @@
 
   function closeMenu() {
     menuFor = null;
-    menuAnchor = null;
+    // `menuAnchor` is deliberately NOT cleared here, and that is not tidiness
+    // debt — it is load-bearing. Selector--Menu handles Escape as
+    // `onclose?.(); trigger?.focus();`, and `trigger` is a Svelte PROP, i.e. a
+    // live getter read at the moment of the call. Nulling the anchor inside
+    // `onclose` therefore makes the component read `trigger === undefined` one
+    // line later and focus goes to <body> — the exact defect the component's
+    // own header promises it prevents. Measured, not guessed: see the finding
+    // raised with this migration. The anchor is inert while closed because
+    // every reader of it is guarded by `menuFor`, and `openMenu` overwrites it.
   }
 
   function fireFromMenu(pack_id: string, connector_id: string) {
@@ -147,6 +156,31 @@
   const menuPack = $derived(menuFor ? packs.find((p) => p.pack_id === menuFor) : null);
   const menuConnectors = $derived(menuPack ? availableForIntent(menuPack.intent) : []);
 
+  // The Selector's item shape. `label` is the connector's DISPLAY NAME on
+  // purpose: it is what the widget's typeahead matches, and it is what the user
+  // reads. Matching on `id` would make `s` jump to `serpapi` while the row says
+  // "SerpApi" — a typeahead keyed to something invisible.
+  // A connector that is not `available` is `disabled`, which the Selector turns
+  // into `aria-disabled` AND skips when arrowing — the state, not just the dim.
+  const menuItems = $derived(
+    menuConnectors.map((c) => ({
+      id: c.id,
+      label: c.display_name,
+      disabled: c.status !== 'available',
+    })),
+  );
+
+  // Focus the widget when the popup opens. Without this the menu's keyboard is
+  // unreachable: the Selector's keydown handler lives on the menu, and the user
+  // is still standing on the chip. Opening a popup and leaving focus behind is
+  // the same defect as Escape dropping focus to <body>, run in reverse.
+  $effect(() => {
+    if (!menuFor) return;
+    document
+      .querySelector<HTMLElement>(`[data-palette-menu="${menuFor}"] [role="menuitem"][tabindex="0"]`)
+      ?.focus();
+  });
+
   function costGlyph(tier: 'free' | 'free-tier' | 'paid'): string {
     if (tier === 'free') return '🆓';
     if (tier === 'free-tier') return '💰';
@@ -169,39 +203,58 @@
   {/each}
 </div>
 
+<!-- One row of the connector menu. The Selector owns the keyboard and paints the
+     row (padding, hover, focus ring, cursor); this snippet owns only the
+     four-column reading order — glyph / name / cost / status. Same split as
+     ListContainer and CardRow, and it is why nothing here needs a rung-4
+     override: the grid lives on the member's own element INSIDE the menuitem,
+     not on top of one the component drew. -->
+{#snippet connectorRow(it: { id: string; label: string; disabled?: boolean })}
+  {@const c = inventoryById.get(it.id)}
+  {#if c}
+    <span
+      class="palette-menu-item"
+      data-disabled={it.disabled || undefined}
+      title={it.disabled
+        ? `${c.status}${c.requires_env.length ? `: ${c.requires_env.join(', ')}` : ''}`
+        : `Fire through ${c.display_name}`}
+    >
+      <span class="palette-menu-glyph">{c.short_label}</span>
+      <span class="palette-menu-name">{c.display_name}</span>
+      <span class="palette-menu-cost" title="Cost tier: {c.cost_tier}">{costGlyph(c.cost_tier)}</span>
+      {#if c.status === 'needs-env'}
+        <span class="palette-menu-status" title="Missing: {c.requires_env.join(', ')}">needs env</span>
+      {:else if c.status === 'disabled'}
+        <span class="palette-menu-status">disabled</span>
+      {:else if c.status === 'rate-limited'}
+        <span class="palette-menu-status">rate-limited</span>
+      {:else if c.status === 'auth-failed'}
+        <span class="palette-menu-status">auth failed</span>
+      {/if}
+    </span>
+  {/if}
+{/snippet}
+
 {#if menuPack && menuConnectors.length > 0}
-  <div class="palette-menu" data-palette-menu={menuPack.pack_id} role="menu" aria-label="Connector menu for {menuPack.display_name}">
+  <div class="palette-menu" data-palette-menu={menuPack.pack_id}>
     <div class="palette-menu-header">
       <strong>{menuPack.display_name}</strong>
       <span class="palette-menu-intent">{menuPack.intent}</span>
     </div>
-    <ul class="palette-menu-list">
-      {#each menuConnectors as c (c.id)}
-        {@const disabled = c.status !== 'available'}
-        <li>
-          <button
-            class="palette-menu-item"
-            class:disabled
-            disabled={disabled}
-            onclick={() => fireFromMenu(menuPack.pack_id, c.id)}
-            title={disabled ? `${c.status}${c.requires_env.length ? `: ${c.requires_env.join(', ')}` : ''}` : `Fire through ${c.display_name}`}
-          >
-            <span class="palette-menu-glyph">{c.short_label}</span>
-            <span class="palette-menu-name">{c.display_name}</span>
-            <span class="palette-menu-cost" title="Cost tier: {c.cost_tier}">{costGlyph(c.cost_tier)}</span>
-            {#if c.status === 'needs-env'}
-              <span class="palette-menu-status" title="Missing: {c.requires_env.join(', ')}">needs env</span>
-            {:else if c.status === 'disabled'}
-              <span class="palette-menu-status">disabled</span>
-            {:else if c.status === 'rate-limited'}
-              <span class="palette-menu-status">rate-limited</span>
-            {:else if c.status === 'auth-failed'}
-              <span class="palette-menu-status">auth failed</span>
-            {/if}
-          </button>
-        </li>
-      {/each}
-    </ul>
+    <!-- `role="menu"` used to live on the wrapper above, over a header div, a
+         <ul> and a footer div — a container role whose children were not
+         menuitems at all, which a screen reader announces as structurally
+         broken. It now sits on the Selector, over real menuitems, and the
+         header/footer stay outside the widget where they belong: they are
+         labels, not actions. -->
+    <SelectorMenu
+      items={menuItems}
+      label="Connector menu for {menuPack.display_name}"
+      onselect={(id) => fireFromMenu(menuPack.pack_id, id)}
+      onclose={closeMenu}
+      trigger={menuAnchor ?? undefined}
+      item={connectorRow}
+    />
     <div class="palette-menu-footer">
       Default click walks the chain · Pick one to override
     </div>
@@ -241,49 +294,25 @@
     font-size: 0.7rem;
     color: var(--color-text-muted);
   }
-  .palette-menu-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-  }
-  /* NOT a shared <Button>, deliberately. This is a full-width four-column grid
-     MENU ITEM: left-aligned, wrapping, variable height, inside role="menu".
-     Button is inline-flex / justify-content: center / white-space: nowrap at a
-     fixed height, so adopting it would need simultaneous rung-4 overrides for
-     display, grid-template-columns, width, height, justify-content, text-align
-     and white-space — every geometric property the component contributes. That
-     negates the base recipe rather than adjusting it, which makes this a
-     different organ (a MenuItem), not a deviation. Raised in the migration
-     report; leave raw until the organ exists.
-
-     `font` and `color` are declared here because they used to arrive from
-     `.resp-app button`, the bare element selector the Button migration deleted. */
+  /* The organ the Button migration said did not exist yet now does, and this is
+     what is left after adopting it. Selector--Menu brought the list box itself
+     (column flex), the row (padding, min-height, radius, hover, focus ring,
+     cursor, not-allowed) and every keyboard behaviour, so `.palette-menu-list`
+     is gone entirely and this rule keeps only what is genuinely THIS member's:
+     the four-column reading order of a connector row. Nothing here overrides a
+     property the component sets — no rung-4, no `data-deviation`. */
   .palette-menu-item {
-    font: inherit;
-    color: var(--color-text);
     display: grid;
     grid-template-columns: 1.75rem 1fr auto auto;
     gap: 0.5rem;
     align-items: center;
     width: 100%;
-    padding: 0.35rem 0.4rem;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 4px;
     text-align: left;
-    cursor: pointer;
   }
-  .palette-menu-item:hover:not(:disabled) {
-    background: var(--color-surface, rgba(0, 0, 0, 0.04));
-    border-color: var(--color-border);
-  }
-  .palette-menu-item.disabled,
-  .palette-menu-item:disabled {
+  /* `aria-disabled` on the menuitem carries the STATE; this carries the look.
+     Before the refactor the look was all there was. */
+  .palette-menu-item[data-disabled] {
     opacity: 0.5;
-    cursor: not-allowed;
   }
   .palette-menu-glyph {
     font-family: ui-monospace, monospace;
