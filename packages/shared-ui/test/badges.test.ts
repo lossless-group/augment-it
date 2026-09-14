@@ -7,6 +7,8 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mount } from 'svelte';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import CountBadge from '../src/CountBadge.svelte';
 import StatusIndicator from '../src/StatusIndicator.svelte';
 
@@ -30,6 +32,21 @@ describe('CountBadge', () => {
     expect(el.textContent).toBe('999+');
     expect(el.getAttribute('title')).toBe('1982');
     expect(el.getAttribute('aria-label')).toBe('Responses: 1982');
+  });
+
+  it('defaults to md, and sm exists so it can sit in a small row', () => {
+    const a = render(CountBadge as never, { count: 1 });
+    expect(a.getAttribute('data-size')).toBe('md');
+    host.innerHTML = '';
+    const b = render(CountBadge as never, { count: 1, size: 'sm' });
+    expect(b.getAttribute('data-size')).toBe('sm');
+  });
+
+  it('inherit uses a RING, never a fill — a fill costs the host its text contrast', () => {
+    const src = readFileSync(resolve('src/CountBadge.svelte'), 'utf8');
+    const rule = src.match(/\[data-tone='inherit'\]\s*\{[^}]*\}/)![0];
+    expect(rule).toMatch(/background:\s*transparent/);
+    expect(rule).not.toMatch(/color-mix/);
   });
 
   it('does not cap when it does not need to', () => {

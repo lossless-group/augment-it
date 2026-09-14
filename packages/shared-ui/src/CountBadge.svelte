@@ -24,6 +24,16 @@
     count: number;
     /** `inherit` takes the host control's colour — the default, and the point. */
     tone?: 'inherit' | 'neutral' | 'accent' | 'error';
+    /**
+     * `md` (default, 24px) or `sm` (18px).
+     *
+     * The first version had one size, exactly `--control-h-sm` — which is
+     * exactly an `sm` Button's OUTER height, so a badge inside one measured
+     * 0.00px inset top and bottom and its pill ground painted straight across
+     * the control's 1px border. Measured in three modes. `sm` exists so a badge
+     * can sit inside a uniformly-small row without the row having to grow.
+     */
+    size?: 'sm' | 'md';
     /** Render `{max}+` above this. Set 0 to disable. */
     max?: number;
     /** Accessible name. Without one a bare number announces as a bare number. */
@@ -32,7 +42,15 @@
     [key: string]: unknown;
   };
 
-  let { count, tone = 'inherit', max = 999, label, class: klass = '', ...rest }: Props = $props();
+  let {
+    count,
+    tone = 'inherit',
+    size = 'md',
+    max = 999,
+    label,
+    class: klass = '',
+    ...rest
+  }: Props = $props();
 
   const capped = $derived(max > 0 && count > max);
   const shown = $derived(capped ? `${max}+` : String(count));
@@ -42,6 +60,7 @@
 <span
   class="ui-countbadge {klass}"
   data-tone={tone}
+  data-size={size}
   aria-label={name}
   title={capped ? String(count) : undefined}
   {...rest}
@@ -52,8 +71,6 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-inline-size: var(--control-h-sm);
-    block-size: var(--control-h-sm);
     padding-inline: var(--space-2xs);
     border-radius: var(--radius-pill);
     font-family: var(--font-mono);
@@ -62,10 +79,29 @@
     line-height: 1;
   }
 
+  .ui-countbadge[data-size='md'] {
+    min-inline-size: var(--control-h-sm);
+    block-size: var(--control-h-sm);
+  }
+  .ui-countbadge[data-size='sm'] {
+    min-inline-size: var(--space-2xl);
+    block-size: var(--space-2xl);
+  }
+
   /* The default. Takes the host control's colour, which is why this is not a
-     Chip — see the header. */
+     Chip — see the header.
+     A RING, NOT A FILL. The first version used
+     color-mix(currentColor 15%, transparent), which is what both members
+     hand-rolled and which measured 4.01:1 on a primary button and 3.97:1 on a
+     destructive one — under the 4.5 floor. The tint mixes toward TRANSPARENT, so
+     it always lands between the text and the ground and costs roughly 23% of the
+     control's own text contrast. A ring leaves the ground alone, so the number
+     keeps whatever contrast the button already earned.
+     Same fix, same reason, as the gallery's classification-tree count slot:
+     3.68 -> 5.47 by replacing a color-mix fill with a currentColor ring. */
   .ui-countbadge[data-tone='inherit'] {
-    background: color-mix(in srgb, currentColor 15%, transparent);
+    background: transparent;
+    box-shadow: inset 0 0 0 1px currentColor;
     color: inherit;
   }
   .ui-countbadge[data-tone='neutral'] {
