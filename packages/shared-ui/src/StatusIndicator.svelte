@@ -30,8 +30,11 @@
    * `prefers-reduced-motion` block sets `animation-iteration-count: 1`, so for a
    * reduced-motion user it pulsed once and then meant nothing at all.
    */
-  export type ConnectionState =
-    | 'open' | 'connecting' | 'auth_required' | 'closed' | 'error' | 'idle';
+  // Re-exported for compatibility; the declaration lives in ./status.ts, which a
+  // member can actually import through the package exports map. Sixteen members
+  // had re-declared this union by hand because it was unreachable here.
+  import type { ConnectionState } from './status.js';
+  export type { ConnectionState };
 
   type Props = {
     state: ConnectionState;

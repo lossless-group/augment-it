@@ -111,3 +111,28 @@ describe('StatusIndicator — the mapping IS the component', () => {
     expect(words.size).toBe(cases.length);
   });
 });
+
+describe('the connection vocabulary is importable, not re-declared sixteen times', () => {
+  it('ships as a real module a member can reach through the exports map', async () => {
+    const { CONNECTION_STATES } = await import('../src/status.js');
+    expect(CONNECTION_STATES).toHaveLength(6);
+  });
+
+  it('the exported list and the component agree — nothing silently drifts', () => {
+    const { CONNECTION_STATES } = require('../src/status.ts') as {
+      CONNECTION_STATES: readonly string[];
+    };
+    const src = readFileSync(resolve('src/StatusIndicator.svelte'), 'utf8');
+    const tone = src.match(/const TONE[^=]*=\s*\{([^}]*)\}/)![1];
+    const word = src.match(/const WORD[^=]*=\s*\{([^}]*)\}/)![1];
+    for (const s of CONNECTION_STATES) {
+      expect(tone).toContain(s);
+      expect(word).toContain(s);
+    }
+  });
+
+  it('package.json exports it, or no member can import it', () => {
+    const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8'));
+    expect(pkg.exports['./status.js']).toBeTruthy();
+  });
+});

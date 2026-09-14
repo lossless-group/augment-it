@@ -22,7 +22,8 @@
     "./Selector--Menu.svelte": "./src/Selector--Menu.svelte",
     "./StatusIndicator.svelte": "./src/StatusIndicator.svelte",
     "./ToggleHeader__PromptOrPackage--Icons.svelte": "./src/ToggleHeader__PromptOrPackage--Icons.svelte",
-    "./gallery": "./src/gallery/mount.ts"
+    "./gallery": "./src/gallery/mount.ts",
+    "./status.js": "./src/status.ts"
   },
   "dependencies": {
     "@augment-it/gallery": "workspace:*"
