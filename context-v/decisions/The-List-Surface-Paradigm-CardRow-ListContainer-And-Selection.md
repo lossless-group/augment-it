@@ -378,7 +378,73 @@ composition *is* the convergence.
 **Leaning:** yes. When this ships, amend the layout issue rather than leaving it
 saying layout is deferred.
 
-**Decided:** *(open)*
+### When does a pattern become a layout? — operator's framing, and the answer it implies
+
+> *"In Astro, layouts are just components that happen to be in the layout folder.
+> You can totally nest them. So at what point does a pattern become a layout?
+> …Is that a layout? I think it's fine if it is."*
+
+The observation is right and worth building on: **a layout is not a different kind
+of thing, it is a component with a particular job.** No separate mechanism, no
+special folder semantics, and nesting is free.
+
+**Rung 0 already drew the line without anyone noticing.** It says *layout is the
+parent's job*, which makes the definition usefully close to tautological:
+
+> **A layout is a parent whose job is layout.**
+
+That resolves the nesting question directly — nested parents, each owning
+placement of its own slot, all the way down.
+
+**The operational test:** *does it place children whose shape it deliberately does
+not know?*
+
+| | knows its children | verdict |
+|---|---|---|
+| `CardRow` | yes — title, meta, actions | component |
+| `ListContainer` | no — a header slot and a scroll region, contents unknown | **layout** |
+| `LayoutHeader--FilterOptions` | no — places a slot it does not own | **layout** |
+| two-column, list left / list right | no | **layout** |
+
+So yes, the operator's examples are layouts, and that is fine.
+
+### The rule that stops "layout" from meaning nothing
+
+If anything can be a layout the word carries no information. What keeps it honest
+is **token ownership**:
+
+> **A layout may set spacing, placement and container width. A component may not.**
+
+That is rung 0 restated from the other side — and it is the lever on the problem
+[[../issues/The-Federation-Has-No-Layout-Layer]] names. **912 raw paddings, 0 uses
+of `var(--space-*)`.** Members hand-roll spacing because nothing owns it. Give
+layouts the job and members stop, which is a far better route than asking nineteen
+teams to adopt a scale by discipline.
+
+### Naming: block is the structural role, modifier is the domain
+
+The operator offered `<FilterOptionsContainer--Header>` and
+`<LayoutHeader--FilterOptions>`. Let the rollup decide it, since that is what the
+BEM convention is buying:
+
+```
+ListContainer--FilterOptions
+ListContainer--SearchResults
+LayoutHeader--FilterOptions
+CardRow--SearchResultItem
+```
+
+`rg 'ListContainer--'` answers *"every list surface we have."*
+`rg -- '--FilterOptions'` answers *"everywhere filter options appear."*
+
+Put the domain in the **block** and the second rollup still works while the first
+is lost. Structural role in the block, domain in the modifier, keeps both.
+
+**Decided — by the operator:** layouts are components; nesting is expected; the
+examples given qualify.
+**Leaning — agent, open:** the does-it-know-its-children test, the token-ownership
+rule, and block-is-structural-role naming. None blocks code until the first
+`ListContainer` is written.
 
 ---
 
