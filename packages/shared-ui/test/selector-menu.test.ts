@@ -116,11 +116,21 @@ describe('Selector--Menu — Escape returns focus to the trigger', () => {
     expect(document.activeElement).toBe(trigger);
   });
 
-  it('a popup that drops focus to body is the defect — never do that', async () => {
+  it('returns focus even when onclose clears the member\'s anchor', async () => {
+    // THE REALISTIC CALL SITE. Both of the first two adopters nulled their menu
+    // anchor inside onclose, and `trigger` is a live getter — so the component
+    // read `undefined` one line later and focus went to <body>. The original
+    // fixture used a local const the member could not touch, so this suite
+    // passed while every real adopter was broken.
     const trigger = document.createElement('button');
     document.body.appendChild(trigger);
-    render({ trigger });
+    let anchor: HTMLElement | undefined = trigger;
+    render({
+      get trigger() { return anchor; },
+      onclose: () => { anchor = undefined; },
+    });
     await key(items()[0], 'Escape');
+    expect(document.activeElement).toBe(trigger);
     expect(document.activeElement).not.toBe(document.body);
   });
 });

@@ -41,14 +41,35 @@
     onclose?: () => void;
     /** The element that opened this menu. Escape returns focus to it. */
     trigger?: HTMLElement;
+    /**
+     * Move focus to the active item on mount. ON by default.
+     *
+     * A popup whose keyboard handler is on the menu, opened with focus still on
+     * the trigger, has a widget whose entire keyboard is unreachable. The first
+     * two adopters each hand-rolled the same seven-line querySelector to fix it —
+     * two independent copies on the first two call sites, which is the same tell
+     * that justified building this component at all.
+     *
+     * Pass `false` only for a menu that is always mounted rather than opened.
+     */
+    autofocus?: boolean;
     /** Render one item. Defaults to <MenuItem>. */
     item?: Snippet<[Item]>;
     class?: string;
     [key: string]: unknown;
   };
 
-  let { items, label, onselect, onclose, trigger, item, class: klass = '', ...rest }: Props =
-    $props();
+  let {
+    items,
+    label,
+    onselect,
+    onclose,
+    trigger,
+    autofocus = true,
+    item,
+    class: klass = '',
+    ...rest
+  }: Props = $props();
 
   const firstEnabled = $derived(items.findIndex((i) => !i.disabled));
   let active = $state<number | null>(null);
@@ -60,6 +81,7 @@
   // From the event, not `bind:this` — see Selector--Listbox. A binding that was
   // never assigned made an entire keyboard silently do nothing there.
   let box: HTMLElement | undefined;
+  let didFocus = false;
 
   function focusIndex(i: number) {
     active = i;
@@ -112,10 +134,26 @@
       if (it && !it.disabled) onselect?.(it.id);
     } else if (k === 'Escape') {
       e.preventDefault();
+      // CAPTURE FIRST. `trigger` is a Svelte prop, which is a LIVE GETTER — it is
+      // read at the moment of the call, not at the moment of the keypress. Both
+      // of the first two adopters did the obvious thing and nulled their anchor
+      // inside `onclose`, so reading `trigger` one line later returned undefined
+      // and focus went to <body> — the exact defect this component's header says
+      // it exists to prevent.
+      //
+      // The component's own test did not catch it because its fixture trigger is
+      // a local const that `onclose` cannot touch. The test and the realistic
+      // call site disagreed, and the test won. There is now a test whose onclose
+      // clears the trigger.
+      const returnTo = trigger;
+      // Claim the one-shot BEFORE releasing focus. A member can close the menu
+      // before the attachment has run even once — the attachment then fires
+      // afterwards, sees `didFocus === false`, and pulls focus back out of the
+      // trigger a tick later. The guard has to mean "focus has been placed",
+      // not "the attachment has run".
+      didFocus = true;
       onclose?.();
-      // Focus first, then let the member unmount. Returning focus AFTER the menu
-      // is gone is what drops it to <body>.
-      trigger?.focus();
+      returnTo?.focus();
     } else if (k.length === 1 && /\S/.test(k) && !e.ctrlKey && !e.metaKey && !e.altKey) {
       const i = typeahead(k);
       if (i !== null) {
@@ -126,7 +164,24 @@
   }
 </script>
 
-<div role="menu" aria-label={label} class="ui-menu {klass}" {onkeydown} {...rest}>
+<div
+  role="menu"
+  aria-label={label}
+  class="ui-menu {klass}"
+  {onkeydown}
+  {@attach (node) => {
+    box = node as HTMLElement;
+    // ONE-SHOT. An attachment re-runs on every update, and an unguarded focus()
+    // here stole focus BACK from the trigger a tick after Escape had correctly
+    // returned it — so the component defeated its own headline promise on the
+    // update, not on the keypress. Found because the fix for the live-getter bug
+    // made this one visible.
+    if (!autofocus || didFocus) return;
+    didFocus = true;
+    node.querySelector<HTMLElement>('[role="menuitem"][tabindex="0"]')?.focus();
+  }}
+  {...rest}
+>
   {#each items as it, i (it.id)}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- The keyboard handler is on the MENU. One tab stop, arrows within it —
