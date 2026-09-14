@@ -8,6 +8,7 @@
 
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import PersonCard from './PersonCard.svelte';
   import AddPersonInline from './AddPersonInline.svelte';
   import { fetchOrgAffiliations } from './lib/org-client';
@@ -137,7 +138,7 @@
               >
                 <span class="ow-person-name">{p.name ?? p.person_uuid}</span>
                 {#if p.role}<span class="ow-person-role">{p.role}</span>{/if}
-                {#if p.relevance}<span class="ow-person-relevance">{p.relevance}</span>{/if}
+                {#if p.relevance}<Chip size="sm" class="ow-person-relevance">{p.relevance}</Chip>{/if}
                 <span class="ow-person-meta">
                   {p.personal_links.length} link{p.personal_links.length === 1 ? '' : 's'} ·
                   {p.personal_corpus_count} corpus

@@ -30,11 +30,10 @@
 .ow-header { position: sticky; top: 0; z-index: 2; padding: 0.75rem 0; background: var(--color-bg, #14151a); border-bottom: 1px solid var(--color-border, #2a2c33); }
 .ow-title-row { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
 .ow-title { font-size: 1.05rem; margin: 0; }
-.ow-source { font-size: 0.75rem; color: var(--color-text-muted, #9aa0aa); border: 1px solid var(--color-border, #2a2c33); border-radius: 3px; padding: 1px 7px; }
 .ow-client { font-size: 0.8rem; color: var(--color-text-muted, #9aa0aa); }
-.ow-ws { margin-left: auto; font-size: 0.7rem; padding: 1px 7px; border-radius: 3px; background: var(--color-border, #2a2c33); }
-.ow-ws.status-open { background: var(--color-ok-bg, #173a26); color: var(--color-ok-text, #6ee7a8); }
-.ow-ws.status-closed, .ow-ws.status-error { background: var(--color-error-bg, #3a1717); color: var(--color-error-text, #f3a3a3); }
+/* Layout only (rung 0) — the status Chip ends the title row. Everything this
+   class used to paint is now the Chip's tone. */
+.ow-ws { margin-inline-start: auto; }
 
 /* search */
 .ow-search-row { display: flex; align-items: center; gap: 0.5rem; }
@@ -114,7 +113,6 @@
 
 .ow-entries { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.3rem; }
 .ow-entry { display: flex; align-items: baseline; gap: 0.6rem; font-size: 0.85rem; min-width: 0; }
-.ow-kind { flex-shrink: 0; font-size: 0.7rem; padding: 1px 6px; border-radius: 3px; background: var(--color-border, #2a2c33); color: var(--color-text-muted, #cfd3da); }
 .ow-url { color: var(--color-link, #8ab4f8); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 auto; }
 .ow-url:hover { text-decoration: underline; }
 .ow-date { margin-left: auto; flex-shrink: 0; color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
@@ -135,7 +133,10 @@
 .ow-people-list > *, .ow-entries > *, .ow-gate-list > * { min-width: 0; }
 .ow-person-name { font-size: 0.88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .ow-person-role { color: var(--color-text-muted, #9aa0aa); font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 0 1 auto; }
-.ow-person-relevance { flex-shrink: 0; font-size: 0.7rem; padding: 1px 6px; border-radius: 3px; background: var(--color-ok-bg, #173a26); color: var(--color-ok-text, #6ee7a8); font-variant-numeric: tabular-nums; }
+/* Layout only (rung 0) — stop the relevance Chip shrinking in the person row.
+   The green ground it used to paint said "healthy"; a relevance score is a
+   plain fact, so the Chip is neutral. */
+.ow-person-relevance { flex-shrink: 0; }
 .ow-person-meta { margin-left: auto; flex-shrink: 0; color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; }
 .ow-person-card { margin: 0.35rem 0 0.6rem 0.9rem; padding: 0.6rem 0.9rem; border-left: 2px solid var(--color-border, #2a2c33); }
 .ow-person-headline { margin: 0 0 0.4rem; font-size: 0.8rem; color: var(--color-text-muted, #b7bcc5); }
@@ -153,14 +154,14 @@
 .ow-gate-headline { color: var(--color-text-muted, #9aa0aa); font-size: 0.75rem; }
 .ow-gate-score { margin-left: auto; color: var(--color-text-muted, #9aa0aa); font-size: 0.7rem; font-variant-numeric: tabular-nums; }
 
-/* Entity-card correction affordances — chips with ✕, name ✎, inline remove
-   confirms. Per context-v/specs/Entity-Card-Edit-And-Remove-Affordances.md.
-   (.ow-micro hover-reveal inside AdditiveList rows is component-scoped;
-   these cover the card header + identity block, whose reveal scopes are
-   the header row and the <dd>.) */
-.ow-chip { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0 var(--space-sm); margin: 0 0.3rem 0.2rem 0; border-radius: 999px; border: 1px solid var(--color-border, #2a2c33); background: var(--color-bg, #14151a); font-size: 0.78rem; }
-.ow-chip .ow-micro { opacity: 0; transition: opacity 0.1s ease; }
-.ow-chip:hover .ow-micro, .ow-chip:focus-within .ow-micro { opacity: 1; }
+/* Entity-card correction affordances — name ✎ and inline remove confirms.
+   Per context-v/specs/Entity-Card-Edit-And-Remove-Affordances.md. The
+   alias/tag/domain chips are <Chip dismissible> now, so their ✕ is the
+   component's own nested button and the hover-reveal recipe that used to hide
+   it is gone (raised in the migration report — spec D5 says micro-buttons are
+   hover-revealed, and Chip has no affordance for that).
+   Layout only (rung 0): .ow-chip-slot is the gap between wrapped chips. */
+.ow-chip-slot { margin: 0 0.3rem 0.2rem 0; }
 .ow-card-head .ow-micro { opacity: 0; transition: opacity 0.1s ease; }
 .ow-card-head:hover .ow-micro, .ow-card-head:focus-within .ow-micro { opacity: 1; }
 .ow-chip-confirm { font-size: 0.78rem; color: var(--color-text-muted, #9aa0aa); display: flex; align-items: center; gap: 0.4rem; margin: 0.25rem 0 0; }

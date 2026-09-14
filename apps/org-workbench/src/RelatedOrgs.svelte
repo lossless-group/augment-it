@@ -7,6 +7,7 @@
   // Per context-v/plans/Org-Relations-Parent-Child-Peer-Plus-Org-Tags.md §2.1.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import OrgSearch from './OrgSearch.svelte';
   import { fetchOrgRelations, relateOrg, unrelateOrg, patchOrgRelation } from './lib/org-client';
   import type { OrgRelations, OrgRelKind, OrgSuggestion, RelatedOrg } from './lib/types';
@@ -173,7 +174,7 @@
       <Button variant="link" size="sm" title="open {r.slug} in the workbench" onclick={() => onopen(r.slug)}>
         {r.display_name}
       </Button>
-      {#if r.kind}<span class="ro-kind">{r.kind}</span>{/if}
+      {#if r.kind}<Chip size="sm">{r.kind}</Chip>{/if}
       {#if r.description}<span class="ro-desc">{r.description}</span>{/if}
       <span class="ro-actions">
         <Button variant="ghost" size="sm" aria-label="Edit the relation to {r.display_name}" title="edit relation" onclick={() => startEdit(r)}>✎</Button>
@@ -262,7 +263,6 @@
   .ro-group { margin: 0.35rem 0 0.1rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.65; }
   .ro-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; }
   .ro-row { display: flex; align-items: baseline; gap: 0.5rem; min-width: 0; }
-  .ro-kind { font-size: 0.72rem; padding: 0.05rem 0.4rem; border: 1px solid var(--color-border, #2a2c33); border-radius: 999px; opacity: 0.8; white-space: nowrap; }
   .ro-desc { font-size: 0.78rem; opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
   .ro-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 0.25rem; }
   /* opacity, not visibility — the buttons stay focusable/clickable for

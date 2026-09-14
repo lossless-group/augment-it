@@ -6,6 +6,7 @@
   // never an optimistic guess.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import AdditiveList from './AdditiveList.svelte';
   import PeopleReveal from './PeopleReveal.svelte';
   import RelatedOrgs from './RelatedOrgs.svelte';
@@ -266,36 +267,24 @@
       <dt>Aliases</dt>
       <dd>
         {#each org.aliases as alias (alias)}
-          <span class="ow-chip">
-            {alias}
-            <span class="ow-micro">
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label="Remove alias {alias}"
-                title="remove alias"
-                onclick={() => (pendingChip = { kind: 'alias', value: alias })}
-              >×</Button>
-            </span>
-          </span>
+          <Chip
+            class="ow-chip-slot"
+            dismissible
+            dismissLabel="Remove alias {alias}"
+            onDismiss={() => (pendingChip = { kind: 'alias', value: alias })}
+          >{alias}</Chip>
         {/each}
       </dd>
     {/if}
     <dt>Tags</dt>
     <dd>
       {#each org.tags as tag (tag)}
-        <span class="ow-chip">
-          {tag}
-          <span class="ow-micro">
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label="Remove tag {tag}"
-              title="remove tag"
-              onclick={() => (pendingChip = { kind: 'tag', value: tag })}
-            >×</Button>
-          </span>
-        </span>
+        <Chip
+          class="ow-chip-slot"
+          dismissible
+          dismissLabel="Remove tag {tag}"
+          onDismiss={() => (pendingChip = { kind: 'tag', value: tag })}
+        >{tag}</Chip>
       {/each}
       <span class="ow-micro">
         <Button
@@ -330,18 +319,12 @@
       <dt>Domains</dt>
       <dd>
         {#each org.domains.filter((d) => d.domain) as d (d.domain)}
-          <span class="ow-chip">
-            {d.domain}
-            <span class="ow-micro">
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label="Remove domain {d.domain}"
-                title="remove domain"
-                onclick={() => (pendingChip = { kind: 'domain', value: d.domain ?? '' })}
-              >×</Button>
-            </span>
-          </span>
+          <Chip
+            class="ow-chip-slot"
+            dismissible
+            dismissLabel="Remove domain {d.domain}"
+            onDismiss={() => (pendingChip = { kind: 'domain', value: d.domain ?? '' })}
+          >{d.domain}</Chip>
         {/each}
       </dd>
     {/if}

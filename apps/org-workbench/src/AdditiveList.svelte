@@ -11,6 +11,7 @@
   // remove never disturbs the sibling lists.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import type { ShapedLink } from './lib/types';
 
   type Entry = ShapedLink & { name?: string };
@@ -293,7 +294,7 @@
                 {e.kind}
               </button>
             {:else}
-              <span class="ow-kind">{e.kind}</span>
+              <Chip size="sm">{e.kind}</Chip>
             {/if}
             <a class="ow-url" href={e.url} target="_blank" rel="noreferrer">{e.name ?? display(e.url)}</a>
             {#if onremove && removeUrl === e.url}
@@ -361,16 +362,25 @@
 </section>
 
 <style>
-  /* HOLDOUT — the kind badge is a BADGE with a click affordance, not a button.
-     Its non-editable twin is a <span class="ow-kind"> rendered from the same
-     template; making one a Button and leaving the other a span splits one visual
-     element into two unrelated ones. Button contributes height, padding-inline
-     and border-radius — all declared in its scoped style at (0,2,0), so rung 4
-     cannot reach them. The missing organ is an interactive Badge/Pill (shared-ui
-     already ships ConfidencePill); raised in the report. */
+  /* HOLDOUT — the kind badge is a BADGE with a click affordance, so it is
+     neither a Button (Button contributes height, padding-inline and
+     border-radius from its own scoped style at (0,2,0), which rung 4 cannot
+     reach) nor a Chip (a Chip is a <span> and may not carry an onclick). The
+     missing organ is an interactive Badge/Pill; raised in the migration report.
+
+     Its non-editable twin — rendered from the same template when `onedit` is
+     absent — IS a Chip and has been migrated. The earlier note here claimed
+     migrating one twin would "split one visual element into two"; measurement
+     says the twins were ALREADY two: every painted property of .ow-kind is
+     overridden below, so the editable twin renders as bare 13.6px inherited
+     text with no ground while the span twin renders as a filled 11.2px badge.
+     The two declarations the twin actually kept from the deleted global
+     .ow-kind rule-set are folded in here. */
   .ow-kind-editable {
+    flex-shrink: 0;
     background: transparent;
     border: 1px dashed transparent;
+    border-radius: var(--radius-md);
     font: inherit;
     color: inherit;
     padding: 0;
