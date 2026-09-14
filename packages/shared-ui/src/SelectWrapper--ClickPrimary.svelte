@@ -23,16 +23,26 @@
     onselect?: () => void;
     selected?: boolean;
     disabled?: boolean;
+    /** Merged, never replacing the component's own class. Rung 4 — see Button. */
+    class?: string;
     children?: Snippet;
     [key: string]: unknown;
   };
 
-  let { label, onselect, selected = false, disabled = false, children, ...rest }: Props = $props();
+  let {
+    label,
+    onselect,
+    selected = false,
+    disabled = false,
+    class: klass = '',
+    children,
+    ...rest
+  }: Props = $props();
 </script>
 
 <button
   type="button"
-  class="ui-selectprimary"
+  class="ui-selectprimary {klass}"
   aria-pressed={selected}
   {disabled}
   onclick={onselect}
@@ -48,6 +58,10 @@
     align-items: baseline;
     gap: var(--space-2xs);
     min-block-size: var(--control-h-sm);   /* WCAG 2.2 SC 2.5.8 */
+    /* Without this a flex item defaults to min-width:auto, so ONE long
+       unbreakable token pushes the row's sibling controls clean out of the card.
+       Measured: a long output-column name made a delete button 0% reachable. */
+    min-inline-size: 0;
     font: inherit;
     color: inherit;
     background: none;

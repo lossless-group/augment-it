@@ -40,11 +40,21 @@
     onselect?: () => void;
     selected?: boolean;
     disabled?: boolean;
+    /** Merged, never replacing the component's own class. Rung 4 — see Button. */
+    class?: string;
     children?: Snippet;
     [key: string]: unknown;
   };
 
-  let { label, onselect, selected = false, disabled = false, children, ...rest }: Props = $props();
+  let {
+    label,
+    onselect,
+    selected = false,
+    disabled = false,
+    class: klass = '',
+    children,
+    ...rest
+  }: Props = $props();
 
   let el = $state<HTMLButtonElement | undefined>();
 
@@ -54,17 +64,25 @@
     const host = el?.parentElement;
     if (!host) return;
     const nested = host.querySelectorAll('button, a[href], input, select, textarea, [tabindex]');
-    // Our own button is one of them; anything beyond it sits under the overlay.
     const others = Array.from(nested).filter((n) => n !== el && !el?.contains(n));
-    const unpositioned = others.filter(
-      (n) => getComputedStyle(n as HTMLElement).position === 'static',
-    );
-    if (unpositioned.length) {
+    // HIT-TEST, do not infer. An earlier version read `position` on the control
+    // itself and was wrong twice over: a control inside a position:relative
+    // WRAPPER is genuinely above the overlay and was still flagged, and the only
+    // legal member remedy IS that wrapper, because a member cannot set position
+    // on a Button without reaching into .ui-btn. Asking the browser what is
+    // actually on top is the only check that matches reality.
+    const buried = others.filter((n) => {
+      const r = (n as HTMLElement).getBoundingClientRect();
+      if (!r.width || !r.height) return false;
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return top === el || (!!el && el.contains(top));
+    });
+    if (buried.length) {
       console.error(
-        `[@augment-it/shared-ui] <SelectWrapper--ClickBody> ${unpositioned.length} sibling control(s) ` +
-          `are position:static and sit UNDER the click overlay — they are unclickable. ` +
-          `Give them position:relative, or use <SelectWrapper--ClickPrimary>.`,
-        unpositioned,
+        `[@augment-it/shared-ui] <SelectWrapper--ClickBody> ${buried.length} sibling control(s) ` +
+          `are UNDER the click overlay and cannot be clicked — hit-tested, not inferred. ` +
+          `Wrap each in a position:relative element, or use <SelectWrapper--ClickPrimary>.`,
+        buried,
       );
     }
   });
@@ -73,7 +91,7 @@
 <button
   bind:this={el}
   type="button"
-  class="ui-selectbody"
+  class="ui-selectbody {klass}"
   aria-pressed={selected}
   {disabled}
   onclick={onselect}
@@ -85,8 +103,21 @@
 
 <style>
   .ui-selectbody {
-    /* A real control, visually inert — the CardRow paints the surface. */
-    display: contents;
+    /* `display: contents` was here and it made this button KEYBOARD-DEAD.
+       Chromium generates no box for it, so it is not focusable: it reports
+       tabIndex=0, keeps its accessible name, works with a mouse, and Tab skips
+       it entirely. Two pilots caught it independently — one by enumerating tab
+       order, one by measuring a 0x0 target rect. It rendered perfectly and
+       looked like it worked, which is the failure shape this whole practice
+       exists to catch.
+       A real box, visually inert, is what was always intended: the CardRow
+       paints the surface, this carries the name and the tab stop, and ::after
+       does the stretching. */
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-2xs);
+    min-inline-size: 0;        /* a long unbreakable token must not push siblings out */
+    flex: 1 1 auto;
     font: inherit;
     color: inherit;
     background: none;

@@ -34,7 +34,42 @@
   type Props = {
     /** Visual density. `comfortable` is the default; `compact` for dense tables. */
     density?: 'comfortable' | 'compact';
-    /** Reflects selection for styling. Does NOT make the row interactive. */
+    /**
+     * Main-axis direction. `row` (default) lays children horizontally; `column`
+     * stacks them.
+     *
+     * Added 2026-09-13 on the first sweep's evidence. The base shipped
+     * horizontal-only, and the resolver family's candidate cards are stacked —
+     * identity, stats, disclosure, preview, commit — so rendering them as flex
+     * children laid the head and the action side by side. Two members wrote
+     * byte-equivalent `CardRow--Stacked` wrappers whose entire content was
+     * `flex-direction: column`, carrying no domain knowledge at all. A wrapper
+     * that is one layout property is what a prop is for, so this is a prop.
+     *
+     * KNOWN TRAP: `column` makes an inline-flex child stretch to full width. One
+     * probe measured a Button at 1034px inside a 1060px row. Wrap it, or give the
+     * child `align-self: flex-start` — rung 0 either way, and no gate catches it.
+     */
+    direction?: 'row' | 'column';
+    /**
+     * The element to render. Defaults to `div`; pass `li` inside a `<ul>`/`<ol>`.
+     *
+     * Added on pilot evidence: 16 of 20 members render their rows as `<li>`, and
+     * a `<ul>` permits only `<li>`. Shipping div-only meant every one of those
+     * members independently discovering the same workaround — an extra wrapper
+     * level — which is how a paradigm accumulates sixteen slightly different
+     * solutions to one problem. It decides once, here.
+     */
+    as?: 'div' | 'li';
+    /**
+     * Reflects selection for STYLING ONLY. Does NOT make the row interactive and
+     * does NOT announce anything — `SelectWrapper` owns `aria-pressed`.
+     *
+     * The duplication with SelectWrapper's `selected` is deliberate and correct:
+     * this is a PAINT instruction on a non-interactive div, that is an ARIA state
+     * on a real button. Same source of truth, two different jobs. Pass both from
+     * one member-level value; never derive one from the other.
+     */
     selected?: boolean;
     /** Rung 4 — requires data-deviation. See Button's header: style, not class. */
     style?: string;
@@ -44,7 +79,9 @@
   };
 
   let {
+    as = 'div',
     density = 'comfortable',
+    direction = 'row',
     selected = false,
     style: styleProp,
     class: klass = '',
@@ -62,20 +99,23 @@
   });
 </script>
 
-<div
+<svelte:element
+  this={as}
   class="ui-cardrow {klass}"
   data-density={density}
+  data-direction={direction}
   data-selected={selected || undefined}
   data-a11y-error={a11yError}
   style={styleProp}
   {...rest}
 >
   {@render children?.()}
-</div>
+</svelte:element>
 
 <style>
   .ui-cardrow {
-    position: relative;           /* the anchor SelectWrapper--ClickBody overlays */
+    position: relative;
+    list-style: none;   /* `as="li"` must not render a marker */           /* the anchor SelectWrapper--ClickBody overlays */
     display: flex;
     align-items: flex-start;
     gap: var(--space-md);
@@ -88,8 +128,23 @@
     font-size: var(--text-body);
     /* NO margin, NO width constraint, NO position offset — rung 0. */
   }
+  .ui-cardrow[data-direction='column'] {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+  }
+
   .ui-cardrow[data-density='comfortable'] { padding: var(--space-lg) var(--space-xl); }
   .ui-cardrow[data-density='compact']     { padding: var(--space-sm) var(--space-lg); }
+
+  /* A selectable row with no hover cue reads as inert — one pilot spent its only
+     rung-4 escape restoring the `li:hover` its own stylesheet used to provide.
+     The selectors inside :has() must be :global(): the children are slotted, so
+     Svelte cannot see them statically and PRUNES the whole rule as unused —
+     silently, at build time, which svelte-check reports only as a warning. */
+  .ui-cardrow:hover:has(:global(button), :global(a[href]), :global(input), :global(select), :global(textarea)) {
+    border-color: var(--color-border);
+  }
 
   .ui-cardrow[data-selected] {
     border-color: var(--color-primary);
