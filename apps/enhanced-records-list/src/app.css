@@ -58,7 +58,37 @@
   margin-left: auto;
 }
 
-/* --- Table --- */
+/* --- Table ---
+ *
+ * LEFT RAW ON PURPOSE. CardRow does NOT apply here, and this note exists so the
+ * next sweep does not re-run the experiment. Measured 2026-09-13 in a throwaway
+ * probe, three treatments of the same four-column row:
+ *
+ *   A  real <tr>/<td>                 31.7px tall; cells at x = 16 / 369.6 / 950.1 / 1165
+ *   B  <CardRow> inside <tbody>       renders WITHOUT ERROR at 710.5px inside a
+ *                                     1248px table — narrower than its own header,
+ *                                     aligned to no column
+ *   C  <CardRow> in a colspan <td>    36.8px card in a 51.1px row (+61% vertical),
+ *                                     children at x = 38.6 / 167.3 / 334.9 / 411.3
+ *                                     against headers at 16 / 369.6 / 950.1 / 1165
+ *
+ * B does not throw and C looks plausible, which is the dangerous part: the table
+ * header becomes a caption for columns that no longer exist. A <tr> cannot take
+ * padding or border-radius under border-collapse, and a flex row sizes children
+ * to CONTENT while a table sizes them to a shared COLUMN — and this member's
+ * column count is derived at runtime from the union of every enrichment set's
+ * keys, so there is no fixed grid to hand-hold either.
+ *
+ * Per the override ladder's own rule — if the override would NEGATE the base
+ * recipe rather than adjust it, it is a different organ — the table row is a
+ * different organ. What is missing is a DataTable / TableRow, not a CardRow
+ * variant. Raised, not chased.
+ *
+ * The per-row checkbox below is the other half: it measures 13x13 (54% of the
+ * WCAG 2.2 SC 2.5.8 floor) and is `disabled` pending v0.0.2. When it wires up it
+ * wants SelectWrapper--Checkbox, which the decision doc counts 5 members for and
+ * which has not been built.
+ */
 .erl-app .erl-table-wrap {
   flex: 1;
   overflow: auto;

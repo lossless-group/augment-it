@@ -1,5 +1,7 @@
 <script lang="ts">
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import SelectWrapperClickPrimary from '@augment-it/shared-ui/SelectWrapper--ClickPrimary.svelte';
   import type { FireResult } from '../types';
 
   type Props = {
@@ -50,27 +52,45 @@
   {:else}
     <ul class="candidates-list">
       {#each result.candidates as c (c.url)}
-        <li class="candidate-item">
-          <Button variant="primary" size="sm" onclick={() => on_pick(c.url)} title="Save this URL to the row">
-            pick
-          </Button>
-          <a href={c.url} target="_blank" rel="noopener noreferrer" class="candidate-url">
-            {c.url}
-          </a>
-          <Button
-            variant="outline"
-            size="sm"
-            onclick={() => copyToCustom(c.url)}
-            title="Copy into the edit input below — trim it, then pick"
-            class="rs-candidate-edit"
-          >
-            edit
-          </Button>
-          {#if c.title}
-            <span class="candidate-title">{c.title}</span>
-          {:else if c.anchor_text}
-            <span class="candidate-title">"{c.anchor_text}"</span>
-          {/if}
+        <li>
+          <!-- The candidate row is the member's selection surface: a connector
+               returns a set, the operator picks one. SelectWrapper--ClickPrimary,
+               NOT --ClickBody: picking WRITES to live client data, and the row
+               also carries an external link and an `edit` control, so a
+               click-anywhere overlay would put an accidental write one stray
+               click from the "open this in a new tab" affordance. The primary
+               label — the URL itself — is the control. -->
+          <CardRow density="compact">
+            <div class="candidate-main">
+              <SelectWrapperClickPrimary
+                label="Pick {c.url}"
+                onselect={() => on_pick(c.url)}
+                title="Save this URL to the row"
+              >
+                <span class="candidate-url">{c.url}</span>
+              </SelectWrapperClickPrimary>
+              {#if c.title}
+                <span class="candidate-title">{c.title}</span>
+              {:else if c.anchor_text}
+                <span class="candidate-title">"{c.anchor_text}"</span>
+              {/if}
+            </div>
+            <a
+              class="candidate-open"
+              href={c.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="open in a new tab"
+            >↗</a>
+            <Button
+              variant="outline"
+              size="sm"
+              onclick={() => copyToCustom(c.url)}
+              title="Copy into the edit input below — trim it, then pick"
+            >
+              edit
+            </Button>
+          </CardRow>
         </li>
       {/each}
     </ul>
@@ -121,29 +141,41 @@
     color: var(--color-text-muted);
   }
   .candidates-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
-  .candidate-item {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: baseline;
-    gap: 0.5rem;
-    padding: 0.25rem 0;
-    font-size: 0.85rem;
+  /* `.candidate-item` is gone: the two-column grid, the padding and the
+     baseline alignment are all <CardRow>. So is `.rs-candidate-edit` — the
+     `edit` Button no longer needs justify-self:end, because CardRow's flex row
+     plus `.candidate-main { flex: 1 1 auto }` pushes the trailing controls to
+     the end on their own. One rung-0 override deleted rather than ported. */
+  .candidate-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
   }
   .candidate-url {
     color: var(--color-text);
-    text-decoration: none;
     overflow-wrap: anywhere;
+    font-size: 0.85rem;
   }
-  .candidate-url:hover { text-decoration: underline; }
-  .candidate-title { grid-column: 2; color: var(--color-text-muted); font-size: 0.75rem; }
-  /* Override-ladder rung 0 — layout is the parent's job, so this is not a
-     deviation. What follows is the form a SCOPED member has to spell it in.
-     A bare `.rs-candidate-edit` rule would compile to
-     `.rs-candidate-edit.svelte-<hash>`, and the class arrives at <Button> as an
-     unhashed prop string — so the rule would never match and Svelte would only
-     say "unused CSS selector". Nesting the :global() under a scoped ancestor
-     restores the match and still contains the rule to this component. */
-  .candidate-item :global(.ui-btn.rs-candidate-edit) { justify-self: end; }
+  /* WCAG 2.2 SC 2.5.8. The ↗ glyph is 10x20 at its natural size — 21% of the
+     24x24 floor — which is what the probe measured on this member's existing
+     `.record-row-url-open`. That one is pre-existing and raised, not chased;
+     this one is new, so it clears the floor on arrival rather than copying the
+     defect. --control-h-sm IS 24px. */
+  .candidate-open {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-inline-size: var(--control-h-sm);
+    min-block-size: var(--control-h-sm);
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+  }
+  .candidate-open:hover { color: var(--color-text); }
+  .candidate-title { color: var(--color-text-muted); font-size: 0.75rem; }
   .candidates-custom {
     display: flex;
     align-items: center;

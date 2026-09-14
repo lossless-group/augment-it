@@ -19,6 +19,7 @@
   // from being appended to the stylesheet, and a gallery that listed only
   // .svelte files would show none of them.
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
 
   export { buttons, buttonSizes, buttonStates, overrideLadder, statusPill, fields, panel, tokenBinding, coverage, progress, feedback, stepper };
 
@@ -113,16 +114,26 @@
 {#snippet tokenBinding(p: Record<string, unknown>)}
   <ul class="bind">
     <li>
-      <code>{'{{'}name{'}}'}</code>
-      <span class="arrow">→</span> <span class="val">Prairie State College</span>
+      <CardRow density="compact">
+        <code>{'{{'}name{'}}'}</code>
+        <span class="arrow">→</span> <span class="val">Prairie State College</span>
+      </CardRow>
     </li>
-    <li class:unbound={Boolean(p.unbound ?? true)}>
-      <code>{'{{'}enrollment{'}}'}</code>
-      {#if p.unbound ?? true}
-        <span class="nobind">no matching column in this record set</span>
-      {:else}
-        <span class="arrow">→</span> <span class="val">4,182</span>
-      {/if}
+    <li>
+      <CardRow
+        density="compact"
+        style={(p.unbound ?? true) ? 'border-color: var(--color-error-text)' : undefined}
+        data-deviation={(p.unbound ?? true)
+          ? 'unbound-token row state. CardRow has ONE state axis — `selected` — and an invalid/error row has nowhere sanctioned to live.'
+          : undefined}
+      >
+        <code>{'{{'}enrollment{'}}'}</code>
+        {#if p.unbound ?? true}
+          <span class="nobind">no matching column in this record set</span>
+        {:else}
+          <span class="arrow">→</span> <span class="val">4,182</span>
+        {/if}
+      </CardRow>
     </li>
   </ul>
 {/snippet}

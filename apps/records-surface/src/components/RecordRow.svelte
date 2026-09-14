@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Row } from '@augment-it/workspace';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import ConnectorButton from './ConnectorButton.svelte';
   import CandidatesPanel from './CandidatesPanel.svelte';
   import EditableField from './EditableField.svelte';
@@ -80,7 +81,12 @@
   }
 </script>
 
-<article class="record-row">
+<!-- One object in the records list. The surface — border, radius, background,
+     padding, and the stacking direction — is the federal <CardRow>. A record is
+     a STACK (identity head, accepted URLs, connectors, candidates), so
+     direction="column". No CardRow--<Kind> wrapper was needed: the thin base
+     plus one enum prop covers this row completely. -->
+<CardRow direction="column">
   <header class="record-row-head">
     <span class="record-row-name">
       <EditableField
@@ -156,18 +162,14 @@
   {#if fireState.kind === 'done'}
     <CandidatesPanel result={fireState.result} on_pick={pick} />
   {/if}
-</article>
+</CardRow>
 
 <style>
-  .record-row {
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    background: var(--color-bg, transparent);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
+  /* The card recipe this replaced is gone in full — padding, 1px
+     --color-border, radius 6px, background, AND the flex column, all six
+     declarations. <CardRow direction="column"> owns every one of them, and
+     draws the boundary with --color-border-strong instead of --color-border.
+     Nothing about the card is declared here any more. */
   .record-row-head {
     display: flex;
     justify-content: space-between;

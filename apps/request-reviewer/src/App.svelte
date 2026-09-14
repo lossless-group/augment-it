@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import {
     workspace,
     MODELS,
@@ -418,15 +419,28 @@
       {/if}
 
       <h3>Token binding</h3>
+      <!-- The token-binding list is this member's ONLY generated list, and it
+           is read-only: a binding is not selected, it is reported. So CardRow
+           adopts here and NO SelectWrapper does — there is nothing to select.
+           The <li> survives so the list still announces as a list; CardRow
+           paints the row inside it. -->
       <ul class="bind">
         {#each previewOk.bind as b (b.token)}
-          <li class:unbound={!b.bound}>
-            <code>{'{{'}{b.token}{'}}'}</code>
-            {#if b.bound}
-              <span class="arrow">→</span> <span class="val">{b.value}</span>
-            {:else}
-              <span class="nobind">no matching column in this record set</span>
-            {/if}
+          <li>
+            <CardRow
+              density="compact"
+              style={b.bound ? undefined : 'border-color: var(--color-error-text)'}
+              data-deviation={b.bound
+                ? undefined
+                : 'unbound-token row state. CardRow has ONE state axis — `selected` — and an invalid/error row has nowhere sanctioned to live. This is a token name, not a value, and it is the single most load-bearing pixel in this member: an unbound token silently sends a literal {{placeholder}} to the model.'}
+            >
+              <code>{'{{'}{b.token}{'}}'}</code>
+              {#if b.bound}
+                <span class="arrow">→</span> <span class="val">{b.value}</span>
+              {:else}
+                <span class="nobind">no matching column in this record set</span>
+              {/if}
+            </CardRow>
           </li>
         {/each}
         {#if previewOk.bind.length === 0}

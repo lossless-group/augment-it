@@ -111,18 +111,12 @@
 .req-app .panel.json { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 
 .req-app ul.bind { list-style: none; padding: 0; margin: 0.4rem 0 0; }
-.req-app ul.bind li {
-  padding: 0.3rem 0.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  margin-bottom: 0.25rem;
-  font-size: 12px;
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.req-app ul.bind li.unbound { border-color: var(--color-error-text); }
+/* The row recipe — padding, 1px --color-border, radius, the flex row and its
+   gap — is now <CardRow density="compact">, and so is the .unbound border
+   swap (rung 4, declared at the call site). What is left on the <li> is the
+   gap BETWEEN rows, which is the list's job and not the row's. */
+.req-app ul.bind li { display: block; margin-bottom: 0.25rem; }
+.req-app ul.bind li.muted { font-size: 12px; }
 .req-app ul.bind li .arrow { color: var(--color-text-muted); }
 .req-app ul.bind li .val { color: var(--color-ok-text); }
 .req-app ul.bind li .nobind { color: var(--color-error-text); }

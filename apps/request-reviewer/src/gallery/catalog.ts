@@ -12,11 +12,17 @@
 //   · standalone     — http://localhost:3004/#/gallery
 //   · one specimen   — http://localhost:3004/#/gallery/button/variants?iso=1
 //
-// THIS IS THE FIRST CATALOG TO CARRY A FEDERAL COMPONENT. Every other entry
-// below is a class recipe this member owns; Button is imported from
-// @augment-it/shared-ui and is owned by the platform. That distinction is the
-// point of the Button rollout — the entry exists here so the member's own
-// catalog shows what it now consumes rather than what it used to hand-roll.
+// THIS IS THE FIRST CATALOG TO CARRY A FEDERAL COMPONENT. Entries in the
+// Federal primitives section are imported from @augment-it/shared-ui and owned
+// by the platform; entries under Local recipes are class recipes this member
+// owns. That distinction is the point of the rollout — the catalog shows what
+// the member now consumes rather than what it used to hand-roll.
+//
+// The boundary MOVES, and this file is where that gets recorded. `token-binding`
+// started as a Local recipe (app.css:113–129) and moved to Federal on
+// 2026-09-13 when the row became <CardRow>. A catalog that only ever gains
+// federal entries and never reclassifies its own is out of date the first time
+// a recipe is replaced rather than added to.
 
 import { defineGallery } from '@augment-it/gallery';
 import {
@@ -59,7 +65,10 @@ export default defineGallery({
   exemptClasses: [
     'status', 'status-open', 'status-closed', 'status-error', 'status-connecting',
     'field', 'inline', 'muted', 'lede',
-    'panel', 'json', 'bind', 'unbound', 'arrow', 'val', 'nobind',
+    // `unbound` is gone: the unbound row is no longer a member class, it is a
+    // rung-4 style= + data-deviation on <CardRow>. `ui-*` needs no exemption —
+    // packages/gallery reserves that namespace for shared-ui.
+    'panel', 'json', 'bind', 'arrow', 'val', 'nobind',
     'warn', 'result', 'coverage', 'coverage-stat', 'covered', 'needs-rerun', 'remaining',
     'fire-row', 'stepper', 'progress', 'spinner',
   ],
@@ -180,6 +189,39 @@ export default defineGallery({
             { id: 'rungs', name: 'Rungs 1-3', note: 'The /N modifier is deliberately COUNTABLE. radius="lg/60" appearing in six members is a measurable argument for a missing scale step, where a raw 11px would be invisible to tooling.' },
           ],
         },
+        {
+          id: 'token-binding',
+          name: 'Token binding list',
+          kind: 'pattern',
+          status: 'stable',
+          // MOVED SECTION, 2026-09-13. This entry used to be a pure local
+          // recipe living at app.css:113–129. The row is now the federal
+          // <CardRow density="compact">; app.css keeps only the gap BETWEEN
+          // rows. It is catalogued here, under Federal primitives, because the
+          // thing a reader needs to open is no longer this member's stylesheet.
+          source: 'packages/shared-ui/src/CardRow.svelte',
+          summary:
+            'One row per {{token}} in the prompt, showing what it resolved to — or that nothing in the record set matches it. The unbound row is the whole reason this member exists. The row surface is CardRow; the <li> survives so the list still announces as a list.',
+          usage: '<ul class="bind"><li><CardRow density="compact">…</CardRow></li></ul>',
+          a11y:
+            'CardRow renders a <div> with no role and no onclick — correct here, because a binding is REPORTED, not selected. No SelectWrapper is used anywhere in this member for that reason. The boundary moved from --color-border (≈1.26:1) to --color-border-strong (≈3.44:1), which clears the 3:1 non-text contrast floor the old recipe missed. Colour is still not the only channel on the failure row: the text says "no matching column in this record set".',
+          // Deliberately no --color-border: the compact row is painted by
+          // CardRow, which uses --color-border-strong. Listing the old token
+          // would be exactly the stale declaration the Audit tab exists to catch.
+          tokens: [
+            '--color-surface', '--color-border-strong', '--color-text', '--color-error-text',
+            '--color-ok-text', '--color-text-muted', '--color-field',
+            '--radius-md', '--space-sm', '--space-lg', '--space-md', '--text-body', '--font-sans',
+          ],
+          deviation:
+            'ONE, and it is the pilot\'s headline finding. The unbound row needs a border in --color-error-text, and CardRow\'s first-pass API carries exactly one state axis — `selected`. An invalid/error row state has nowhere sanctioned to live, so it goes on rung 4 as style= + data-deviation (style, not class: a member class lands at (0,1,0) and loses to the component\'s own rule). Reaching rung 4 on the FIRST adoption is the signal the loop says it is — the argument for a `tone`/`state` axis on CardRow, not for this member re-drawing the row. records-surface hit the same gap independently on its accepted-URL row and left it raw.',
+          snippet: tokenBinding,
+          controls: { unbound: { kind: 'boolean', label: 'second token unbound', value: true } },
+          fixtures: [
+            { id: 'unbound', name: 'With an unbound token', note: 'The failure state is the important one: firing with an unbound token silently sends a literal {{placeholder}} to the model. This fixture is also the only place in this catalog where a data-deviation renders — CardRow dashes an outline around any row that carries class= or style= without one.' },
+            { id: 'bound', name: 'All bound', props: { unbound: false }, note: 'No override, no deviation — the thin base as shipped.' },
+          ],
+        },
       ],
     },
     {
@@ -258,22 +300,6 @@ export default defineGallery({
           fixtures: [
             { id: 'resolved', name: 'Resolved prompt' },
             { id: 'json', name: 'JSON request', props: { json: true }, note: '.panel.json re-declares a monospace stack inline instead of reading --font-mono — a literal font family where a token exists.' },
-          ],
-        },
-        {
-          id: 'token-binding',
-          name: 'Token binding list',
-          kind: 'pattern',
-          status: 'stable',
-          source: 'apps/request-reviewer/src/app.css:113–129',
-          summary: 'One row per {{token}} in the prompt, showing what it resolved to — or that nothing in the record set matches it. The unbound row is the whole reason this member exists.',
-          usage: '<ul class="bind"><li class:unbound={!b.bound}>…</li></ul>',
-          tokens: ['--color-border', '--color-error-text', '--color-ok-text', '--color-text-muted'],
-          snippet: tokenBinding,
-          controls: { unbound: { kind: 'boolean', label: 'second token unbound', value: true } },
-          fixtures: [
-            { id: 'unbound', name: 'With an unbound token', note: 'The failure state is the important one: firing with an unbound token silently sends a literal {{placeholder}} to the model.' },
-            { id: 'bound', name: 'All bound', props: { unbound: false } },
           ],
         },
         {
