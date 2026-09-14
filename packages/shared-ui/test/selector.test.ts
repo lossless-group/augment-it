@@ -171,3 +171,27 @@ describe('Selector--Listbox — disabled options', () => {
     expect(opts()[1].getAttribute('tabindex')).toBe('0');
   });
 });
+
+describe('Selector--Listbox — swap compatibility with Button', () => {
+  const OPTS = [{ id: 'a', label: 'A' }];
+
+  it('truncates by default, so replacing a Button row is not a silent layout change', () => {
+    const src = readFileSync(resolve('src/Selector--Listbox.svelte'), 'utf8');
+    const rule = src.match(/\.ui-listbox:not\(\[data-wrap\]\)\s+\.ui-listbox__option\s*\{[^}]*\}/)![0];
+    expect(rule).toMatch(/white-space:\s*nowrap/);
+  });
+
+  it('wrapOptions opts out, and is off unless asked', () => {
+    render({ options: OPTS });
+    expect(host.querySelector('[role="listbox"]')!.hasAttribute('data-wrap')).toBe(false);
+    host.innerHTML = '';
+    mount(SelectorListbox, {
+      target: host,
+      props: { options: OPTS, label: 'L', wrapOptions: true },
+    });
+    expect(host.querySelector('[role="listbox"]')!.hasAttribute('data-wrap')).toBe(true);
+  });
+});
+
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';

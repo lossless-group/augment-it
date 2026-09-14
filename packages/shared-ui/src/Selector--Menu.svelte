@@ -55,6 +55,21 @@
     autofocus?: boolean;
     /** Render one item. Defaults to <MenuItem>. */
     item?: Snippet<[Item]>;
+    /**
+     * Let an option's text wrap onto more than one line. OFF by default.
+     *
+     * The default is NOT a style preference — it is swap-compatibility. `Button`
+     * declares `white-space: nowrap` AND a fixed height; this option declares
+     * neither, only a `min-block-size`. So a member replacing Button rows with
+     * options silently converted a CLIP into a WRAP: one real row measured 48px
+     * against its neighbours' 29px, with its label squeezed to the min-content of
+     * its first word.
+     *
+     * jsdom cannot see it — there is no layout — so it survived every test and
+     * was caught by a browser drive on the federation host. It is latent in every
+     * member that made the same swap.
+     */
+    wrapOptions?: boolean;
     class?: string;
     [key: string]: unknown;
   };
@@ -67,6 +82,7 @@
     trigger,
     autofocus = true,
     item,
+    wrapOptions = false,
     class: klass = '',
     ...rest
   }: Props = $props();
@@ -168,6 +184,7 @@
   role="menu"
   aria-label={label}
   class="ui-menu {klass}"
+  data-wrap={wrapOptions || undefined}
   {onkeydown}
   {@attach (node) => {
     box = node as HTMLElement;
@@ -208,6 +225,18 @@
     flex-direction: column;
     min-inline-size: 0;
   }
+  /* Truncate by default so swapping a Button row for an option is not a silent
+     layout change — see `wrapOptions`. */
+  .ui-menu:not([data-wrap]) .ui-menu__row {
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .ui-menu:not([data-wrap]) .ui-menu__row > :global(*) {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .ui-menu__row {
     display: flex;
     align-items: center;

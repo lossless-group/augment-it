@@ -76,6 +76,21 @@
     trigger?: HTMLElement;
     /** Render one option. Receives the option; defaults to its label. */
     option?: Snippet<[Option]>;
+    /**
+     * Let an option's text wrap onto more than one line. OFF by default.
+     *
+     * The default is NOT a style preference — it is swap-compatibility. `Button`
+     * declares `white-space: nowrap` AND a fixed height; this option declares
+     * neither, only a `min-block-size`. So a member replacing Button rows with
+     * options silently converted a CLIP into a WRAP: one real row measured 48px
+     * against its neighbours' 29px, with its label squeezed to the min-content of
+     * its first word.
+     *
+     * jsdom cannot see it — there is no layout — so it survived every test and
+     * was caught by a browser drive on the federation host. It is latent in every
+     * member that made the same swap.
+     */
+    wrapOptions?: boolean;
     class?: string;
     [key: string]: unknown;
   };
@@ -90,6 +105,7 @@
     onclose,
     trigger,
     option,
+    wrapOptions = false,
     class: klass = '',
     ...rest
   }: Props = $props();
@@ -197,6 +213,7 @@
   aria-orientation={orientation}
   data-orientation={orientation}
   class="ui-listbox {klass}"
+  data-wrap={wrapOptions || undefined}
   {onkeydown}
   {@attach (node) => {
     box = node as HTMLElement;
@@ -236,6 +253,18 @@
     flex-direction: row;
     flex-wrap: wrap;
     gap: var(--space-2xs);
+  }
+
+  /* Truncate by default so swapping a Button row for an option is not a silent
+     layout change — see `wrapOptions`. */
+  .ui-listbox:not([data-wrap]) .ui-listbox__option {
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .ui-listbox:not([data-wrap]) .ui-listbox__option > :global(*) {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .ui-listbox__option {
