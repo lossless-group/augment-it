@@ -171,7 +171,7 @@
   }
 
   .ui-chip[data-size='sm'] { font-size: var(--text-label); padding: var(--space-3xs) var(--space-sm); }
-  .ui-chip[data-size='md'] { font-size: var(--text-body); padding: var(--space-2xs) var(--space-md); }
+  .ui-chip[data-size='md'] { font-size: var(--text-meta); padding: var(--space-2xs) var(--space-md); }
 
   /* WCAG 2.2 2.5.8. A dismissible chip is deliberately taller than a plain one
      at the same size: the nested button must be >= 24px, and a chip that

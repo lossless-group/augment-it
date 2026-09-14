@@ -164,15 +164,23 @@
   /* Type scale — the six steps DESIGN.md L738-775 specifies, shipped 2026-09-13.
      ROLE-NAMED on purpose: the doc rejects --text-sm / --text-md BY NAME, because
      "which small?" is the exact question that produced 35 font sizes in the wild.
-     An earlier nine-step draft put six steps inside a 5px range and was rejected
-     in review — a scale whose adjacent steps are perceptually indistinguishable
-     does not force a choice, it just moves the arbitrariness.
-     Tier 2 only: --text-* is dimensional and has no Tier 1, by rule.
-     Known cost, stated in the doc: folding 12px (123 declarations) into
-     --text-body (13px) is a 1px INCREASE across dense table content and can
-     reflow fixed-width columns. That is the price of a scale that functions. */
+     SEVEN steps, not the doc's six — --text-meta (12px) added 2026-09-13 on the
+     operator's call, and the reasoning is better than the doc's. DESIGN.md
+     rejected an 11/12 adjacency because perceptually indistinguishable steps do
+     not force a choice, and folded 12px into --text-body (13px). But that fold
+     is a 1px INCREASE across 123 declarations of dense table content, which can
+     reflow fixed-width columns — a real regression paid up front to win an
+     argument about author discipline.
+     The indirection makes that trade unnecessary. Give both values a token now,
+     and if we later decide we only want one, MERGE THEM THROUGH THE TOKEN:
+     --text-label: var(--text-meta) is a one-line edit. Converging later costs
+     nothing; reflowing every dense table now costs something. So the scale
+     absorbs what members already use, and convergence becomes a decision we can
+     take with evidence instead of in advance.
+     Tier 2 only: --text-* is dimensional and has no Tier 1, by rule. */
   --text-micro:    10px;
   --text-label:    11px;
+  --text-meta:     12px;
   --text-body:     13px;
   --text-emphasis: 15px;
   --text-heading:  18px;

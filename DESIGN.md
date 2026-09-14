@@ -16,7 +16,7 @@ revisions:
   - 2026-08-08 — 0.1.0.2. **`strategy-curator` → `corpora-curator`, prefix `sc` → `cc`.** Registry row and member table updated; 383 class occurrences across 56 names renamed in lockstep with the gallery catalog's `rootClass`, so the F2/F3 containment audit stays at zero. The app was never strategy-specific — `strategy` is one of `strategy | topic | thesis | market-segment | category`, and humain-vc has only ever run it on `thesis`. **The domain-type vocabulary was deliberately NOT renamed**: it is a data value in two external client submodules, in per-client `DEFAULT_DOMAIN_TYPE`, and in on-disk folder names. Earlier revision entries and the closed-defect log keep the old name on purpose — they record what was true when written. See [[context-v/refactors/Rename-Strategy-Curator-To-Corpora-Curator.md]].
 token_status:
   colors: shipped
-  typography: "family shipped; scale proposed"
+  typography: "family shipped; scale shipped 2026-09-13 — seven role-named steps"
   rounded: proposed
   spacing: proposed
   sizing: proposed
@@ -741,12 +741,13 @@ Eleven undefined tokens were *asked for by name* across the codebase — that de
 
 ### The rule
 
-**Six role-named sizes. One family. Font size is always a token.**
+**Seven role-named sizes. One family. Font size is always a token.**
 
-| Token 🔶 | Value | Job |
+| Token ✅ | Value | Job |
 |---|---|---|
 | `--text-micro` | `10px` | Uppercase micro-labels, table metadata, badge text |
 | `--text-label` | `11px` | **The dominant UI label** — field labels, chips, column heads |
+| `--text-meta` | `12px` | Secondary row content, timestamps, counts, chip bodies |
 | `--text-body` | `13px` | Body, row content, input text. **The runtime base.** |
 | `--text-emphasis` | `15px` | Emphasised values, card titles |
 | `--text-heading` | `18px` | Panel and section headings |
@@ -764,17 +765,53 @@ Eleven undefined tokens were *asked for by name* across the codebase — that de
 3. **Uppercase micro-labels always carry `--tracking-label`.** Uppercase monospace without tracking is unreadable at 10–11px.
 4. **No `em` for font-size.** It compounds through nesting — two `0.85em` labels nest to 0.72em and nobody predicted it.
 5. **Monospace gives tabular figures for free.** Never override `font-variant-numeric` in a data column.
-6. **Do not define `--font-sans`.** Six apps reference it with three different fallbacks. The product is monospace by identity; delete the references rather than legitimising a second family by accident.
+6. ~~**Do not define `--font-sans`.**~~ **Overturned 2026-09-13 — `--font-sans` IS
+   defined** in `packages/theme/theme.css`. Six apps referenced it with three
+   different fallbacks, and the operator's call was that a second family is fine
+   and the divergence was the actual problem. One definition, one fallback stack,
+   rather than six references to nothing. The monospace identity is unchanged;
+   `--font-mono` is still what the product is.
 
-### Why six steps, and what it costs
+### Why seven steps — the six-step argument was overturned, 2026-09-13
 
-The measured reality is **35 distinct sizes across 432 declarations in three parallel unit systems** that overlap almost exactly — `0.7rem` computes to 11.2px against a 16px root, and `11px` is used 89 times. Two authors, two units, one intended size.
+**Shipped to `packages/theme/theme.css` on 2026-09-13**, with `--text-meta` (12px)
+added to the six this section originally specified. The reasoning that added it is
+better than the reasoning that excluded it, so the original argument is recorded
+here rather than quietly deleted.
 
-An earlier draft of this scale proposed nine steps chosen to minimise displacement of existing values. That put **six steps inside a 5px range**, and it was rejected in review: a scale whose adjacent steps are perceptually indistinguishable does not force a choice. An author facing `--text-sm` (11px) and `--text-md` (12px) picks arbitrarily — which is precisely how 35 sizes happened.
+The measured reality is **35 distinct sizes across 432 declarations in three
+parallel unit systems** that overlap almost exactly — `0.7rem` computes to 11.2px
+against a 16px root, and `11px` is used **293 times**. Two authors, two units, one
+intended size.
 
-**The honest cost:** collapsing `12px` (57 declarations) into `--text-body` (13px) is a **1px increase across dense table content**, which can reflow fixed-width columns. That is the price of a scale that actually functions.
+**The original argument, which was reasonable:** an earlier nine-step draft put six
+steps inside a 5px range and was rejected in review, because a scale whose adjacent
+steps are perceptually indistinguishable does not force a choice. An author facing
+`--text-sm` (11px) and `--text-md` (12px) picks arbitrarily, and that is precisely
+how 35 sizes happened. So 12px was to be folded into `--text-body` (13px).
 
-🚪 **Gate:** final step values are confirmed by inspection at the portal against real screens. Specifically — does `--text-body` at 13px hold the densest table without reflow, and is `--text-emphasis` at 15px distinguishable from body at a glance?
+**Why that was overturned.** The fold is a **1px increase across 130 declarations
+of dense table content**, which can reflow fixed-width columns. That is a real,
+immediate regression accepted up front to win an argument about author discipline
+— and *the token indirection makes the trade unnecessary*:
+
+> Give both values a token now. If we later decide we only want one, **merge them
+> through the token** — `--text-label: var(--text-meta)` is a one-line edit that
+> converges every call site at once.
+
+Converging later costs nothing. Reflowing every dense table now costs something.
+So the scale absorbs what members already use, and **convergence becomes a
+decision we take with evidence rather than in advance.** The original concern is
+not wrong — it is just no longer urgent, because the cost of having been wrong
+about a step is one line.
+
+The same principle applies to any future step: add it, measure adoption, collapse
+through the token if the evidence says the distinction was never real.
+
+🚪 **Gate:** final step values are confirmed by inspection at the portal against
+real screens. Specifically — does `--text-body` at 13px hold the densest table
+without reflow, and is `--text-emphasis` at 15px distinguishable from body at a
+glance?
 
 ---
 
