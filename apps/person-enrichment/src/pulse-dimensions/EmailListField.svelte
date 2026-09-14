@@ -4,6 +4,7 @@
 
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
 
   let {
     emails = $bindable<string[]>([]),
@@ -35,7 +36,7 @@
 <section class="pd-section">
   <h3 class="pd-title">Additional emails</h3>
   {#if emails.length > 0}
-    <div class="pd-stack">
+    <ListContainer gap="sm">
       {#each emails as _email, i (i)}
         <CardRow density="compact">
           <!-- rung 0: .pd-row carries the row's own flex tracks. CardRow is
@@ -57,7 +58,7 @@
           </span>
         </CardRow>
       {/each}
-    </div>
+    </ListContainer>
   {/if}
   <Button variant="outline" size="sm" onclick={add} class="pd-add">
     + add email

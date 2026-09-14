@@ -132,13 +132,13 @@ code { font-family: var(--font-mono); font-size: 11px; }
   gap: 4px;
 }
 
-.lib-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 10px;
-  margin: 14px 0 20px;
-}
-/* `.lib-card` is <CardRow direction="column" density="compact"> and
+/* rung 0 — the OUTER margin only. The tracks, the equal-height stretch, the gap
+   and the tiles' `column` direction are <ListContainer layout="grid">'s. */
+.lib-cards-slot { margin-block: var(--space-xl) var(--space-2xl); }
+/* `.lib-card` is <CardRow density="compact"> inside <ListContainer layout="grid">
+   — the `direction="column"` it used to carry came OUT of the call site when the
+   container took ownership of it, which is the sweep's own test of whether
+   context-passing was the right mechanism. It was. And
    `.lib-card-main` is the label slot inside a <SelectWrapper--ClickBody>. Both
    original recipes came out whole — border, radius, background, shadow,
    overflow, column flex, and the button's own chrome. Four notes, each a

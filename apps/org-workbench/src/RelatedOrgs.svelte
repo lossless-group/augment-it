@@ -8,6 +8,7 @@
 
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import OrgSearch from './OrgSearch.svelte';
   import { fetchOrgRelations, relateOrg, unrelateOrg, patchOrgRelation } from './lib/org-client';
@@ -241,15 +242,15 @@
   {:else}
     {#if relations.parents.length > 0}
       <h4 class="ro-group">Part of</h4>
-      <ul class="ro-list">{#each relations.parents as r (r.slug)}{@render relRow(r)}{/each}</ul>
+      <ListContainer as="ul" gap="sm" label="Organizations this one is part of">{#each relations.parents as r (r.slug)}{@render relRow(r)}{/each}</ListContainer>
     {/if}
     {#if relations.children.length > 0}
       <h4 class="ro-group">Contains</h4>
-      <ul class="ro-list">{#each relations.children as r (r.slug)}{@render relRow(r)}{/each}</ul>
+      <ListContainer as="ul" gap="sm" label="Organizations this one contains">{#each relations.children as r (r.slug)}{@render relRow(r)}{/each}</ListContainer>
     {/if}
     {#if relations.peers.length > 0}
       <h4 class="ro-group">Peers</h4>
-      <ul class="ro-list">{#each relations.peers as r (r.slug)}{@render relRow(r)}{/each}</ul>
+      <ListContainer as="ul" gap="sm" label="Peer organizations">{#each relations.peers as r (r.slug)}{@render relRow(r)}{/each}</ListContainer>
     {/if}
   {/if}
 
@@ -269,7 +270,6 @@
 <style>
   .ro-section { display: flex; flex-direction: column; gap: 0.35rem; }
   .ro-group { margin: 0.35rem 0 0.1rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.65; }
-  .ro-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; }
   .ro-row { display: flex; align-items: baseline; gap: 0.5rem; min-width: 0; flex: 1; }
   .ro-desc { font-size: 0.78rem; opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
   .ro-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 0.25rem; }

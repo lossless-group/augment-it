@@ -33,6 +33,7 @@
 
   import Button           from '@augment-it/shared-ui/Button.svelte';
   import CardRow          from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer    from '@augment-it/shared-ui/ListContainer.svelte';
   import NameFields       from './pulse-dimensions/NameFields.svelte';
   import EmailListField   from './pulse-dimensions/EmailListField.svelte';
   import LinkList         from './pulse-dimensions/LinkList.svelte';
@@ -848,7 +849,7 @@
         <section class="pe-affiliations-section">
           <h3 class="pd-title">Affiliations <span class="pd-hint">— primary, board, advisor, past, any role</span></h3>
           {#if affiliations.length > 0}
-            <div class="pe-affiliations-list">
+            <ListContainer gap="sm">
               {#each affiliations as _aff, i (affiliations[i].uiId)}
                 <AffiliationCard
                   bind:affiliation={affiliations[i]}
@@ -862,7 +863,7 @@
                   onRemove={() => removeAffiliation(i)}
                 />
               {/each}
-            </div>
+            </ListContainer>
           {/if}
           <Button variant="outline" size="sm" onclick={addAffiliation} class="pd-add">
             + add affiliation
@@ -892,7 +893,11 @@
               <strong>Writes for {displayName ?? current.email ?? current.id} this session</strong>
               <span class="pe-hint">{saveLog.length} entr{saveLog.length === 1 ? 'y' : 'ies'}</span>
             </div>
-            <ul class="pe-summary-list">
+            <!-- rung 0: the scroll CAP is the member's; ListContainer owns the
+                 scrolling, the gap and the list reset, but exposes no height
+                 bound — so a flex wrapper holds the cap. -->
+            <div class="pe-summary-scroll">
+            <ListContainer as="ul" gap="sm" label="Writes queued this session">
               {#each saveLog as e (e.id)}
                 <CardRow as="li" density="compact" data-icon={e.icon}
                   tone={e.icon === '…' ? 'info' : e.icon === '✓' ? 'ok' : 'error'}>
@@ -917,7 +922,8 @@
                   </span>
                 </CardRow>
               {/each}
-            </ul>
+            </ListContainer>
+            </div>
             <div class="pe-summary-actions">
               <Button variant="secondary" onclick={() => (showSummary = false)}>← keep editing</Button>
               <span class="pe-spacer"></span>
@@ -929,7 +935,8 @@
         {/if}
 
         {#if saveLog.length > 0 && !showSummary}
-          <ul class="pe-savelog-stack">
+          <div class="pe-savelog-stack">
+          <ListContainer as="ul" gap="sm" label="What wrote where">
             {#each saveLog as e (e.id)}
               <CardRow as="li" density="compact"
                 tone={e.icon === '…' ? 'info' : e.icon === '✓' ? 'ok' : 'error'}>
@@ -946,7 +953,8 @@
                 </span>
               </CardRow>
             {/each}
-          </ul>
+          </ListContainer>
+          </div>
         {/if}
       </div>
 

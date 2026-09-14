@@ -10,6 +10,7 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import PersonCard from './PersonCard.svelte';
   import AddPersonInline from './AddPersonInline.svelte';
@@ -129,7 +130,7 @@
       {#if people.length === 0}
         <p class="ow-empty">no affiliated people yet</p>
       {:else}
-        <ul class="ow-people-list" id="ow-people-list">
+        <ListContainer as="ul" gap="sm" id="ow-people-list" label="Affiliated people">
           {#each people as p (p.person_uuid)}
             <li class="ow-person">
               <CardRow density="compact" selected={expanded === p.person_uuid}>
@@ -157,7 +158,7 @@
               {/if}
             </li>
           {/each}
-        </ul>
+        </ListContainer>
       {/if}
       <AddPersonInline {org_slug} {orgName} {client} onadded={load} />
     {/if}

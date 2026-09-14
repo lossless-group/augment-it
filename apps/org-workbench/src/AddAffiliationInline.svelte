@@ -14,6 +14,7 @@
 
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { searchOrgs, affiliatePerson } from './lib/org-client';
   import type { OrgSuggestion, ShapedLink } from './lib/types';
@@ -104,7 +105,7 @@
 
   {#if phase === 'gate'}
     {#if candidates.length > 0}
-      <ul class="ow-gate-list">
+      <ListContainer as="ul" gap="sm" label="Existing organizations that might match">
         {#each candidates as c (c.slug)}
           <CardRow as="li" density="compact">
               <SelectWrapperClickBody
@@ -118,7 +119,7 @@
               </SelectWrapperClickBody>
               </CardRow>
         {/each}
-      </ul>
+      </ListContainer>
     {:else if searched}
       <p class="ow-gate-note">No existing org matches “{orgName.trim() || domain}”.</p>
     {:else if entry}

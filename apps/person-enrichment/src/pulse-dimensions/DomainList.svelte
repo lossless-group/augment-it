@@ -7,6 +7,7 @@
 
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import type { OrgDomain } from '../lib/types';
 
   let {
@@ -48,7 +49,7 @@
 <section class="pd-section">
   <h3 class="pd-title">{label}</h3>
   {#if domains.length > 0}
-    <div class="pd-stack">
+    <ListContainer gap="sm">
       {#each domains as _d, i (i)}
         <CardRow density="compact">
           <!-- rung 0: .pd-domain-row is a 4-TRACK GRID — same story as LinkList. -->
@@ -84,7 +85,7 @@
           </span>
         </CardRow>
       {/each}
-    </div>
+    </ListContainer>
   {/if}
   <Button variant="outline" size="sm" onclick={add} class="pd-add">
     + add domain

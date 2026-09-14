@@ -2,6 +2,7 @@
   import { records } from '../state/records.svelte';
   import RecordRow from './RecordRow.svelte';
   import PromoteBar from './PromoteBar.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
 </script>
 
 <section class="records-list-wrap">
@@ -28,13 +29,13 @@
     <p class="records-list-muted">no rows in the active record set</p>
   {:else}
     <PromoteBar position="top" />
-    <ul class="records-list">
+    <ListContainer as="ul" gap="sm" label="Records in the active record set">
       {#each records.rows as row (row.row_id)}
-        <li class="records-list-item">
+        <li>
           <RecordRow {row} />
         </li>
       {/each}
-    </ul>
+    </ListContainer>
     <PromoteBar position="bottom" />
   {/if}
 </section>
@@ -53,6 +54,4 @@
   }
   .records-list-muted { color: var(--color-text-muted); }
   .records-list-error { color: var(--color-error-text); }
-  .records-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
-  .records-list-item { display: block; }
 </style>

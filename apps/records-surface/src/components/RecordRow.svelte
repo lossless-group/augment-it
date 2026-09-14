@@ -2,6 +2,7 @@
   import type { Row } from '@augment-it/workspace';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import ConnectorButton from './ConnectorButton.svelte';
   import CandidatesPanel from './CandidatesPanel.svelte';
   import EditableField from './EditableField.svelte';
@@ -123,7 +124,7 @@
   </header>
 
   {#if accepted.length > 0}
-    <ul class="record-row-accepted-list">
+    <ListContainer as="ul" gap="sm" label="Accepted URLs">
       {#each accepted as a (a)}
         <li class="record-row-accepted">
           <span class="record-row-accepted-label">accepted:</span>
@@ -144,7 +145,7 @@
           </Button>
         </li>
       {/each}
-    </ul>
+    </ListContainer>
   {/if}
 
   <div class="record-row-connectors">
@@ -199,14 +200,6 @@
     font-size: 0.85rem;
   }
   .record-row-url-open:hover { color: var(--color-text); }
-  .record-row-accepted-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
   .record-row-accepted {
     padding: 0.4rem 0.6rem;
     background: var(--color-ok-bg, rgba(40, 160, 60, 0.1));

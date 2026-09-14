@@ -1,6 +1,7 @@
 <script lang="ts">
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import SelectWrapperClickPrimary from '@augment-it/shared-ui/SelectWrapper--ClickPrimary.svelte';
   import type { FireResult } from '../types';
 
@@ -50,7 +51,7 @@
   {:else if result.candidates.length === 0}
     <p class="candidates-empty">No URLs returned.</p>
   {:else}
-    <ul class="candidates-list">
+    <ListContainer as="ul" gap="sm" label="Candidate URLs from {result.connector_id}">
       {#each result.candidates as c (c.url)}
         <li>
           <!-- The candidate row is the member's selection surface: a connector
@@ -93,7 +94,7 @@
           </CardRow>
         </li>
       {/each}
-    </ul>
+    </ListContainer>
   {/if}
 
   <div class="candidates-custom">
@@ -140,7 +141,6 @@
   .candidates-empty {
     color: var(--color-text-muted);
   }
-  .candidates-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
   /* `.candidate-item` is gone: the two-column grid, the padding and the
      baseline alignment are all <CardRow>. So is `.rs-candidate-edit` — the
      `edit` Button no longer needs justify-self:end, because CardRow's flex row

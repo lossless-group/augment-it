@@ -9,6 +9,7 @@
 
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { fetchOrgRoster } from './lib/org-client';
   import type { OrgRosterRow } from './lib/types';
@@ -99,7 +100,7 @@
   {:else if visible.length === 0}
     <p class="ow-roster-note">no orgs match</p>
   {:else}
-    <ul class="ow-roster-list">
+    <ListContainer as="ul" gap="sm" label="Organizations in this workspace">
       {#each visible as r (r.slug)}
         <CardRow as="li" density="compact" selected={r.slug === activeSlug}>
             <SelectWrapperClickBody
@@ -121,6 +122,6 @@
           </SelectWrapperClickBody>
         </CardRow>
       {/each}
-    </ul>
+    </ListContainer>
   {/if}
 </aside>

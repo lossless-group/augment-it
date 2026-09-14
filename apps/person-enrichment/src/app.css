@@ -204,11 +204,6 @@
   letter-spacing: 0;
 }
 
-.pd-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
 .pd-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -343,19 +338,18 @@
 }
 
 /* Surface-level: the stacked "what wrote where" log below the actions */
+/* rung 0 — the log's CHROME and its height cap. The list reset, the gap and the
+   scrolling are <ListContainer>'s now; what is left is the box the list sits in
+   and a bound the layout exposes no prop for. */
 .pe-savelog-stack {
-  list-style: none;
-  margin: 0.6rem 0 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  max-height: 18rem;
-  overflow-y: auto;
+  margin-block-start: var(--space-lg);
+  max-block-size: 18rem;
   border: 1px solid var(--color-border);
   background: var(--color-surface-raised);
   border-radius: 3px;
-  padding: 0.4rem 0.6rem;
+  padding: var(--space-2xs) var(--space-xs);
 }
 /* rung 0 — the log line's tracks. ONE recipe now: .pe-savelog-row and
    .pe-summary-row were byte-identical 4-track grids in two components. Both are
@@ -410,15 +404,12 @@
   color: var(--color-accent);
   font-size: 12px;
 }
-.pe-summary-list {
-  list-style: none;
-  margin: 0 0 0.6rem;
-  padding: 0;
+/* rung 0 — see .pe-savelog-stack: the cap is the member's, the list is not. */
+.pe-summary-scroll {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  max-height: 24rem;
-  overflow-y: auto;
+  margin-block-end: var(--space-lg);
+  max-block-size: 24rem;
 }
 .pe-summary-icon[data-state='ok']      { color: var(--color-ok-text); font-weight: 700; }
 .pe-summary-icon[data-state='err']     { color: var(--color-error-text); font-weight: 700; }
@@ -446,11 +437,6 @@
   gap: 0.5rem;
   padding-top: 0.6rem;
   border-top: 1px solid var(--color-border);
-}
-.pe-affiliations-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
 }
 
 /* Collapsed-pill view */

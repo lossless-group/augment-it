@@ -11,6 +11,7 @@
 
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { fetchOrgCandidates, createOrg, addOrgLink } from './lib/org-client';
   import type { OrgCandidate } from './lib/types';
@@ -114,7 +115,7 @@
         <p class="ow-gate-note">
           Existing organizations that might be “{name}” — open one instead of creating a duplicate:
         </p>
-        <ul class="ow-gate-list">
+        <ListContainer as="ul" gap="sm" label="Existing organizations that might match">
           {#each candidates as c (c.slug)}
             <CardRow as="li" density="compact">
                 <SelectWrapperClickBody
@@ -133,7 +134,7 @@
                 </SelectWrapperClickBody>
                 </CardRow>
           {/each}
-        </ul>
+        </ListContainer>
       {:else}
         <p class="ow-gate-note">No existing organization matches “{name}”.</p>
       {/if}

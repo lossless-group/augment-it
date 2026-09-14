@@ -8,6 +8,7 @@
 
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { fetchPersonCandidates, applyPerson, affiliatePerson } from './lib/org-client';
   import type { PersonCandidate, PersonNormRecord } from './lib/types';
@@ -108,7 +109,7 @@
       <div class="ow-gate">
         {#if candidates.length > 0}
           <p class="ow-gate-note">Existing persons that might be “{name}” — pick one or create new:</p>
-          <ul class="ow-gate-list">
+          <ListContainer as="ul" gap="sm" label="Existing persons that might match">
             {#each candidates as c (c.person_uuid)}
               <CardRow as="li" density="compact">
                   <SelectWrapperClickBody
@@ -123,7 +124,7 @@
                   </SelectWrapperClickBody>
                   </CardRow>
             {/each}
-          </ul>
+          </ListContainer>
         {:else}
           <p class="ow-gate-note">No existing person matches “{name}”.</p>
         {/if}

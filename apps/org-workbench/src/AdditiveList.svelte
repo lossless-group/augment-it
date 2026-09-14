@@ -12,6 +12,7 @@
 
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import type { ShapedLink } from './lib/types';
 
   type Entry = ShapedLink & { name?: string };
@@ -243,7 +244,7 @@
   {#if entries.length === 0}
     <p class="ow-empty">none yet</p>
   {:else}
-    <ul class="ow-entries">
+    <ListContainer as="ul" gap="sm" label="{title} entries">
       {#each entries as e (e.url + e.added_at)}
         <li class="ow-entry">
           {#if onedit && editUrl === e.url}
@@ -351,7 +352,7 @@
           {/if}
         </li>
       {/each}
-    </ul>
+    </ListContainer>
   {/if}
 
   {#if kindSuggestions?.length}

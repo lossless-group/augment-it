@@ -6,6 +6,7 @@
 
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import type { Link, LinkKind } from '../lib/types';
 
   let {
@@ -78,7 +79,7 @@
 <section class="pd-section">
   <h3 class="pd-title">{label}</h3>
   {#if links.length > 0}
-    <div class="pd-stack">
+    <ListContainer gap="sm">
       {#each links as _link, i (i)}
         <CardRow density="compact">
           <!-- rung 0: .pd-link-row is a 3-TRACK GRID. CardRow hard-codes
@@ -110,7 +111,7 @@
           </span>
         </CardRow>
       {/each}
-    </div>
+    </ListContainer>
   {/if}
   <Button variant="outline" size="sm" onclick={add} class="pd-add">
     + add link

@@ -16,6 +16,7 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   // Spelled variant, per the decision doc: the file name says which axis this
   // picks (what you click), and `rg 'SelectWrapper--'` is the whole query.
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
@@ -150,33 +151,41 @@
       specimen has its own address there.
     </p>
 
-    <div class="lib-cards">
-      {#each MEMBER_LIBRARIES as member (member.id)}
-        <CardRow direction="column" density="compact">
-          <SelectWrapperClickBody
-            label={`Open the ${member.name} library`}
-            onselect={() => (selected = { kind: 'member', lib: member })}
-          >
-            <!-- The wrapper's button is inline-flex on the ROW axis, and this
-                 card's label stacks — so one slot child owns the stacking.
-                 Rung 0: placement, in the only place that knows the shape. -->
-            <span class="lib-card-main">
-              <span class="lib-card-head">
-                <strong>{member.name}</strong>
-                <code>.{member.prefix}-*</code>
+    <!-- rung 0: the OUTER margin is the page's, not the layout's — ListContainer
+         owns the tracks, the stretch and the gap, and exposes no margin. -->
+    <div class="lib-cards-slot">
+      <ListContainer layout="grid" gap="sm" trackMin="280px">
+        {#each MEMBER_LIBRARIES as member (member.id)}
+          <!-- NO `direction` HERE. `layout="grid"` publishes `column` through
+               context, which is the whole point of the container owning it: a
+               tile is a CardRow in a narrow track, and the track is the
+               container's fact, not the card's. -->
+          <CardRow density="compact">
+            <SelectWrapperClickBody
+              label={`Open the ${member.name} library`}
+              onselect={() => (selected = { kind: 'member', lib: member })}
+            >
+              <!-- The wrapper's button is inline-flex on the ROW axis, and this
+                   card's label stacks — so one slot child owns the stacking.
+                   Rung 0: placement, in the only place that knows the shape. -->
+              <span class="lib-card-main">
+                <span class="lib-card-head">
+                  <strong>{member.name}</strong>
+                  <code>.{member.prefix}-*</code>
+                </span>
+                <span class="lib-card-summary">{member.summary}</span>
               </span>
-              <span class="lib-card-summary">{member.summary}</span>
-            </span>
-          </SelectWrapperClickBody>
-          <!-- The sibling control the --ClickBody contract exists for. It carries
-               position:relative so it sits ABOVE the click overlay and stays
-               clickable; the component hit-tests for exactly this and console-
-               errors if it is buried. -->
-          <a class="lib-link" href={`${member.origin}/#/gallery`} target="_blank" rel="noopener noreferrer">
-            {member.origin} ↗
-          </a>
-        </CardRow>
-      {/each}
+            </SelectWrapperClickBody>
+            <!-- The sibling control the --ClickBody contract exists for. It carries
+                 position:relative so it sits ABOVE the click overlay and stays
+                 clickable; the component hit-tests for exactly this and console-
+                 errors if it is buried. -->
+            <a class="lib-link" href={`${member.origin}/#/gallery`} target="_blank" rel="noopener noreferrer">
+              {member.origin} ↗
+            </a>
+          </CardRow>
+        {/each}
+      </ListContainer>
     </div>
 
     <p class="note">

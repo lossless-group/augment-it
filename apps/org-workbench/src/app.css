@@ -78,7 +78,6 @@
 .ow-roster-head { display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem; border-bottom: 1px solid var(--color-border, #2a2c33); }
 .ow-roster-filter { flex: 1; min-width: 0; box-sizing: border-box; background: var(--color-bg, #14151a); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; padding: 0.35rem 0.55rem; font: inherit; font-size: 0.85rem; }
 .ow-roster-note { padding: 0.75rem; margin: 0; color: var(--color-text-muted, #9aa0aa); font-size: 0.85rem; }
-.ow-roster-list { margin: 0; padding: 0.25rem; list-style: none; overflow-y: auto; }
 /* rung 0 — the roster row stacks name over counts inside its CardRow. */
 .ow-roster-stack { display: flex; flex-direction: column; gap: 0.1rem; flex: 1; min-width: 0; }
 .ow-roster-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; }
@@ -110,7 +109,6 @@
 .ow-add-url { flex: 2; min-width: 0; background: var(--color-bg, #14151a); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 4px; padding: 0.35rem 0.5rem; font: inherit; }
 .ow-add-kind { flex: 1; min-width: 0; background: var(--color-bg, #14151a); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 4px; padding: 0.35rem 0.5rem; font: inherit; }
 
-.ow-entries { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.3rem; }
 .ow-entry { display: flex; align-items: baseline; gap: 0.6rem; font-size: 0.85rem; min-width: 0; }
 .ow-url { color: var(--color-link, #8ab4f8); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 auto; }
 .ow-url:hover { text-decoration: underline; }
@@ -121,13 +119,8 @@
 
 /* people reveal (Phase 4) */
 .ow-people { border-top: 1px solid var(--color-border, #2a2c33); padding-top: 0.75rem; }
-.ow-people-list { list-style: none; margin: 0.5rem 0 0.75rem; padding: 0; display: grid; gap: 0.35rem; }
 /* rung 0 — the person row reads on one baseline inside its CardRow. */
 .ow-person-line { display: flex; align-items: baseline; gap: 0.6rem; flex: 1; min-width: 0; }
-/* Grid/flex children default to min-width:auto and won't shrink below their
-   content — a long nowrap role pushed person rows (and list entries) wider
-   than the card. Zero it down the chains so the ellipsis rules can work. */
-.ow-people-list > *, .ow-entries > *, .ow-gate-list > * { min-width: 0; }
 .ow-person-name { font-size: 0.88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .ow-person-role { color: var(--color-text-muted, #9aa0aa); font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 0 1 auto; }
 /* Layout only (rung 0) — stop the relevance Chip shrinking in the person row.
@@ -144,7 +137,6 @@
 .ow-addperson-actions { display: flex; align-items: center; gap: 0.5rem; }
 .ow-gate { margin-top: 0.5rem; }
 .ow-gate-note { color: var(--color-text-muted, #9aa0aa); font-size: 0.8rem; margin: 0 0 0.4rem; }
-.ow-gate-list { list-style: none; margin: 0 0 0.5rem; padding: 0; display: grid; gap: 0.3rem; }
 /* rung 0 — the candidate line wraps inside its CardRow (CardRow does not wrap). */
 .ow-gate-pick { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; font-size: 0.82rem; flex: 1; min-width: 0; }
 .ow-gate-headline { color: var(--color-text-muted, #9aa0aa); font-size: 0.75rem; }
