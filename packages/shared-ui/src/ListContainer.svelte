@@ -70,6 +70,15 @@
      */
     stickyHeader?: boolean;
     /**
+     * Draw a hairline under the header.
+     *
+     * Three of four members in the first sweep had one, deleted it with their own
+     * header recipe, and had no way to get it back — `class=` lands on the rows
+     * element, not the header. Their dividers were drawn with `--color-border` at
+     * ~1.26:1 anyway, under the non-text floor; this uses `--color-border-strong`.
+     */
+    headerDivider?: boolean;
+    /**
      * Cap the rows region's height so `overflow-y: auto` has something to scroll
      * against. Without it the layout owned the scrolling and the member still
      * owned the bound, which made "ListContainer owns the scroll region" half
@@ -99,6 +108,7 @@
     gap = 'sm',
     trackMin = '280px',
     stickyHeader = false,
+    headerDivider = false,
     maxBlockSize,
     label,
     header,
@@ -138,7 +148,11 @@
 
 <div class="ui-listcontainer" data-layout={layout}>
   {#if header}
-    <div class="ui-listcontainer__header" data-sticky={stickyHeader || undefined}>
+    <div
+      class="ui-listcontainer__header"
+      data-sticky={stickyHeader || undefined}
+      data-divider={headerDivider || undefined}
+    >
       {@render header()}
     </div>
   {/if}
@@ -177,12 +191,28 @@
        override it. A layout inherits the surface it is placed on. */
   }
 
+  .ui-listcontainer__header[data-divider] {
+    border-block-end: 1px solid var(--color-border-strong);
+  }
+
+  /* BEFORE REACHING FOR THIS, CHECK WHETHER YOU NEED IT. The rows element is
+     already the scroll container, so a header placed outside it is pinned
+     STRUCTURALLY and needs no sticky at all. One member in the first sweep
+     reached for sticky, then made the rows region scroll instead and deleted it —
+     which is the better pattern and the one this layout is shaped for. `sticky`
+     is for a header whose scrolling ancestor is somewhere else entirely. */
   .ui-listcontainer__header[data-sticky] {
     position: sticky;
     inset-block-start: 0;
     z-index: var(--z-sticky);
-    /* Only a PINNED header needs to occlude what scrolls under it. */
-    background: inherit;
+    /* A pinned header MUST occlude what scrolls under it. This used to be
+       `background: inherit`, and `.ui-listcontainer` declares no background, so
+       inherit resolved to transparent and content scrolled visibly through the
+       header — the fix for the original hardcoded-background bug reintroduced the
+       same symptom by a different route.
+       --color-surface is the panel most lists sit on; override the custom
+       property when yours does not. */
+    background: var(--ui-list-header-bg, var(--color-surface));
   }
 
   .ui-listcontainer__rows {
