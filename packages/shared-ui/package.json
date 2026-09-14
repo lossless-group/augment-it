@@ -10,6 +10,7 @@
     "./ConfidencePill.svelte": "./src/ConfidencePill.svelte",
     "./CountBadge.svelte": "./src/CountBadge.svelte",
     "./DisclosureRow.svelte": "./src/DisclosureRow.svelte",
+    "./ExternalLink.svelte": "./src/ExternalLink.svelte",
     "./ListContainer.svelte": "./src/ListContainer.svelte",
     "./MenuItem.svelte": "./src/MenuItem.svelte",
     "./SearchBox--Autocomplete.svelte": "./src/SearchBox--Autocomplete.svelte",
