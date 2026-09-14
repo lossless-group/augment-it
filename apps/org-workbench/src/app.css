@@ -1,7 +1,9 @@
-/* THE ROW HOLDOUT, now down to ONE (referenced from the rule-set below).
-   .ow-search-item stays a raw <button>: it is a combobox option inside a
-   popover, not an object card, and the listbox it lives in needs role="option"
-   semantics that CardRow does not carry. Raised, not forked.
+/* THE ROW HOLDOUT IS GONE. It was .ow-search-item — "a combobox option inside a
+   popover, not an object card, and the listbox it lives in needs role=option
+   semantics that CardRow does not carry." That was the correct read, and the
+   organ it was waiting for is SearchBox--Autocomplete, which owns the option's
+   role, its aria-selected, and the keyboard that was never here. The <button>
+   the row was made of is gone with it — a combobox option must NOT be focusable.
 
    .ow-roster-row, .ow-person-row and .ow-gate-pick are GONE — they were the
    "missing organ (a Row / selectable list item)" this file raised during the
@@ -36,16 +38,16 @@
    class used to paint is now the Chip's tone. */
 .ow-ws { margin-inline-start: auto; }
 
-/* search */
+/* search — layout only (rung 0). SearchBox--Autocomplete draws the input, the
+   popover and the option rows inside its own scoped <style>; the input recipe,
+   the busy glyph, the dropdown box and the option button that used to live here
+   all went with it, along with the raw z-index the dropdown carried. */
 .ow-search-row { display: flex; align-items: center; gap: 0.5rem; }
 .ow-search-row .ow-search { flex: 1; }
-.ow-search { position: relative; margin-top: 0.6rem; }
-.ow-search-input { width: 100%; box-sizing: border-box; background: var(--color-surface, #1c1e25); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; padding: 0.5rem 0.75rem; font: inherit; }
-.ow-search-busy { position: absolute; right: 0.75rem; top: 0.5rem; color: var(--color-text-muted, #9aa0aa); }
-.ow-search-drop { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5; margin: 0; padding: 0.25rem; list-style: none; background: var(--color-surface, #1c1e25); border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; box-shadow: var(--fx-popover-shadow); max-height: 18rem; overflow-y: auto; }
-/* ROW HOLDOUT — see the note at the top of this file. */
-.ow-search-item { display: flex; justify-content: space-between; gap: 0.75rem; width: 100%; text-align: left; background: none; border: none; color: inherit; font: inherit; padding: 0.45rem 0.6rem; border-radius: 4px; cursor: pointer; }
-.ow-search-item:hover { background: var(--color-border, #2a2c33); }
+.ow-search { margin-top: 0.6rem; }
+/* The option's two columns. The component's option row is a flex container that
+   centres one child; this is the child, and it owns the name/slug split. */
+.ow-search-option { display: flex; justify-content: space-between; gap: 0.75rem; width: 100%; min-width: 0; }
 .ow-search-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ow-search-slug { color: var(--color-text-muted, #9aa0aa); font-size: 0.75rem; flex-shrink: 0; }
 

@@ -49,7 +49,11 @@ export const workspace = {
   connect: refuse('connect'),
   disconnect: refuse('disconnect'),
   chatTurn: refuse('chatTurn'),
-  async invoke(capability: string) {
+  async invoke(capability: string, args?: Record<string, unknown>) {
+    if (capability === 'resolver.search') {
+      const q = String(args?.q ?? '');
+      return { ok: true, candidates: searchHook.handler ? await searchHook.handler(q) : [] };
+    }
     if (capability in READS) return READS[capability];
     throw new Error(`stub-workspace: refusing capability ${capability} — not a whitelisted read`);
   },
@@ -63,3 +67,14 @@ export const WORKSPACE_CHANGED_EVENT = 'augment-it:workspace-changed';
 export function resolveWsUrl(): string {
   throw new Error('stub-workspace: refusing to resolve a socket URL');
 }
+
+/**
+ * resolver.search — the capability OrgSearch's autocomplete rides.
+ *
+ * A test installs a per-term behaviour here rather than mutating READS, so the
+ * timing of two overlapping lookups is controllable. Left unset it returns no
+ * candidates, which is what every other test in this member wants.
+ */
+export const searchHook = {
+  handler: undefined as undefined | ((q: string) => Promise<unknown[]>),
+};

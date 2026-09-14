@@ -29,8 +29,10 @@
   // that organ shipped as <CardRow> + <SelectWrapper--ClickBody>. The `source-row`
   // specimen below is now a usage catalog of those two components, which is why
   // it still exists: the specimen that documented the holdout should be the one
-  // that documents its resolution. ONE control is still raw — the suggestion
-  // option — and it carries its reasoning in app.css.
+  // that documents its resolution. The LAST raw control — the suggestion option —
+  // is raw no longer: `.cc-tag-suggest button` wanted "a combobox listbox
+  // option, which nobody has built", and that organ shipped as
+  // <SearchBox--LiveFilter>. Nothing in this member is hand-rolled now.
   //
   // So they get catalogued as first-class entries, as markup rather than as
   // components. Each snippet takes the resolved props object, so the gallery's
@@ -42,11 +44,31 @@
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import SearchBoxLiveFilter from '@augment-it/shared-ui/SearchBox--LiveFilter.svelte';
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { CONNECTION_TONE, type ConnStatus } from '../types';
 
   // Every connection state, in the order the divergence is easiest to read.
   const CONN_STATES: ConnStatus[] = ['open', 'connecting', 'auth_required', 'closed', 'error', 'idle'];
+
+  // Types a query into a freshly-mounted SearchBox so the Suggesting fixture
+  // shows the real popup. Drives the component through the same `input` event a
+  // keystroke would, so nothing here depends on its internals beyond "it renders
+  // one text input".
+  function seedQuery(node: HTMLElement, q: string) {
+    if (!q) return;
+    const el = node.querySelector('input');
+    if (!el) return;
+    el.value = q;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  // The specimen's vocabulary. A real one comes from the workspace summary.
+  const SPECIMEN_TAGS = [
+    { id: 'Employer-Partnerships', label: 'Employer-Partnerships' },
+    { id: 'Employment-Outcomes', label: 'Employment-Outcomes' },
+    { id: 'Rural-Access', label: 'Rural-Access' },
+  ];
 
   export {
     buttons,
@@ -156,17 +178,18 @@
            differing by a boolean. -->
       <Chip size="sm">Rural-Access</Chip>
     </div>
-    {#if p.suggesting}
-      <div class="cc-tag-input">
-        <input value="Emp" />
-        <div class="cc-tag-suggest">
-          <button>Employer-Partnerships</button>
-          <button>Employment-Outcomes</button>
-        </div>
+    <!-- The specimen tracks the real surface: the raw input plus the
+         `.cc-tag-suggest` stack of <button>s is gone from TagBar and
+         CorpusPicker, so it is gone from here. The `suggesting` fixture opens
+         the component's OWN popup the way a user does — by typing — rather than
+         drawing an imitation of it. Both variants keep their query private, so
+         `seedQuery` is the specimen's way in and is deliberately not a pattern
+         for a real surface to copy. -->
+    {#key p.suggesting}
+      <div use:seedQuery={p.suggesting ? 'Emp' : ''}>
+        <SearchBoxLiveFilter options={SPECIMEN_TAGS} label="add a tag" placeholder="add a tag…" />
       </div>
-    {:else}
-      <div class="cc-tag-input"><input placeholder="add a tag…" /></div>
-    {/if}
+    {/key}
   </div>
 {/snippet}
 

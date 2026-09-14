@@ -1,8 +1,18 @@
 <script lang="ts">
-  // Smart org search — debounced autocomplete over resolver.search, which
-  // (since spec D4) matches names, slug, aliases, and domains. "Kinda smart":
-  // contains-matching server-side, LIMIT 8; the operator picks with a click.
+  // Smart org search — autocomplete over resolver.search, which (since spec D4)
+  // matches names, slug, aliases, and domains. "Kinda smart": contains-matching
+  // server-side, LIMIT 8; the operator picks with a click or with the keyboard.
+  //
+  // THE KEYBOARD, THE DEBOUNCE AND THE STALE GUARD ARE NO LONGER HERE.
+  // This member declared role="listbox" with no keydown handler at all, so every
+  // arrow key was a promise to a screen-reader user that nothing kept. It also
+  // hand-rolled `if (term === q.trim())` — correct on the success path, and
+  // absent from the catch, so a rejection for a query the operator had already
+  // moved past wiped the newer query's results and painted an error over them.
+  // SearchBox--Autocomplete owns all three. See
+  // context-v/specs/SearchBox-LiveFilter-And-Autocomplete.md.
 
+  import SearchBoxAutocomplete from '@augment-it/shared-ui/SearchBox--Autocomplete.svelte';
   import { searchOrgs } from './lib/org-client';
   import type { OrgSuggestion } from './lib/types';
 
@@ -18,69 +28,52 @@
     onquery?: (q: string) => void;
   } = $props();
 
-  const DEBOUNCE_MS = 300;
+  type OrgOption = { id: string; label: string; org: OrgSuggestion };
 
-  let q = $state('');
-  let suggestions = $state<OrgSuggestion[]>([]);
-  let searching = $state(false);
-  let error = $state<string | null>(null);
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  // The component hands back an id; this is how the row gets back to its org.
+  // Rebuilt per lookup, so it can only ever hold what is currently on screen.
+  let byId = new Map<string, OrgSuggestion>();
 
-  function onInput() {
-    error = null;
-    if (timer) clearTimeout(timer);
-    const trimmed = q.trim();
-    onquery?.(trimmed);
-    if (trimmed.length < 2) {
-      suggestions = [];
-      return;
-    }
-    timer = setTimeout(() => void fire(trimmed), DEBOUNCE_MS);
+  const nameOf = (o: OrgSuggestion) => o.complete_name ?? o.conventional_name ?? o.slug;
+
+  async function lookup(term: string): Promise<OrgOption[]> {
+    const results = await searchOrgs(term, client);
+    byId = new Map(results.map((o) => [o.slug, o]));
+    return results.map((o) => ({ id: o.slug, label: nameOf(o), org: o }));
   }
 
-  async function fire(term: string) {
-    searching = true;
-    try {
-      const results = await searchOrgs(term, client);
-      // A slower earlier fire must not clobber a newer term's results.
-      if (term === q.trim()) suggestions = results;
-    } catch (err) {
-      error = err instanceof Error ? err.message : String(err);
-      suggestions = [];
-    } finally {
-      searching = false;
-    }
+  function onselect(id: string) {
+    const org = byId.get(id);
+    if (org) onpick(org);
   }
 
-  function pick(org: OrgSuggestion) {
-    suggestions = [];
-    q = org.complete_name ?? org.conventional_name ?? org.slug;
-    onpick(org);
+  // `onquery` CANNOT be passed to the component. SearchBox--Autocomplete spreads
+  // `{...rest}` AFTER its own `{oninput}`, so a member-supplied `oninput` lands
+  // on SearchBoxCore and REPLACES the debounce-and-guard driver — silently, with
+  // no type error and a widget that simply stops searching. A bubbling listener
+  // on the wrapper reads the same keystrokes without touching the component's
+  // contract. Raised, not worked around inside packages/.
+  function relayQuery(e: Event) {
+    const el = e.target as HTMLInputElement | null;
+    if (el?.tagName === 'INPUT') onquery?.(el.value.trim());
   }
 </script>
 
-<div class="ow-search">
-  <input
-    class="ow-search-input"
-    type="search"
+<div class="ow-search" oninput={relayQuery}>
+  <SearchBoxAutocomplete
+    {lookup}
+    {onselect}
+    label="Search organizations"
     placeholder="Search organizations — name, alias, or domain…"
-    bind:value={q}
-    oninput={onInput}
-    autocomplete="off"
+    minLength={2}
+    debounceMs={300}
     spellcheck="false"
-  />
-  {#if searching}<span class="ow-search-busy">…</span>{/if}
-  {#if error}<div class="ow-error">{error}</div>{/if}
-  {#if suggestions.length > 0}
-    <ul class="ow-search-drop" role="listbox">
-      {#each suggestions as s (s.slug)}
-        <li>
-          <button type="button" class="ow-search-item" onclick={() => pick(s)}>
-            <span class="ow-search-name">{s.complete_name ?? s.conventional_name ?? s.slug}</span>
-            <span class="ow-search-slug">{s.slug}</span>
-          </button>
-        </li>
-      {/each}
-    </ul>
-  {/if}
+  >
+    {#snippet option(o)}
+      <span class="ow-search-option">
+        <span class="ow-search-name">{o.label}</span>
+        <span class="ow-search-slug">{o.id}</span>
+      </span>
+    {/snippet}
+  </SearchBoxAutocomplete>
 </div>

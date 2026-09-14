@@ -3,7 +3,9 @@
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
+  import SearchBoxLiveFilter from '@augment-it/shared-ui/SearchBox--LiveFilter.svelte';
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
+  import { tick } from 'svelte';
   import { curation, slugify, splitTags } from './curation.svelte';
 
   // Mirrors content-ingest's DOMAIN_FOLDERS (services/content-ingest/src/
@@ -34,9 +36,18 @@
     const preferred = curation.domainType;
     if (!typeEdited) type = preferred;
   });
+  // The same organ, the same variant, the same reasoning as TagBar: the options
+  // were a synchronous filter over `curation.tagVocab`, so --LiveFilter. The one
+  // thing this surface does that TagBar does not is accept a COMMA-SEPARATED
+  // entry ("Rural-Access, Employer-Partnerships"), and that stays in `addTag`
+  // where it has always been — the widget picks one option at a time and the
+  // member decides what a picked string means.
   let tagInput = $state('');
   let pendingTags = $state<string[]>([]);
-  let tagSuggest = $derived(curation.suggestTags(tagInput));
+  const tagOptions = $derived(curation.tagVocab.map((t) => ({ id: t, label: t })));
+  // See TagBar for why this remount exists. Same missing prop, same deviation.
+  let tagResetToken = $state(0);
+  let tagWrapEl = $state<HTMLElement | null>(null);
 
   function onTitle(v: string): void {
     title = v;
@@ -52,6 +63,17 @@
       if (!pendingTags.includes(tt)) pendingTags = [...pendingTags, tt];
     }
     tagInput = '';
+    tagResetToken += 1;
+    void tick().then(() => tagWrapEl?.querySelector('input')?.focus());
+  }
+  // See TagBar for why the member's Enter listens one level up and reads
+  // `defaultPrevented` rather than passing `onkeydown` to the component.
+  function onTagEnter(e: KeyboardEvent): void {
+    if (e.key !== 'Enter' || e.defaultPrevented) return;
+    // Guard BEFORE preventDefault — see TagBar.
+    if (!tagInput.trim()) return;
+    e.preventDefault();
+    addTag(tagInput);
   }
   function removeTag(t: string): void {
     pendingTags = pendingTags.filter((x) => x !== t);
@@ -67,6 +89,7 @@
     type = curation.domainType;
     pendingTags = [];
     tagInput = '';
+    tagResetToken += 1;
   }
 </script>
 
@@ -148,19 +171,26 @@
         <Chip size="sm" dismissible dismissLabel="remove tag {t}" onDismiss={() => removeTag(t)}>{t}</Chip>
       {/each}
     </div>
-    <div class="cc-tag-input">
-      <input
-        placeholder="add a tag…"
-        bind:value={tagInput}
-        onkeydown={(e) => { if (e.key === 'Enter' && tagInput.trim()) addTag(tagInput); }}
-      />
-      {#if tagInput.trim() && tagSuggest.length}
-        <!-- Left raw: these are listbox options, not buttons. See the
-             .cc-tag-suggest rule in app.css. -->
-        <div class="cc-tag-suggest">
-          {#each tagSuggest as sug}<button onclick={() => addTag(sug)}>{sug}</button>{/each}
-        </div>
-      {/if}
+    <!-- Rung 0: the wrapper catches the bubbled Enter, because a tag that
+         matches nothing is still a valid tag here, and holds the handle used to
+         re-focus after the remount. See the long note in TagBar. -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <!-- The rule is right about the shape and wrong about this case. The wrapper
+       is not an interactive element — it never takes focus, has no role, and
+       handles nothing of its own. It is a DELEGATION point: the Enter that
+       reaches it was dispatched at the combobox input inside, and bubbled.
+       Giving this div a role to satisfy the lint would invent a second widget
+       around the one that already exists. -->
+  <div bind:this={tagWrapEl} onkeydown={onTagEnter}>
+      {#key tagResetToken}
+        <SearchBoxLiveFilter
+          options={tagOptions}
+          label="add a tag"
+          placeholder="add a tag…"
+          oninput={(t: string) => (tagInput = t)}
+          onselect={(id: string) => addTag(id)}
+        />
+      {/key}
     </div>
   </div>
 

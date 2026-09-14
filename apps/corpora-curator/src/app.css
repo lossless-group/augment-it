@@ -143,8 +143,11 @@
    not exist yet", and that organ shipped as <CardRow> + <SelectWrapper
    --ClickBody>. See their rules below for what each adoption deleted.
 
-   One is still raw: .cc-tag-suggest button. The organ it wants is a combobox
-   listbox option, which nobody has built. */
+   The THIRD is raw no longer. `.cc-tag-suggest button` was "a combobox listbox
+   option, which nobody has built"; that organ shipped as
+   <SearchBox--LiveFilter>, and the four rule-sets it carried — the popup, the
+   option, the option's hover, and `.cc-tag-input`'s `position: relative` — are
+   all deleted below. NOTHING in this member is raw now. */
 
 .cc-app .cc-attached {
   display: flex;
@@ -234,37 +237,25 @@
    .cc-tags survives because it is the wrapping flex row the chips sit IN, and
    layout is the parent's job (rung 0), not a deviation. */
 .cc-app .cc-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; margin-bottom: 0.3rem; }
-.cc-app .cc-tag-input { position: relative; }
-.cc-app .cc-tag-suggest {
-  position: absolute;
-  z-index: 5;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  box-shadow: var(--fx-card-shadow);
-  max-height: 180px;
-  overflow: auto;
-}
-/* Autocomplete options. Left raw because they are listbox options rather than
-   buttons: full-bleed, left-aligned, keyboard-navigated as a set, and the organ
-   they belong to is a combobox this member has not built. `font`, `color`,
-   `cursor` and `padding` moved here from the deleted `.cc-app button` base. */
-.cc-app .cc-tag-suggest button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  border: none;
-  border-radius: 0;
-  background: none;
-  font: inherit;
-  color: var(--color-text);
-  padding: 0.35rem 0.7rem;
-  cursor: pointer;
-}
-.cc-app .cc-tag-suggest button:hover { background: var(--color-selected-tint); }
+/* `.cc-tag-input`, `.cc-tag-suggest`, `.cc-tag-suggest button` and its :hover —
+   all four DELETED by the SearchBox--LiveFilter adoption. Twenty-one
+   declarations, every one now contributed by the component:
+
+     .cc-tag-input     position: relative        → .ui-searchbox
+     .cc-tag-suggest   the whole popup box       → .ui-searchbox__list
+     … button          the full-bleed left row   → .ui-searchbox__option
+     … button:hover    the hover tint            → .ui-searchbox__option:hover
+
+   One of them was also one of this member's two design-drift failures:
+   `z-index: 5`, a raw value under F4. The component spends
+   `var(--z-remote-overlay)` instead, so the gate moves for a real reason rather
+   than because someone tokenised a number in place.
+
+   The options were <button> elements, which is what made this worth doing at
+   all: every suggestion was a native tab stop, so a twelve-suggestion popup made
+   the tag field thirteen tab stops and Tab took the caret out of the input
+   mid-word. Now nothing in the popup is focusable and the active option is named
+   by aria-activedescendant. */
 
 /* ---- extracts ---- */
 .cc-app .cc-extract-add { display: flex; flex-direction: column; gap: 0.4rem; }

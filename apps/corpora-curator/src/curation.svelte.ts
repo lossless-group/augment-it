@@ -532,11 +532,13 @@ class CurationState {
   }
 
   // --- tags (Train-Case, workspace vocabulary, auto-complete) ---
-  suggestTags(prefix: string): string[] {
-    const p = prefix.trim().toLowerCase();
-    if (!p) return this.tagVocab.slice(0, 12);
-    return this.tagVocab.filter((t) => t.toLowerCase().includes(p)).slice(0, 12);
-  }
+  // `suggestTags(prefix)` is DELETED. It was a case-insensitive substring filter
+  // over `tagVocab` plus a `.slice(0, 12)` cap, and both callers (TagBar,
+  // CorpusPicker) now hand the whole of `tagVocab` to
+  // <SearchBox--LiveFilter>, whose default match is the same substring test.
+  // The cap went with it: the component's popup is `max-block-size: 40vh;
+  // overflow-y: auto`, so matches 13+ are now scrollable rather than silently
+  // absent.
 
   async applyTag(raw: string): Promise<void> {
     const f = this.focused;

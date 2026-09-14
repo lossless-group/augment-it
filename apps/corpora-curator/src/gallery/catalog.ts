@@ -195,12 +195,12 @@ export default defineGallery({
           name: 'Tag bar recipe',
           kind: 'pattern',
           status: 'stable',
-          source: 'apps/corpora-curator/src/app.css:189–200',
+          source: 'apps/corpora-curator/src/TagBar.svelte',
           summary:
-            'Train-Case tag chips with a remove affordance, plus the absolutely-positioned autocomplete popover. Only .cc-tags and .cc-tag-suggest are recipes now — the chips themselves are <Chip dismissible>, and the read-only variant that used to be .cc-tag-mini is the same component without the boolean. The popover is the only z-index in the member.',
+            'Train-Case tag chips with a remove affordance, plus the suggestion popup. ONE recipe is left — .cc-tags, the wrapping flex row, which is layout and therefore the parent\'s job. The chips are <Chip dismissible>; the read-only variant that used to be .cc-tag-mini is the same component without the boolean; and the popup is now <SearchBox--LiveFilter>, which took .cc-tag-input, .cc-tag-suggest and .cc-tag-suggest button with it. The member no longer declares a z-index at all.',
           a11y:
-            'Two steps, and the second one trades. First it was “a 12px glyph in a zero-padding button — well under the 24×24 floor”, then a <Button size="icon"> at 28×28. <Chip dismissible> is 24×24: still over the WCAG 2.2 SC 2.5.8 floor, but sitting exactly ON it where the Button sat 4px clear. What it buys is the name. Every × in this member announced the identical "remove tag"; dismissLabel now carries the tag itself, so a row of five tags is five distinguishable controls instead of five identical ones. The glyph is also an inline <svg> rather than a × character, which is the federal icon rule. The input still has no associated <label>.',
-          tokens: ['--color-surface-2', '--color-text-muted', '--color-border-strong', '--control-h-sm', '--icon-sm', '--fx-card-shadow'],
+            'Three steps. The × went from “a 12px glyph in a zero-padding button, well under the 24×24 floor” to <Button size="icon"> at 28×28 to <Chip dismissible> at 24×24 — still over the WCAG 2.2 SC 2.5.8 floor, sitting exactly ON it where the Button sat 4px clear — and what it bought was the name: every × here announced the identical "remove tag", and dismissLabel now carries the tag itself. The third step is the INPUT, and it is the largest. The suggestions were <button> elements, so every one was a native tab stop: twelve suggestions made this field thirteen tab stops, Tab took the caret out of the input mid-word, and ArrowDown did nothing at all because no key handler existed. The input carried no role, so a screen reader announced a plain text field and never mentioned that suggestions had appeared. <SearchBox--LiveFilter> makes it a role="combobox" with aria-expanded, aria-controls naming a listbox that exists, and aria-activedescendant moving while focus stays in the input. The input still has no associated <label> element — it has an aria-label now, which is what the component takes.',
+          tokens: ['--color-surface-2', '--color-text-muted', '--color-border-strong', '--control-h-sm', '--icon-sm', '--z-remote-overlay'],
           snippet: tags,
           controls: { suggesting: { kind: 'boolean', label: 'show suggestions', value: false } },
           fixtures: [
@@ -210,7 +210,7 @@ export default defineGallery({
               name: 'Suggesting',
               props: { suggesting: true },
               width: 420,
-              note: 'z-index: 5, a literal rather than a --z-* token. The Audit tab flags it as F4.',
+              note: 'The popup is the component\'s own, opened by typing. It used to be .cc-tag-suggest at a literal z-index: 5 \u2014 one of this member\'s two F4 drift failures; the component spends --z-remote-overlay, so the failure is gone rather than relocated.',
             },
           ],
         },
