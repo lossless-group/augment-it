@@ -378,6 +378,34 @@ composition *is* the convergence.
 **Leaning:** yes. When this ships, amend the layout issue rather than leaving it
 saying layout is deferred.
 
+### Sharpened by the sweep — `direction` belongs to the container
+
+One member ran four treatments of **identical children** —
+`{row, column} × {280px grid track, full-width list}` — with no member CSS beyond
+container-level rung 0:
+
+| | geometry | result |
+|---|---|---|
+| grid + `row` | 281×172, the two cards disagreeing on internal height (72 vs 154) | **breaks** |
+| grid + `column` | 281×121, both identical | correct |
+| list + `column` | 1152×88 | correct |
+| list + `row` | 1152×57, link beside the body | correct |
+
+**Three of four render cleanly, and the one that breaks is the wrong argument to
+the right component** — not a missing organ. So `Card` is not separate from
+`CardRow`; a tile is a `CardRow` in a narrow track.
+
+The sharper result is *which* thing decides the prop: `direction` is determined
+entirely by **the container's width** and never by the card's content — the two
+correct treatments have the same children. **So `direction` is a prop the
+container should own**, which makes it `ListContainer`'s business rather than a
+per-call-site decision.
+
+Contrast with the table result, which is a genuinely different shape:
+`display: table-row` cannot be a flex container at all, and column alignment is a
+*cross-row* constraint no per-item prop can express. `CardRow`'s tile/row split
+has no such constraint — one flex box, one axis, one prop.
+
 ### When does a pattern become a layout? — operator's framing, and the answer it implies
 
 > *"In Astro, layouts are just components that happen to be in the layout folder.

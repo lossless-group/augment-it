@@ -44,6 +44,17 @@
      *
      * `selected` is a different axis and they compose: a row can be selected AND
      * in error. Pick by what the row MEANS, exactly as Chip's tone works.
+     *
+     * `data-tone` IS A MEMBER-FACING STATE HOOK. It is published on the element,
+     * so a member's own descendants can read state off it —
+     * `[data-tone='error'] .my-icon { … }` — instead of keeping a second copy of
+     * the same state in their own classes. One member deleted three state
+     * classes and a wrapper this way, and in doing so fixed a bug the duplicate
+     * state had been hiding: it had been drawing a warn border over ok-coloured
+     * text, because the two copies had drifted.
+     *
+     * Documented because the next member will otherwise reach for `class=` and
+     * spend a `data-deviation` on something that is not a deviation.
      */
     tone?: 'neutral' | 'ok' | 'warn' | 'error' | 'info';
     /** Visual density. `comfortable` is the default; `compact` for dense tables. */
