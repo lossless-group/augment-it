@@ -27,7 +27,8 @@
     "organ:drift": "node scripts/organ-drift.mjs",
     "organ:record": "node scripts/organ-drift.mjs --record",
     "verify": "node scripts/verify-federation.mjs",
-    "verify:fast": "node scripts/verify-federation.mjs --fast"
+    "verify:fast": "node scripts/verify-federation.mjs --fast",
+    "organ:census": "node scripts/organ-census.mjs"
   },
   "devDependencies": {
     "@module-federation/enhanced": "^2.6.0",
