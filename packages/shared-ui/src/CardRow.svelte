@@ -29,7 +29,7 @@
    * that is SelectWrapper's job, and it has rules about nesting that exist
    * because every row surface in this federation already contains 3-23 controls.
    */
-  import type { Snippet } from 'svelte';
+  import { getContext, type Snippet } from 'svelte';
 
   type Props = {
     /**
@@ -74,6 +74,13 @@
      * KNOWN TRAP: `column` makes an inline-flex child stretch to full width. One
      * probe measured a Button at 1034px inside a 1060px row. Wrap it, or give the
      * child `align-self: flex-start` — rung 0 either way, and no gate catches it.
+     *
+     * DEFAULTS FROM THE CONTAINER. Inside a `<ListContainer>` this is inherited
+     * from its `layout` — `grid` gives `column`, `list` gives `row` — because the
+     * sweep measured that direction is decided by the CONTAINER'S WIDTH and never
+     * by the card's content. Four treatments of identical children: the only one
+     * that breaks is a horizontal row in a narrow track. Pass it explicitly to
+     * override; context is a default, not a mandate.
      */
     direction?: 'row' | 'column';
     /**
@@ -103,11 +110,15 @@
     [key: string]: unknown;
   };
 
+  // A ListContainer publishes the direction its layout implies. Absent one, a
+  // bare CardRow is horizontal, which is what 16 of 18 members render.
+  const listCtx = getContext<{ direction: 'row' | 'column' } | undefined>('ui-list');
+
   let {
     as = 'div',
     tone = 'neutral',
     density = 'comfortable',
-    direction = 'row',
+    direction,
     selected = false,
     style: styleProp,
     class: klass = '',
@@ -130,7 +141,7 @@
   class="ui-cardrow {klass}"
   data-tone={tone}
   data-density={density}
-  data-direction={direction}
+  data-direction={direction ?? listCtx?.direction ?? 'row'}
   data-selected={selected || undefined}
   data-a11y-error={a11yError}
   style={styleProp}

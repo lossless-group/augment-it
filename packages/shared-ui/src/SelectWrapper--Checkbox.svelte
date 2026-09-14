@@ -1,0 +1,110 @@
+<script lang="ts">
+  /**
+   * SelectWrapper--Checkbox — multi-select, with a real checkbox.
+   *
+   * The third variant on the what-you-click axis, and the simplest by a wide
+   * margin: no overlay, no positioning contract, nothing to bury. A real
+   * <input type="checkbox"> inside a real <label> is better than anything this
+   * component could invent — it is keyboard-operable, announces its own state,
+   * and works with every assistive technology without help.
+   *
+   * WHY IT EXISTS ANYWAY: five members hand-roll this shape, and one ships a
+   * checkbox measured at 13x13 — FIFTY-FOUR PERCENT of the WCAG 2.2 SC 2.5.8
+   * 24px floor. A native control is not automatically an accessible one if
+   * nobody sized it.
+   *
+   * MULTI-SELECT, NOT SINGLE. `aria-checked` on a checkbox means "this one is in
+   * the set"; the toggle-button semantics the other two wrappers carry
+   * (`aria-pressed`) are wrong here and deliberately absent. For choose-exactly-
+   * one, that is a radio, and there are currently ZERO radios in the federation —
+   * so it is not built. Shipping ahead of consumers is how the federal layer got
+   * a spacing scale with no adopters.
+   *
+   * THE LABEL WRAPS THE CONTROL. That is what makes the whole row's text a hit
+   * target without any overlay, and it is why this variant has none of
+   * --ClickBody's hazards.
+   */
+  import type { Snippet } from 'svelte';
+
+  type Props = {
+    /** Accessible name. REQUIRED — a checkbox whose only label is a row of text
+        it does not wrap has no name at all. */
+    label: string;
+    checked?: boolean;
+    /** Neither checked nor unchecked — for a "select all" over a partial set. */
+    indeterminate?: boolean;
+    disabled?: boolean;
+    onchange?: (checked: boolean) => void;
+    /** Merged, never replacing the component's own class. */
+    class?: string;
+    children?: Snippet;
+    [key: string]: unknown;
+  };
+
+  let {
+    label,
+    checked = false,
+    indeterminate = false,
+    disabled = false,
+    onchange,
+    class: klass = '',
+    children,
+    ...rest
+  }: Props = $props();
+
+  let input = $state<HTMLInputElement | undefined>();
+
+  // `indeterminate` is a DOM property with no HTML attribute, so it cannot be set
+  // declaratively — a member that tries silently gets nothing.
+  $effect(() => {
+    if (input) input.indeterminate = indeterminate;
+  });
+</script>
+
+<label class="ui-selectcheck {klass}" class:is-disabled={disabled}>
+  <input
+    bind:this={input}
+    type="checkbox"
+    {checked}
+    {disabled}
+    aria-label={children ? undefined : label}
+    onchange={(e) => onchange?.(e.currentTarget.checked)}
+    {...rest}
+  />
+  {#if children}
+    <span class="ui-selectcheck__label">{@render children()}</span>
+  {/if}
+</label>
+
+<style>
+  .ui-selectcheck {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    /* The label is the target, so it carries the floor — not the box. */
+    min-block-size: var(--control-h-md);
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  .ui-selectcheck.is-disabled { cursor: not-allowed; color: var(--color-text-muted); }
+
+  .ui-selectcheck input {
+    /* 24px, because a native checkbox defaults to ~13px and five members shipped
+       it that way — 54% of the SC 2.5.8 floor. accent-color keeps the platform's
+       own checked rendering rather than re-drawing a control from scratch. */
+    inline-size: var(--control-h-sm);
+    block-size: var(--control-h-sm);
+    flex: 0 0 auto;
+    margin: 0;
+    accent-color: var(--color-primary);
+    cursor: inherit;
+  }
+  .ui-selectcheck input:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
+    border-radius: var(--radius-sm);
+  }
+
+  .ui-selectcheck__label { min-inline-size: 0; }
+</style>

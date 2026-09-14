@@ -8,6 +8,8 @@
     "./CardRow.svelte": "./src/CardRow.svelte",
     "./Chip.svelte": "./src/Chip.svelte",
     "./ConfidencePill.svelte": "./src/ConfidencePill.svelte",
+    "./ListContainer.svelte": "./src/ListContainer.svelte",
+    "./SelectWrapper--Checkbox.svelte": "./src/SelectWrapper--Checkbox.svelte",
     "./SelectWrapper--ClickBody.svelte": "./src/SelectWrapper--ClickBody.svelte",
     "./SelectWrapper--ClickPrimary.svelte": "./src/SelectWrapper--ClickPrimary.svelte",
     "./ToggleHeader__PromptOrPackage--Icons.svelte": "./src/ToggleHeader__PromptOrPackage--Icons.svelte",
