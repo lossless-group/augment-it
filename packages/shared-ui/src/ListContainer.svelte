@@ -47,14 +47,48 @@
     layout?: 'list' | 'grid';
     /** Rendered element. `ul` gives the list free `list` semantics to AT. */
     as?: 'div' | 'ul' | 'ol' | 'section';
-    /** Gap between rows. A token NAME, not a value — the layout owns spacing. */
-    gap?: 'sm' | 'md' | 'lg';
+    /**
+     * Gap between rows. A SPACING-SCALE token name, not a private remap.
+     *
+     * The first version offered sm|md|lg mapped to --space-sm|-lg|-2xl, so
+     * `gap="md"` silently gave you --space-lg and `--space-md` was unreachable.
+     * A member reached for the same-sounding name and its grid went from four
+     * tracks at 280.5px to three at 376px. Names that look like the scale must BE
+     * the scale.
+     */
+    gap?: '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
     /** Minimum track width when `layout="grid"`. A token name or a length. */
     trackMin?: string;
+    /**
+     * Pin the header while the rows scroll. OFF by default.
+     *
+     * It used to be unconditional, and that is why the slot had zero consumers:
+     * `position: sticky` only pins to the nearest scrolling ancestor, so a list
+     * that is not its own scroll container pins its header to the VIEWPORT
+     * instead. Every in-page list in the first sweep would have glued a heading
+     * to the top of the page. Opt in when the rows region actually scrolls.
+     */
+    stickyHeader?: boolean;
+    /**
+     * Cap the rows region's height so `overflow-y: auto` has something to scroll
+     * against. Without it the layout owned the scrolling and the member still
+     * owned the bound, which made "ListContainer owns the scroll region" half
+     * true — two members had to add a flex wrapper back just to keep their cap.
+     */
+    maxBlockSize?: string;
+    /**
+     * Rendered when there are no rows — outside the rows element, so a `<p>` is
+     * legal even when `as="ul"`. Without this, a member whose list has
+     * loading/error/empty branches could not use the header slot at all, because
+     * the branch content is not a valid `<li>`.
+     */
+    empty?: Snippet;
     /** Accessible name for the list region. Strongly recommended on `ul`/`ol`. */
     label?: string;
     /** Sticky header slot — the "controls up top" half of the shape. */
     header?: Snippet;
+    /** Merged onto the rows element, never replacing its own class. */
+    class?: string;
     children?: Snippet;
     [key: string]: unknown;
   };
@@ -64,11 +98,35 @@
     as = 'div',
     gap = 'sm',
     trackMin = '280px',
+    stickyHeader = false,
+    maxBlockSize,
     label,
     header,
+    empty,
+    class: klass = '',
     children,
     ...rest
   }: Props = $props();
+
+  // `aria-label` on a role-less <div> is not exposed to assistive tech at all, so
+  // a `label` on `as="div"` was a silently lying attribute. Give the div list
+  // semantics when it is named, or drop the name.
+  const listSemantics = $derived(
+    !label
+      ? {}
+      : as === 'ul' || as === 'ol'
+        ? { 'aria-label': label }
+        : { role: 'list', 'aria-label': label },
+  );
+
+  const rowsStyle = $derived(
+    [
+      layout === 'grid' ? `--ui-track-min: ${trackMin};` : '',
+      maxBlockSize ? `max-block-size: ${maxBlockSize};` : '',
+    ]
+      .filter(Boolean)
+      .join(' ') || undefined,
+  );
 
   // CardRow reads this as its DEFAULT direction. An explicit prop still wins.
   setContext('ui-list', {
@@ -80,19 +138,21 @@
 
 <div class="ui-listcontainer" data-layout={layout}>
   {#if header}
-    <div class="ui-listcontainer__header">{@render header()}</div>
+    <div class="ui-listcontainer__header" data-sticky={stickyHeader || undefined}>
+      {@render header()}
+    </div>
   {/if}
   <svelte:element
     this={as}
-    class="ui-listcontainer__rows"
+    class="ui-listcontainer__rows {klass}"
     data-gap={gap}
-    role={as === 'div' || as === 'section' ? undefined : undefined}
-    aria-label={label}
-    style={layout === 'grid' ? `--ui-track-min: ${trackMin};` : undefined}
+    {...listSemantics}
+    style={rowsStyle}
     {...rest}
   >
     {@render children?.()}
   </svelte:element>
+  {#if empty}{@render empty()}{/if}
 </div>
 
 <style>
@@ -106,15 +166,23 @@
   /* The "functionality up top" half. Sticky because in every member that has one
      it stays put while the list scrolls under it. */
   .ui-listcontainer__header {
-    position: sticky;
-    inset-block-start: 0;
-    z-index: var(--z-sticky);
     display: flex;
     align-items: center;
     gap: var(--space-sm);
     flex-wrap: wrap;            /* a toolbar that cannot wrap clips its own controls */
     padding-block: var(--space-sm);
-    background: var(--color-background);
+    /* NO background by default. It used to be --color-background, which painted a
+       near-black strip inside any --color-surface panel — three of four members
+       in the first sweep, with no prop to change it and no reachable selector to
+       override it. A layout inherits the surface it is placed on. */
+  }
+
+  .ui-listcontainer__header[data-sticky] {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: var(--z-sticky);
+    /* Only a PINNED header needs to occlude what scrolls under it. */
+    background: inherit;
   }
 
   .ui-listcontainer__rows {
@@ -127,9 +195,13 @@
     list-style: none;           /* `as="ul"` keeps the semantics, drops the marker */
   }
 
-  .ui-listcontainer__rows[data-gap='sm'] { gap: var(--space-sm); }
-  .ui-listcontainer__rows[data-gap='md'] { gap: var(--space-lg); }
-  .ui-listcontainer__rows[data-gap='lg'] { gap: var(--space-2xl); }
+  .ui-listcontainer__rows[data-gap='2xs'] { gap: var(--space-2xs); }
+  .ui-listcontainer__rows[data-gap='xs']  { gap: var(--space-xs); }
+  .ui-listcontainer__rows[data-gap='sm']  { gap: var(--space-sm); }
+  .ui-listcontainer__rows[data-gap='md']  { gap: var(--space-md); }
+  .ui-listcontainer__rows[data-gap='lg']  { gap: var(--space-lg); }
+  .ui-listcontainer__rows[data-gap='xl']  { gap: var(--space-xl); }
+  .ui-listcontainer__rows[data-gap='2xl'] { gap: var(--space-2xl); }
 
   .ui-listcontainer[data-layout='grid'] .ui-listcontainer__rows {
     display: grid;
