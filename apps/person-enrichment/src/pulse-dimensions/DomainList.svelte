@@ -82,7 +82,7 @@
       {/each}
     </div>
   {/if}
-  <Button variant="outline" size="sm" onclick={add} class="pd-add" data-deviation="placement only — a Button inside the column-flex .pd-section stretches to full width; the ladder has no rung for layout">
+  <Button variant="outline" size="sm" onclick={add} class="pd-add">
     + add domain
   </Button>
 </section>

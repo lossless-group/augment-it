@@ -165,10 +165,11 @@
 /* Every button in this member is @augment-it/shared-ui's <Button>. The .pe-btn /
  * .pd-ghost-btn / .pd-icon-btn recipes that used to live here are gone.
  *
- * What is left is PLACEMENT, which the override ladder has no rung for: a
- * <Button> inside a `flex-direction: column` .pd-section would stretch to the
- * column's full width, because the control sets a height but never a width.
- * Declared at each of the four call sites as rung 4 (class + data-deviation).
+ * What is left is PLACEMENT, which is RUNG 0 — the parent's job, and not a
+ * deviation: a <Button> inside a `flex-direction: column` .pd-section would
+ * stretch to the column's full width, because the control sets a height but
+ * never a width. A member class on the control that only positions it is still
+ * rung 0, so the four call sites carry the class and no data-deviation.
  */
 .pd-add { align-self: flex-start; }
 

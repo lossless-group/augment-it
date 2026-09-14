@@ -63,7 +63,6 @@
             onclick={() => copyToCustom(c.url)}
             title="Copy into the edit input below — trim it, then pick"
             class="rs-candidate-edit"
-            data-deviation="grid placement — this control is a grid item of .candidate-item and has to right-align in its column. The override ladder has no rung for LAYOUT, only for appearance."
           >
             edit
           </Button>
@@ -137,7 +136,8 @@
   }
   .candidate-url:hover { text-decoration: underline; }
   .candidate-title { grid-column: 2; color: var(--color-text-muted); font-size: 0.75rem; }
-  /* Override-ladder rung 4, in the form a SCOPED member has to spell it.
+  /* Override-ladder rung 0 — layout is the parent's job, so this is not a
+     deviation. What follows is the form a SCOPED member has to spell it in.
      A bare `.rs-candidate-edit` rule would compile to
      `.rs-candidate-edit.svelte-<hash>`, and the class arrives at <Button> as an
      unhashed prop string — so the rule would never match and Svelte would only

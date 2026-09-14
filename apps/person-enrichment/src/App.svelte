@@ -863,7 +863,7 @@
               {/each}
             </div>
           {/if}
-          <Button variant="outline" size="sm" onclick={addAffiliation} class="pd-add" data-deviation="placement only — a Button inside the column-flex .pe-affiliations-section stretches to full width; the ladder has no rung for layout">
+          <Button variant="outline" size="sm" onclick={addAffiliation} class="pd-add">
             + add affiliation
           </Button>
         </section>

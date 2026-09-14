@@ -129,7 +129,6 @@
             title="Remove this URL from the accepted list"
             aria-label="Remove {a}"
             class="rs-accepted-remove"
-            data-deviation="grid placement — the accepted row aligns its text on the baseline, and a 28px control has to centre instead. Layout has no rung on the override ladder."
           >
             <!-- SVG, not the bare ✕ glyph the Button header bans: a glyph is
                  font-dependent, unstyleable, and screen-reader noise. -->
@@ -222,8 +221,9 @@
     color: var(--color-text);
     overflow-wrap: anywhere;
   }
-  /* Override-ladder rung 4, scoped-member spelling. See CandidatesPanel for
-     why the :global() nesting is required rather than a bare class rule. */
+  /* Override-ladder rung 0 — layout only, so not a deviation. See
+     CandidatesPanel for why the :global() nesting is required rather than a
+     bare class rule. */
   .record-row-accepted :global(.ui-btn.rs-accepted-remove) { align-self: center; }
   .record-row-connectors { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 </style>
