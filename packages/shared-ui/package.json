@@ -8,6 +8,8 @@
     "./CardRow.svelte": "./src/CardRow.svelte",
     "./Chip.svelte": "./src/Chip.svelte",
     "./ConfidencePill.svelte": "./src/ConfidencePill.svelte",
+    "./CountBadge.svelte": "./src/CountBadge.svelte",
+    "./DisclosureRow.svelte": "./src/DisclosureRow.svelte",
     "./ListContainer.svelte": "./src/ListContainer.svelte",
     "./MenuItem.svelte": "./src/MenuItem.svelte",
     "./SelectWrapper--Checkbox.svelte": "./src/SelectWrapper--Checkbox.svelte",
@@ -15,6 +17,7 @@
     "./SelectWrapper--ClickPrimary.svelte": "./src/SelectWrapper--ClickPrimary.svelte",
     "./Selector--Listbox.svelte": "./src/Selector--Listbox.svelte",
     "./Selector--Menu.svelte": "./src/Selector--Menu.svelte",
+    "./StatusIndicator.svelte": "./src/StatusIndicator.svelte",
     "./ToggleHeader__PromptOrPackage--Icons.svelte": "./src/ToggleHeader__PromptOrPackage--Icons.svelte",
     "./gallery": "./src/gallery/mount.ts"
   },

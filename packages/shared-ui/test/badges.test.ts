@@ -1,0 +1,96 @@
+/**
+ * CountBadge and StatusIndicator — the claims their headers make.
+ *
+ * Both are appearance components, so unlike Selector these were written after
+ * the implementation. What they assert is the part that ISN'T visual: the
+ * accessible name, the tone mapping, and the colour-alone rule.
+ */
+import { describe, it, expect, beforeEach } from 'vitest';
+import { mount } from 'svelte';
+import CountBadge from '../src/CountBadge.svelte';
+import StatusIndicator from '../src/StatusIndicator.svelte';
+
+let host: HTMLElement;
+beforeEach(() => {
+  document.body.innerHTML = '';
+  host = document.createElement('div');
+  document.body.appendChild(host);
+});
+const render = (C: never, props: Record<string, unknown>) =>
+  mount(C, { target: host, props }) && (host.firstElementChild as HTMLElement);
+
+describe('CountBadge', () => {
+  it('inherits the host control colour by default — that is what makes it not a Chip', () => {
+    const el = render(CountBadge as never, { count: 3 });
+    expect(el.getAttribute('data-tone')).toBe('inherit');
+  });
+
+  it('caps a large count but keeps the true number reachable', () => {
+    const el = render(CountBadge as never, { count: 1982, label: 'Responses' });
+    expect(el.textContent).toBe('999+');
+    expect(el.getAttribute('title')).toBe('1982');
+    expect(el.getAttribute('aria-label')).toBe('Responses: 1982');
+  });
+
+  it('does not cap when it does not need to', () => {
+    const el = render(CountBadge as never, { count: 12 });
+    expect(el.textContent).toBe('12');
+    expect(el.hasAttribute('title')).toBe(false);
+  });
+});
+
+describe('StatusIndicator — the mapping IS the component', () => {
+  const cases: Array<[string, string]> = [
+    ['open', 'ok'],
+    ['connecting', 'info'],
+    ['auth_required', 'warn'],
+    ['closed', 'error'],
+    ['error', 'error'],
+    ['idle', 'neutral'],
+  ];
+
+  for (const [state, tone] of cases) {
+    it(`${state} → ${tone}`, () => {
+      const el = render(StatusIndicator as never, { state });
+      expect(el.getAttribute('data-tone')).toBe(tone);
+    });
+  }
+
+  it('gives connecting and auth_required DIFFERENT tones — the distinction every member lost', () => {
+    const a = render(StatusIndicator as never, { state: 'connecting' });
+    host.innerHTML = '';
+    const b = render(StatusIndicator as never, { state: 'auth_required' });
+    expect(a.getAttribute('data-tone')).not.toBe(b.getAttribute('data-tone'));
+  });
+
+  it('gives closed and connecting different tones too', () => {
+    const a = render(StatusIndicator as never, { state: 'closed' });
+    host.innerHTML = '';
+    const b = render(StatusIndicator as never, { state: 'connecting' });
+    expect(a.getAttribute('data-tone')).not.toBe(b.getAttribute('data-tone'));
+  });
+
+  it('never encodes state by colour alone — the word always renders', () => {
+    for (const [state] of cases) {
+      host.innerHTML = '';
+      const el = render(StatusIndicator as never, { state });
+      const word = el.querySelector('.ui-status__word')!;
+      expect(word.textContent!.trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  it('hides the dot from assistive tech, because the word carries the meaning', () => {
+    const el = render(StatusIndicator as never, { state: 'open' });
+    expect(el.querySelector('.ui-status__dot')!.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('every state renders a DISTINCT word', () => {
+    const words = new Set<string>();
+    for (const [state] of cases) {
+      host.innerHTML = '';
+      const el = render(StatusIndicator as never, { state });
+      words.add(el.querySelector('.ui-status__word')!.textContent!.trim());
+    }
+    expect(words.size).toBe(cases.length);
+  });
+});
