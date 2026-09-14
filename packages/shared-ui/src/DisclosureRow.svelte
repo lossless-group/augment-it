@@ -24,6 +24,14 @@
    * TARGET SIZE. One member's archive disclosure measured 27px and cleared the
    * 24px floor only because its `0.3rem` padding happened to add up. That is luck,
    * not a contract. `--control-h-md` is the contract.
+   *
+   * COMPOSING WITH CardRow IS FINE, and is the answer for "a card row that
+   * discloses" — two members have one. Put the DisclosureRow INSIDE the CardRow;
+   * the card owns the surface, the disclosure owns the control. What is NOT fine
+   * is a SelectWrapper on the same element, because those hard-render
+   * `aria-pressed` and a control announcing both `aria-pressed` and
+   * `aria-expanded` claims two contradictory contracts at once. Both members were
+   * doing exactly that.
    */
   import type { Snippet } from 'svelte';
 
@@ -39,6 +47,8 @@
     children?: Snippet;
     /** Replace the row's own label rendering. */
     row?: Snippet;
+    /** Attributes for the WRAPPER rather than the button — layout hooks, data-*. */
+    wrapperProps?: Record<string, unknown>;
     class?: string;
     [key: string]: unknown;
   };
@@ -51,6 +61,7 @@
     hint,
     children,
     row,
+    wrapperProps = {},
     class: klass = '',
     ...rest
   }: Props = $props();
@@ -76,10 +87,15 @@
   }
 </script>
 
-<div class="ui-disclosure {klass}" {...rest}>
+<!-- `{...rest}` lands on the BUTTON, not this wrapper. It used to land here, which
+     meant any aria-* a member passed silently missed the control it was meant to
+     describe — the attribute existed, on the wrong element, and nothing warned.
+     Layout hooks go through `wrapperProps`. -->
+<div class="ui-disclosure {klass}" {...wrapperProps}>
   <button
     type="button"
     class="ui-disclosure__row"
+    {...rest}
     aria-expanded={isOpen}
     aria-controls={isOpen ? panelId : undefined}
     {disabled}
