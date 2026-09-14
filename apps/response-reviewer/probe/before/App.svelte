@@ -11,7 +11,6 @@
     type SocialProfile, resolveWsUrl } from '@augment-it/workspace';
   import ConfidencePill from '@augment-it/shared-ui/ConfidencePill.svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
-  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import { MOCK_PACKS_FIXTURE } from './fixtures/mock-packs';
   import ConnectorPalette from './ConnectorPalette.svelte';
   import type { PaletteConnector, PalettePack } from './ConnectorPalette.svelte';
@@ -22,51 +21,6 @@
   const WS_URL = resolveWsUrl();
 
   const FLAGS: ResponseFlag[] = ['good', 'partial', 'wrong', 'needs-rerun', 'needs-human'];
-
-  // ---------------------------------------------------------------------------
-  // Chip tones. TONE IS SEMANTIC, NOT DECORATIVE — picked by what the label
-  // MEANS, never by the colour this member happened to draw. Four of these
-  // disagree with the old stylesheet and the meaning won; the disagreements are
-  // enumerated in the Chip migration report:
-  //   · 'partial' / 'needs-rerun' were drawn accent-2 / accent → they mean
-  //     DEGRADED, so they are `warn`.
-  //   · 'skipped' was drawn --color-confidence-high (green, i.e. "good") → it
-  //     means "deliberately not run", which is informational, so `info`.
-  //   · the save-state 'unsaved' was drawn --color-error-text → an unsaved edit
-  //     is pending-with-risk, not a failure, so `warn`.
-  //   · the warm corpus chip was drawn accent → "this record has content on
-  //     disk" is a verified positive fact, so `ok`.
-  // ---------------------------------------------------------------------------
-  type ChipTone = 'neutral' | 'accent' | 'ok' | 'warn' | 'error' | 'info';
-
-  function statusTone(s: typeof status): ChipTone {
-    switch (s) {
-      case 'open': return 'ok';
-      case 'connecting': return 'info';
-      case 'auth_required': return 'warn'; // recoverable — the operator can sign in
-      default: return 'error';             // closed | error — no traffic is flowing
-    }
-  }
-
-  function flagTone(f: ResponseFlag | null): ChipTone {
-    switch (f) {
-      case 'good': return 'ok';
-      case 'wrong': return 'error';
-      case 'partial':
-      case 'needs-rerun':
-      case 'needs-human': return 'warn';
-      default: return 'neutral';
-    }
-  }
-
-  function outcomeTone(o: string): ChipTone {
-    switch (o) {
-      case 'error': return 'error';
-      case 'pending': return 'warn';
-      case 'skipped': return 'info';
-      default: return 'neutral'; // not_found is a real result, not a failure
-    }
-  }
 
   // Per-record palette pack roster — one chip per intent, default click walks
   // the pack's preferred_connectors chain; long-press opens a connector menu.
@@ -1440,7 +1394,7 @@
 <div class="resp-app">
   <div class="resp-status-bar">
     consumes <code>@augment-it/workspace</code> · <code>{WS_URL}</code> ·
-    <Chip size="sm" tone={statusTone(status)}>{status}</Chip>
+    <span class="status status-{status}">{status}</span>
   </div>
 
   <div class="resp-body">
@@ -1582,16 +1536,15 @@
                    [[Augmentation-State-Preservation-and-Snapshot-
                    Promotion]] §Phase A. -->
               {#if corpusEntriesByRowId[group.row_id] === undefined}
-                <Chip size="sm" tone="neutral" title="Loading corpus count…">corpus …</Chip>
+                <span class="record-card-corpus-chip loading" title="Loading corpus count…">corpus …</span>
               {:else if (corpusEntriesByRowId[group.row_id] ?? []).length === 0}
-                <Chip size="sm" tone="neutral" title="No corpus content for this record yet">corpus 0</Chip>
+                <span class="record-card-corpus-chip cold" title="No corpus content for this record yet">corpus 0</span>
               {:else}
                 {@const corpusN = (corpusEntriesByRowId[group.row_id] ?? []).length}
-                <Chip
-                  size="sm"
-                  tone="ok"
+                <span
+                  class="record-card-corpus-chip warm"
                   title={`${corpusN} corpus ${corpusN === 1 ? 'file' : 'files'} on disk for this record`}
-                >corpus {corpusN}</Chip>
+                >corpus {corpusN}</span>
               {/if}
             </header>
 
@@ -1630,17 +1583,17 @@
                 >
                   <div class="record-response-source">
                     {#if resp.pack_id}
-                      <Chip size="sm" tone="neutral" title="pack response">{resp.pack_id.replace(/-pack$/, '')}</Chip>
+                      <span class="source-badge" title="pack response">{resp.pack_id.replace(/-pack$/, '')}</span>
                       {#if resp.model}
-                        <Chip size="sm" tone="neutral" title="search provider that produced this result">{resp.model}</Chip>
+                        <span class="provider-badge provider-{resp.model}" title="search provider that produced this result">{resp.model}</span>
                       {/if}
                     {:else}
-                      <Chip size="sm" tone="neutral" title="prompt response">
+                      <span class="source-badge prompt-badge" title="prompt response">
                         {promptsById[resp.prompt_id]?.name ?? 'prompt'}
-                      </Chip>
+                      </span>
                     {/if}
                     {#if resp.outcome && resp.outcome !== 'found'}
-                      <Chip size="sm" tone={outcomeTone(resp.outcome)}>{resp.outcome}</Chip>
+                      <span class="outcome-badge outcome-{resp.outcome}">{resp.outcome}</span>
                     {/if}
                   </div>
                   <div class="record-response-body">
@@ -1727,7 +1680,7 @@
                   </div>
                   <div class="record-response-actions">
                     {#if resp.accepted}
-                      <Chip size="sm" tone="ok">accepted</Chip>
+                      <span class="flag accepted">accepted</span>
                     {:else}
                       <Button
                         size="sm"
@@ -1812,11 +1765,11 @@
                       {#if corpusEntries.length > 0} · {corpusEntries.length} in corpus{/if}
                       {#if cr.status.lastFiredAt} · last fired {formatFiredAt(cr.status.lastFiredAt)}{/if}
                     {:else if cr.status.kind === 'invalid-url'}
-                      <Chip size="sm" tone="error">url needs repair</Chip>
+                      <span class="cr-tag cr-tag-fix">url needs repair</span>
                     {:else if cr.status.kind === 'not-found'}
-                      <Chip size="sm" tone="neutral">pack ran · no content found</Chip>
+                      <span class="cr-tag cr-tag-empty">pack ran · no content found</span>
                     {:else}
-                      <Chip size="sm" tone="neutral">not yet fired</Chip>
+                      <span class="cr-tag cr-tag-empty">not yet fired</span>
                     {/if}
                   </span>
                 </div>
@@ -1964,16 +1917,16 @@
                         class:cr-preview-failed={manualPreview.status === 'failed'}
                       >
                         <div class="cr-preview-head">
-                          <Chip size="sm" tone="neutral">manual</Chip>
+                          <span class="cr-pack-chip">manual</span>
                           {#if manualPreview.exact_url}
                             {@const host = (() => { try { return new URL(manualPreview.exact_url).hostname.replace(/^www\./, ''); } catch { return ''; } })()}
-                            {#if host}<Chip size="sm" tone="neutral">{host}</Chip>{/if}
+                            {#if host}<span class="cr-domain-chip">{host}</span>{/if}
                           {/if}
                           {#if sameHost === false}
-                            <Chip size="sm" tone="warn" title="URL is not on the funder's own domain — logged as-is per operator authority">off-domain</Chip>
+                            <span class="cr-domain-chip cr-domain-off" title="URL is not on the funder's own domain — logged as-is per operator authority">off-domain</span>
                           {/if}
                           {#if isPdf}
-                            <Chip size="sm" tone="info" title="The URL resolves to a PDF. If you toggle 'save to inbox' the binary will be downloaded alongside the markdown.">PDF</Chip>
+                            <span class="cr-pdf-chip" title="The URL resolves to a PDF. If you toggle 'save to inbox' the binary will be downloaded alongside the markdown.">📄 PDF</span>
                           {/if}
                           {#if manualPreview.fetched_at}
                             <span class="muted cr-fetched-at">fetched {formatFiredAt(manualPreview.fetched_at)}</span>
@@ -2067,10 +2020,10 @@
                     {#each newPreviews as p (p.response_id)}
                       <li class="cr-preview" class:cr-preview-failed={p.status === 'failed'}>
                         <div class="cr-preview-head">
-                          <Chip size="sm" tone="neutral">{p.pack_id ?? 'unknown'}</Chip>
+                          <span class="cr-pack-chip">{p.pack_id ?? 'unknown'}</span>
                           {#if p.exact_url}
                             {@const host = (() => { try { return new URL(p.exact_url).hostname.replace(/^www\./, ''); } catch { return ''; } })()}
-                            {#if host}<Chip size="sm" tone="neutral">{host}</Chip>{/if}
+                            {#if host}<span class="cr-domain-chip">{host}</span>{/if}
                           {/if}
                           {#if p.fetched_at}
                             <span class="muted cr-fetched-at">fetched {formatFiredAt(p.fetched_at)}</span>
@@ -2152,9 +2105,9 @@
         <Button size="icon" aria-label="Previous response" onclick={() => step(-1)} disabled={index === 0}>◀</Button>
         <span>response {index + 1} / {filtered.length}</span>
         <Button size="icon" aria-label="Next response" onclick={() => step(1)} disabled={index >= filtered.length - 1}>▶</Button>
-        {#if current.flag}<Chip size="sm" tone={flagTone(current.flag)}>{current.flag}</Chip>{/if}
-        {#if current.accepted}<Chip size="sm" tone="ok">accepted</Chip>{/if}
-        {#if current.pack_id}<Chip size="sm" tone="neutral" title="response produced by pack">{current.pack_id}</Chip>{/if}
+        {#if current.flag}<span class="flag flag-{current.flag}">{current.flag}</span>{/if}
+        {#if current.accepted}<span class="flag accepted">accepted</span>{/if}
+        {#if current.pack_id}<span class="flag pack-badge" title="response produced by pack">{current.pack_id}</span>{/if}
         {#if isFound}
           <span class="stepper-sep" aria-hidden="true"></span>
           <span class="muted stepper-label">triage:</span>
@@ -2258,7 +2211,7 @@
                 >{current.structured.url}</a>
                 <span class="candidate-name">{current.structured.display_name}</span>
                 {#if current.pack_id}
-                  <Chip size="sm" tone="neutral" title="produced by this pack">{current.pack_id}</Chip>
+                  <span class="source-badge" title="produced by this pack">{current.pack_id}</span>
                 {/if}
               </div>
               {#if current.structured.snippet}
@@ -2280,24 +2233,12 @@
           {#if isFound}
             <h3>
               Response — editable; edits autosave when you click away or step
-              <!-- rung 0 — the slot carries the heading offset AND resets the
-                   two inherited properties `.resp-app h3` imposes on everything
-                   inside it (uppercase + letter-spacing). Chip declares neither,
-                   so this adjusts nothing the component owns. The bare-element
-                   h3 selector itself is raised, not fixed, here. -->
-              {#if savingEdit || editDirty || editSavedAt}
-                <span class="save-state-slot">
-                  <Chip
-                    size="sm"
-                    tone={savingEdit ? 'info' : editDirty ? 'warn' : 'ok'}
-                  >
-                    {#if savingEdit}saving…
-                    {:else if editDirty}unsaved
-                    {:else}saved {formatAge(editSavedAt)}
-                    {/if}
-                  </Chip>
-                </span>
-              {/if}
+              <span class="save-state" class:dirty={editDirty} class:saving={savingEdit}>
+                {#if savingEdit}saving…
+                {:else if editDirty}unsaved
+                {:else if editSavedAt}saved {formatAge(editSavedAt)}
+                {/if}
+              </span>
             </h3>
             <textarea
               bind:value={editText}
