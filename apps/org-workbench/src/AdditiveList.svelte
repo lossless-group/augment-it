@@ -11,6 +11,7 @@
   // remove never disturbs the sibling lists.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CountBadge from '@augment-it/shared-ui/CountBadge.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import type { ShapedLink } from './lib/types';
@@ -183,7 +184,13 @@
 
 <section class="ow-list">
   <header class="ow-list-head">
-    <h3 class="ow-list-title">{title} <span class="ow-list-count">{entries.length}</span></h3>
+    <!-- tone="neutral", NOT the default "inherit". This count sits inside the
+         <h3>, so `inherit` would tint it from the heading's own colour and make
+         it read as part of the title's emphasis — the opposite of what it is.
+         A list count is subordinate to the heading it annotates. Measured
+         --color-text-muted on --color-surface-2: 4.57:1 light / 5.47:1 dark /
+         6.46:1 vibrant. -->
+    <h3 class="ow-list-title">{title} <CountBadge count={entries.length} tone="neutral" label={title} /></h3>
     <span class="ow-list-actions">
       {#if justAdded}<span class="ow-added">added ✓</span>{/if}
       {#if oncrawl}

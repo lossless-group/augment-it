@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import SelectCheck from '@augment-it/shared-ui/SelectWrapper--Checkbox.svelte';
   import {
@@ -305,7 +306,7 @@
 <div class="req-app">
   <div class="req-status-bar">
     consumes <code>@augment-it/workspace</code> · <code>{WS_URL}</code> ·
-    <span class="status status-{status}">{status}</span>
+    <StatusIndicator state={status} of="workspace" />
   </div>
 
   <div class="req-body">

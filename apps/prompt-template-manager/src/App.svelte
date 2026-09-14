@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import SelectWrapperClickPrimary from '@augment-it/shared-ui/SelectWrapper--ClickPrimary.svelte';
@@ -200,7 +201,7 @@
   <div class="ptm-status-bar">
     <span class="muted">
       consumes <code>@augment-it/workspace</code> · {WS_URL} ·
-      <span class="status status-{status}">{status}</span>
+      <StatusIndicator state={status} of="workspace" />
     </span>
   </div>
 

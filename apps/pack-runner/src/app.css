@@ -69,16 +69,6 @@
   flex-wrap: wrap;
 }
 
-/* Rides inside a <Button>, so it takes its colour from whichever variant the
-   Button is painting — one rule instead of a second for the active state, and
-   no accent token named twice. Gap comes from the Button, not a margin. */
-.pr-app .chip-count {
-  background: color-mix(in srgb, currentColor 16%, transparent);
-  padding: 0 var(--space-2xs);
-  border-radius: var(--radius-pill);
-  font-size: 0.7rem;
-}
-
 .pr-app .row-actions {
   display: flex;
   align-items: center;

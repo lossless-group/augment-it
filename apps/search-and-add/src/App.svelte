@@ -13,6 +13,7 @@
   import { workspace, resolveWsUrl } from '@augment-it/workspace';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   import TermBar from './TermBar.svelte';
   import ProviderPalette from './ProviderPalette.svelte';
   import ResultsList from './ResultsList.svelte';
@@ -25,18 +26,6 @@
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
 
-  // Tone by MEANING, not by the colour this member drew. `.saa-ws` painted
-  // `open` ok and `closed`/`error` error, leaving `connecting` and
-  // `auth_required` on the bare grey base — two of five states unrendered.
-  const statusTone = $derived<'ok' | 'info' | 'warn' | 'error'>(
-    status === 'open'
-      ? 'ok'
-      : status === 'connecting'
-        ? 'info'
-        : status === 'auth_required'
-          ? 'warn'
-          : 'error',
-  );
   let client = $state<string>('reach-edu');
 
   let connectors = $state<ConnectorInfo[]>([]);
@@ -198,7 +187,7 @@
       {:else}
         <span class="saa-context saa-context-none">no launch context — open a 🔍 from an entity card</span>
       {/if}
-      <span class="saa-ws-slot"><Chip size="sm" tone={statusTone} dot>{status}</Chip></span>
+      <span class="saa-ws-slot"><StatusIndicator state={status} of="workspace" /></span>
     </div>
     {#if scanMode && req?.stream}
       <div class="saa-scanbar">

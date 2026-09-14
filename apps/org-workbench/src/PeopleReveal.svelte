@@ -10,6 +10,7 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import DisclosureRow from '@augment-it/shared-ui/DisclosureRow.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import PersonCard from './PersonCard.svelte';
@@ -100,28 +101,23 @@
 </script>
 
 <section class="ow-people">
-  <header class="ow-list-head">
-    <h3 class="ow-list-title">
-      <Button variant="ghost" size="sm" aria-expanded={open} aria-controls="ow-people-list" onclick={toggle}>
-        {open ? '▾' : '▸'} People{#if loaded}&nbsp;<span class="ow-list-count">{people.length}</span>{/if}
-      </Button>
-    </h3>
-    <span class="ow-list-actions">
-      <Button
-        variant="outline"
-        size="icon"
-        aria-label="didi: crawl the web for relevant team members"
-        title="didi: crawl the web for relevant team members (selection per the relevance brief) — lands in the search queue"
-        onclick={crawl}
-      >
-        🤖
-      </Button>
-    </span>
-  </header>
-  {#if queued}<p class="ow-empty">team search queued — it lands in the 🔎 search rail when done; keep working</p>{/if}
-  {#if crawlError}<div class="ow-error">{crawlError}</div>{/if}
-
-  {#if open}
+  <!-- The section header is a DISCLOSURE, and is now the shared one. What it
+       replaced got three things wrong, none of them visible:
+         - aria-controls="ow-people-list" was UNCONDITIONAL, while the element
+           carrying that id lives inside {#if open} AND inside a further
+           {#if people.length}. Collapsed — and open-but-empty — it pointed a
+           screen reader at nothing.
+         - the ▾ / ▸ glyph sat inside the button's text, so the accessible
+           name was "▾ People 2". The component's chevron is aria-hidden.
+         - no target-size floor of its own; it inherited whatever Button gave it.
+       DisclosureRow owns the panel, so aria-controls can only ever name an
+       element that is in the document. -->
+  <DisclosureRow
+    label="People"
+    hint={loaded ? String(people.length) : undefined}
+    {open}
+    ontoggle={toggle}
+  >
     {#if loading}
       <p class="ow-empty">loading people…</p>
     {:else if error}
@@ -130,14 +126,23 @@
       {#if people.length === 0}
         <p class="ow-empty">no affiliated people yet</p>
       {:else}
-        <ListContainer as="ul" gap="sm" id="ow-people-list" label="Affiliated people">
+        <ListContainer as="ul" gap="sm" label="Affiliated people">
           {#each people as p (p.person_uuid)}
             <li class="ow-person">
               <CardRow density="compact" selected={expanded === p.person_uuid}>
+                <!-- RAISED, NOT CHASED — a card row that DISCLOSES has no organ.
+                     This row used to pass aria-expanded into SelectWrapper--ClickBody,
+                     which hard-renders aria-pressed BEFORE its {...rest}. The button
+                     therefore announced a toggle-button contract AND a disclosure
+                     contract at once, which is exactly the error DisclosureRow's own
+                     header names. The contradiction is removed here; the organ is not
+                     invented here. DisclosureRow is explicitly NOT-A-CARDROW (its
+                     header: wrapping it in one negates four of CardRow's five
+                     properties), and this row genuinely wants the card chrome, so
+                     neither primitive fits. Reported to the VP of Eng. -->
                 <SelectWrapperClickBody
                   label={p.name ?? p.person_uuid}
                   selected={expanded === p.person_uuid}
-                  aria-expanded={expanded === p.person_uuid}
                   onselect={() => (expanded = expanded === p.person_uuid ? null : p.person_uuid)}
                 >
                   <!-- rung 0: CardRow is align-items:flex-start at (0,2,0); this
@@ -162,5 +167,23 @@
       {/if}
       <AddPersonInline {org_slug} {orgName} {client} onadded={load} />
     {/if}
-  {/if}
+  </DisclosureRow>
+
+  <!-- rung 0 — placement is the section's job. The crawl door has to stay
+       reachable while the section is collapsed, and DisclosureRow owns the whole
+       header row, so the section positions this over the row's trailing edge. -->
+  <span class="ow-list-actions ow-people-actions">
+    <Button
+      variant="outline"
+      size="icon"
+      aria-label="didi: crawl the web for relevant team members"
+      title="didi: crawl the web for relevant team members (selection per the relevance brief) — lands in the search queue"
+      onclick={crawl}
+    >
+      🤖
+    </Button>
+  </span>
+
+  {#if queued}<p class="ow-empty">team search queued — it lands in the 🔎 search rail when done; keep working</p>{/if}
+  {#if crawlError}<div class="ow-error">{crawlError}</div>{/if}
 </section>

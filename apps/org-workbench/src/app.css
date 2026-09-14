@@ -101,7 +101,6 @@
 .ow-list { border-top: 1px solid var(--color-border, #2a2c33); padding-top: 0.75rem; }
 .ow-list-head { display: flex; align-items: center; justify-content: space-between; }
 .ow-list-title { margin: 0; font-size: 0.9rem; }
-.ow-list-count { color: var(--color-text-muted, #9aa0aa); font-weight: normal; font-size: 0.8rem; margin-left: 0.35rem; }
 .ow-list-actions { display: flex; align-items: center; gap: 0.5rem; }
 .ow-added { font-size: 0.75rem; color: var(--color-ok-text, #6ee7a8); }
 
@@ -118,7 +117,12 @@
 .ow-error { color: var(--color-error-text, #f3a3a3); font-size: 0.8rem; margin-top: 0.4rem; }
 
 /* people reveal (Phase 4) */
-.ow-people { border-top: 1px solid var(--color-border, #2a2c33); padding-top: 0.75rem; }
+/* rung 0 — PeopleReveal's header is a shared DisclosureRow, which owns the whole
+   header row AND the panel beneath it. The crawl door must stay reachable while
+   the section is collapsed, so the SECTION places it over the row's trailing
+   edge. Placement is the parent's job; this is not a deviation. */
+.ow-people { position: relative; border-top: 1px solid var(--color-border, #2a2c33); padding-top: 0.75rem; }
+.ow-people-actions { position: absolute; inset-block-start: 0.75rem; inset-inline-end: 0; }
 /* rung 0 — the person row reads on one baseline inside its CardRow. */
 .ow-person-line { display: flex; align-items: baseline; gap: 0.6rem; flex: 1; min-width: 0; }
 .ow-person-name { font-size: 0.88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }

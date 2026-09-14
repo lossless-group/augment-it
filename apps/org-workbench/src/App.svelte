@@ -9,6 +9,7 @@
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   import { workspace, resolveWsUrl } from '@augment-it/workspace';
   import OrgSearch from './OrgSearch.svelte';
   import OrgCard from './OrgCard.svelte';
@@ -39,20 +40,6 @@
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
   let client = $state<string>('reach-edu');
-
-  // Chip tone is SEMANTIC, not the colour this member used to draw. The old
-  // .ow-ws recipe painted `connecting` and `auth_required` with the same
-  // neutral grey and collapsed `closed` into the error red; the meanings are
-  // four different things, so they get four tones.
-  const wsTone = $derived(
-    status === 'open'
-      ? 'ok'
-      : status === 'error' || status === 'closed'
-        ? 'error'
-        : status === 'auth_required'
-          ? 'warn'
-          : 'info',
-  );
 
   let org = $state<OrgDetail | null>(null);
   let loading = $state(false);
@@ -158,7 +145,7 @@
       <h1 class="ow-title">Org Workbench</h1>
       <Chip size="sm">SurrealDB · Organizations</Chip>
       <span class="ow-client">client: <strong>{client}</strong></span>
-      <Chip size="sm" tone={wsTone} class="ow-ws">{status}</Chip>
+      <StatusIndicator state={status} of="workspace" class="ow-ws" />
     </div>
     <div class="ow-search-row">
       <Button

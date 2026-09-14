@@ -7,6 +7,7 @@
   // Per context-v/plans/Org-Relations-Parent-Child-Peer-Plus-Org-Tags.md §2.1.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CountBadge from '@augment-it/shared-ui/CountBadge.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
@@ -195,7 +196,7 @@
 
 <section class="ro-section">
   <header class="ow-list-head">
-    <h3 class="ow-list-title">Related organizations{#if !loading}&nbsp;<span class="ow-list-count">{total}</span>{/if}</h3>
+    <h3 class="ow-list-title">Related organizations{#if !loading}&nbsp;<CountBadge count={total} tone="neutral" label="Related organizations" />{/if}</h3>
     <span class="ow-list-actions">
       <Button
         variant="outline"

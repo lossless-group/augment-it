@@ -9,6 +9,7 @@
 
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import ColumnMapper from './components/ColumnMapper.svelte';
@@ -385,7 +386,7 @@
     <div class="arr-title-row">
       <h1 class="arr-title">Affiliation · Rating Resolver</h1>
       <span class="arr-client">client: <strong>{client}</strong></span>
-      <span class="arr-ws status-{status}">{status}</span>
+      <StatusIndicator state={status} of="workspace" class="arr-ws" />
     </div>
     <div class="arr-setpick">
       <label for="arr-set">record set</label>

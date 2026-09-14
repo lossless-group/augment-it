@@ -54,7 +54,19 @@
 </script>
 
 <div class="ow-brief">
-  <Button size="lg" aria-expanded={open} aria-controls="ow-brief-panel" onclick={() => (open = !open)}>
+  <!-- NOT a DisclosureRow, and deliberately so: this is a popover trigger sitting
+       in a toolbar, not a full-bleed row, and .ow-brief-panel is position:absolute
+       above the flow. Adopting a row here would take rung-4 overrides for display,
+       inline-size and padding — negating the base recipe rather than adjusting it.
+       The defect it DID share with the real rows is fixed: aria-controls used to
+       name ow-brief-panel unconditionally, while that element only exists inside
+       {#if open}. Collapsed, it pointed a screen reader at nothing. -->
+  <Button
+    size="lg"
+    aria-expanded={open}
+    aria-controls={open ? 'ow-brief-panel' : undefined}
+    onclick={() => (open = !open)}
+  >
     {open ? '× Relevance brief' : '📋 Relevance brief'}
   </Button>
   {#if open}

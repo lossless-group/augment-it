@@ -4,6 +4,8 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import CountBadge from '@augment-it/shared-ui/CountBadge.svelte';
+  import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   import SelectCheck from '@augment-it/shared-ui/SelectWrapper--Checkbox.svelte';
   import {
     BUNDLES, getBundle, packDisplayName, inferEntityNameField,
@@ -90,19 +92,6 @@
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
 
-  // Tone by MEANING, not by the colour this member drew. The old recipe gave
-  // `open` the ok palette, `closed`/`error` the error palette, and left
-  // `connecting`/`auth_required` on the bare grey `.status` base — two of five
-  // states had no rendering at all.
-  const statusTone = $derived<'ok' | 'info' | 'warn' | 'error'>(
-    status === 'open'
-      ? 'ok'
-      : status === 'connecting'
-        ? 'info'
-        : status === 'auth_required'
-          ? 'warn'
-          : 'error',
-  );
   let recordSets = $state<RecordSet[]>([]);
   let selectedRecordSetId = $state<string | null>(
     readStored(ACTIVE_RECORD_SET_KEY) ?? readStored(LEGACY_RECORD_SET_KEY),
@@ -496,7 +485,7 @@
 <div class="pr-app">
   <div class="pr-status-bar">
     consumes <code>@augment-it/workspace</code> · <code>{WS_URL}</code> ·
-    <Chip size="sm" tone={statusTone} dot>{status}</Chip>
+    <StatusIndicator state={status} of="workspace" />
   </div>
 
   <div class="pr-body">
@@ -564,27 +553,33 @@
              toggles, and honest toggle buttons with aria-pressed beat
              half-implemented tabs — real tab semantics would need
              aria-controls, role="tabpanel" and arrow-key handling. -->
+        <!-- size="md", not "sm". CountBadge is a fixed --control-h-sm (24px)
+             block, which is the ENTIRE outer height of a sm Button — measured
+             at inset 0.00px top and bottom, so the badge's pill paints across
+             the secondary variant's border. At md the inset is 2.00px and the
+             badge sits inside the control. The bump also takes the target from
+             24px (exactly the WCAG 2.2 SC 2.5.8 floor) to 28px. -->
         <div class="row-filter-chips" role="group" aria-label="Filter rows by status">
           <Button
-            size="sm"
+            size="md"
             variant={rowFilter === 'all' ? 'primary' : 'secondary'}
             aria-pressed={rowFilter === 'all'}
             onclick={() => (rowFilter = 'all')}
-          >all <span class="chip-count">{filterCounts.all}</span></Button>
+          >all <CountBadge count={filterCounts.all} label="All rows" /></Button>
           <Button
-            size="sm"
+            size="md"
             variant={rowFilter === 'has-url' ? 'primary' : 'secondary'}
             aria-pressed={rowFilter === 'has-url'}
             onclick={() => (rowFilter = 'has-url')}
             title="Rows whose `url` is already populated — likely candidates for further enrichment"
-          >has url <span class="chip-count">{filterCounts['has-url']}</span></Button>
+          >has url <CountBadge count={filterCounts['has-url']} label="Rows with a url" /></Button>
           <Button
-            size="sm"
+            size="md"
             variant={rowFilter === 'no-url' ? 'primary' : 'secondary'}
             aria-pressed={rowFilter === 'no-url'}
             onclick={() => (rowFilter = 'no-url')}
             title="Rows whose `url` is empty or 'unknown' — likely need client clarification before pack-firing"
-          >no url <span class="chip-count">{filterCounts['no-url']}</span></Button>
+          >no url <CountBadge count={filterCounts['no-url']} label="Rows with no url" /></Button>
         </div>
         <div class="row-actions">
           <Button size="sm" onclick={selectAllRows}>all visible</Button>

@@ -22,9 +22,13 @@
 .arr-title-row { display: flex; align-items: baseline; gap: 0.75rem; }
 .arr-title { font-size: 1.05rem; margin: 0; }
 .arr-client { font-size: 0.8rem; color: var(--color-text-muted, #9aa0aa); }
-.arr-ws { margin-left: auto; font-size: 0.7rem; padding: 1px 7px; border-radius: 3px; background: var(--color-border, #2a2c33); }
-.arr-ws.status-open { background: var(--color-ok-bg, #173a26); color: var(--color-ok-text, #6ee7a8); }
-.arr-ws.status-closed, .arr-ws.status-error { background: var(--color-error-bg, #3a1717); color: var(--color-error-text, #f3a3a3); }
+/* Rung 0 — placement only. The three colour rules that used to live here are
+   gone with the hand-rolled pill: they gave `open` one appearance, `closed`
+   and `error` a second, and left `connecting` and `auth_required` sharing the
+   base --color-border ground with no treatment at all. Five states, three
+   appearances. StatusIndicator owns the paint; .arr-ws owns only where it
+   sits, which is the container's job and not a deviation. */
+.arr-ws { margin-inline-start: auto; }
 
 .arr-setpick { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; font-size: 0.85rem; flex-wrap: wrap; }
 .arr-setpick label { color: var(--color-text-muted, #9aa0aa); }

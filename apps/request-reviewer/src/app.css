@@ -38,10 +38,6 @@
   border-radius: 3px;
 }
 
-.req-app .status { padding: 1px 7px; border-radius: 3px; background: var(--color-border); }
-.req-app .status-open { background: var(--color-ok-bg); color: var(--color-ok-text); }
-.req-app .status-closed,
-.req-app .status-error { background: var(--color-error-bg); color: var(--color-error-text); }
 
 .req-app .field { margin-top: 0.85rem; }
 .req-app label {

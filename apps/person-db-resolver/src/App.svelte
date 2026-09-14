@@ -8,6 +8,7 @@
 
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import RecordCard from './components/RecordCard.svelte';
@@ -525,7 +526,7 @@
     <div class="pdr-title-row">
       <h1 class="pdr-title">Person · DB Resolver</h1>
       <span class="pdr-client">client: <strong>{client}</strong></span>
-      <span class="pdr-ws status-{status}">{status}</span>
+      <StatusIndicator state={status} of="workspace" class="pdr-ws" />
     </div>
     <div class="pdr-setpick">
       <label for="pdr-set">record set</label>

@@ -36,10 +36,6 @@
   border-radius: 3px;
 }
 
-.ptm-app .status { padding: 1px 7px; border-radius: 3px; background: var(--color-border); }
-.ptm-app .status-open { background: var(--color-ok-bg); color: var(--color-ok-text); }
-.ptm-app .status-closed,
-.ptm-app .status-error { background: var(--color-error-bg); color: var(--color-error-text); }
 
 .ptm-app .ptm-layout {
   display: grid;
