@@ -902,7 +902,10 @@
   color: var(--color-text-muted);
   user-select: none;
 }
-.resp-app .cr-inbox-toggle input[type="checkbox"] { margin: 0; }
+/* `.cr-inbox-toggle input[type="checkbox"] { margin: 0 }` is gone —
+   SelectWrapper--Checkbox zeroes its own input margin. The class is now a
+   RUNG-0 wrapper that carries the tooltip and the muted type; the component
+   inside it is the <label>, and it inherits font and colour from here. */
 .resp-app .cr-inbox-toggle em {
   font-style: italic;
   color: var(--color-accent, #9ab8ff);

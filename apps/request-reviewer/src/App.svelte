@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import SelectCheck from '@augment-it/shared-ui/SelectWrapper--Checkbox.svelte';
   import {
     workspace,
     MODELS,
@@ -363,10 +364,14 @@
           {/if}
           <span class="coverage-stat remaining">{uncoveredRowIds.length} remaining</span>
           {#if needsRerunInSetCount > 0}
-            <label class="inline">
-              <input type="checkbox" bind:checked={includeNeedsRerun} />
+            <SelectCheck
+              class="inline"
+              label="Include needs-rerun rows in the batch"
+              checked={includeNeedsRerun}
+              onchange={(v) => (includeNeedsRerun = v)}
+            >
               <span class="muted">+ include needs-rerun</span>
-            </label>
+            </SelectCheck>
           {/if}
         </div>
       {/if}

@@ -163,7 +163,16 @@
   font-size: 0.8rem;
 }
 .pr-app .pack-chip:hover { border-color: var(--color-accent); }
-.pr-app .pack-chip input { margin: 0; }
+/* SelectWrapper--Checkbox zeroes the input's margin itself, so the rule that
+   used to live here is gone. What it cannot do is give the chip's own children
+   a flex context: the component wraps them in a single span that is
+   `display: inline`, so the text and the opt-in Chip stop being flex items of
+   the chip and lose its gap. RUNG 0 — layout is the parent's job. */
+.pr-app .pack-chip > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
 
 /* Bundle picker — dropdown form (matches Step 1's Record Set select for
    sibling-symmetry per the cross-cutting principles §2). The picker is
@@ -261,11 +270,27 @@
    sits at its natural width. CardRow cannot know that; this member does.
    `.row-palette` keeps `position: relative` for its own popdown anchor, which
    is also what would keep it clickable above a --ClickBody overlay if this row
-   ever grew one. Selection here is the native checkbox, not a SelectWrapper. */
+   ever grew one.
+
+   Selection here is SelectWrapper--Checkbox as of 2026-09-13 (it was a bare
+   13x13 native input — 54% of the WCAG 2.2 SC 2.5.8 24px floor). The component
+   is the <label> now and paints display/align-items/gap itself, so those three
+   declarations came out; what survives is RUNG 0 sizing the component cannot
+   know: this row is the one that takes the slack. */
 .row-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* The component's children go inside ONE span it owns, and that span is
+   `display: inline` — so `.row-name` stops being a flex item and its
+   ellipsis stops working (measured: scrollWidth 0). RUNG 0 restores the flex
+   context and the min-width:0 chain that truncation needs.
+   Prefixed, unlike its `.row-label` neighbours above — those three predate the
+   namespacing rule and are raised, not chased. */
+.pr-app .row-label > span {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--space-xs);
   flex: 1 1 auto;
   min-width: 0;
 }

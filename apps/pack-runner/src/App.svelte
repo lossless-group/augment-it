@@ -4,6 +4,7 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import SelectCheck from '@augment-it/shared-ui/SelectWrapper--Checkbox.svelte';
   import {
     BUNDLES, getBundle, packDisplayName, inferEntityNameField,
     PACK_PALETTE_META,
@@ -596,19 +597,19 @@
           {#each visibleRows as row (row.row_id)}
             {@const status = classifyRow(row)}
             <CardRow as="li" density="compact" selected={selectedRowIds.has(row.row_id)}>
-              <label class="row-label">
-                <input
-                  type="checkbox"
-                  checked={selectedRowIds.has(row.row_id)}
-                  onchange={() => toggleRow(row.row_id)}
-                />
+              <SelectCheck
+                class="row-label"
+                label={String((row.fields as Record<string, unknown>)[entityNameField] ?? '(no value)')}
+                checked={selectedRowIds.has(row.row_id)}
+                onchange={() => toggleRow(row.row_id)}
+              >
                 <span class="row-status" data-status={status} aria-hidden="true">
                   {status === 'has-url' ? '✓' : '○'}
                 </span>
                 <span class="row-name">
                   {(row.fields as Record<string, unknown>)[entityNameField] ?? '(no value)'}
                 </span>
-              </label>
+              </SelectCheck>
               {#if palettePacks.length > 0}
                 <span class="row-palette">
                   <ConnectorPalette
@@ -668,15 +669,15 @@
         <div class="packs">
           {#each activeBundle.members as m (m.pack_id)}
             <div class="pack-row">
-              <label class="pack-chip">
-                <input
-                  type="checkbox"
-                  checked={enabledPackIds.has(m.pack_id)}
-                  onchange={() => togglePack(m.pack_id)}
-                />
+              <SelectCheck
+                class="pack-chip"
+                label={packDisplayName(m.pack_id)}
+                checked={enabledPackIds.has(m.pack_id)}
+                onchange={() => togglePack(m.pack_id)}
+              >
                 <span>{packDisplayName(m.pack_id)}</span>
                 {#if !m.default}<Chip size="sm">opt-in</Chip>{/if}
-              </label>
+              </SelectCheck>
               <Button
                 size="sm"
                 variant="ghost"

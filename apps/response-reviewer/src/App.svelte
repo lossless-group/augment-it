@@ -13,6 +13,7 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import SelectCheck from '@augment-it/shared-ui/SelectWrapper--Checkbox.svelte';
   import { MOCK_PACKS_FIXTURE } from './fixtures/mock-packs';
   import ConnectorPalette from './ConnectorPalette.svelte';
   import type { PaletteConnector, PalettePack } from './ConnectorPalette.svelte';
@@ -2062,20 +2063,28 @@
                               {/if}
                             </Button>
                           </div>
-                          <label class="cr-inbox-toggle" title="Send to corpus/inbox/ for later triage instead of the per-funder corpus directory. Required for PDFs — only the inbox path downloads the binary today.">
-                            <input
-                              type="checkbox"
-                              checked={inboxBound}
-                              onchange={(e) => {
-                                const v = (e.currentTarget as HTMLInputElement).checked;
-                                manualSaveToInboxByRowId = {
-                                  ...manualSaveToInboxByRowId,
-                                  [cr.row_id]: v,
-                                };
-                              }}
-                            />
+                          <!-- The title lives on a RUNG-0 wrapper, not on the
+                               component: SelectWrapper--Checkbox spreads `...rest`
+                               onto the <input>, so a `title` passed to it would
+                               shrink the tooltip's hover surface from the whole
+                               toggle to the 24px box. -->
+                          <span
+                            class="cr-inbox-toggle"
+                            title="Send to corpus/inbox/ for later triage instead of the per-funder corpus directory. Required for PDFs — only the inbox path downloads the binary today."
+                          >
+                          <SelectCheck
+                            label="Save to inbox instead of the per-funder corpus directory"
+                            checked={inboxBound}
+                            onchange={(v) => {
+                              manualSaveToInboxByRowId = {
+                                ...manualSaveToInboxByRowId,
+                                [cr.row_id]: v,
+                              };
+                            }}
+                          >
                             <span>save to inbox instead{#if isPdf} <em>(recommended for PDF — downloads the binary)</em>{/if}</span>
-                          </label>
+                          </SelectCheck>
+                          </span>
                         {/if}
                       </CardRow>
                     {/if}

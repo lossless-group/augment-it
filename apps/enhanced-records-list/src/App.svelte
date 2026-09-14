@@ -15,6 +15,7 @@
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import SelectCheck from '@augment-it/shared-ui/SelectWrapper--Checkbox.svelte';
   import { workspace } from '@augment-it/workspace';
   import {
     enhancedState,
@@ -334,7 +335,9 @@
       <table class="erl-table">
         <thead>
           <tr>
-            <th class="col-check"><input type="checkbox" disabled /></th>
+            <th class="col-check">
+              <SelectCheck label="Select all records" disabled />
+            </th>
             <th class="col-identity">identity</th>
             {#each enrichmentColumns as col (col)}
               <th class="col-enriched">{col}</th>
@@ -346,7 +349,9 @@
           {#each records as rec (rec.key)}
             {@const formatted = (col: string) => formatCell(rec.latest_fields[col])}
             <tr>
-              <td class="col-check"><input type="checkbox" disabled /></td>
+              <td class="col-check">
+                <SelectCheck label="Select {rec.identity}" disabled />
+              </td>
               <td class="col-identity">{rec.identity}</td>
               {#each enrichmentColumns as col (col)}
                 <td class="col-enriched" title={formatted(col)}>{formatted(col)}</td>

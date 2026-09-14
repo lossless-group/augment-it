@@ -84,10 +84,11 @@
  * different organ. What is missing is a DataTable / TableRow, not a CardRow
  * variant. Raised, not chased.
  *
- * The per-row checkbox below is the other half: it measures 13x13 (54% of the
- * WCAG 2.2 SC 2.5.8 floor) and is `disabled` pending v0.0.2. When it wires up it
- * wants SelectWrapper--Checkbox, which the decision doc counts 5 members for and
- * which has not been built.
+ * The per-row checkbox below is the other half. It measured 13x13 (54% of the
+ * WCAG 2.2 SC 2.5.8 floor) until 2026-09-13, when it adopted
+ * SelectWrapper--Checkbox and became 24x24 inside a 28px label. It is still
+ * `disabled` pending v0.0.2 — sized now, operable later — so the target it
+ * presents is correct before the behaviour that needs it exists.
  */
 .erl-app .erl-table-wrap {
   flex: 1;
@@ -127,7 +128,10 @@
 .erl-app .erl-table tr:hover td {
   background: var(--color-field, transparent);
 }
-.erl-app .col-check { width: 28px; }
+/* The column is sized to the control, not the other way round: a 24px
+   SelectWrapper--Checkbox plus the table cell's own 0.6rem inline padding.
+   The prior raw 28px predated the 24px target floor and would have clipped. */
+.erl-app .col-check { width: calc(var(--control-h-sm) + var(--space-md) * 2); }
 .erl-app .col-identity {
   font-weight: 500;
   max-width: 24em;
