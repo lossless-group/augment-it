@@ -890,9 +890,9 @@
   min-width: 0;
 }
 .resp-app .cr-manual-input:focus { outline: 1px solid var(--color-accent); }
-.resp-app .cr-manual-preview {
-  background: var(--color-surface, rgba(255, 255, 255, 0.02));
-}
+/* The manual-URL preview is a <CardRow> too — same shape as the pack previews,
+   one level deeper. `.cr-manual-preview`'s only declaration was the background
+   CardRow now paints. */
 .resp-app .cr-inbox-toggle {
   display: flex;
   align-items: center;

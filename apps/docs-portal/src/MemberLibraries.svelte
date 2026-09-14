@@ -16,6 +16,9 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  // Spelled variant, per the decision doc: the file name says which axis this
+  // picks (what you click), and `rg 'SelectWrapper--'` is the whole query.
+  import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { FEDERAL_LIBRARY, MEMBER_LIBRARIES, type FederalLibrary, type MemberLibrary } from './members';
 
   type Selection =
@@ -149,33 +152,29 @@
 
     <div class="lib-cards">
       {#each MEMBER_LIBRARIES as member (member.id)}
-        <CardRow density="compact">
-          <!-- CardRow is a one-direction flex and this card stacks, so the
-               member owns the internal arrangement in a single slot child.
-               That is rung 0 — placement, not a deviation. -->
-          <div class="lib-card-body">
-            <!-- NOT <SelectWrapper--ClickBody>, and it was measured rather than
-                 assumed. That component renders its <button> as
-                 `display: contents`, and a display:contents button generates no
-                 box in Chromium: getBoundingClientRect() is 0x0 and .focus() is
-                 a no-op even though tabIndex is 0. Driven with real Tab presses,
-                 the card's primary action disappeared from the tab order
-                 entirely — a WCAG 2.1.1 (Keyboard, Level A) failure, strictly
-                 worse than this raw button. The mouse half works perfectly
-                 (the ::after overlay covers the card and the sibling link stays
-                 on top), so the defect is invisible to anyone who only clicks.
-                 Raised against packages/shared-ui, not worked around here. -->
-            <button class="lib-card-main" onclick={() => (selected = { kind: 'member', lib: member })}>
+        <CardRow direction="column" density="compact">
+          <SelectWrapperClickBody
+            label={`Open the ${member.name} library`}
+            onselect={() => (selected = { kind: 'member', lib: member })}
+          >
+            <!-- The wrapper's button is inline-flex on the ROW axis, and this
+                 card's label stacks — so one slot child owns the stacking.
+                 Rung 0: placement, in the only place that knows the shape. -->
+            <span class="lib-card-main">
               <span class="lib-card-head">
                 <strong>{member.name}</strong>
                 <code>.{member.prefix}-*</code>
               </span>
               <span class="lib-card-summary">{member.summary}</span>
-            </button>
-            <a class="lib-link" href={`${member.origin}/#/gallery`} target="_blank" rel="noopener noreferrer">
-              {member.origin} ↗
-            </a>
-          </div>
+            </span>
+          </SelectWrapperClickBody>
+          <!-- The sibling control the --ClickBody contract exists for. It carries
+               position:relative so it sits ABOVE the click overlay and stays
+               clickable; the component hit-tests for exactly this and console-
+               errors if it is buried. -->
+          <a class="lib-link" href={`${member.origin}/#/gallery`} target="_blank" rel="noopener noreferrer">
+            {member.origin} ↗
+          </a>
         </CardRow>
       {/each}
     </div>

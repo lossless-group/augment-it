@@ -26,7 +26,7 @@
   // The two list ROWS are no longer among them either. `.cc-strat` and `.cc-row`
   // were the Button rollout's two holdouts, both left raw with the same note —
   // "the organ this wants is a selectable list row; it does not exist yet" — and
-  // that organ shipped as <CardRow> + <SelectWrapper--ClickPrimary>. The `source-row`
+  // that organ shipped as <CardRow> + <SelectWrapper--ClickBody>. The `source-row`
   // specimen below is now a usage catalog of those two components, which is why
   // it still exists: the specimen that documented the holdout should be the one
   // that documents its resolution. ONE control is still raw — the suggestion
@@ -41,7 +41,7 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
-  import SelectWrapperClickPrimary from '@augment-it/shared-ui/SelectWrapper--ClickPrimary.svelte';
+  import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { CONNECTION_TONE, type ConnStatus } from '../types';
 
   // Every connection state, in the order the divergence is easiest to read.
@@ -172,31 +172,31 @@
 {#snippet sourceRow(p: Record<string, unknown>)}
   <div class="cc-list">
     <CardRow density="compact" selected={Boolean(p.active)}>
-      <span class="cc-dot"></span>
-      <span class="cc-row-body">
-        <SelectWrapperClickPrimary
-          label={String(p.title ?? 'The degree is not the job')}
-          selected={Boolean(p.active)}
-        >
+      <SelectWrapperClickBody
+        label={String(p.title ?? 'The degree is not the job')}
+        selected={Boolean(p.active)}
+      >
+        <span class="cc-dot"></span>
+        <span class="cc-row-body">
           <span class="cc-row-title">{String(p.title ?? 'The degree is not the job')}</span>
-        </SelectWrapperClickPrimary>
-        <span class="cc-row-meta">
-          <span>Brookings</span>
-          <Chip size="sm" tone="ok">fetched</Chip>
-          <Chip size="sm">Work-Based-Learning</Chip>
+          <span class="cc-row-meta">
+            <span>Brookings</span>
+            <Chip size="sm" tone="ok">fetched</Chip>
+            <Chip size="sm">Work-Based-Learning</Chip>
+          </span>
         </span>
-      </span>
+      </SelectWrapperClickBody>
     </CardRow>
     <CardRow density="compact">
-      <span class="cc-dot err"></span>
-      <span class="cc-row-body">
-        <SelectWrapperClickPrimary label="Registered apprenticeship national guidelines">
+      <SelectWrapperClickBody label="Registered apprenticeship national guidelines">
+        <span class="cc-dot err"></span>
+        <span class="cc-row-body">
           <span class="cc-row-title"
             >https://www.dol.gov/agencies/eta/apprenticeship/policy/registered-apprenticeship-national-guidelines</span
           >
-        </SelectWrapperClickPrimary>
-        <span class="cc-row-meta"><Chip size="sm">metadata-only</Chip></span>
-      </span>
+          <span class="cc-row-meta"><Chip size="sm">metadata-only</Chip></span>
+        </span>
+      </SelectWrapperClickBody>
     </CardRow>
   </div>
 {/snippet}

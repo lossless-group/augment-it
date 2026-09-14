@@ -138,54 +138,42 @@ code { font-family: var(--font-mono); font-size: 11px; }
   gap: 10px;
   margin: 14px 0 20px;
 }
-/* `.lib-card` is now <CardRow density="compact">; its surface recipe — border,
-   radius, background, shadow, overflow, column flex — came out whole.
-   `.lib-card-main` did NOT become a <SelectWrapper--ClickBody>; see the note at
-   the call site, and the report. Three things worth keeping:
+/* `.lib-card` is <CardRow direction="column" density="compact"> and
+   `.lib-card-main` is the label slot inside a <SelectWrapper--ClickBody>. Both
+   original recipes came out whole — border, radius, background, shadow,
+   overflow, column flex, and the button's own chrome. Four notes, each a
+   decision rather than a deletion:
 
    1. `.lib-card-main:focus-visible { outline: var(--focus-ring, …) }` was DEAD
       and had never painted. `--focus-ring` holds a box-shadow value, so
       `outline: var(--focus-ring)` is invalid at computed-value time and
       dropped — and because the custom property IS defined, the comma fallback
-      never applied either. The federal `*:focus-visible` is what actually rings
-      this card, measured at 3px. The same dead pattern is still on
-      `.lib-federal-main` and `.lib-link`; raised, not chased, because removing
-      it there is repair rather than migration.
+      never applied either. The wrapper's own `:focus-visible::after` rings the
+      whole card now. The same dead pattern is still on `.lib-federal-main` and
+      `.lib-link`; raised, not chased — removing it there is repair, not
+      migration.
 
    2. `box-shadow: var(--fx-card-shadow)` did not survive. CardRow draws its
       boundary with `--color-border-strong` (measured rgb(100,103,133), ≈3.44:1)
-      where this card used `--color-border` (measured rgb(52,58,84), ≈1.26:1),
-      so a depth cue is traded for a boundary that clears the 3:1 non-text
-      floor. That is the better half of the trade.
+      where this card used `--color-border` (measured rgb(52,58,84), ≈1.26:1):
+      a depth cue traded for a boundary that clears the 3:1 non-text floor.
 
-   3. `.lib-card-body` is RUNG 0. CardRow is a one-direction flex and this card
-      stacks, so the member owns the internal arrangement in one slot child.
-      `align-self: stretch` is load-bearing — CardRow is `align-items:
-      flex-start`, so without it the tiles in this auto-fill grid stop being
-      equal height. Measured 152px / 152px with it. */
-.lib-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1 1 auto;
-  min-width: 0;
-  align-self: stretch;       /* CardRow is align-items: flex-start */
-  text-align: left;
-}
+   3. `:hover` is CardRow's now — it paints one when the row contains a control.
+      The member's `.lib-card-main:hover { background }` is gone; no rung 4 was
+      spent restoring it.
+
+   4. `.lib-card-main` survives as a RUNG 0 slot only. The wrapper's button is
+      inline-flex on the ROW axis, and this card's label stacks, so one child
+      owns the stacking. It carries no colour, no border, no padding and no
+      cursor — all of that is the component's. */
 .lib-card-main {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
   text-align: left;
-  font-family: inherit;
   font-size: 11px;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--color-text);
-  cursor: pointer;
 }
-.lib-card-main:hover { color: var(--color-link); }
 .lib-card-head {
   display: flex;
   align-items: baseline;
@@ -195,6 +183,12 @@ code { font-family: var(--font-mono); font-size: 11px; }
 .lib-card-summary { color: var(--color-text-muted); line-height: 1.5; }
 
 .lib-link {
+  /* REQUIRED by the --ClickBody contract, not cosmetic: the wrapper stretches a
+     pseudo-element across the whole CardRow, and a static sibling would sit
+     UNDER it and stop being clickable. The component hit-tests each sibling's
+     centre and console-errors if one is buried — which is how this line stays
+     honest instead of rotting into a comment nobody checks. */
+  position: relative;
   font-size: 10px;
   padding: 7px 0 0;
   margin-block-start: auto;   /* pin to the bottom of an equal-height grid tile */

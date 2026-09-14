@@ -304,36 +304,37 @@
   flex-direction: column;
   gap: 0.2rem;
 }
-/* Each queued add is a <CardRow density="compact"> from @augment-it/shared-ui.
-   The whole surface recipe — display, gap, padding, border, radius, background
-   — came out with it, along with three dead hex-literal fallbacks the theme
-   has never not defined; see the note at the top of this file.
+/* Each queued add is <CardRow as="li" density="compact" tone={…}>. The whole
+   surface recipe — display, gap, padding, border, radius, background — came out
+   with it, along with three dead hex-literal fallbacks the theme has never not
+   defined (see the note at the top of this file), the wrapper <li> the card
+   used to nest inside, and all three `.p-*` state classes.
 
-   Three things had to move rather than simply disappear:
+   Two things moved rather than disappeared, and BOTH have the same cause:
+   CardRow sets `font-family`, `font-size` and `color` on ITSELF, so a rule on
+   an ancestor no longer reaches across it. Typography and status colour are
+   therefore stated on the children directly. These rows are URLs; mono is
+   load-bearing, not decoration.
 
-   1. TYPOGRAPHY moved onto the children. CardRow sets font-family and
-      font-size on ITSELF, so a rule on the <li> no longer reaches inside it.
-      These rows are URLs; mono is load-bearing, not decoration.
-   2. STATUS COLOUR moved onto the children, same reason — CardRow sets
-      `color` on itself and an inherited colour cannot cross it.
-   3. The BOUNDARY colour had nowhere to go but rung 4 (`style=` in App.svelte,
-      with a data-deviation). CardRow has no `tone` and Chip does. Raised.
+   The state hook is `data-tone`, which CardRow publishes — so the member does
+   not carry a second copy of the status as a class. Scoped under
+   `.pending-list` so it cannot reach any other CardRow in this member. The
+   text tone and the boundary tone now resolve to the SAME token, which the
+   hand-rolled version never managed (it drew a warn border over ok text).
 
-   Also removed with the recipe: `.p-ok { opacity: 0.75 }` — appearance
-   standing in for state, and it dimmed a success row's text against the same
-   background it was already low-contrast on. The ✓ glyph and the ok-token
-   colour carry the state now. */
-.pending-item { display: block; }
+   Also removed with the recipe: `.p-ok { opacity: 0.75 }` — appearance standing
+   in for state, dimming a success row's text on a background it was already
+   low-contrast against. The ✓ glyph and the ok token carry it now. */
 .pending-icon,
 .pending-url,
 .pending-meta { font-family: var(--font-mono, monospace); }
 .pending-icon,
 .pending-url { font-size: 11px; }
 
-.pending-item.p-ok .pending-icon,
-.pending-item.p-ok .pending-url { color: var(--color-ok-text); }
-.pending-item.p-failed .pending-icon,
-.pending-item.p-failed .pending-url { color: var(--color-warn-fg); }
+.pending-list [data-tone='ok'] .pending-icon,
+.pending-list [data-tone='ok'] .pending-url { color: var(--color-ok-fg); }
+.pending-list [data-tone='error'] .pending-icon,
+.pending-list [data-tone='error'] .pending-url { color: var(--color-error-fg); }
 .pending-icon {
   display: inline-flex;
   align-items: center;
@@ -341,7 +342,7 @@
   width: 16px; height: 16px;
   flex-shrink: 0;
 }
-.pending-item.p-pending .pending-icon { animation: pending-spin 1s linear infinite; }
+.pending-list [data-tone='info'] .pending-icon { animation: pending-spin 1s linear infinite; }
 @keyframes pending-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .pending-url {
   flex: 1;
@@ -359,4 +360,4 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.pending-item.p-failed .pending-meta { color: var(--color-warn-fg); max-width: 50%; }
+.pending-list [data-tone='error'] .pending-meta { color: var(--color-error-fg); max-width: 50%; }

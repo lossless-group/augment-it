@@ -595,8 +595,7 @@
         <ul class="rows">
           {#each visibleRows as row (row.row_id)}
             {@const status = classifyRow(row)}
-            <li>
-              <CardRow density="compact" selected={selectedRowIds.has(row.row_id)}>
+            <CardRow as="li" density="compact" selected={selectedRowIds.has(row.row_id)}>
               <label class="row-label">
                 <input
                   type="checkbox"
@@ -626,8 +625,7 @@
                   />
                 </span>
               {/if}
-              </CardRow>
-            </li>
+            </CardRow>
           {/each}
           {#if visibleRows.length === 0}
             <li class="muted empty-row">no rows match this filter</li>

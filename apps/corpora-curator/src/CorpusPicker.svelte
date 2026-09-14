@@ -2,7 +2,7 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
-  import SelectWrapperClickPrimary from '@augment-it/shared-ui/SelectWrapper--ClickPrimary.svelte';
+  import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { curation, slugify, splitTags } from './curation.svelte';
 
   // Mirrors content-ingest's DOMAIN_FOLDERS (services/content-ingest/src/
@@ -78,34 +78,32 @@
   {:else}
     <ul class="cc-strat-list">
       {#each curation.strategies as s (s.slug)}
-        <li>
-          <!-- The type rides along on the row rather than filtering the list
-               (gh #88). Two corpora can share a slug across types, so the chip
-               is also what makes them distinguishable.
+        <!-- The type rides along on the row rather than filtering the list
+             (gh #88). Two corpora can share a slug across types, so the chip
+             is also what makes them distinguishable.
 
-               Was the raw <button class="cc-strat"> holdout. CardRow is a flex
-               ROW and this card stacks a title over a meta line, so the stack
-               moves into ONE slot — `.cc-strat-body` — which is rung 0: a
-               wrapper owning its own internal layout, not a deviation.
-               --ClickPrimary for the same reason as SourceList: --ClickBody is
-               what this row wants and is keyboard-dead as shipped
-               (`display: contents` removes its <button> from the tab order).
-               See the comment in SourceList.svelte for the measurement. -->
-          <CardRow density="compact">
-            <span class="cc-strat-body">
-              <SelectWrapperClickPrimary
-                label={`${s.title} — ${s.slug}${s.type ? ` (${s.type})` : ''}`}
-                onselect={() => curation.select(s.slug, s.type)}
-              >
-                <span class="cc-strat-title">{s.title}</span>
-              </SelectWrapperClickPrimary>
-              <span class="cc-strat-meta">
-                <span class="cc-muted cc-mono cc-mini">{s.slug}</span>
-                {#if s.type}<Chip size="sm">{s.type}</Chip>{/if}
-              </span>
-            </span>
-          </CardRow>
-        </li>
+             Was the raw <button class="cc-strat"> holdout. Three props carry
+             what its thirteen declarations used to: `as="li"` (the first pass
+             nested CardRow in a bare <li>, because a <div> is illegal in a
+             <ul>), `direction="column"` for the title-over-meta stack (the
+             first pass spent a rung-0 `.cc-strat-body` wrapper on it), and
+             `density="compact"`. Zero override rungs.
+
+             --ClickBody: the whole row was always the click target, and the
+             meta line's Chip is a <span>, so there is nothing under the
+             overlay. -->
+        <CardRow as="li" density="compact" direction="column">
+          <SelectWrapperClickBody
+            label={`${s.title} — ${s.slug}${s.type ? ` (${s.type})` : ''}`}
+            onselect={() => curation.select(s.slug, s.type)}
+          >
+            <span class="cc-strat-title">{s.title}</span>
+          </SelectWrapperClickBody>
+          <span class="cc-strat-meta">
+            <span class="cc-muted cc-mono cc-mini">{s.slug}</span>
+            {#if s.type}<Chip size="sm">{s.type}</Chip>{/if}
+          </span>
+        </CardRow>
       {/each}
     </ul>
   {/if}

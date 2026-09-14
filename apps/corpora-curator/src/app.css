@@ -163,26 +163,19 @@
 .cc-app .cc-strat-list { list-style: none; margin: 0.5rem 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
 /* Corpus row — the holdout is GONE. It was left raw by the Button rollout with
    the note "the organ this wants is a selectable list row; it does not exist
-   yet"; it is now <CardRow> + <SelectWrapper--ClickBody>. Deleted here: width,
-   text-align, display, flex-direction, font, color, background, border,
+   yet"; it is now <CardRow as="li" density="compact" direction="column"> +
+   <SelectWrapper--ClickBody>, at ZERO override rungs. Deleted here: width,
+   text-align, display, flex-direction, gap, font, color, background, border,
    border-radius, padding, cursor and the :hover border — thirteen declarations,
-   every one of which the two components now contribute (cursor comes from
-   --ClickBody, the rest from CardRow).
+   every one now contributed by a prop or by the components.
 
-   `.cc-strat-body` replaces it: the row's title/meta STACK, which is one slot
-   inside CardRow's flex row. Rung 0 — a wrapper owning its own internal layout
-   is the parent's job and is not a deviation.
+   `.cc-strat-body` is gone too, and it is worth naming why: the first pass wrote
+   it as a rung-0 wrapper carrying `flex-direction: column`, because CardRow was
+   horizontal-only. `direction="column"` retired it the same night. A rung-0
+   wrapper whose entire content is one layout property is a prop that has not
+   been written yet.
 
-   Known loss, raised not chased: `.cc-strat:hover` tinted the border on hover
-   and CardRow has no hover state, so the mouse affordance is gone. Keyboard is
-   unaffected — --ClickPrimary carries --focus-ring on a real box. */
-.cc-app .cc-strat-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+   The hover cue came back with the component, so nothing is owed here. */
 .cc-app .cc-strat-title { font-weight: 600; }
 /* Slug + type on one line. The type chip is load-bearing: the list holds every
    type at once (gh #88) and (type, slug) is the real key. */

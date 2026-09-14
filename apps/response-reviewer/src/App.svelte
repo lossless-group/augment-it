@@ -1549,7 +1549,20 @@
         {#each byRecord as group (group.row_id)}
           {@const accepted = acceptedPackIds(group)}
           {@const canRun = group.entity_name.trim().length > 0}
-          <CardRow direction="column" density="compact">
+          <!-- NOT a CardRow, and this was MEASURED rather than assumed — it was
+               built as <CardRow direction="column" density="compact">, rendered
+               and compared against HEAD. `direction` fixed the axis and the
+               padding broke it: this card's children are deliberately FULL-BLEED
+               bands — a tinted header with its own border-bottom, and
+               hairline-separated response rows — and CardRow always pads. The
+               children went 950px -> 926px, the header band stopped 12px short
+               of the card edge on all four sides, and the result reads as a card
+               inside a card. The card grew 201px -> 233px for nothing.
+
+               The gap is `density`, not `direction`: there is no `none`. Raised,
+               not chased — a negative-margin dance to cancel the component's own
+               padding is fighting the component, not rung-0 layout. -->
+          <article class="record-card">
             <header class="record-card-header">
               {#if group.entity_field}
                 <!-- Editable entity-name input. Looks like a heading until you
@@ -1763,7 +1776,7 @@
                 </li>
               {/each}
             </ul>
-          </CardRow>
+          </article>
         {/each}
       </div>
     {:else if viewMode === 'content-reader'}

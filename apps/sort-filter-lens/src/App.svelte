@@ -411,11 +411,6 @@
     }
   }
 
-  // RUNG 4, and a deliberate one. CardRow paints a single neutral boundary and
-  // exposes no `tone`, but a queued-add row IS its status — that is the only
-  // thing the row reports. Tokens only, never a literal: the accent fallback
-  // this replaced was one of the member's dead hex literals, which the theme
-  // has never not defined — see the note at the top of app.css.
   // Maps this member's three pending states onto CardRow's semantic tone axis.
   // Was a style-string builder against rung 4; now a tone name, which is the
   // whole point of the axis existing.
@@ -760,13 +755,14 @@
                 <ul class="pending-list" aria-label="Recent adds for this record">
                   {#each pendingList as p (p.id)}
                     {@const elapsed = nowMs - p.started_at}
-                    <li class="pending-item" class:p-pending={p.status === 'pending'} class:p-ok={p.status === 'ok'} class:p-failed={p.status === 'failed'}>
-                      <!-- The engineer who migrated this reached rung 4 here and said
-                           plainly that meant the API was wrong: CardRow had no `tone`,
-                           though Chip already shipped one. It does now — two other
-                           members hit the same gap the same night — so the deviation
-                           is retired rather than left to rot as a stale annotation. -->
-                      <CardRow density="compact" tone={pendingTone(p.status)}>
+                    <!-- Rung 4 was spent here and is now retired twice over. `tone`
+                         replaced the style= boundary colour, and `as="li"` replaced
+                         the wrapper <li> this was nested inside. What is left is
+                         rung 1 only: no class=, no style=, no data-deviation.
+                         The three `.p-*` state classes went with them — CardRow
+                         publishes `data-tone`, so the member's own descendants read
+                         the state off the row instead of off a duplicate class. -->
+                    <CardRow as="li" density="compact" tone={pendingTone(p.status)}>
                       <span class="pending-icon" aria-hidden="true">
                         {#if p.status === 'pending'}⟳{:else if p.status === 'ok'}✓{:else}✗{/if}
                       </span>
@@ -785,8 +781,7 @@
                         title={p.status === 'pending' ? 'dismiss (request keeps running in background)' : 'dismiss'}
                         aria-label="dismiss"
                       >×</Button>
-                      </CardRow>
-                    </li>
+                    </CardRow>
                   {/each}
                 </ul>
               {/if}

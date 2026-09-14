@@ -122,13 +122,19 @@
 }
 
 /* `.pr-app .rows li` used to own the row's padding and hairline separator.
-   Each row is now a <CardRow density="compact">, which paints its own surface,
-   border and padding — so an li padding here would nest inside the card's and
-   double it. Deleted rather than reduced. `.empty-row` is the one li that is
-   NOT a CardRow and carries its own padding already.
-   Note this selector was (0,1,1) and would have out-specified `.ui-cardrow`
-   had it stayed: the delete-what-you-made-dead rule and the
-   do-not-out-specify-the-component rule both point at the same line. */
+   Each row IS the li now — <CardRow as="li"> — and CardRow paints its own
+   surface, border and padding, so this rule would have doubled them.
+
+   Deleted rather than reduced, and note WHY it could not simply stay: the
+   selector is (0,1,1), which out-specifies `.ui-cardrow` at (0,2,0)… no, it
+   loses — but `.pr-app .rows li` matches the CardRow element ITSELF now that
+   `as="li"` is in play, which is a sharper edge than the nested version had.
+   A member rule that targets the row's tag name is aimed straight at the
+   component the moment `as` is used. Worth knowing before the next member
+   reaches for `as="li"` with a `ul li` rule still in its stylesheet.
+
+   `.empty-row` is the one li that is NOT a CardRow; it carries its own padding
+   already, which is why deleting this was safe. */
 
 .pr-app .rows label {
   display: flex;
@@ -250,8 +256,8 @@
    right of each row in the Augment record-picker. Lets the user fire one
    pack on one record in-place instead of bulk fan-out.
 
-   `.row-line` is gone: <CardRow> is the flex row now, and it paints the
-   surface too. What survives is RUNG 0 — which child takes the slack and which
+   `.row-line` is gone: <CardRow as="li"> is the flex row now, it paints the
+   surface, and it IS the list item — no wrapper. What survives is RUNG 0 — which child takes the slack and which
    sits at its natural width. CardRow cannot know that; this member does.
    `.row-palette` keeps `position: relative` for its own popdown anchor, which
    is also what would keep it clickable above a --ClickBody overlay if this row
