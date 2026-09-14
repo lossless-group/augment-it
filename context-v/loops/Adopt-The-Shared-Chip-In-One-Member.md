@@ -92,10 +92,16 @@ deviate.
 
 ### The nested-interactive bug this component exists to fix
 
-`sort-filter-lens` ships a `<span role="button" tabindex="0">` nested inside a
-`<button>`. Interactive content may not contain interactive content — it is
-invalid HTML, and the outer control's accessible name absorbs the glyph, so the
-remove affordance is announced as part of the label.
+`sort-filter-lens` shipped a `<span role="button" tabindex="0">` nested inside a
+`<button>`. Interactive content may not contain interactive content — invalid
+HTML.
+
+**Corrected, measured at the call site:** an earlier version of this loop said the
+outer control's accessible name *"absorbs the glyph"*. It does **not** — that
+button carries an explicit `aria-label`, so its name was always correct. Do not go
+looking for a name defect on the outer control. The real defects were HTML
+validity, an inner control whose accessible name was literally `"×"`, and a target
+measuring **14 × 14 — 196px² against a 576px² floor, 34% of WCAG 2.2 SC 2.5.8.**
 
 Wherever you find *"a chip you can click, with an × you can also click"*, the
 answer is **not** a Button wrapping a Button. It is one of:
@@ -120,6 +126,26 @@ Default is OFF on purpose: **a hover-only affordance does not exist on a touch
 device.** The implementation reveals on `:hover` OR `:focus-within`, keeps the
 control's box either way so revealing never reflows the row, and forces it visible
 under `@media (hover: none)`.
+
+## Rung 0 has a Chip-specific regression mode
+
+**A Chip in a column-flex parent stretches to the column width**, and
+`--radius-pill` makes that far more visible than a small-radius badge ever was —
+one measured at **854px wide**. It stretched before the migration too; a 3px band
+reads as a band and an 854px pill reads as a mistake. Fix it on the parent or a
+wrapper, rung 0. Only a before/after probe catches it.
+
+## Two more traps that produce a clean-looking wrong answer
+
+**`color-mix()` serialises to `color(srgb r g b / a)`.** A contrast parser that
+only knows `rgba()` returns **1.00** for every hover measurement — indistinguishable
+from a hover that paints nothing.
+
+**Svelte syntax, twice:** `{@const}` is only legal as an immediate child of a block
+or component tag, so the obvious `tone={MAP[x ?? 'default']}` next to
+`{x ?? 'default'}` will not compile inside a plain `<div>`. And
+`{#each [...] as const as s}` is unparseable — Svelte splits the each expression on
+` as `. Hoist the tuple to module scope.
 
 ## The gate cannot see this work
 
@@ -176,6 +202,12 @@ Same ordering lesson the Button rollout learned the hard way — **aria is third
 - **A badge that is really a count.** Fine as `neutral`, but if it also acts as
   a live region (`queue-badge`, `outcome-badge`), check whether removing the
   member's CSS drops an `aria-live` behaviour.
+- **A token *inside* a control's label stays raw.** The tree's `NO →` branch says
+  "small labelled token → Chip", which points the wrong way for a rank circle or a
+  count badge sitting inside a `<Button>`'s label. Those are painted against the
+  *control's* surface and usually inherit `currentColor` from its variant; a Chip
+  paints its own ground from page-level tokens and would erase the selected-state
+  cue. Leave them and raise the count-slot organ.
 - **A "chip" that wraps.** Chip is `white-space: nowrap` by construction. A
   multi-line label is not a chip — it is a card or a note. Raise it.
 

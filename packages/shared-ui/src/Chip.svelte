@@ -31,13 +31,21 @@
    * if it was green. The sweep found eleven renderings of one status value
    * precisely because tone was being chosen by eye.
    *
-   * NESTING — the bug this component exists to stop. `sort-filter-lens` ships a
+   * NESTING — the bug this component exists to stop. `sort-filter-lens` shipped a
    *   <span role="button" tabindex="0"> nested INSIDE a <button>
-   * which is invalid HTML — interactive content may not contain interactive
-   * content — and the outer control's accessible name absorbs the glyph, so a
-   * screen reader announces the remove affordance as part of the label. A Chip
-   * is a <span>, so its dismiss <button> is legal, focusable, and separately
-   * named. `dismissible` REQUIRES `dismissLabel`.
+   * which is invalid HTML: interactive content may not contain interactive
+   * content.
+   *
+   * CORRECTED 2026-09-13, measured at the call site: an earlier version of this
+   * comment claimed the outer control's accessible name "absorbs the glyph". It
+   * does NOT — that button carries an explicit aria-label, so its name was always
+   * correct. The real defects were HTML validity, an inner control whose
+   * accessible name was literally "x", and a target measuring 14x14 — 196 square
+   * pixels against a 576 square pixel floor, THIRTY-FOUR PERCENT of WCAG 2.2
+   * SC 2.5.8. Do not go looking for a name defect on the outer control.
+   *
+   * A Chip is a <span>, so its dismiss <button> is legal, focusable, and
+   * separately named. `dismissible` REQUIRES `dismissLabel`.
    *
    * A11Y CONTRACT (F7, and DESIGN.md's primitive floor):
    *   · renders a <span> — never a div, never a button, never role="button"
@@ -247,8 +255,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    inline-size: var(--control-h-sm);
-    block-size: var(--control-h-sm);
+    /* --control-h-md, not -sm. At -sm this sat EXACTLY on the 24px WCAG 2.2
+       SC 2.5.8 floor, where the <Button size="icon"> it replaces sat 4px clear —
+       so the first dismissible adoption measured a target REDUCTION, 28 -> 24.
+       A dismiss is a real control and gets the real control size. */
+    inline-size: var(--control-h-md);
+    block-size: var(--control-h-md);
     flex: 0 0 auto;
     padding: 0;
     border: 0;
@@ -281,7 +293,11 @@
   .ui-chip__dismiss:hover {
     /* Surface-independent, for the same reason Button's ghost hover is: a chip
        may itself be painted with any tone's background. */
-    background: color-mix(in srgb, var(--color-text) 14%, transparent);
+    background: color-mix(in srgb, var(--color-text) 22%, transparent);
+    /* 14% was surface-independent and therefore CORRECT, and measured
+       1.32-1.47:1 against the chip's own ground — correct is not the same as
+       perceptible. 22% is the smallest step that reads as a state change on
+       every tone. */
   }
   .ui-chip__dismiss:focus-visible {
     box-shadow: var(--focus-ring);
