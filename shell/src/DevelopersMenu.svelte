@@ -12,6 +12,7 @@
   // role="menu"/"menuitem" — rather than inventing a second one.
 
   import JumboPopdown, { type PopdownItem } from './JumboPopdown.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import { workspace } from '@augment-it/workspace';
 
   let {
@@ -130,7 +131,10 @@
 <span class="dev-menu">
   <JumboPopdown triggerLabel="Developers" triggerIcon="⚙" {items} onSelect={(id) => void onSelect(id)} />
   {#if copied}
-    <span class="copied" role="status">copied</span>
+    <!-- A non-interactive success label, so it is the shared Chip, not a
+         member recipe. role="status" rides through Chip's rest-spread — the
+         live region is the point of this element and must survive. -->
+    <Chip size="sm" tone="ok" role="status">copied</Chip>
   {/if}
 </span>
 
@@ -139,14 +143,5 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-  }
-
-  .copied {
-    font-size: 10px;
-    color: var(--color-ok-text);
-    background: var(--color-ok-bg);
-    border-radius: 2px;
-    padding: 2px 6px;
-    white-space: nowrap;
   }
 </style>

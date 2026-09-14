@@ -1,5 +1,6 @@
 <script lang="ts">
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   // Workspace switcher — top-right header chrome.
   //
   // Reads workspace.workspaces (populated by workspace.list) and the
@@ -114,7 +115,10 @@
               <span class="row-label">{w.display_name}</span>
               <span class="row-slug">{w.client_id}</span>
               {#if w.has_env}
-                <span class="env-chip" title="per-workspace .env present">env</span>
+                <!-- A non-interactive tag stating one fact, so it is the
+                     shared Chip. `neutral`, not a colour: the presence of an
+                     .env file is a plain fact, not a verdict. -->
+                <Chip size="sm" title="per-workspace .env present">env</Chip>
               {/if}
               {#if isActive}
                 <span class="check" aria-hidden="true">✓</span>
@@ -196,15 +200,6 @@
     color: var(--color-text-muted);
     font-size: 10px;
     font-family: var(--font-mono, monospace);
-  }
-  .env-chip {
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--color-text-muted);
-    border: 1px solid var(--color-border);
-    border-radius: 3px;
-    padding: 1px 4px;
   }
   .check {
     color: var(--color-accent);
