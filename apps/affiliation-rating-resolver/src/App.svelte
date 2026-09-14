@@ -9,6 +9,7 @@
 
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import ColumnMapper from './components/ColumnMapper.svelte';
   import { normalizeRatingRecord, guessMapping, MAPPING_NONE } from './lib/normalize';
@@ -499,7 +500,12 @@
               {#if detail?.person.personal_links.length}
                 <ul class="arr-link-list">
                   {#each detail.person.personal_links as l}
-                    <li><a href={l.url} target="_blank" rel="noopener">{l.url}</a> <code class="arr-kind">{l.kind}</code></li>
+                    <li>
+                      <CardRow density="compact">
+                        <a href={l.url} target="_blank" rel="noopener">{l.url}</a>
+                        <code class="arr-kind">{l.kind}</code>
+                      </CardRow>
+                    </li>
                   {/each}
                 </ul>
               {:else}
@@ -518,7 +524,12 @@
               {#if detail?.person.personal_corpus.length}
                 <ul class="arr-link-list">
                   {#each detail.person.personal_corpus as l}
-                    <li><a href={l.url} target="_blank" rel="noopener">{l.url}</a> <code class="arr-kind">{l.kind}</code></li>
+                    <li>
+                      <CardRow density="compact">
+                        <a href={l.url} target="_blank" rel="noopener">{l.url}</a>
+                        <code class="arr-kind">{l.kind}</code>
+                      </CardRow>
+                    </li>
                   {/each}
                 </ul>
               {:else}
@@ -537,7 +548,12 @@
               {#if detail?.org.org_links.length}
                 <ul class="arr-link-list">
                   {#each detail.org.org_links as l}
-                    <li><a href={l.url} target="_blank" rel="noopener">{l.url}</a> <code class="arr-kind">{l.kind}</code></li>
+                    <li>
+                      <CardRow density="compact">
+                        <a href={l.url} target="_blank" rel="noopener">{l.url}</a>
+                        <code class="arr-kind">{l.kind}</code>
+                      </CardRow>
+                    </li>
                   {/each}
                 </ul>
               {:else}
@@ -556,7 +572,12 @@
               {#if detail?.org.org_corpus.length}
                 <ul class="arr-link-list">
                   {#each detail.org.org_corpus as l}
-                    <li><a href={l.url} target="_blank" rel="noopener">{l.url}</a> <code class="arr-kind">{l.kind}</code></li>
+                    <li>
+                      <CardRow density="compact">
+                        <a href={l.url} target="_blank" rel="noopener">{l.url}</a>
+                        <code class="arr-kind">{l.kind}</code>
+                      </CardRow>
+                    </li>
                   {/each}
                 </ul>
               {:else}

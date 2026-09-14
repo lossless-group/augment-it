@@ -5,7 +5,15 @@
   // operator confirms ONE (or falls through to create / manual search in the
   // parent). One at a time; no batch accept in v0.
 
+  //
+  // SELECTION vs COMMIT. Clicking the candidate's name ARMS it
+  // (SelectWrapper--ClickPrimary -> CardRow `selected`); the primary Button
+  // COMMITS. Deliberately two controls with two names: a match writes to the
+  // canonical layer and is not undoable from here, so "click anywhere commits"
+  // (SelectWrapper--ClickBody) is the wrong organ for this surface.
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import SelectWrapperClickPrimary from '@augment-it/shared-ui/SelectWrapper--ClickPrimary.svelte';
+  import CardRowCandidate from './CardRow--Candidate.svelte';
   import type { Candidate } from '../lib/types';
 
   let {
@@ -18,6 +26,7 @@
     onMatch: (c: Candidate) => void;
   } = $props();
 
+  let armed = $state<string | null>(null);
   let expanded = $state<string | null>(null);
   function toggle(slug: string) {
     expanded = expanded === slug ? null : slug;
@@ -39,10 +48,17 @@
   <ul class="rdr-candidates">
     {#each candidates as c (c.slug)}
       {@const adds = appendTotal(c)}
-      <li class="rdr-candidate">
+      <li>
+        <CardRowCandidate selected={armed === c.slug}>
         <div class="rdr-candidate-head">
           <div class="rdr-candidate-id">
-            <span class="rdr-candidate-name">{c.complete_name || c.slug}</span>
+            <SelectWrapperClickPrimary
+              label={`consider ${c.complete_name || c.slug}`}
+              selected={armed === c.slug}
+              onselect={() => (armed = armed === c.slug ? null : c.slug)}
+            >
+              <span class="rdr-candidate-name">{c.complete_name || c.slug}</span>
+            </SelectWrapperClickPrimary>
             <code class="rdr-candidate-slug">{c.slug}</code>
           </div>
           <div class="rdr-candidate-score">
@@ -59,9 +75,13 @@
         </div>
 
         {#if adds > 0}
-          <Button variant="link" size="sm" aria-expanded={expanded === c.slug} onclick={() => toggle(c.slug)}>
-            {expanded === c.slug ? '▾ hide what would be added' : '▸ preview what would be added'}
-          </Button>
+          <div class="rdr-candidate-disclosure">
+            <!-- rung 0: a column-flex parent stretches an inline-flex Button to full
+                 width. The wrapper is the container's job, not a deviation. -->
+            <Button variant="link" size="sm" aria-expanded={expanded === c.slug} onclick={() => toggle(c.slug)}>
+              {expanded === c.slug ? '▾ hide what would be added' : '▸ preview what would be added'}
+            </Button>
+          </div>
           {#if expanded === c.slug}
             <div class="rdr-preview">
               {#if c.append_preview.org_links.length}
@@ -89,6 +109,7 @@
           </Button>
           <span class="rdr-match-note">every match records an opportunity for this org — even when there's nothing new to enrich</span>
         </div>
+        </CardRowCandidate>
       </li>
     {/each}
   </ul>

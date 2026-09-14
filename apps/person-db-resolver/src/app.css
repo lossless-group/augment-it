@@ -54,7 +54,9 @@
 .pdr-resolve-head { display: flex; align-items: baseline; gap: 0.5rem; }
 
 .pdr-candidates { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
-.pdr-candidate { background: var(--color-surface, #1c1e25); border: 1px solid var(--color-border, #2a2c33); border-radius: 8px; padding: 0.7rem; }
+/* .pdr-candidate surface/border/radius/padding deleted — CardRow--Candidate owns
+   the card chrome now. The <li> is a bare list slot; .pdr-candidates below is the
+   CardRowsColumn (rung 0: the parent owns spacing between rows). */
 .pdr-candidate-head { display: flex; justify-content: space-between; gap: 0.5rem; align-items: flex-start; }
 .pdr-candidate-name { font-weight: 600; }
 .pdr-candidate-score { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; justify-content: flex-end; }
@@ -70,7 +72,6 @@
 .pdr-toggle { background: none; border: none; color: var(--color-link, #6fb3ff); cursor: pointer; font-size: 0.74rem; padding: 0.3rem 0; text-align: left; }
 .pdr-preview { border-top: 1px dashed var(--color-border, #2a2c33); margin-top: 0.3rem; padding-top: 0.4rem; }
 .pdr-preview-group { margin: 0.3rem 0; }
-.pdr-candidate-actions { margin-top: 0.5rem; }
 .pdr-match-note { display: block; margin-top: 0.3rem; font-size: 0.68rem; color: var(--color-text-muted, #9aa0aa); }
 
 .pdr-create { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.4rem; }
@@ -81,7 +82,7 @@
 .pdr-search-row { display: flex; gap: 0.4rem; margin-top: 0.4rem; }
 .pdr-search-row input { flex: 1; background: var(--color-surface, #1c1e25); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 4px; padding: 0.35rem 0.5rem; }
 .pdr-search-results { list-style: none; margin: 0.4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
-.pdr-search-results li { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; font-size: 0.8rem; }
+.pdr-sr-label { flex: 1; min-inline-size: 0; }  /* rung 0 — the CHILD stretches; CardRow lays the row out */
 
 .pdr-result { background: var(--color-ok-bg, #173a26); border: 1px solid var(--color-ok-text, #6ee7a8); border-radius: 8px; padding: 0.7rem; }
 .pdr-result-head { font-weight: 600; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }

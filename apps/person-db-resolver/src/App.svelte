@@ -8,6 +8,7 @@
 
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import RecordCard from './components/RecordCard.svelte';
   import ColumnMapper from './components/ColumnMapper.svelte';
@@ -616,8 +617,10 @@
                 <ul class="pdr-search-results">
                   {#each personSearchResults as s (s.person_uuid)}
                     <li>
-                      <span>{s.name || '(no name)'} {#if s.headline}<span class="pdr-muted">— {s.headline}</span>{/if}</span>
-                      <Button variant="primary" size="sm" disabled={personBusy} onclick={() => doMatchPerson(s)}>match</Button>
+                      <CardRow density="compact">
+                        <span class="pdr-sr-label">{s.name || '(no name)'} {#if s.headline}<span class="pdr-muted">— {s.headline}</span>{/if}</span>
+                        <Button variant="primary" size="sm" disabled={personBusy} onclick={() => doMatchPerson(s)}>match</Button>
+                      </CardRow>
                     </li>
                   {/each}
                 </ul>
@@ -643,10 +646,12 @@
                   <ul class="pdr-search-results">
                     {#each personObservations as o (o.predicate + String(o.observed_at) + String(o.object))}
                       <li>
-                        <span>
-                          <strong>{o.predicate}</strong>: {String(o.object)}
-                          <span class="pdr-muted"> — {new Date(o.observed_at).toLocaleString()} · {o.source}</span>
-                        </span>
+                        <CardRow density="compact">
+                          <span class="pdr-sr-label">
+                            <strong>{o.predicate}</strong>: {String(o.object)}
+                            <span class="pdr-muted"> — {new Date(o.observed_at).toLocaleString()} · {o.source}</span>
+                          </span>
+                        </CardRow>
                       </li>
                     {/each}
                   </ul>
@@ -699,8 +704,10 @@
                   <ul class="pdr-search-results">
                     {#each orgSearchResults as s (s.slug)}
                       <li>
-                        <span>{s.complete_name || s.slug} <code class="pdr-candidate-slug">{s.slug}</code></span>
-                        <Button variant="primary" size="sm" disabled={orgBusy} onclick={() => void doMatchOrgSlug(s.slug)}>match</Button>
+                        <CardRow density="compact">
+                          <span class="pdr-sr-label">{s.complete_name || s.slug} <code class="pdr-candidate-slug">{s.slug}</code></span>
+                          <Button variant="primary" size="sm" disabled={orgBusy} onclick={() => void doMatchOrgSlug(s.slug)}>match</Button>
+                        </CardRow>
                       </li>
                     {/each}
                   </ul>

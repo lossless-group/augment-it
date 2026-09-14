@@ -11,6 +11,7 @@
 
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import RecordCard from './components/RecordCard.svelte';
   import CandidateList from './components/CandidateList.svelte';
@@ -428,8 +429,10 @@
                 <ul class="rdr-search-results">
                   {#each searchResults as s (s.slug)}
                     <li>
-                      <span>{s.complete_name || s.slug} <code class="rdr-candidate-slug">{s.slug}</code></span>
-                      <Button variant="primary" size="sm" disabled={applyBusy} onclick={() => void doMatchSlug(s.slug)}>match</Button>
+                      <CardRow density="compact">
+                        <span class="rdr-sr-label">{s.complete_name || s.slug} <code class="rdr-candidate-slug">{s.slug}</code></span>
+                        <Button variant="primary" size="sm" disabled={applyBusy} onclick={() => void doMatchSlug(s.slug)}>match</Button>
+                      </CardRow>
                     </li>
                   {/each}
                 </ul>
