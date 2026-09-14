@@ -24,18 +24,36 @@
 
 .lens-title { display: flex; align-items: baseline; gap: 0.6rem; }
 .lens-title h2 { margin: 0; font-size: 1rem; font-weight: 600; }
-.lens-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  background: var(--color-accent-bg, rgba(120, 160, 255, 0.18));
-  color: var(--color-accent, #9ab8ff);
-  border: 1px solid var(--color-accent, #9ab8ff);
-}
+/* --- labels ---
+   There are no badge recipes in this file any more. .lens-badge, .corpus-chip
+   with its .loading / .cold / .warm variants, .pending-chip and .failed-chip are
+   all <Chip> from @augment-it/shared-ui, at override-ladder rung 1 (tone + size)
+   — no radius override, no class passthrough, no data-deviation.
+
+   Two of them were spending `var(--color-accent-bg, rgba(120,160,255,.18))`
+   beside `var(--color-accent, #9ab8ff)` — two literal fallbacks the theme never
+   chose, one blue, next to a token that resolves federally to magenta.
+   MEASURED 2026-09-13 rather than assumed: both fallbacks are dead today,
+   because --color-accent-bg now ships in packages/theme as a color-mix off
+   --color-primary, so .lens-badge and .corpus-chip.warm render magenta-on-magenta
+   and NOT the magenta-border-on-blue-fill that
+   context-v/refactors/The-Sort-Filter-Lens-Containment-Breach.md describes in its
+   Phase 3. That doc's symptom has already been repaired federally; the literals
+   it points at are still in this file, just no longer reachable. Raised, not
+   chased — this rollout deletes the two it owns and leaves the other nine.
+
+   The semantic fix in the same move is .failed-chip, which drew a FAILURE in
+   --color-warn-fg — amber. A failed corpus add is `error`, and it is red now in
+   all three modes. Tone by meaning is exactly what that recipe was not doing.
+
+   Also gone: .chip-x, the remove affordance in the sort chip. It was a 14x14
+   `<span role="button" tabindex="0">` nested inside a <button>; it is now a real
+   sibling <Button size="icon"> in a .sfl-sort-chip wrapper. See App.svelte.
+
+   Four fewer leaked leftmost class names in a member whose containment breach is
+   its own tracked refactor. Incidental, not aimed at — that refactor is a
+   separate piece of work and nothing here touches .row, .error, .muted or
+   .empty, which are the live collisions. */
 .lens-sub { font-size: 11px; color: var(--color-text-muted); }
 .muted { color: var(--color-text-muted); }
 
@@ -92,15 +110,10 @@
   color: var(--color-on-accent, var(--color-bg));
 }
 .chip-arrow { color: var(--color-accent, #9ab8ff); }
-.chip-x {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 14px; height: 14px;
-  border-radius: 999px;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  margin-left: 0.15rem;
-}
-.chip-x:hover { color: var(--color-text); background: rgba(255, 255, 255, 0.08); }
+/* Rung 0 — the two controls of a sort chip sit side by side, and only their
+   container knows that. The wrapper is what makes them SIBLINGS rather than one
+   nested in the other, which is the entire fix. */
+.sfl-sort-chip { display: inline-flex; align-items: center; gap: var(--space-3xs); }
 
 .add-sort { position: relative; }
 .add-sort > summary {
@@ -226,26 +239,6 @@
 }
 .row-meta { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
 .row-socials { font-size: 11px; color: var(--color-text-muted); }
-.corpus-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  font-size: 11px;
-  font-family: var(--font-mono, monospace);
-  border: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-}
-.corpus-chip.loading { opacity: 0.5; }
-.corpus-chip.cold { border-style: dashed; }
-.corpus-chip.warm {
-  color: var(--color-accent, #9ab8ff);
-  border-color: var(--color-accent, #9ab8ff);
-  background: var(--color-accent-bg, rgba(120, 160, 255, 0.12));
-}
-
 .error {
   margin: 0.8rem 1rem;
   padding: 0.5rem 0.7rem;
@@ -303,26 +296,6 @@
 }
 
 /* --- in-flight + failed adds (fire-and-forget queue) --- */
-.pending-chip, .failed-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  font-size: 11px;
-  font-family: var(--font-mono, monospace);
-  border: 1px solid;
-}
-.pending-chip {
-  color: var(--color-accent-2, var(--color-accent, #9ab8ff));
-  border-color: var(--color-accent-2, var(--color-accent, #9ab8ff));
-  background: transparent;
-}
-.failed-chip {
-  color: var(--color-warn-fg);
-  border-color: var(--color-warn-fg);
-  background: transparent;
-}
-
 .pending-list {
   list-style: none;
   margin: 0.3rem 0 0;

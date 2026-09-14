@@ -11,6 +11,7 @@
 
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import {
     type SortSpec,
@@ -466,7 +467,11 @@
 <div class="sort-filter-lens">
   <header class="lens-header">
     <div class="lens-title">
-      <span class="lens-badge">Lens</span>
+      <!-- neutral, not accent, and the member DREW it accent. "Lens" names a
+           kind of member; it is not selected, current, or in focus, which is
+           what accent means. Picking tone by the colour already on screen is
+           how the federation ended up rendering one status value eleven ways. -->
+      <Chip size="sm">Lens</Chip>
       <h2>Sort &amp; Filter</h2>
       <span class="muted lens-sub">re-order the active record set; filter coming v0.0.0.4</span>
     </div>
@@ -509,25 +514,44 @@
   <div class="sort-toolbar" role="toolbar" aria-label="Sort">
     <span class="toolbar-label">Sort by</span>
     {#each sortSpec.sort as key, i (key.column + i)}
-      <Button
-        variant="outline"
-        size="sm"
-        onclick={() => toggleDirection(i)}
-        title="Click to toggle direction"
-        aria-label={`Sort key ${i + 1}: ${key.column}, ${key.direction === 'asc' ? 'ascending' : 'descending'} — activate to toggle direction`}
-      >
-        <span class="chip-rank">{i + 1}</span>
-        <span class="chip-col">{key.column}</span>
-        <span class="chip-arrow">{key.direction === 'asc' ? '↑' : '↓'}</span>
-        <span
-          class="chip-x"
-          role="button"
-          tabindex="0"
-          onclick={(e) => { e.stopPropagation(); removeSortKey(i); }}
-          onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); removeSortKey(i); } }}
+      <!-- TWO controls, side by side, never one inside the other.
+           This shipped as a <span role="button" tabindex="0"> nested INSIDE a
+           <button> — interactive content may not contain interactive content,
+           which is invalid HTML outright and a documented hazard for assistive
+           tech, much of which will not surface a focusable descendant of a
+           button at all.
+
+           A <Chip dismissible> is NOT the answer here and the distinction is the
+           whole judgement: a Chip's body is a label and only its × acts. Both of
+           these act — the body toggles sort direction, the × removes the key —
+           so the shape is a Button plus a sibling Button in a wrapper. Chip
+           would have turned a working toggle into a span.
+
+           The measurable defect was never the accessible NAME, whatever the
+           rollout docs say: this outer button carries an explicit aria-label, so
+           its name was already the label and never absorbed the glyph. The
+           defect was a 14x14 remove target against the WCAG 2.2 SC 2.5.8 floor
+           of 24x24, and an inner control whose entire accessible name was "×". -->
+      <div class="sfl-sort-chip">
+        <Button
+          variant="outline"
+          size="sm"
+          onclick={() => toggleDirection(i)}
+          title="Click to toggle direction"
+          aria-label={`Sort key ${i + 1}: ${key.column}, ${key.direction === 'asc' ? 'ascending' : 'descending'} — activate to toggle direction`}
+        >
+          <span class="chip-rank">{i + 1}</span>
+          <span class="chip-col">{key.column}</span>
+          <span class="chip-arrow">{key.direction === 'asc' ? '↑' : '↓'}</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onclick={() => removeSortKey(i)}
           title="Remove this sort key"
-        >×</span>
-      </Button>
+          aria-label={`Remove sort key ${i + 1}: ${key.column}`}
+        >×</Button>
+      </div>
     {/each}
     {#if sortSpec.sort.length < 3}
       <details class="add-sort">
@@ -649,18 +673,27 @@
             </div>
             <div class="row-meta">
               {#if s}<span class="row-socials">{s}</span>{/if}
+              <!-- info, not warn: an add in flight is transient and nothing has
+                   gone wrong yet. warn is for degraded-with-risk. -->
               {#if pendingCount > 0}
-                <span class="pending-chip" title={`${pendingCount} add(s) in flight`}>⟳ {pendingCount}</span>
+                <Chip size="sm" tone="info" title={`${pendingCount} add(s) in flight`}>⟳ {pendingCount}</Chip>
               {/if}
               {#if failedCount > 0}
-                <span class="failed-chip" title={`${failedCount} failed — expand row to dismiss or retry`}>✗ {failedCount}</span>
+                <Chip size="sm" tone="error" title={`${failedCount} failed — expand row to dismiss or retry`}>✗ {failedCount}</Chip>
               {/if}
+              <!-- Three states of one label, and only the third means anything
+                   beyond a count: `corpus N` says this record already has
+                   coverage on disk, which is `ok`. Not-yet-loaded and genuinely
+                   empty are both plain facts, so both are neutral — the text
+                   ("corpus …" vs "corpus 0") is what tells them apart, never the
+                   colour. The loading state also drops an `opacity: 0.5` that was
+                   appearance standing in for state. -->
               {#if corpusByRowId[row.row_id] === undefined}
-                <span class="corpus-chip loading" title="loading corpus count">corpus …</span>
+                <Chip size="sm" title="loading corpus count">corpus …</Chip>
               {:else if n === 0}
-                <span class="corpus-chip cold" title="no corpus content for this record yet">corpus 0</span>
+                <Chip size="sm" title="no corpus content for this record yet">corpus 0</Chip>
               {:else}
-                <span class="corpus-chip warm" title={`${n} corpus ${n === 1 ? 'file' : 'files'} on disk`}>corpus {n}</span>
+                <Chip size="sm" tone="ok" title={`${n} corpus ${n === 1 ? 'file' : 'files'} on disk`}>corpus {n}</Chip>
               {/if}
               <Button
                 variant={expanded ? 'secondary' : 'outline'}
