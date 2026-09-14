@@ -12,6 +12,7 @@
     "./SelectWrapper--Checkbox.svelte": "./src/SelectWrapper--Checkbox.svelte",
     "./SelectWrapper--ClickBody.svelte": "./src/SelectWrapper--ClickBody.svelte",
     "./SelectWrapper--ClickPrimary.svelte": "./src/SelectWrapper--ClickPrimary.svelte",
+    "./Selector--Listbox.svelte": "./src/Selector--Listbox.svelte",
     "./ToggleHeader__PromptOrPackage--Icons.svelte": "./src/ToggleHeader__PromptOrPackage--Icons.svelte",
     "./gallery": "./src/gallery/mount.ts"
   },
@@ -23,9 +24,13 @@
   },
   "devDependencies": {
     "svelte": "^5.56.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "jsdom": "^30.0.1",
+    "vitest": "^3.2.7"
   },
   "scripts": {
-    "check": "svelte-check --tsconfig ./tsconfig.json"
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run"
   }
 }
