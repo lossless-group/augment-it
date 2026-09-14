@@ -64,20 +64,6 @@ code { font-family: var(--font-mono); font-size: 11px; }
 }
 .sample { font-weight: 700; font-size: 13px; }
 
-/* The ratio badge must stay readable regardless of the swatch it sits on, so
- * it carries its own surface rather than inheriting the token under test. */
-.ratio {
-  font-size: 9.5px;
-  padding: 1px 5px;
-  border-radius: 2px;
-  background: var(--color-surface-raised);
-  color: var(--color-text-muted);
-  border: 1px solid transparent;
-}
-.ratio.pass  { color: var(--color-ok-text); }
-.ratio.large { color: var(--color-confidence-med); }
-.ratio.fail  { color: var(--color-error-text); border-color: var(--color-error-text); }
-
 .effects { display: flex; gap: 16px; flex-wrap: wrap; }
 .effect-card {
   background: var(--color-surface);
@@ -103,10 +89,6 @@ code { font-family: var(--font-mono); font-size: 11px; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
-
-/* Structural tokens carry a measurement but no verdict — see App.svelte's
- * FOREGROUND predicate for why grading the full cross-product cried wolf. */
-.ratio.ungraded { opacity: 0.45; }
 
 /* Applied only while measuring. theme.css transitions colour over 75ms on a
  * mode swap, and a measurement taken inside that window reads a colour that is

@@ -18,6 +18,7 @@
   //     from the theme source. Same reason.
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import { MODES, getMode, setMode, onModeChange, type Mode } from '@augment-it/theme/mode-switcher';
   import manifest from '../../../design-manifest.json';
   import MemberLibraries from './MemberLibraries.svelte';
@@ -181,7 +182,8 @@
   let accentRatios = $state<Record<string, number>>({});
 
   // WCAG AA: 4.5:1 for body text, 3:1 for large text and UI boundaries.
-  function grade(token: string, r: number | undefined): string {
+  type Grade = 'pass' | 'large' | 'fail' | 'ungraded' | 'unknown';
+  function grade(token: string, r: number | undefined): Grade {
     if (r === undefined) return 'unknown';
     if (BOUNDARY.test(token)) return r >= 3 ? 'pass' : 'fail';
     if (!isForeground(token)) return 'ungraded';
@@ -189,6 +191,24 @@
     if (r >= 3) return 'large';
     return 'fail';
   }
+
+  // The verdict, in the federal tone vocabulary. Tone is picked by what the
+  // grade MEANS, not by the colour this page used to draw:
+  //   pass     -> ok      the pairing clears its floor
+  //   large    -> warn    clears 3:1 but not 4.5:1 — usable for a line, not for
+  //                       text, which is a risk rather than a failure
+  //   fail     -> error   below its floor
+  //   ungraded -> neutral a measured fact with no verdict attached
+  //   unknown  -> neutral not measured yet; renders an em dash
+  // The NUMBER is the datum and it is always present, so the tone is a second,
+  // redundant encoding rather than the only one (WCAG 1.4.1).
+  const GRADE_TONE = {
+    pass: 'ok',
+    large: 'warn',
+    fail: 'error',
+    ungraded: 'neutral',
+    unknown: 'neutral',
+  } as const;
 </script>
 
 <div class="portal" bind:this={probe}>
@@ -250,10 +270,10 @@
 
     <div class="legend">
       <span class="legend-title">The number is a WCAG contrast ratio, 1–21:</span>
-      <span class="legend-item"><span class="ratio fail">1</span> identical — invisible</span>
-      <span class="legend-item"><span class="ratio large">3</span> floor for lines &amp; boundaries</span>
-      <span class="legend-item"><span class="ratio pass">4.5</span> floor for text (AA)</span>
-      <span class="legend-item"><span class="ratio pass">7</span> enhanced (AAA)</span>
+      <span class="legend-item"><Chip size="sm" tone="error">1</Chip> identical — invisible</span>
+      <span class="legend-item"><Chip size="sm" tone="warn">3</Chip> floor for lines &amp; boundaries</span>
+      <span class="legend-item"><Chip size="sm" tone="ok">4.5</Chip> floor for text (AA)</span>
+      <span class="legend-item"><Chip size="sm" tone="ok">7</Chip> enhanced (AAA)</span>
       <span class="legend-note">
         Every type size in augment-it is under 18.66px, so there is no large-text allowance —
         <strong>4.5 is the bar for all text</strong>. Structural tokens are measured but not graded:
@@ -278,7 +298,7 @@
             style="background: var({surface}); color: var({token});"
           >
             <span class="sample">Aa</span>
-            <span class="ratio {grade(token, r)}">{r ?? '—'}</span>
+            <Chip size="sm" tone={GRADE_TONE[grade(token, r)]}>{r ?? '—'}</Chip>
           </div>
         {/each}
       {/each}
@@ -298,7 +318,7 @@
         <div class="accent-cell effect-card" data-fill={fill}
              style="background: var({fill}); color: var(--color-on-accent);">
           <code>on-accent / {fill.replace('--color-', '')}</code>
-          <span class="ratio {r === undefined ? 'unknown' : r >= 4.5 ? 'pass' : r >= 3 ? 'large' : 'fail'}">{r ?? '—'}</span>
+          <Chip size="sm" tone={r === undefined ? 'neutral' : r >= 4.5 ? 'ok' : r >= 3 ? 'warn' : 'error'}>{r ?? '—'}</Chip>
         </div>
       {/each}
     </div>
