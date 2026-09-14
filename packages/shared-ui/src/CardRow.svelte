@@ -32,6 +32,20 @@
   import type { Snippet } from 'svelte';
 
   type Props = {
+    /**
+     * Row state, as a semantic tone — NOT a colour.
+     *
+     * Added on the first sweep's evidence: two independent members needed an
+     * error/success row boundary in the same night. One spelled it as rung-4
+     * `style=` + `data-deviation` and said what the loop says that means — an
+     * escape hatch reached on the FIRST adoption is the API being wrong. The
+     * other refused to mint a second deviation and left its row raw. Both halves
+     * of the evidence, one sweep.
+     *
+     * `selected` is a different axis and they compose: a row can be selected AND
+     * in error. Pick by what the row MEANS, exactly as Chip's tone works.
+     */
+    tone?: 'neutral' | 'ok' | 'warn' | 'error' | 'info';
     /** Visual density. `comfortable` is the default; `compact` for dense tables. */
     density?: 'comfortable' | 'compact';
     /**
@@ -80,6 +94,7 @@
 
   let {
     as = 'div',
+    tone = 'neutral',
     density = 'comfortable',
     direction = 'row',
     selected = false,
@@ -102,6 +117,7 @@
 <svelte:element
   this={as}
   class="ui-cardrow {klass}"
+  data-tone={tone}
   data-density={density}
   data-direction={direction}
   data-selected={selected || undefined}
@@ -145,6 +161,14 @@
   .ui-cardrow:hover:has(:global(button), :global(a[href]), :global(input), :global(select), :global(textarea)) {
     border-color: var(--color-border);
   }
+
+  /* Tones paint the BOUNDARY, not the fill — a row's content has to stay legible
+     on the same surface at every tone, and a tinted fill would move every text
+     contrast pair in the row. selected still owns the fill. */
+  .ui-cardrow[data-tone='ok']    { border-color: var(--color-ok-fg); }
+  .ui-cardrow[data-tone='warn']  { border-color: var(--color-warn-fg); }
+  .ui-cardrow[data-tone='error'] { border-color: var(--color-error-fg); }
+  .ui-cardrow[data-tone='info']  { border-color: var(--color-info-fg); }
 
   .ui-cardrow[data-selected] {
     border-color: var(--color-primary);
