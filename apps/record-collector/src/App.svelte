@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import ConfidencePill from '@augment-it/shared-ui/ConfidencePill.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import RecordSetsList from './components/RecordSetsList.svelte';
   import { formatFieldValue } from './logic/format';
@@ -9,6 +11,18 @@
   const WS_URL = resolveWsUrl();
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
+  // Chip tone is SEMANTIC. The old .status recipe painted `connecting` and
+  // `auth_required` with one neutral grey and collapsed `closed` into the same
+  // red as `error`; those are four different meanings, so four tones.
+  const wsTone = $derived(
+    status === 'open'
+      ? 'ok'
+      : status === 'error' || status === 'closed'
+        ? 'error'
+        : status === 'auth_required'
+          ? 'warn'
+          : 'info',
+  );
   let selectedId = $state<string | null>(null);
   let rowsForSelected = $state<Row[]>([]);
   let ingestStatus = $state<string>('Pick a CSV or XLSX and upload.');
@@ -358,7 +372,7 @@
 <div class="rc-status-bar">
   <span class="muted">
     consumes <code>@augment-it/workspace</code> · {WS_URL} ·
-    <span class="status status-{status}">{status}</span>
+    <Chip size="sm" tone={wsTone}>{status}</Chip>
   </span>
 </div>
 
@@ -470,7 +484,7 @@
                     title={`${s.display_name} · ${s.confidence}/100 · ${s.url}`}
                   >
                     <span class="social-pack">{s.pack_id.replace(/-pack$/, '')}</span>
-                    <span class="social-confidence" data-band={s.confidence >= 70 ? 'high' : s.confidence >= 40 ? 'med' : 'low'}>{s.confidence}</span>
+                    <ConfidencePill confidence={s.confidence} />
                   </a>
                 {/each}
               </div>
@@ -503,7 +517,7 @@
                     {#each shape.entries as entry}
                       <div class="field-value-url">
                         {#if entry.chip}
-                          <span class="field-value-url-chip">{entry.chip}</span>
+                          <Chip size="sm" class="field-value-url-chip">{entry.chip}</Chip>
                         {/if}
                         {#if entry.label}
                           <span class="field-value-url-label">{entry.label}</span>

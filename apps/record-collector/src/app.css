@@ -95,23 +95,6 @@
   border-radius: 3px;
 }
 
-.rc-app .status {
-  padding: 1px 7px;
-  border-radius: 3px;
-  background: var(--color-border);
-}
-
-.rc-app .status-open {
-  background: var(--color-ok-bg);
-  color: var(--color-ok-text);
-}
-
-.rc-app .status-closed,
-.rc-app .status-error {
-  background: var(--color-error-bg);
-  color: var(--color-error-text);
-}
-
 .rc-app .rc-layout {
   display: grid;
   grid-template-columns: 340px 1fr;
@@ -302,15 +285,12 @@
   min-width: 0;
   font-size: 12px;
 }
+/* Layout only (rung 0) — stop the source Chip shrinking in the url row. The
+   ground, radius and type it used to paint are the Chip's now; the uppercase
+   went with them, which also stops the SAME pack id rendering "LINKEDIN" here
+   and "linkedin" in the socials row three lines up. */
 .rc-app .field-value-url-chip {
   flex-shrink: 0;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: var(--color-border);
-  color: var(--color-text-muted);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .rc-app .field-value-url-label {
   flex-shrink: 0;
@@ -384,25 +364,8 @@
   letter-spacing: 0.02em;
 }
 
-.rc-app .social-confidence {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.8em;
-  padding: 0 0.35em;
-  border-radius: 999px;
-  font: 600 0.68em/1 var(--font-mono);
-  border: 1px solid currentColor;
-}
-.rc-app .social-confidence[data-band='low'] {
-  color: var(--color-confidence-low);
-  background: color-mix(in srgb, var(--color-confidence-low) 14%, transparent);
-}
-.rc-app .social-confidence[data-band='med'] {
-  color: var(--color-confidence-med);
-  background: color-mix(in srgb, var(--color-confidence-med) 14%, transparent);
-}
-.rc-app .social-confidence[data-band='high'] {
-  color: var(--color-confidence-high);
-  background: color-mix(in srgb, var(--color-confidence-high) 14%, transparent);
-}
+/* The confidence badge is shared-ui's <ConfidencePill>, not a Chip and not a
+   local recipe. The 23 lines that used to live here re-derived the component
+   from scratch — same bands, same color-mix, same border — and landed short on
+   min-width (1.8em vs 2.25em), padding and font-size (0.68em vs 0.78em, which
+   compounded off .social-chip's 0.72rem to render the number at 7.8px). */
