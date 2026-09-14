@@ -45,6 +45,13 @@ last one.
 
 ```
 Is it clickable?
+├─ IT IS AN <a href> DRAWN AS A CHIP → not a Chip (it acts), not a Button
+│        (it navigates, and variant="link" is for a <button> that reads as a
+│        link). LEAVE IT RAW and raise it. This is the INTERACTIVE BADGE organ:
+│        record-collector's .social-chip is its link shape and org-workbench's
+│        .ow-kind-editable is its button shape. Two members, two shapes, one
+│        missing organ.
+│
 ├─ YES → it is a Button.  variant="secondary" + aria-pressed for a toggle.
 │        Nineteen members already made this mapping. DO NOT convert a
 │        <Button> back into a <Chip>. DO NOT give a Chip an onclick.
@@ -98,6 +105,42 @@ answer is **not** a Button wrapping a Button. It is one of:
 
 Never nest them. If you cannot tell which shape the member wants, **leave it and
 raise it** — this is exactly the case where guessing ships an a11y regression.
+
+## If the member reveals its dismiss on hover
+
+Some members rest micro-affordances invisible and reveal them on hover or row
+focus — that is a real, specified discipline
+([[../specs/Entity-Card-Edit-And-Remove-Affordances]] D5), and Chip's dismiss is
+always-visible by default.
+
+**Pass `revealOnHover`.** Do not reach into `.ui-chip__dismiss` from member CSS —
+that is selecting a component's internals and has no rung on the ladder.
+
+Default is OFF on purpose: **a hover-only affordance does not exist on a touch
+device.** The implementation reveals on `:hover` OR `:focus-within`, keeps the
+control's box either way so revealing never reflows the row, and forces it visible
+under `@media (hover: none)`.
+
+## The gate cannot see this work
+
+`design:drift` is as blind to Chip as it was to Button. A member can delete ten
+chip rule-sets and the number will not move — one member's gate went 7 → 6 only
+because a deleted rule happened to contain a hex literal. **An agent optimising
+for the gate deletes nothing.** The deliverable is the diff and the measurements,
+not the number.
+
+## Two probe traps specific to this rollout
+
+**Your probe entry must import the member's `app.css` itself.** `src/index.ts`
+imports it; `App.svelte` does not. Without it the DOM is completely correct and
+every computed style reads unstyled — one run reported every chip at
+`background: rgba(0,0,0,0)`, `border-width: 0`, `padding: 0`, and it looked
+exactly like a real finding. Chip work is almost entirely computed-style work, so
+this trap is far more dangerous here than it was for Button.
+
+**`git archive HEAD apps/<member>/src` takes the path relative to the REPO ROOT**,
+not the member directory. Run from inside `apps/<member>` it fails with *pathspec
+did not match* — which at least fails loudly.
 
 ## What Chip does NOT have, on purpose
 

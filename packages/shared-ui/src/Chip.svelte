@@ -68,6 +68,16 @@
     onDismiss?: () => void;
     /** Leading status dot. Decorative — the text must carry the meaning too. */
     dot?: boolean;
+    /**
+     * Rest the dismiss control invisible, revealing it on hover OR focus-within.
+     * For members with a reveal discipline — see
+     * context-v/specs/Entity-Card-Edit-And-Remove-Affordances.md D5.
+     * OFF by default, deliberately: a hover-only affordance does not exist on a
+     * touch device, so always-visible is the safer default and reveal is the
+     * opt-in. The reveal is :hover OR :focus-within, never :hover alone, so the
+     * control stays reachable by keyboard.
+     */
+    revealOnHover?: boolean;
     /** Rung 2/3 — a radius TOKEN NAME, optionally with a /N percentage. */
     radius?: string;
     /** Rung 4 — requires a data-deviation reason alongside it. */
@@ -83,6 +93,7 @@
     dismissLabel,
     onDismiss,
     dot = false,
+    revealOnHover = false,
     radius,
     class: klass = '',
     children,
@@ -130,6 +141,7 @@
   data-tone={safeTone}
   data-size={safeSize}
   data-dismissible={dismissible || undefined}
+  data-reveal={revealOnHover || undefined}
   data-a11y-error={a11yError}
   style={radiusStyle}
   {...rest}
@@ -242,6 +254,26 @@
     cursor: pointer;
     font: inherit;
   }
+  /* D5 reveal. :focus-within as well as :hover, so a keyboard user can still
+     reach it, and the control keeps its box either way — opacity, not display,
+     so revealing it never reflows the row. */
+  .ui-chip[data-reveal] .ui-chip__dismiss {
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
+  .ui-chip[data-reveal]:hover .ui-chip__dismiss,
+  .ui-chip[data-reveal]:focus-within .ui-chip__dismiss {
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ui-chip[data-reveal] .ui-chip__dismiss { transition: none; }
+  }
+  /* A coarse pointer has no hover, so a revealed control would be unreachable.
+     Always show it there — this is why reveal is opt-in rather than default. */
+  @media (hover: none) {
+    .ui-chip[data-reveal] .ui-chip__dismiss { opacity: 1; }
+  }
+
   .ui-chip__dismiss:hover {
     /* Surface-independent, for the same reason Button's ghost hover is: a chip
        may itself be painted with any tone's background. */
