@@ -14,8 +14,15 @@ import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 // does not import any member's components. It loads a library the member built
 // and shipped, from the member's own bundle. Aggregation without ownership; the
 // index is central, the libraries are not.
+//
+// Note what is NOT a remote here: packages/shared-ui. The FEDERAL library is a
+// workspace package, so it arrives through an ordinary import and is bundled
+// into this app — there is no server on the other end of a package. That is the
+// one library the portal can render with nothing else running.
 const CORPORA_CURATOR_REMOTE =
   process.env.PUBLIC_CORPORA_CURATOR_REMOTE || 'http://localhost:3017/remoteEntry.js';
+const REQUEST_REVIEWER_REMOTE =
+  process.env.PUBLIC_REQUEST_REVIEWER_REMOTE || 'http://localhost:3004/remoteEntry.js';
 
 export default defineConfig({
   plugins: [
@@ -26,6 +33,7 @@ export default defineConfig({
       exposes: { './mount': './src/mount.ts' },
       remotes: {
         corporaCurator: `corporaCurator@${CORPORA_CURATOR_REMOTE}`,
+        requestReviewer: `requestReviewer@${REQUEST_REVIEWER_REMOTE}`,
       },
       dts: false,
     }),

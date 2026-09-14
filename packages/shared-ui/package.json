@@ -7,7 +7,11 @@
     "./Button.svelte": "./src/Button.svelte",
     "./Chip.svelte": "./src/Chip.svelte",
     "./ConfidencePill.svelte": "./src/ConfidencePill.svelte",
-    "./ToggleHeader__PromptOrPackage--Icons.svelte": "./src/ToggleHeader__PromptOrPackage--Icons.svelte"
+    "./ToggleHeader__PromptOrPackage--Icons.svelte": "./src/ToggleHeader__PromptOrPackage--Icons.svelte",
+    "./gallery": "./src/gallery/mount.ts"
+  },
+  "dependencies": {
+    "@augment-it/gallery": "workspace:*"
   },
   "peerDependencies": {
     "svelte": "^5.0.0"

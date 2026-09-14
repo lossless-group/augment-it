@@ -110,7 +110,19 @@ export type Catalog = {
   member: string;
   /** Registry prefix — e.g. `sc`. Drives the F2/F3 containment audit. */
   prefix: string;
-  /** Registry root class WITHOUT the dot — e.g. `cc-app`. Wraps every frame. */
+  /**
+   * Registry root class WITHOUT the dot — e.g. `cc-app`. Wraps every frame.
+   *
+   * EMPTY STRING IS LEGAL AND MEANS SOMETHING. A member's CSS is written
+   * `.cc-app .cc-card { … }` (contract F3), so a specimen rendered without that
+   * ancestor is unstyled — which is the single most common way a hand-rolled
+   * gallery lies about what it is showing. The FEDERAL library
+   * (packages/shared-ui) has no such ancestor by construction: its primitives
+   * carry their own scoped <style> and read the federal token vocabulary
+   * directly, so they render correctly under any member's root class or none.
+   * `rootClass: ''` records that property rather than inventing a class that
+   * ships nowhere; the chrome renders "any root" in place of a stray dot.
+   */
   rootClass: string;
   /**
    * Where this member serves itself. The gallery's "open isolated" links point

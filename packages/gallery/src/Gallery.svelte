@@ -220,7 +220,10 @@
           <dt>prefix</dt>
           <dd><code>{catalog.prefix}</code></dd>
           <dt>root</dt>
-          <dd><code>.{catalog.rootClass}</code></dd>
+          <!-- An empty rootClass is the federal library saying it needs no
+               ancestor to be styled, not a field left blank. Rendering `.` there
+               would read as a bug in the catalog. -->
+          <dd>{#if catalog.rootClass}<code>.{catalog.rootClass}</code>{:else}<code>any</code>{/if}</dd>
           <dt>origin</dt>
           <dd><code>{catalog.origin}</code></dd>
         </dl>
@@ -253,11 +256,25 @@
         <header class="agx-head">
           <h2>{catalog.member} — component library</h2>
           {#if catalog.blurb}<p class="agx-lede">{catalog.blurb}</p>{/if}
+          <!-- Two readings of the same fact. A member's specimens are only
+               honest UNDER its root class, because its CSS is written
+               `.cc-app .cc-card {…}` — so the sentence names it. The federal
+               library has no such ancestor and declares `rootClass: ''`; for it
+               the interesting claim is the opposite one, that the specimens hold
+               up without any root at all. Printing `.` there would read as a bug
+               in the catalog. -->
           <p class="agx-lede">
-            {entries.length} entries · {entries.reduce((n, e) => n + e.fixtures.length, 0)} fixtures. Every
-            specimen renders through the member's real stylesheet under
-            <code>.{catalog.rootClass}</code>, in whichever of the three modes you pick, and every one
-            has its own address on <code>{catalog.origin}</code>.
+            {entries.length} entries · {entries.reduce((n, e) => n + e.fixtures.length, 0)} fixtures.
+            {#if catalog.rootClass}
+              Every specimen renders through the member's real stylesheet under
+              <code>.{catalog.rootClass}</code>, in whichever of the three modes you pick, and every
+              one has its own address on <code>{catalog.origin}</code>.
+            {:else}
+              Every specimen renders from the real component module, under no root class at all —
+              these primitives are styled by their own rules and read the federal tokens directly, so
+              they hold up in any member or none. Pick any of the three modes; every specimen has its
+              own address on <code>{catalog.origin}</code>.
+            {/if}
           </p>
           <p class="agx-lede">
             {#if catalog.doc}<a href={`#${catalog.doc}`} onclick={(e) => e.preventDefault()}><code>{catalog.doc}</code></a>{/if}

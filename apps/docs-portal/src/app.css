@@ -213,3 +213,62 @@ code { font-family: var(--font-mono); font-size: 11px; }
   margin-bottom: 12px;
 }
 .lib-error a { color: inherit; }
+
+/* ------------------------------------------------------------------ federal
+ * The platform's own library, above the members' grid.
+ *
+ * Deliberately NOT a `.lib-card`: it is not one more peer in that grid, it is
+ * what every card in the grid consumes. Full width, an accent boundary rather
+ * than the hairline the members get, and the accent glow effect token — enough
+ * to read as a different kind of thing at a glance, and nothing more, because
+ * this is still the page that judges the tokens and must not smuggle in
+ * emphasis of its own. Tokens only; no literal colour (F8). */
+.lib-federal {
+  border: 1px solid var(--color-accent);
+  border-radius: 4px;
+  background: var(--color-surface);
+  box-shadow: var(--fx-accent-glow);
+  overflow: hidden;
+  margin: 14px 0 24px;
+}
+.lib-federal-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  inline-size: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 14px;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.lib-federal-main:hover { background: var(--color-selected-tint); }
+.lib-federal-main:focus-visible { outline: var(--focus-ring, 2px solid var(--color-accent)); outline-offset: -2px; }
+.lib-federal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.lib-federal-summary {
+  color: var(--color-text-muted);
+  line-height: 1.55;
+  max-width: 92ch;
+}
+.lib-federal-note {
+  padding: 0 14px 12px;
+  margin: 0;
+  border-top: 1px solid var(--color-border);
+  padding-top: 10px;
+}
+
+.lib-members-h {
+  font-size: 11px;
+  margin: 0 0 4px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

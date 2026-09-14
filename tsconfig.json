@@ -21,10 +21,16 @@
     "changing this list; do not trust the prose, including this prose.",
     "",
     "The leftovers are currently ONE file — packages/theme/mode-switcher.ts.",
-    "scripts/ and tools/ are .mjs, and packages/shared-ui is .svelte only. Kept",
-    "rather than deleted because a monorepo root without a tsconfig degrades",
-    "editor resolution for loose files, and the next stray .ts lands here by",
-    "default.",
+    "scripts/ and tools/ are .mjs. Kept rather than deleted because a monorepo",
+    "root without a tsconfig degrades editor resolution for loose files, and the",
+    "next stray .ts lands here by default.",
+    "",
+    "packages/shared-ui joined the exclude list on 2026-09-13. The line above",
+    "used to read \"and packages/shared-ui is .svelte only\", which was true when",
+    "written and stopped being true the moment that package gained its gallery",
+    "catalog — three .ts files under src/gallery/. S1 caught it on the first run",
+    "after, which is the whole argument for the check: the prose in this file had",
+    "been correct and became wrong without anyone touching it.",
     "",
     "NO REACT, NO JSX RUNTIME. This file used to set jsx: 'react-jsx' — the",
     "single React reference anywhere in the repository, against a hard",
@@ -71,6 +77,7 @@
     "splash",
     "packages/federation",
     "packages/gallery",
+    "packages/shared-ui",
     "packages/workspace"
   ]
 }
