@@ -13,6 +13,7 @@
   //
   // Spec: context-v/specs/Connector-Inventory-and-Per-Record-Palette.md
 
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import ConnectorChip from './ConnectorChip.svelte';
   import type { ChipState } from './ConnectorChip.svelte';
 
@@ -190,13 +191,13 @@
             <span class="palette-menu-name">{c.display_name}</span>
             <span class="palette-menu-cost" title="Cost tier: {c.cost_tier}">{costGlyph(c.cost_tier)}</span>
             {#if c.status === 'needs-env'}
-              <span class="palette-menu-status" title="Missing: {c.requires_env.join(', ')}">needs env</span>
+              <Chip size="sm" tone="warn" title="Missing: {c.requires_env.join(', ')}">needs env</Chip>
             {:else if c.status === 'disabled'}
-              <span class="palette-menu-status">disabled</span>
+              <Chip size="sm">disabled</Chip>
             {:else if c.status === 'rate-limited'}
-              <span class="palette-menu-status">rate-limited</span>
+              <Chip size="sm" tone="warn">rate-limited</Chip>
             {:else if c.status === 'auth-failed'}
-              <span class="palette-menu-status">auth failed</span>
+              <Chip size="sm" tone="error">auth failed</Chip>
             {/if}
           </button>
         </li>
@@ -279,13 +280,6 @@
   }
   .palette-menu-name { color: var(--color-text); }
   .palette-menu-cost { font-size: 0.85rem; }
-  .palette-menu-status {
-    font-size: 0.7rem;
-    color: var(--color-text-muted);
-    background: var(--color-border);
-    padding: 1px 6px;
-    border-radius: 3px;
-  }
   .palette-menu-footer {
     margin-top: 0.45rem;
     padding-top: 0.35rem;

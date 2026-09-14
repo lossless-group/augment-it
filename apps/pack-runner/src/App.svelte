@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import {
     BUNDLES, getBundle, packDisplayName, inferEntityNameField,
     PACK_PALETTE_META,
@@ -86,6 +87,20 @@
   const initialBundle = getBundle(initialBundleId) ?? BUNDLES[0];
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
+
+  // Tone by MEANING, not by the colour this member drew. The old recipe gave
+  // `open` the ok palette, `closed`/`error` the error palette, and left
+  // `connecting`/`auth_required` on the bare grey `.status` base — two of five
+  // states had no rendering at all.
+  const statusTone = $derived<'ok' | 'info' | 'warn' | 'error'>(
+    status === 'open'
+      ? 'ok'
+      : status === 'connecting'
+        ? 'info'
+        : status === 'auth_required'
+          ? 'warn'
+          : 'error',
+  );
   let recordSets = $state<RecordSet[]>([]);
   let selectedRecordSetId = $state<string | null>(
     readStored(ACTIVE_RECORD_SET_KEY) ?? readStored(LEGACY_RECORD_SET_KEY),
@@ -479,7 +494,7 @@
 <div class="pr-app">
   <div class="pr-status-bar">
     consumes <code>@augment-it/workspace</code> · <code>{WS_URL}</code> ·
-    <span class="status status-{status}">{status}</span>
+    <Chip size="sm" tone={statusTone} dot>{status}</Chip>
   </div>
 
   <div class="pr-body">
@@ -659,7 +674,7 @@
                   onchange={() => togglePack(m.pack_id)}
                 />
                 <span>{packDisplayName(m.pack_id)}</span>
-                {#if !m.default}<span class="muted pack-optin">opt-in</span>{/if}
+                {#if !m.default}<Chip size="sm">opt-in</Chip>{/if}
               </label>
               <Button
                 size="sm"
