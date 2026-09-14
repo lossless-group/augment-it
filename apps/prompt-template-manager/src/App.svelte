@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import SelectWrapperClickPrimary from '@augment-it/shared-ui/SelectWrapper--ClickPrimary.svelte';
   import { workspace, type PromptTemplate, type PromptTool, resolveWsUrl } from '@augment-it/workspace';
 
   const TOKEN_KEY = 'augment-it:session-token';
@@ -205,28 +207,65 @@
     <aside>
       <h2>Prompts</h2>
       <Button onclick={newPrompt}>+ new prompt</Button>
+      <!-- The list surface. <ul>/<li> stay: CardRow renders a <div> and takes no
+           `as`, so the only way to keep real list semantics ("list, 5 items") is
+           to nest it. selected= is passed to BOTH CardRow and SelectWrapper on
+           purpose — they answer different questions. CardRow's `selected` PAINTS
+           (border + tint); SelectWrapper's `selected` ANNOUNCES (aria-pressed).
+           Neither can be derived from the other, and `selectedPromptId` above is
+           the single source both read. See the report's selection section.
+
+           --ClickPrimary, NOT --ClickBody. Measured 2026-09-13 in this member's
+           probe: --ClickBody is `display: contents` on a <button>, which in
+           Chromium 149 generates no box and is NOT FOCUSABLE — all five rows'
+           select controls vanished from the tab order while still working with a
+           mouse. Raised, not worked around. -->
       <ul class="prompts">
         {#each prompts as p (p.prompt_id)}
-          <li class:selected={p.prompt_id === selectedPromptId}>
-            <button type="button" class="prompt-select" onclick={() => loadIntoEditor(p)}>
-              <strong>{p.name}</strong>
-              <span class="muted">→ {p.output_column}{p.tools.includes('web_search') ? ' · web' : ''}</span>
-            </button>
-            <!-- size="icon" refuses to render without an accessible name; the
-                 aria-label this row already had satisfies it. The bare '×'
-                 glyph it carried is now an <svg> — Button sizes it from
-                 --icon-* and a glyph is font-dependent and unstyleable. -->
-            <Button
-              size="icon"
-              variant="ghost"
-              title="Delete this prompt"
-              aria-label="delete {p.name}"
-              onclick={() => void deletePromptById(p.prompt_id, p.name)}
+          <li>
+            <CardRow
+              density="compact"
+              selected={p.prompt_id === selectedPromptId}
+              class="ptm-prompt-row"
+              data-deviation="CardRow ships no hover state; a row whose whole job is to be selected needs an interactivity cue, and this member's only one was li:hover"
             >
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
-                <path d="M4 4l8 8M12 4l-8 8" />
-              </svg>
-            </Button>
+              <!-- ui-selectprimary is inline-flex and shrink-to-fit, with no
+                   min-inline-size:0. Both are corrected by a member hook in
+                   app.css, because SelectWrapper spreads {...rest} LAST and has
+                   no `class` prop, so passing class= would DELETE its own
+                   ui-selectprimary class. Raised. -->
+              <SelectWrapperClickPrimary
+                label="{p.name} — output column {p.output_column}{p.tools.includes('web_search') ? ', web search' : ''}"
+                selected={p.prompt_id === selectedPromptId}
+                onselect={() => loadIntoEditor(p)}
+              >
+                <span class="ptm-prompt-label">
+                  <strong>{p.name}</strong>
+                  <span class="muted">→ {p.output_column}{p.tools.includes('web_search') ? ' · web' : ''}</span>
+                </span>
+              </SelectWrapperClickPrimary>
+              <!-- size="icon" refuses to render without an accessible name; the
+                   aria-label this row already had satisfies it. The bare '×'
+                   glyph it carried is now an <svg> — Button sizes it from
+                   --icon-* and a glyph is font-dependent and unstyleable.
+                   The class is a MEMBER HOOK, not a restyle: flex:0 0 auto.
+                   Measured before this change: the old `li` flex row was
+                   shrinking this button to 18x28 in the long-name row — under
+                   the 24px WCAG 2.2 SC 2.5.8 floor. Button sets no `flex`. -->
+              <Button
+                size="icon"
+                variant="ghost"
+                class="ptm-row-action"
+                data-deviation="flex:0 0 auto so the row's flex container cannot shrink this icon button under the 24px target floor — measured at 18x28 before the change"
+                title="Delete this prompt"
+                aria-label="delete {p.name}"
+                onclick={() => void deletePromptById(p.prompt_id, p.name)}
+              >
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                  <path d="M4 4l8 8M12 4l-8 8" />
+                </svg>
+              </Button>
+            </CardRow>
           </li>
         {/each}
         {#if prompts.length === 0}

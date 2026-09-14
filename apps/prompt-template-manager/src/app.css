@@ -57,33 +57,72 @@
   min-width: 0;
 }
 
-.ptm-app ul.prompts { list-style: none; padding: 0; margin: 0.5rem 0 0; }
-.ptm-app ul.prompts li {
+/* The list region. Rung 0 — spacing BETWEEN rows is the list's job, never the
+ * row's; CardRow deliberately sets no margin. The old `li { margin-bottom }`
+ * is gone in favour of a gap on a real space token. */
+.ptm-app ul.prompts {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
   display: flex;
-  align-items: flex-start;
-  gap: 0.25rem;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  margin-bottom: 0.25rem;
+  flex-direction: column;
+  gap: var(--space-2xs);
 }
-.ptm-app ul.prompts li:hover { border-color: var(--color-accent); }
-.ptm-app ul.prompts li.selected { border-color: var(--color-accent); background: var(--color-selected-tint); }
-.ptm-app ul.prompts li.empty { display: block; padding: 0.5rem; }
-.ptm-app ul.prompts .prompt-select {
+.ptm-app ul.prompts li.empty { padding: 0.5rem; }
+
+/* DEVIATION (rung 4, declared at the call site with data-deviation).
+ * CardRow ships no hover state, and hover was this member's only cue that a row
+ * is clickable at all — deleting it with the old `li:hover` would have been a
+ * silent affordance regression.
+ *
+ * This is (0,3,0); CardRow's own `.ui-cardrow[data-selected]` is also (0,3,0)
+ * after Svelte hashing, so border-color is a genuine tie resolved by source
+ * order. It does not matter here: both resolve to the same accent colour
+ * (--color-accent is an alias of --color-primary in all three modes), and the
+ * selected BACKGROUND comes only from the component, which this rule never
+ * touches. Verified in the probe: hovering a selected row keeps the tint. */
+.ptm-app .ptm-prompt-row:hover { border-color: var(--color-primary); }
+
+/* Rung 0 wrapper. `.ptm-prompt-label` is the single flex item that carries the
+ * two-line label. SelectWrapper--ClickPrimary is `display: inline-flex;
+ * align-items: baseline`, so without this wrapper <strong> and <span> become
+ * two flex items and the name / output-column stack collapses onto one line.
+ * One child, and the stack survives with no override of the component at all. */
+.ptm-app .ptm-prompt-label {
   flex: 1 1 auto;
-  border-radius: var(--radius-md);
-  min-width: 0;
+  min-inline-size: 0;
   display: block;
-  text-align: left;
-  background: transparent;
-  border: 0;
-  padding: 0.5rem;
-  margin: 0;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
+  text-align: start;
 }
-.ptm-app ul.prompts .prompt-select strong { display: block; color: var(--color-accent); margin-bottom: 0.15rem; }
+.ptm-app .ptm-prompt-label strong {
+  display: block;
+  color: var(--color-accent);
+  margin-bottom: var(--space-3xs);
+}
+/* MEMBER HOOK, not a restyle. `flex` is not a property Button sets, so this
+ * cannot lose a specificity tie on anything the component owns. It exists
+ * because the row's flex container was measured shrinking this icon button to
+ * 18x28 — under the 24px WCAG 2.2 SC 2.5.8 target floor. */
+.ptm-app .ptm-row-action { flex: 0 0 auto; }
+
+/* MEMBER HOOK on a federal class — the only hook available, because
+ * SelectWrapper--ClickPrimary spreads {...rest} LAST and does not destructure
+ * `class`, so `class="…"` at the call site REPLACES `ui-selectprimary` and
+ * deletes the component's own styling. Raised, not fixed.
+ *
+ * Two properties, neither of which the component sets:
+ *   flex            ui-selectprimary is inline-flex, so as a flex item of the
+ *                   CardRow it shrinks to content. Measured: the clickable
+ *                   fraction of the row fell from 84-92% (raw .prompt-select)
+ *                   to 43-59%. This restores it.
+ *   min-inline-size flex items default to min-width:auto, so a single long
+ *                   unbreakable token (`a_rather_long_output_column_name`)
+ *                   pushed the sibling delete button clean out of the card —
+ *                   measured at 0% of the row reachable for delete. */
+.ptm-app ul.prompts .ui-selectprimary {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
 .ptm-app label {
   display: block;
   margin: 0.75rem 0 0;
