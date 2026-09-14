@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import CountBadge from '@augment-it/shared-ui/CountBadge.svelte';
   import ModeToggle from './ModeToggle.svelte';
   import MountHost from './MountHost.svelte';
   import FlowWidget from './FlowWidget.svelte';
@@ -649,7 +650,12 @@
       aria-pressed={queueVisible}
       title={queueVisible ? 'Hide the search queue' : 'Show the search queue'}
     >
-      🔎 queue{#if queueDoneCount > 0}<span class="queue-badge">{queueDoneCount}</span>{/if}
+      🔎 queue{#if queueDoneCount > 0}<CountBadge
+          count={queueDoneCount}
+          size="sm"
+          tone="accent"
+          label="Finished searches waiting"
+        />{/if}
     </Button>
     <DevelopersMenu wsHttpBase={WS_HTTP_BASE} onOpenDesignSystem={openDesignSystem} />
     <DidiBadge />
@@ -802,22 +808,16 @@
   .metrics { display: flex; gap: 0.75rem; align-items: center; font-size: 11px; }
   .muted { color: var(--color-text-muted); }
 
-  /* done-count on the 🔎 queue toggle — arrival stays visible while the
-     rail is collapsed (Search-Results-Queue-Remote spec D4). */
-  .queue-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1.15em;
-    height: 1.15em;
-    margin-left: 0.35em;
-    padding: 0 0.25em;
-    border-radius: 999px;
-    background: var(--color-accent);
-    color: var(--color-on-accent);
-    font-size: 10px;
-    font-weight: 700;
-  }
+  /* The done-count is a <CountBadge size="sm" tone="accent">. It could not be
+     until the badge had an `sm`: this metrics row is uniformly sm, and the
+     badge's single size was a sm Button's entire outer height, so adopting it
+     here would have painted a pill across the control's border — or forced the
+     whole row to grow. tone="accent", not "inherit", because arrival is meant to
+     be loud while the rail is collapsed (Search-Results-Queue-Remote spec D4);
+     inherit would have muted it to the toggle's own colour. The one layout thing
+     the component does not own stays here. */
+  /* The badge is inline in the Button's label, so the gap is the Button's own
+     flex gap. Nothing left for the member to own here. */
 
   /* ---- below-header: chat rail on the left, stage on the right ---- */
   .below-header {

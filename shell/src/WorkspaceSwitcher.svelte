@@ -1,6 +1,7 @@
 <script lang="ts">
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   // Workspace switcher — top-right header chrome.
   //
   // Reads workspace.workspaces (populated by workspace.list) and the
@@ -26,8 +27,15 @@
   // Visible state — never just "empty + disabled". The pill tells the user
   // why: are we still waiting on the socket, did the call fail, is the
   // server truly returning zero workspaces?
+  //
+  // The socket's own state is no longer folded in here. It used to be, and it
+  // covered exactly ONE of the six states: `connecting` and `idle` collapsed
+  // to the string "connecting…", while `open`, `closed`, `error` and
+  // `auth_required` all fell through to the workspace name — so a DEAD socket
+  // and a healthy one rendered identically, and the only trace of a failure
+  // was a `title` attribute nobody hovers. StatusIndicator owns every non-open
+  // state below; `label` is now purely about the workspace LIST.
   const label = $derived.by(() => {
-    if (workspace.connection_status === 'connecting' || workspace.connection_status === 'idle') return 'connecting…';
     if (workspace.workspaces_status === 'loading') return 'loading…';
     if (workspace.workspaces_status === 'error') return 'error · hover';
     if (active) return active.display_name;
@@ -95,8 +103,16 @@
     title={tooltip}
     onclick={toggle}
   >
-    <span class="dot" class:empty aria-hidden="true"></span>
-    <span class="label">{label}</span>
+    {#if workspace.connection_status === 'open'}
+      <span class="label">{label}</span>
+    {:else}
+      <!-- Replaces a hand-rolled `.dot` that encoded "are there workspaces" in
+           colour ALONE (accent vs muted, aria-hidden, no word) — a WCAG 1.4.1
+           defect standing in for a connection indicator it never actually
+           read. The dot carried nothing `label` did not already say, so it is
+           gone rather than re-tinted. -->
+      <StatusIndicator state={workspace.connection_status} of="workspace" />
+    {/if}
     <span class="chev" aria-hidden="true">{open ? '▴' : '▾'}</span>
   </Button>
 
@@ -137,14 +153,6 @@
     display: inline-flex;
     align-items: center;
   }
-  .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--color-accent);
-    flex-shrink: 0;
-  }
-  .dot.empty { background: var(--color-text-muted); }
   .label {
     font-weight: 500;
     letter-spacing: 0.02em;

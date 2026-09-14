@@ -553,12 +553,13 @@
              toggles, and honest toggle buttons with aria-pressed beat
              half-implemented tabs — real tab semantics would need
              aria-controls, role="tabpanel" and arrow-key handling. -->
-        <!-- size="md", not "sm". CountBadge is a fixed --control-h-sm (24px)
-             block, which is the ENTIRE outer height of a sm Button — measured
-             at inset 0.00px top and bottom, so the badge's pill paints across
-             the secondary variant's border. At md the inset is 2.00px and the
-             badge sits inside the control. The bump also takes the target from
-             24px (exactly the WCAG 2.2 SC 2.5.8 floor) to 28px. -->
+        <!-- size="md", and the reason has CHANGED. It was a workaround: CountBadge
+             had one fixed size equal to a sm Button's entire outer height, so the
+             badge's pill painted across the control's border at inset 0.00px.
+             That is fixed — the badge now has its own `sm`.
+             md stays anyway, for the better reason the workaround happened to
+             buy: it takes the target from 24px — EXACTLY the WCAG 2.2 SC 2.5.8
+             floor — to 28px. Reverting to sm would give that back. -->
         <div class="row-filter-chips" role="group" aria-label="Filter rows by status">
           <Button
             size="md"
