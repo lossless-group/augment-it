@@ -35,6 +35,27 @@
     rel?: string;
     /** Do not truncate — for short labels in a wide row. */
     noTruncate?: boolean;
+    /**
+     * The visible content is an icon; `label` becomes the accessible name.
+     *
+     * TWO blockers made this necessary, either alone sufficient, and both were
+     * found by an adoption that correctly refused rather than shipping a
+     * regression:
+     *
+     *  1. An `aria-label` on the anchor SUPPRESSES the visually-hidden new-tab
+     *     notice — the one thing this component exists to add. So a member
+     *     naming its icon link lost the feature it adopted the component for.
+     *     Here the component composes the name itself, in the DOM, so the notice
+     *     is part of it and cannot be overridden away.
+     *  2. `min-inline-size: 0` is declared in this component's scoped style at
+     *     (0,2,0), so a member class at (0,1,0) cannot restore a width floor —
+     *     reaching 24px WIDE needed rung 4. An icon link is square here.
+     *
+     * The refusal was right: one of those sites already cleared the target floor
+     * with its own rules, so adopting would have turned a measured pass into a
+     * measured failure.
+     */
+    iconOnly?: boolean;
     children?: Snippet;
     class?: string;
     [key: string]: unknown;
@@ -46,6 +67,7 @@
     sameTab = false,
     rel = '',
     noTruncate = false,
+    iconOnly = false,
     children,
     class: klass = '',
     ...rest
@@ -67,13 +89,22 @@
   {href}
   target={sameTab ? undefined : '_blank'}
   rel={relValue}
-  title={noTruncate ? undefined : text}
+  title={iconOnly ? text : noTruncate ? undefined : text}
   class="ui-extlink {klass}"
-  data-truncate={!noTruncate || undefined}
+  data-truncate={!iconOnly && !noTruncate || undefined}
+  data-icon={iconOnly || undefined}
 >
-  <span class="ui-extlink__label">{#if children}{@render children()}{:else}{text}{/if}</span>
-  {#if !sameTab}
-    <span class="ui-extlink__newtab">(opens in a new tab)</span>
+  {#if iconOnly}
+    <span class="ui-extlink__icon" aria-hidden="true">{@render children?.()}</span>
+    <!-- The name is composed HERE, not via aria-label, so the new-tab notice is
+         part of it. An aria-label would replace this whole subtree and take the
+         notice with it. -->
+    <span class="ui-extlink__newtab">{text}{sameTab ? '' : ' (opens in a new tab)'}</span>
+  {:else}
+    <span class="ui-extlink__label">{#if children}{@render children()}{:else}{text}{/if}</span>
+    {#if !sameTab}
+      <span class="ui-extlink__newtab">(opens in a new tab)</span>
+    {/if}
   {/if}
 </a>
 
@@ -93,6 +124,19 @@
     text-underline-offset: 2px;
   }
   .ui-extlink:hover { text-decoration-thickness: 2px; }
+  /* A visited link that looks unvisited is a usability regression, and one
+     member had a :visited rule that adoption deleted. Restored federally rather
+     than left to each member to rediscover. */
+  .ui-extlink:visited { color: var(--color-link-visited, var(--color-link)); }
+
+  /* Square, and wide enough. See `iconOnly` — a member could not restore a width
+     floor from outside, because min-inline-size is declared here at (0,2,0). */
+  .ui-extlink[data-icon] {
+    justify-content: center;
+    min-inline-size: var(--control-h-sm);
+    text-decoration: none;
+  }
+  .ui-extlink__icon { display: inline-flex; }
   .ui-extlink:focus-visible {
     box-shadow: var(--focus-ring);
     outline: none;

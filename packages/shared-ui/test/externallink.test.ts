@@ -87,3 +87,25 @@ describe('ExternalLink — truncation, because these carry user content', () => 
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+
+describe('ExternalLink — iconOnly, the gap that cost two adoptions', () => {
+  it('composes the name in the DOM so the new-tab notice survives', () => {
+    const a = render({ label: 'Open annual report', iconOnly: true });
+    // Not aria-label: that would REPLACE the subtree and take the notice with it.
+    expect(a.hasAttribute('aria-label')).toBe(false);
+    expect(a.textContent).toContain('Open annual report');
+    expect(a.textContent).toMatch(/opens in a new tab/i);
+  });
+
+  it('is square and clears the width floor a member could not reach', () => {
+    render({ label: 'x', iconOnly: true });
+    const src = readFileSync(resolve('src/ExternalLink.svelte'), 'utf8');
+    const rule = src.match(/\.ui-extlink\[data-icon\]\s*\{[^}]*\}/)![0];
+    expect(rule).toMatch(/min-inline-size:\s*var\(--control-h-sm\)/);
+  });
+
+  it('does not truncate an icon', () => {
+    const a = render({ label: 'x', iconOnly: true });
+    expect(a.hasAttribute('data-truncate')).toBe(false);
+  });
+});
