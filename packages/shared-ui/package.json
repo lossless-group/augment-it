@@ -12,6 +12,8 @@
     "./DisclosureRow.svelte": "./src/DisclosureRow.svelte",
     "./ListContainer.svelte": "./src/ListContainer.svelte",
     "./MenuItem.svelte": "./src/MenuItem.svelte",
+    "./SearchBox--Autocomplete.svelte": "./src/SearchBox--Autocomplete.svelte",
+    "./SearchBox--LiveFilter.svelte": "./src/SearchBox--LiveFilter.svelte",
     "./SelectWrapper--Checkbox.svelte": "./src/SelectWrapper--Checkbox.svelte",
     "./SelectWrapper--ClickBody.svelte": "./src/SelectWrapper--ClickBody.svelte",
     "./SelectWrapper--ClickPrimary.svelte": "./src/SelectWrapper--ClickPrimary.svelte",
