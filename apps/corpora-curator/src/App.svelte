@@ -3,8 +3,8 @@
   import { workspace, resolveWsUrl } from '@augment-it/workspace';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   import { curation } from './curation.svelte';
-  import { CONNECTION_TONE } from './types';
   import CorpusPicker from './CorpusPicker.svelte';
   import SourceList from './SourceList.svelte';
   import SourceDetail from './SourceDetail.svelte';
@@ -72,7 +72,21 @@
         {#each curation.workspaces as w (w.client_id)}<option value={w.client_id}>{w.client_id}</option>{/each}
       </select>
     {:else if curation.connection !== 'open'}
-      <Chip size="sm" tone="info" title="Connecting to workspace-service">connecting…</Chip>
+      <!-- THE SECOND CONNECTION RENDERING IN THIS HEADER, and the one that was
+           actually broken. It was a hardcoded `tone="info"` chip reading
+           "connecting…", shown for every non-open state — so idle, closed,
+           error and auth_required all claimed the socket was mid-handshake.
+           Five states, one appearance, and four of the five were a lie rather
+           than merely undifferentiated. The right-hand indicator was already
+           six-way correct; this slot never consulted the map at all.
+
+           No `of=` here on purpose: it sits WHERE THE WORKSPACE PICKER WOULD BE
+           and answers "why is there no picker", so the bare word is the whole
+           sentence. The right-hand one carries the subject. -->
+      <StatusIndicator
+        state={curation.connection}
+        title="No workspace list yet — this is why"
+      />
     {:else}
       <Chip size="sm" title="Active workspace">{curation.clientSlug ?? '— no workspace —'}</Chip>
     {/if}
@@ -110,11 +124,19 @@
       <Chip size="sm">{curation.sources.length} sources</Chip>
     {/if}
     <span class="cc-spacer"></span>
-    <!-- tone is derived from the state, never from the string: see
-         CONNECTION_TONE in types.ts. The text still carries the meaning on its
-         own (WCAG 1.4.1) — it always did, which is why the colour could be
-         wrong for three of the six states without anyone noticing. -->
-    <Chip size="sm" tone={CONNECTION_TONE[curation.connection]}>{curation.connection}</Chip>
+    <!-- The canonical connection indicator. This one was NOT broken — a local
+         CONNECTION_TONE map already gave all six states their own tone, which
+         is why this member was the last holdout: there was no colour bug left
+         to fix here. What it could not fix from inside the member is the WORD.
+         It rendered `{curation.connection}` raw, so the operator read the
+         TypeScript union member: `auth_required`, lowercase, underscored, at
+         the exact moment they need to be told to sign in. The component says
+         "workspace sign-in required".
+
+         `of="workspace"` matches the fifteen other members, so the strip reads
+         identically everywhere — which is the whole point of federating a map
+         that was already correct locally. -->
+    <StatusIndicator state={curation.connection} of="workspace" />
   </header>
 
   {#if curation.lastError}

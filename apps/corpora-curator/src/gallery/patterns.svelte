@@ -17,6 +17,14 @@
   // is deliberate: the specimen that documented the divergence should be the one
   // that documents its resolution, rather than being quietly deleted.
   //
+  // The CONNECTION half of that tone catalog has since left it. `chips` carried
+  // a second row of all six connection states, tinted from a CONNECTION_TONE map
+  // in this member's types.ts; that map is deleted and the row is the
+  // `statusIndicator` specimen. The move is the second time this file has had to
+  // record a boundary shifting INWARD past something that was already correct:
+  // the tone map was right, and it still had to go, because the word it was
+  // paired with was the raw enum and no local map can fix that.
+  //
   // The BUTTON recipes are no longer among them. `.cc-primary`, `.cc-link`,
   // `.cc-danger`, `.cc-back`, `.cc-tag-x` and the bare `.cc-app button` base
   // were deleted when this member adopted @augment-it/shared-ui's <Button>; the
@@ -47,7 +55,8 @@
   import ExternalLink from '@augment-it/shared-ui/ExternalLink.svelte';
   import SearchBoxLiveFilter from '@augment-it/shared-ui/SearchBox--LiveFilter.svelte';
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
-  import { CONNECTION_TONE, type ConnStatus } from '../types';
+  import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
+  import { type ConnStatus } from '../types';
 
   // Every connection state, in the order the divergence is easiest to read.
   const CONN_STATES: ConnStatus[] = ['open', 'connecting', 'auth_required', 'closed', 'error', 'idle'];
@@ -76,6 +85,7 @@
     card,
     fields,
     chips,
+    statusIndicator,
     tags,
     sourceRow,
     headerBar,
@@ -144,15 +154,22 @@
 {/snippet}
 
 {#snippet chips(p: Record<string, unknown>)}
-  <!-- One treatment, six tones, and every tone here is picked by MEANING. The
-       top row is the member's plain labels: a workspace, a corpus type and a
-       count are facts, so all three are neutral even though .cc-pill drew them
-       with a border and .cc-status-chip drew them without one.
+  <!-- One treatment, and after the StatusIndicator adoption only TWO tones are
+       left in it: neutral and ok. Every tone here is picked by MEANING. The
+       labels are facts — a workspace, a corpus type, a count, a source's
+       resting status — so they are neutral even though .cc-pill drew them with
+       a border and .cc-status-chip drew them without one. `fetched` is ok
+       because it is the affirmative RESULT of an action.
 
-       The bottom row is the one worth reading. All six connection states are
-       shown because the old recipe collapsed three of them — idle, connecting
-       and auth_required — into one grey, and the specimen that used to prove
-       the divergence should be the one that proves it is gone. -->
+       The second row is gone from here, and its absence is the specimen. It
+       held all six connection states as Chips, and it existed to prove the old
+       .cc-conn recipe's three-into-one-grey collapse had been fixed. A Chip is
+       a label that is not a control and carries no vocabulary of its own; a
+       connection state is a fixed six-member enum with a right word for each.
+       That row is the StatusIndicator specimen now — a component with the
+       words, not a tone map with the raw enum. Three of this member's six tones
+       (info, warn, error) left WITH it: nothing else in the member means
+       "transient", "actionable" or "failed" as a label. -->
   <div class="cc-actions">
     <Chip size="sm">reach-edu</Chip>
     <Chip size="sm">strategy</Chip>
@@ -160,9 +177,31 @@
     <Chip size="sm">metadata-only</Chip>
     <Chip size="sm" tone="ok">fetched</Chip>
   </div>
+{/snippet}
+
+{#snippet statusIndicator(p: Record<string, unknown>)}
+  <!-- All six connection states, in the order the old divergence was easiest to
+       read. This is the row that used to be the second half of the `chips`
+       specimen, and moving it here is the whole point of the entry: it was six
+       Chips whose tone came from a member-local map and whose LABEL was the raw
+       TypeScript union member, and it is now one federal component that owns
+       both halves.
+
+       Read the words, not the colours. `auth_required` → "sign-in required" is
+       the one that mattered: warn rather than error, because it is a gate the
+       operator can walk through. And `closed` / `error` share a tone on purpose
+       — they are both failures — so the WORD is the only thing telling them
+       apart, which is why the component refuses to render a dot without one. -->
   <div class="cc-actions">
     {#each CONN_STATES as s}
-      <Chip size="sm" tone={CONNECTION_TONE[s]}>{s}</Chip>
+      <StatusIndicator state={s} />
+    {/each}
+  </div>
+  <!-- The same six with a subject, as the header spends them. `of=` prefixes
+       rather than replaces, so the state word survives the prefix intact. -->
+  <div class="cc-actions">
+    {#each CONN_STATES as s}
+      <StatusIndicator state={s} of={String(p.of ?? 'workspace')} />
     {/each}
   </div>
 {/snippet}
@@ -238,9 +277,13 @@
     <span class="cc-strategy">{String(p.strategy ?? 'Turning Jobs Into Degrees')}</span>
     <Chip size="sm">4 sources</Chip>
     <span class="cc-spacer"></span>
-    <Chip size="sm" tone={CONNECTION_TONE[(p.status ?? 'open') as keyof typeof CONNECTION_TONE]}
-      >{String(p.status ?? 'open')}</Chip
-    >
+    <!-- The real header's right-hand indicator, spent exactly as App.svelte
+         spends it. The `status` control now offers all SIX states rather than
+         the four it used to: idle and auth_required were missing from the
+         specimen for the same reason the workspace slot got them wrong — a
+         member drawing its own status vocabulary tends to pin only the states
+         it has personally watched happen. -->
+    <StatusIndicator state={(p.status ?? 'open') as ConnStatus} of="workspace" />
   </header>
 {/snippet}
 

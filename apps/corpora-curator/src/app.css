@@ -217,12 +217,21 @@
 .cc-app .cc-row-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; font-size: 11px; color: var(--color-text-muted); align-items: center; }
 
 /* ---- labels ----
-   There are no badge recipes here any more either. Every pill, status chip and
-   tag in this member is <Chip> from @augment-it/shared-ui, at override-ladder
-   rung 1 (tone + size) — no radius override, no class passthrough, no
-   data-deviation. Deleted on adoption: .cc-pill; .cc-conn with its .status-open,
-   .status-error and .status-closed variants; .cc-status-chip; .cc-tag;
-   .cc-tag-mini.
+   There are no badge recipes here any more either. Every pill and tag in this
+   member is <Chip> from @augment-it/shared-ui, and every connection state is
+   <StatusIndicator>, both at override-ladder rung 1 — no radius override, no
+   class passthrough, no data-deviation. Deleted on adoption: .cc-pill; .cc-conn
+   with its .status-open, .status-error and .status-closed variants;
+   .cc-status-chip; .cc-tag; .cc-tag-mini.
+
+   AMENDED after the StatusIndicator adoption. The paragraph below argued that
+   the Chip rollout was what fixed .cc-conn's member-local colour vocabulary,
+   and that was true as far as it went — but the fix stopped at the tone. The
+   LABEL stayed `{curation.connection}`, the raw union member, so the operator
+   read "auth_required". No stylesheet deletion can reach that, which is why the
+   map that replaced these recipes has since been deleted in its turn: a
+   six-way decision that is correct in one member and wrong in fifteen is a
+   federal component wearing a member's clothes.
 
    Those five WERE this member's contribution to the federation's 34 badge
    treatments, and the gallery's `chips` entry has carried the note "three

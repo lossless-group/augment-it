@@ -30,6 +30,7 @@ import {
   fields,
   headerBar,
   sourceRow,
+  statusIndicator,
   tags,
 } from './patterns.svelte';
 import { seed, SOURCES, STRATEGIES } from './fixtures';
@@ -45,34 +46,32 @@ export default defineGallery({
     'Corpora Curator on screen. Pick a corpus, gather sources metadata-first, fetch them, tag and extract. Tier B in the member registry, debt: high.',
   // State hooks that legitimately carry no `cc-` prefix. They only ever appear
   // alongside a prefixed class, so the containment audit would otherwise report
-  // each of them as a leak.
+  // each of them as a leak. TWO entries, and that is the whole list.
   //
-  // `ui-btn` is a different case and the reason it heads the list: it is the
-  // FEDERAL Button's own class. A federal component's classes can never carry a
-  // member's prefix — they would have to carry nineteen — so without this entry
-  // every button specimen in every adopting catalog reports a permanent leak.
+  // It used to be longer, and the reason it shrank is worth keeping: federal
+  // components' own classes can never carry a member's prefix — they would have
+  // to carry nineteen — so `ui-btn` sat here, and Chip's four BEM classes
+  // (__label always, __dot and __dismiss conditionally) were queued to join it.
+  // packages/gallery/src/audit.ts RESERVED the `ui-*` namespace instead, so a
+  // federal component now costs an adopting catalog zero exemptions. The
+  // StatusIndicator adoption is the first to arrive after that fix and paid
+  // nothing: `ui-status`, `ui-status__dot` and `ui-status__word` are all
+  // reserved. The old comment here argued the runtime should know the platform
+  // prefix rather than every catalog restating it; it does now.
   //
-  // Chip costs FOUR entries where Button costs one, and that is worth flagging
-  // rather than absorbing. Button deliberately carries a single class and rides
-  // its enums on data-* attributes, and the comment in Button.svelte says why:
-  // "each modifier class would be a permanent finding in all nineteen catalogs."
-  // Chip does the same for its enums but adds BEM element classes — __label
-  // always, __dot and __dismiss conditionally — so every adopting catalog has to
-  // list all four or read leaks in its Audit tab forever. Raised, not chased.
-  //
-  // The `status-*` entries are GONE: they only ever existed for `.cc-conn
-  // status-{state}`, and the connection label is a <Chip tone> now, so the
-  // generated class no longer exists to be exempted.
+  // The `status-*` entries are GONE, twice over. They existed for `.cc-conn
+  // status-{state}`, which the Chip adoption deleted; the Chip that replaced it
+  // is itself gone now, and the connection label is <StatusIndicator>.
   exemptClasses: [
     'active', 'err',
   ],
 
   sections: [
     {
-      id: 'recipes',
-      title: 'Recipes',
+      id: 'federal',
+      title: 'Federal primitives',
       blurb:
-        'Class-based primitives from app.css. No component behind any of them — which is precisely why they need cataloguing: nothing stops a fourth badge treatment from being appended to the stylesheet. Two former residents are no longer class-based at all: Buttons and Pills & status chips now catalogue how this member SPENDS the federal <Button> and <Chip> rather than what it drew itself. The remaining recipes are a card, a field stack, a list row and a banner.',
+        'Owned by packages/shared-ui, consumed here. These specimens import the real component — not a copy — so what renders is what ships. This section is NEW, and it exists because two entries had outgrown the section they were in: Buttons and Pills & status chips were both sourced to packages/shared-ui while sitting under a heading that said "class-based primitives from app.css". A catalog that files a federal component as a local recipe is wrong in the one way this catalog exists to prevent.',
       entries: [
         {
           id: 'buttons',
@@ -111,6 +110,76 @@ export default defineGallery({
             },
           ],
         },
+        {
+          id: 'chips',
+          name: 'Pills & tags',
+          kind: 'pattern',
+          status: 'stable',
+          source: 'packages/shared-ui/src/Chip.svelte',
+          summary:
+            'Every LABEL in this member is the federal <Chip>, spent at one size — sm everywhere, because every label here is chrome — across TWO of the six tones: neutral (workspace, corpus type, source count, metadata-only, tags) and ok (fetched). It was five tones until the StatusIndicator adoption; info, warn and error were only ever spent on connection states, and those are not labels. accent is still unspent — nothing in this member means "selected" as a label. The name changed with the scope: this entry was "Pills & status chips", and it no longer holds a status chip.',
+          usage: '<Chip size="sm" tone="ok">fetched</Chip>',
+          deviation:
+            'None — zero override rungs. No radius=, no class= and no data-deviation, the same as this member\'s Button adoption. What this entry used to say was "three of the federation-wide 34 badge treatments; any consolidation should start here," and .cc-pill, .cc-conn, .cc-status-chip, .cc-tag and .cc-tag-mini were all deleted to make it stop being true.',
+          a11y:
+            'What is left here is uncontroversial and that is the news: a neutral or ok label on --color-surface-2 with a --color-border-strong boundary, text carrying its own meaning, no state encoded anywhere. The interesting claim MOVED to the StatusIndicator entry along with the connection states — including the correction that this entry used to carry, that tone came from a CONNECTION_TONE map in types.ts. It does not; that map is deleted.',
+          tokens: [
+            '--color-surface-2', '--color-text-muted', '--color-border-strong', '--radius-pill', '--text-label',
+            '--color-ok-bg', '--color-ok-fg',
+          ],
+          snippet: chips,
+          controls: { count: { kind: 'number', value: 4, min: 0, max: 99 } },
+          fixtures: [
+            {
+              id: 'all',
+              name: 'All treatments',
+              note: 'Was "deliberately shown together — apart, each looks fine," when it held three recipes, then one row of labels plus one row of connection states. It is one row now. Compare it with the StatusIndicator entry: the shrinking of this specimen IS the other one.',
+            },
+          ],
+        },
+        {
+          id: 'status-indicator',
+          name: 'StatusIndicator',
+          kind: 'pattern',
+          status: 'stable',
+          source: 'packages/shared-ui/src/StatusIndicator.svelte',
+          summary:
+            'One connection state, rendered the same way in all sixteen members. Six states, six words, five tones — and the component owns BOTH halves, which is the thing a member cannot do for itself. This member had a correct six-way tone map (CONNECTION_TONE, types.ts, now deleted) and still rendered the raw union member as its label, so `auth_required` reached the operator as `auth_required`. Spent in two header slots: the right-hand indicator with of="workspace", and the workspace-picker slot without a subject.',
+          usage: '<StatusIndicator state={curation.connection} of="workspace" />',
+          deviation:
+            'None — zero override rungs, no class= and no data-deviation, consistent with this member\'s Button and Chip adoptions. Worth recording what the adoption COST rather than only what it saved: <Chip> gave the connection label a filled pill with its own paired background, and StatusIndicator gives it a dot plus a word painted straight onto the page. The label reads lighter than it did. That is the federal component\'s call, not a deviation, and it buys the same strip in every member.',
+          a11y:
+            'Colour was never the only signal here — this member always rendered a word — but the word was a developer string, and "auth_required" at 11px is not an instruction. The words are prose now, and `auth_required` is WARN rather than error on purpose: it is a gate the operator can walk through, not a failure. The dot is aria-hidden, so the word is the whole accessible name, which matters more here than in a member that pulses: theme.css\'s prefers-reduced-motion block sets animation-iteration-count: 1. Contrast is the change the drift gate cannot see — text now sits on --color-surface rather than on a tone-paired background, so it was measured by hand: ok 10.18 / info 7.17 / warn 9.64 / error 7.05 / neutral 4.64 in dark, 6.53 / 6.99 / 5.60 / 6.43 / 5.25 in light, 14.50 / 9.82 / 13.27 / 8.69 / 6.77 in vibrant. All fifteen clear 4.5:1; dark neutral at 4.64 is the floor. design-drift.mjs pairs only surface x text tokens, so none of those fifteen is gate-covered — raised.',
+          tokens: [
+            '--space-2xs', '--space-xs', '--control-h-sm', '--radius-round', '--font-sans', '--text-label',
+            '--color-ok-fg', '--color-info-fg', '--color-warn-fg', '--color-error-fg', '--color-text-muted',
+          ],
+          snippet: statusIndicator,
+          controls: { of: { kind: 'text', label: 'subject (second row)', value: 'workspace' } },
+          fixtures: [
+            {
+              id: 'all-states',
+              name: 'All six states',
+              note: 'Bare on top, subject-prefixed below — the two ways this member spends it. Read the words: this is the row that used to live in the chips specimen as six raw enum members tinted by a local map.',
+            },
+            {
+              id: 'no-subject',
+              name: 'Without a subject',
+              props: { of: '' },
+              width: 420,
+              note: 'What the workspace-picker slot renders. That slot used to be a hardcoded tone="info" chip reading "connecting…" for EVERY non-open state — five states, one appearance, and four of them false. It is the only place in this member where the StatusIndicator rollout changed what the screen says rather than only how it says it.',
+            },
+          ],
+        },
+      ],
+    },
+
+    {
+      id: 'recipes',
+      title: 'Recipes',
+      blurb:
+        'Class-based primitives from app.css. No component behind any of them — which is precisely why they need cataloguing: nothing stops a fourth badge treatment from being appended to the stylesheet. Buttons and Pills & status chips used to head this list and now sit under Federal primitives, where their source paths always said they belonged. What is left is a card, a field stack, a tag row, a list row, a header, a banner, an attachment and an empty state.',
+      entries: [
         {
           id: 'card',
           name: 'Card',
@@ -159,34 +228,6 @@ export default defineGallery({
               name: 'Saved flash',
               props: { saved: true },
               note: 'The 1.6s confirmation pulse. It runs on a local @keyframes in app.css rather than a federal motion token — the kind of thing a per-component view surfaces and a per-member sweep averages away.',
-            },
-          ],
-        },
-        {
-          id: 'chips',
-          name: 'Pills & status chips',
-          kind: 'pattern',
-          status: 'stable',
-          source: 'packages/shared-ui/src/Chip.svelte',
-          summary:
-            'Not a recipe any more. Every label in this member is the federal <Chip>, spent at one size — sm everywhere, because every label here is chrome — across five of the six tones: neutral (workspace, corpus type, source count, metadata-only, tags), ok (fetched, connection open), info (connecting), warn (auth_required) and error (closed, error). accent is unspent; nothing in this member means "selected" as a label. The specimen imports the real component, so what renders is what ships.',
-          usage: '<Chip size="sm" tone={CONNECTION_TONE[curation.connection]}>{curation.connection}</Chip>',
-          deviation:
-            'None — zero override rungs. No radius=, no class= and no data-deviation, the same as this member\'s Button adoption. What this entry used to say was "three of the federation-wide 34 badge treatments; any consolidation should start here," and .cc-pill, .cc-conn, .cc-status-chip, .cc-tag and .cc-tag-mini were all deleted to make it stop being true.',
-          a11y:
-            'The connection label is the measurable change. Colour was NEVER its only signal — the text always read "open" / "closed" — but the colour it carried was wrong for half the vocabulary: idle, connecting and auth_required all fell through to one grey, so three different conditions rendered identically. tone now comes from CONNECTION_TONE in types.ts, which is a semantic map rather than a palette. Text sits on the tone\'s own paired background (--color-ok-bg / --color-ok-fg and friends), not on the page, and every pair clears 4.5:1 in all three modes — where .cc-conn painted --color-ok-text on --color-ok-bg by hand and .cc-pill and .cc-status-chip both drew a --color-border boundary at ~1.3:1.',
-          tokens: [
-            '--color-surface-2', '--color-text-muted', '--color-border-strong', '--radius-pill', '--text-label',
-            '--color-ok-bg', '--color-ok-fg', '--color-warn-bg', '--color-warn-fg',
-            '--color-error-bg', '--color-error-fg', '--color-info-bg', '--color-info-fg',
-          ],
-          snippet: chips,
-          controls: { count: { kind: 'number', value: 4, min: 0, max: 99 } },
-          fixtures: [
-            {
-              id: 'all',
-              name: 'All treatments',
-              note: 'Was "deliberately shown together — apart, each looks fine." They are one treatment now; the second row is every connection state, which is where the old recipe collapsed three conditions into one grey.',
             },
           ],
         },
@@ -247,18 +288,34 @@ export default defineGallery({
           name: 'Header bar',
           kind: 'pattern',
           status: 'stable',
-          source: 'apps/corpora-curator/src/App.svelte:56–86',
+          source: 'apps/corpora-curator/src/App.svelte:63–140',
           summary:
-            'The member header: brand, workspace, domain type, back affordance, active corpus, count, and the connection state pushed right.',
+            'The member header: brand, workspace, domain type, back affordance, active corpus, count, and the connection state pushed right. It carries TWO connection renderings, not one — the right-hand <StatusIndicator of="workspace">, and the workspace slot, which falls back to a bare <StatusIndicator> whenever the workspace list is empty and the socket is not open. The specimen draws the first; the second lives in the StatusIndicator entry, because it is only reachable in a state this layout specimen cannot stage.',
+          a11y:
+            'Layout only — flex, a border-bottom and a spacer. Everything in it that has an accessible-name obligation is federal now and carries its own.',
           tokens: ['--color-surface', '--color-border', '--color-accent'],
           snippet: headerBar,
           controls: {
             strategy: { kind: 'text', value: 'Turning Jobs Into Degrees' },
-            status: { kind: 'select', value: 'open', options: ['open', 'error', 'closed', 'connecting'] },
+            status: {
+              kind: 'select',
+              value: 'open',
+              // SIX, not four. idle and auth_required were missing from this
+              // control while the header drew its own status vocabulary, which
+              // is the same blind spot that let the workspace slot claim
+              // "connecting…" for four states it had never watched happen.
+              options: ['open', 'connecting', 'auth_required', 'closed', 'error', 'idle'],
+            },
           },
           fixtures: [
             { id: 'connected', name: 'Connected' },
             { id: 'error', name: 'Errored', props: { status: 'error' } },
+            {
+              id: 'auth-required',
+              name: 'Sign-in required',
+              props: { status: 'auth_required' },
+              note: 'The state this header could not say out loud. It rendered the string `auth_required` — warn-toned, correctly, but spelled as a TypeScript union member. It now reads "workspace sign-in required", which is the only one of the six that asks the operator for something.',
+            },
           ],
         },
         {
@@ -477,7 +534,7 @@ export default defineGallery({
           name: 'Two-column working state',
           kind: 'component',
           status: 'stable',
-          source: 'apps/corpora-curator/src/App.svelte:88–95',
+          source: 'apps/corpora-curator/src/App.svelte:151–154',
           summary:
             'The list column and the detail column at their real proportions — grid-template-columns: minmax(280px, 360px) 1fr.',
           tokens: ['--color-border'],

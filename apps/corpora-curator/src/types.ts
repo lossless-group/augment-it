@@ -9,34 +9,30 @@ export const EXTRACT_KINDS: ExtractKind[] = ['Quotes', 'Stats', 'References', 'M
 export type SourceStatus = 'metadata-only' | 'fetched';
 
 // Mirrors the workspace transport's connection_status union
-// (packages/workspace/src/state.svelte.ts). Lives here rather than in
-// curation.svelte.ts so the tone map below and the state that produces it
-// cannot drift apart.
+// (packages/workspace/src/state.svelte.ts). It stays here because
+// curation.svelte.ts types its `connection` field from it; it is deliberately
+// the SAME six members as <StatusIndicator>'s own `ConnectionState`, and the
+// adoption test asserts that rather than letting the two unions drift.
 export type ConnStatus = 'idle' | 'connecting' | 'open' | 'closed' | 'error' | 'auth_required';
 
 // --- Chip tone, chosen by MEANING ------------------------------------------
 //
 // @augment-it/shared-ui's <Chip> takes a semantic tone, and the rule is that it
 // is picked by what the label means rather than by the colour the member drew.
-// These two maps are that decision, written down once, because both the app and
-// the gallery specimen have to make it identically.
 //
-// What the old .cc-conn recipe actually encoded: open → green, error and closed
-// → red, and idle / connecting / auth_required → the same undifferentiated grey
-// default. The greys are the interesting part. `connecting` is transient and
-// informational; `auth_required` is a live condition the operator has to act on;
-// `idle` is simply "not started". Drawing all three identically said they were
-// one state. They are three.
+// CONNECTION_TONE USED TO LIVE HERE and no longer does. It was a correct map —
+// open ok, connecting info, auth_required warn, closed/error error, idle
+// neutral — and that is exactly the problem it turned out to be: fifteen other
+// members were making the same six-way decision, most of them wrongly, and a
+// correct copy in one member fixes one member. The map is now the federal
+// <StatusIndicator>, which owns both halves of the decision — the tone AND the
+// WORD. This member only ever owned the tone; it rendered the raw enum as its
+// label, so `auth_required` reached the operator as `auth_required`. The word
+// is the half a local tone map cannot carry.
+//
+// What is left below is the one tone decision that is genuinely this member's,
+// because SourceStatus is this member's vocabulary and nobody else's.
 export type ChipTone = 'neutral' | 'accent' | 'ok' | 'warn' | 'error' | 'info';
-
-export const CONNECTION_TONE: Record<ConnStatus, ChipTone> = {
-  open: 'ok',                // connected and healthy
-  connecting: 'info',        // transient, informational — nothing is wrong yet
-  auth_required: 'warn',     // degraded and recoverable, but only by the operator
-  closed: 'error',           // disconnected
-  error: 'error',            // failed
-  idle: 'neutral',           // a plain fact: no attempt has been made
-};
 
 // Two values, and only one of them is an outcome. `fetched` is the affirmative
 // result of the Fetch action, so it is `ok`; `metadata-only` is a legitimate
