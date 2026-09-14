@@ -8,6 +8,7 @@
   // collapsed by default.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import DisclosureRow from '@augment-it/shared-ui/DisclosureRow.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import type { RecordSet } from '@augment-it/workspace';
   import RecordSetCard from './RecordSetCard.svelte';
@@ -130,38 +131,35 @@
       {#if g.kind === 'variant_family'}
         {@const isCollapsed = collapsed.has(g.group_id)}
         <li class="rs-family">
-          <div class="rs-family-head-row">
-            <button
-              type="button"
-              class="rs-family-head"
-              onclick={() => toggleGroup(g.group_id)}
-              aria-expanded={!isCollapsed}
-              title={isCollapsed ? 'Expand family' : 'Collapse family'}
-            >
-              <span class="rs-family-chevron">{isCollapsed ? '▸' : '▾'}</span>
-              <span class="rs-family-label">{g.label}</span>
-              <span class="rs-family-count">
-                {g.members.length} variant{g.members.length === 1 ? '' : 's'}{#if g.generation_total > g.members.length}, {g.generation_total} gen{g.generation_total === 1 ? '' : 's'}{/if}
+          <!-- The raw-<button> holdout declared here on 2026-09-13 is RESOLVED.
+               The deferral was correct at the time and its reasoning still holds
+               — a disclosure is not a selection, a group header is not a CardRow
+               — which is why the answer was a new organ rather than a bad fit.
+               Three things the raw head got wrong, none of them visible:
+                 - NO aria-controls at all: the state was announced, the region
+                   it governs never was.
+                 - the ▸ / ▾ glyph was TEXT inside the button, so the accessible
+                   name read "▾ Investors 1 variant, 2 gens".
+                 - no declared target-size floor. -->
+          <DisclosureRow
+            label={g.label}
+            open={!isCollapsed}
+            ontoggle={() => toggleGroup(g.group_id)}
+            title={isCollapsed ? 'Expand family' : 'Collapse family'}
+          >
+            {#snippet row()}
+              <!-- The count rides in the `row` snippet rather than in `hint`,
+                   and that is a measured choice, not a preference. `hint` renders
+                   at the END of the row, which is exactly where .rs-family-actions
+                   is overlaid — the two would have sat on top of each other, and
+                   no gate in this repo looks at geometry. -->
+              <span class="rs-family-head-text">
+                <span class="rs-family-label">{g.label}</span>
+                <span class="rs-family-count">
+                  {g.members.length} variant{g.members.length === 1 ? '' : 's'}{#if g.generation_total > g.members.length}, {g.generation_total} gen{g.generation_total === 1 ? '' : 's'}{/if}
+                </span>
               </span>
-            </button>
-            <div class="rs-family-actions">
-              <Button
-                variant="ghost"
-                size="icon"
-                title="Rename this family"
-                onclick={() => onRenameFamily(g.group_id, g.label)}
-                aria-label={`rename family ${g.label}`}
-              >✎</Button>
-              <Button
-                variant="destructive"
-                size="icon"
-                title="Dissolve this family — the member sets stay, the grouping goes"
-                onclick={() => onDissolveFamily(g.group_id, g.label)}
-                aria-label={`dissolve family ${g.label}`}
-              >×</Button>
-            </div>
-          </div>
-          {#if !isCollapsed}
+            {/snippet}
             <!-- `.rs-family-members` DELETED — ListContainer. Layouts nest. -->
             <ListContainer as="ul" gap="xs" label={`${g.label} variants`}>
               {#each g.members as m (m.leaf.record_set_id)}
@@ -176,16 +174,15 @@
                 />
                 {#if archived.length > 0}
                   <li class="rs-archive-wrap">
-                    <button
-                      type="button"
-                      class="rs-archive-head"
-                      onclick={() => toggleArchive(mKey)}
-                      aria-expanded={archiveOpen}
+                    <!-- Same holdout, same resolution. Measured raw at 27px — it
+                         cleared the 24px SC 2.5.8 floor by 3px, and only because
+                         `padding: 0.3rem` happened to add up. `--control-h-md`
+                         is the contract that replaces the luck. -->
+                    <DisclosureRow
+                      label={`Earlier generations (${archived.length} archived)`}
+                      open={archiveOpen}
+                      ontoggle={() => toggleArchive(mKey)}
                     >
-                      <span class="rs-family-chevron">{archiveOpen ? '▾' : '▸'}</span>
-                      Earlier generations ({archived.length} archived)
-                    </button>
-                    {#if archiveOpen}
                       <!-- `.rs-archive-list` DELETED. Its `opacity` is the one
                            declaration the layout does not own, and `class=`
                            merges onto the rows element rather than replacing
@@ -200,12 +197,33 @@
                           />
                         {/each}
                       </ListContainer>
-                    {/if}
+                    </DisclosureRow>
                   </li>
                 {/if}
               {/each}
             </ListContainer>
-          {/if}
+          </DisclosureRow>
+
+          <!-- rung 0 — placement is the family card's job. DisclosureRow owns the
+               whole header row AND the panel under it, and these two actions have
+               to stay reachable while the family is collapsed, so the <li>
+               positions them over the header row's trailing edge. -->
+          <div class="rs-family-actions">
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Rename this family"
+              onclick={() => onRenameFamily(g.group_id, g.label)}
+              aria-label={`rename family ${g.label}`}
+            >✎</Button>
+            <Button
+              variant="destructive"
+              size="icon"
+              title="Dissolve this family — the member sets stay, the grouping goes"
+              onclick={() => onDissolveFamily(g.group_id, g.label)}
+              aria-label={`dissolve family ${g.label}`}
+            >×</Button>
+          </div>
         </li>
       {:else}
         {@const m = g.members[0]}
@@ -220,16 +238,12 @@
         />
         {#if archived.length > 0}
           <li class="rs-archive-wrap rs-archive-solo">
-            <button
-              type="button"
-              class="rs-archive-head"
-              onclick={() => toggleArchive(mKey)}
-              aria-expanded={archiveOpen}
+            <!-- Same holdout, same resolution — the solo-card variant. -->
+            <DisclosureRow
+              label={`Earlier generations (${archived.length} archived)`}
+              open={archiveOpen}
+              ontoggle={() => toggleArchive(mKey)}
             >
-              <span class="rs-family-chevron">{archiveOpen ? '▾' : '▸'}</span>
-              Earlier generations ({archived.length} archived)
-            </button>
-            {#if archiveOpen}
               <ListContainer as="ul" gap="2xs" label="Earlier generations" class="rs-archive-dim">
                 {#each archived as ar (ar.record_set_id)}
                   <RecordSetCard
@@ -240,7 +254,7 @@
                   />
                 {/each}
               </ListContainer>
-            {/if}
+            </DisclosureRow>
           </li>
         {/if}
       {/if}
@@ -264,65 +278,53 @@
   }
 
   /* Variant-family group — wraps its member cards in a bordered card.
-     Header is a button so the whole row toggles.
 
-     STILL A RAW <button>, AND DELIBERATELY SO — checked against CardRow and
-     SelectWrapper on 2026-09-13 and neither fits:
+     THE RAW-<button> HOLDOUT DECLARED HERE IS RESOLVED. The 2026-09-13 note
+     said the header stayed raw because neither CardRow nor SelectWrapper fits a
+     disclosure, and that "a disclosure wrapper is a separate organ and has been
+     raised as one." It shipped. Both heads are now DisclosureRow.
 
-       - It is a DISCLOSURE, not a selection. It carries aria-expanded and
-         toggles a region. Both SelectWrappers render aria-pressed, which is a
-         toggle-button contract, not a disclosure one; adopting either would
-         announce the wrong thing to a screen reader. A disclosure wrapper is a
-         separate organ and has been raised as one.
-       - It is a GROUP HEADER, not a row. Wrapping it in CardRow would mean
-         negating border (a header needs a bottom divider only), border-radius
-         (top corners only), background and padding — four of the five
-         properties CardRow contributes. Per the ladder: if the override negates
-         the base recipe rather than adjusts it, it is a different organ.
+     DELETED with it: `.rs-family-head-row` (display / align-items /
+     border-bottom), its `:has([aria-expanded='false'])` companion,
+     `.rs-family-head` (eleven declarations), `.rs-family-head:hover`,
+     `.rs-family-chevron` — the component's chevron is aria-hidden and rotates
+     rather than swapping glyphs — and `.rs-family-count`, which is the `hint`
+     prop. `.rs-family-label` survives because the accent + wrapping treatment is
+     the member's own identity, carried in through the `row` snippet.
 
-     Measured raw: 70.9px tall with a wrapping label, against a 32px control.
-     Fixing the size by adopting Button would be the same mistake. */
+     Measured raw: 70.9px tall with a wrapping label. That is unchanged and was
+     never the problem — the problem was that nothing DECLARED a floor. */
   .rs-family {
+    position: relative;   /* rung 0 — the family card places its own actions */
     list-style: none;
     border: 1px solid var(--color-border);
     border-radius: 4px;
     background: var(--color-surface, rgba(255, 255, 255, 0.02));
   }
-  .rs-family-head-row {
-    display: flex;
-    align-items: stretch;
-    border-bottom: 1px solid var(--color-border);
-  }
-  .rs-family-head-row:has(.rs-family-head[aria-expanded='false']) {
-    border-bottom-color: transparent;
-  }
-  .rs-family-head {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    flex: 1;
-    min-width: 0;
-    padding: 0.45rem 0.55rem;
-    background: transparent;
-    border: 0;
-    color: var(--color-text);
-    cursor: pointer;
-    text-align: left;
-    font: inherit;
-  }
-  .rs-family-head:hover { background: var(--color-surface, rgba(255, 255, 255, 0.04)); }
   .rs-family-actions {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-end: 0.35rem;
     display: flex;
     align-items: center;
     gap: 0.15rem;
-    padding-right: 0.35rem;
+    min-block-size: var(--control-h-md);
   }
-  .rs-family-chevron {
-    display: inline-block;
-    width: 0.9rem;
+  /* Reserves the strip the absolutely-placed actions occupy, so the label and
+     count never run under them. Two icon controls at --control-h-md plus their
+     gap and the card's own inline-end offset. */
+  .rs-family-head-text {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    min-inline-size: 0;
+    flex: 1;
+    padding-inline-end: calc(2 * var(--control-h-md) + 0.85rem);
+  }
+  .rs-family-count {
     color: var(--color-text-muted);
-    font-size: 0.75rem;
-    flex-shrink: 0;
+    font-size: 0.72rem;
+    white-space: nowrap;
   }
   .rs-family-label {
     font-weight: 600;
@@ -331,22 +333,16 @@
     min-width: 0;
     flex: 1;
   }
-  .rs-family-count {
-    color: var(--color-text-muted);
-    font-size: 0.72rem;
-    white-space: nowrap;
-  }
   /* .rs-family-members is GONE — ListContainer, gap="sm". */
 
   /* Archive sub-section — shown either inside a family member or
      directly below an ungrouped (solo) card.
 
-     .rs-archive-head is a raw <button> for the same reason as .rs-family-head
-     above: a disclosure is not a selection, and a section header is not a row.
-     Measured raw at 27px — it clears the 24px WCAG 2.2 SC 2.5.8 floor, but only
-     by 3px, and only because its padding happens to add up. That is luck, not a
-     contract, and it is the argument for the disclosure organ rather than
-     against it. */
+     .rs-archive-head is GONE — DisclosureRow, same as the family head. It was
+     measured raw at 27px: it cleared the 24px WCAG 2.2 SC 2.5.8 floor by 3px,
+     and only because `padding: 0.3rem` happened to add up. That was luck, and
+     the note said so. `--control-h-md` is the contract that replaces it.
+     Twelve declarations and a `:hover` deleted with it. */
   .rs-archive-wrap {
     list-style: none;
     border: 1px dashed var(--color-border);
@@ -355,21 +351,6 @@
     margin-left: 0.6rem;
   }
   .rs-archive-solo { margin-left: 0; }
-  .rs-archive-head {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    width: 100%;
-    padding: 0.3rem 0.5rem;
-    background: transparent;
-    border: 0;
-    color: var(--color-text-muted);
-    cursor: pointer;
-    text-align: left;
-    font: inherit;
-    font-size: 0.72rem;
-  }
-  .rs-archive-head:hover { color: var(--color-text); }
   /* .rs-archive-list is GONE — ListContainer, gap="2xs", and its `opacity`
      rides in on the merging `class` prop. The surviving rule lives in app.css
      under the `.rc-app` prefix rather than as a `:global()` here: a scoped

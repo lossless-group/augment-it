@@ -10,6 +10,7 @@
   import { workspace, resolveWsUrl } from '@augment-it/workspace';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import SearchCard from './SearchCard.svelte';
   import { dismissSearch, listSearches } from './lib/search-client';
@@ -20,21 +21,6 @@
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
 
-  // Chip tone is SEMANTIC, not decorative. The old `.srq-ws` stylesheet painted
-  // only `open` (ok) and `closed`/`error` (error) and let `connecting` and
-  // `auth_required` fall through to an undifferentiated grey — so two of the
-  // five socket states were readable only by their text. Tone now follows the
-  // meaning of every state. This chip is a near-byte-identical twin of
-  // search-and-add's `.saa-ws`; the duplication is raised, not fixed here.
-  type ChipTone = 'neutral' | 'accent' | 'ok' | 'warn' | 'error' | 'info';
-  function statusTone(s: typeof status): ChipTone {
-    switch (s) {
-      case 'open': return 'ok';
-      case 'connecting': return 'info';
-      case 'auth_required': return 'warn'; // recoverable — the operator can sign in
-      default: return 'error';             // closed | error — no traffic is flowing
-    }
-  }
   let client = $state<string>('reach-edu');
 
   let cards = $state<SearchCardT[]>([]);
@@ -157,7 +143,7 @@
             clear done
           </Button>
         {/if}
-        <Chip size="sm" tone={statusTone(status)}>{status}</Chip>
+        <StatusIndicator state={status} of="workspace" />
       </span>
 
       <!-- The error rides in the header because it describes the queue the

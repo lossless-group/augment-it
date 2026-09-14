@@ -45,6 +45,10 @@
   });
   const overdue = $derived(inFlight && elapsedMs > card.typical_ms * 1.5);
 
+  // Per-card, because a queue renders many cards into one document and an id
+  // is document-unique. search_id is already the card's identity.
+  const bodyId = $derived(`srq-card-body-${card.search_id}`);
+
   let expanded = $state(false);
   let results = $state<SearchResults | null>(null);
   let resultsError = $state<string | null>(null);
@@ -160,11 +164,19 @@
        against Button's fixed 24/28/32px, nowrap, centred) is a different organ —
        and that reasoning was right: the answer was never Button, it was CardRow
        + a SelectWrapper. -->
+  <!-- RAISED, NOT CHASED — a CARD ROW THAT DISCLOSES has no organ, and this is
+       the federation's SECOND instance of the shape (org-workbench's person row
+       is the first). This row used to pass aria-expanded in on top of the
+       aria-pressed SelectWrapper--ClickBody hard-renders, so one button carried
+       two contradictory contracts. It also made TWO controls on one card both
+       claim to disclose the same region. The contradiction is removed here, and
+       the caret in .srq-card-side is now the card's single disclosure trigger;
+       this wrapper keeps the toggle-button contract it actually implements.
+       DisclosureRow is explicitly NOT-A-CARDROW, so it is not the fix. -->
   <SelectWrapperClickBody
     label={rowLabel}
     onselect={toggle}
     selected={expanded}
-    aria-expanded={expanded}
   >
     <!-- rung 0 — ClickBody is inline-flex/baseline with no flex-wrap, so the
          wrapping line the raw <button> used to carry lives here. -->
@@ -205,14 +217,26 @@
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4 L12 12 M12 4 L4 12" /></svg>
       {/if}
     </Button>
-    <Button size="icon" variant="ghost" onclick={toggle} aria-expanded={expanded} aria-label={expanded ? 'Collapse' : 'Expand'}>
+    <!-- The card's one disclosure trigger. aria-controls names the body only
+         while the body is in the document — a collapsed card pointing at an
+         absent id is the defect this whole sweep exists to remove — and the id
+         is derived from search_id, because a list renders many of these and an
+         id is unique per DOCUMENT, not per component. -->
+    <Button
+      size="icon"
+      variant="ghost"
+      onclick={toggle}
+      aria-expanded={expanded}
+      aria-controls={expanded ? bodyId : undefined}
+      aria-label={expanded ? 'Collapse' : 'Expand'}
+    >
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={expanded ? 'M3 6 L8 11 L13 6' : 'M6 3 L11 8 L6 13'} /></svg>
     </Button>
   </span>
   </div>
 
   {#if expanded}
-    <div class="srq-card-body">
+    <div class="srq-card-body" id={bodyId}>
       {#if inFlight}
         <!-- Phase 4 reserves this slot for search.progress beats (gh #35). -->
         <p class="srq-progress">didi is crawling — the card will signal when candidates land.</p>

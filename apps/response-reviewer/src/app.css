@@ -182,11 +182,6 @@
 .resp-app .filters .refresh { margin-left: auto; }
 .resp-app .filters .refresh-age { font-size: 11px; }
 .resp-app .filters [data-tip] { position: relative; }
-.resp-app .filters .count {
-  font-size: 0.85em;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.85;
-}
 .resp-app .filters [data-tip]:hover::after,
 .resp-app .filters [data-tip]:focus-visible::after {
   content: attr(data-tip);
@@ -204,15 +199,6 @@
   z-index: 10;
   box-shadow: var(--fx-popover-shadow);
   pointer-events: none;
-}
-.resp-app .filters .chip-count {
-  display: inline-block;
-  margin-left: 0.3rem;
-  padding: 0 0.35rem;
-  border-radius: 8px;
-  background: color-mix(in srgb, currentColor 15%, transparent);
-  font-size: 0.85em;
-  font-variant-numeric: tabular-nums;
 }
 
 .resp-app .stepper .stepper-sep {

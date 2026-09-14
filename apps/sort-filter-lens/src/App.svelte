@@ -88,6 +88,11 @@
     pickerOpen = false;
     pickerTrigger?.focus();
   }
+  // One picker per lens, and the lens is a singleton in its column — a literal
+  // is honest here and keeps the trigger's aria-controls and the listbox's id
+  // in one place where they cannot drift apart.
+  const PICKER_LISTBOX_ID = 'sfl-record-set-listbox';
+
   function onPickerKey(e: KeyboardEvent): void {
     if (!pickerOpen || e.key !== 'Escape') return;
     e.preventDefault();
@@ -517,20 +522,42 @@
          handler for the whole widget is the same discipline the Selector
          applies to its arrows. -->
     <div class="record-set-picker" bind:this={pickerWrapEl} onkeydown={onPickerKey}>
+      <!-- NOT a DisclosureRow, deliberately. This is a POPUP trigger — the
+           popover is position:absolute above the flow and what it opens is a
+           listbox with a selected value, not an inline region. A row here would
+           need rung-4 overrides for display, inline-size and padding, which
+           negates the base recipe rather than adjusting it.
+
+           Three things it DID share with the real disclosures, all fixed:
+             - aria-expanded with no aria-haspopup, so a screen reader was told
+               something expanded and never what. shell's WorkspaceSwitcher —
+               the same shape — already declares aria-haspopup="listbox"; this
+               was an inconsistency inside the federation.
+             - no aria-controls: nothing tied the trigger to the listbox.
+             - the ▴ / ▾ glyph was TEXT, so the accessible name read
+               "alpha-2026-01-01.csv 0 rows · 2 cols ▾". It is decoration and is
+               now aria-hidden; the state it was drawing is aria-expanded's job. -->
       {#if selectedRecordSet}
         <Button
           onclick={() => (pickerOpen = !pickerOpen)}
           title="Switch record set"
+          aria-haspopup="listbox"
           aria-expanded={pickerOpen}
+          aria-controls={pickerOpen ? PICKER_LISTBOX_ID : undefined}
         >
           <span class="picker-name">{selectedRecordSet.name}</span>
           <span class="picker-meta">{rows.length} rows · {selectedRecordSet.schema.fields.length} cols</span>
-          <span class="picker-caret">{pickerOpen ? '▴' : '▾'}</span>
+          <span class="picker-caret" aria-hidden="true">{pickerOpen ? '▴' : '▾'}</span>
         </Button>
       {:else}
-        <Button onclick={() => (pickerOpen = !pickerOpen)} aria-expanded={pickerOpen}>
+        <Button
+          onclick={() => (pickerOpen = !pickerOpen)}
+          aria-haspopup="listbox"
+          aria-expanded={pickerOpen}
+          aria-controls={pickerOpen ? PICKER_LISTBOX_ID : undefined}
+        >
           <span class="picker-name">pick a record set</span>
-          <span class="picker-caret">▾</span>
+          <span class="picker-caret" aria-hidden="true">▾</span>
         </Button>
       {/if}
       {#if pickerOpen}
@@ -539,6 +566,7 @@
              positions itself, so none of that goes on the Selector. -->
         <div class="picker-popover">
           <SelectorListbox
+            id={PICKER_LISTBOX_ID}
             options={recordSetOptions}
             label="Record set"
             value={selectedRecordSetId ?? undefined}

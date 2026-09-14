@@ -12,7 +12,10 @@
   import ConfidencePill from '@augment-it/shared-ui/ConfidencePill.svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import CountBadge from '@augment-it/shared-ui/CountBadge.svelte';
+  import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import DisclosureRow from '@augment-it/shared-ui/DisclosureRow.svelte';
   import SelectCheck from '@augment-it/shared-ui/SelectWrapper--Checkbox.svelte';
   import { MOCK_PACKS_FIXTURE } from './fixtures/mock-packs';
   import ConnectorPalette from './ConnectorPalette.svelte';
@@ -40,15 +43,6 @@
   //     disk" is a verified positive fact, so `ok`.
   // ---------------------------------------------------------------------------
   type ChipTone = 'neutral' | 'accent' | 'ok' | 'warn' | 'error' | 'info';
-
-  function statusTone(s: typeof status): ChipTone {
-    switch (s) {
-      case 'open': return 'ok';
-      case 'connecting': return 'info';
-      case 'auth_required': return 'warn'; // recoverable — the operator can sign in
-      default: return 'error';             // closed | error — no traffic is flowing
-    }
-  }
 
   function flagTone(f: ResponseFlag | null): ChipTone {
     switch (f) {
@@ -1442,7 +1436,7 @@
 <div class="resp-app">
   <div class="resp-status-bar">
     consumes <code>@augment-it/workspace</code> · <code>{WS_URL}</code> ·
-    <Chip size="sm" tone={statusTone(status)}>{status}</Chip>
+    <StatusIndicator state={status} of="workspace" />
   </div>
 
   <div class="resp-body">
@@ -1482,7 +1476,7 @@
           variant={recordSetFilter === 'all' ? 'primary' : 'secondary'}
           aria-pressed={recordSetFilter === 'all'}
           onclick={() => setRecordSetFilter('all')}
-        >all sets <span class="chip-count">{responses.length}</span></Button>
+        >all sets <CountBadge count={responses.length} label="Responses in all sets" /></Button>
         {#each recordSetBuckets as b (b.id)}
           <Button
             variant={recordSetFilter === b.id ? 'primary' : 'secondary'}
@@ -1491,7 +1485,7 @@
             title={b.id === '__orphan__'
               ? 'Responses whose parent record set was deleted (still in history, no rows to resolve)'
               : `Scope to record set: ${b.label}`}
-          >{b.label} <span class="chip-count">{b.count}</span></Button>
+          >{b.label} <CountBadge count={b.count} label={`Responses in ${b.label}`} /></Button>
         {/each}
       </div>
     {/if}
@@ -1506,7 +1500,7 @@
             onclick={() => {
               filter = f as typeof filter;
               index = 0;
-            }}>{f} <span class="chip-count">{counts[f] ?? 0}</span></Button>
+            }}>{f} <CountBadge count={counts[f] ?? 0} label={`${f} responses`} /></Button>
         {/each}
         <div class="refresh">
           <Button
@@ -1521,7 +1515,7 @@
           disabled={filtered.length === 0}
           data-tip={`Clear ${filter === 'all' ? 'all' : `"${filter}"`} responses (${filtered.length})`}
           aria-label={`Clear ${filter === 'all' ? 'all' : filter} responses, ${filtered.length} total`}
-        >🧹 <span class="count">{filtered.length}</span></Button>
+        >🧹 <CountBadge count={filtered.length} label="Responses this will clear" /></Button>
         <span class="muted refresh-age">
           {responses.length} loaded · updated {formatAge(lastRefreshAt)}
         </span>
@@ -1936,18 +1930,21 @@
                    trumps). See feedback memory: manual-corpus-bypasses-
                    same-host. -->
               <div class="cr-manual">
-                <div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onclick={() => toggleManual(cr.row_id)}
-                    aria-expanded={manualOpen}
-                    title="Paste a URL you found via your own search — bypasses Rule 1 same-host filter"
-                  >
-                    {manualOpen ? '▾' : '▸'} + add URL manually
-                  </Button>
-                </div>
-                {#if manualOpen}
+                <!-- Same shape, same two defects, and one more that only a LIST
+                     surfaces: this disclosure renders once per corpus row, so a
+                     hand-rolled aria-controls would have needed a per-row id to
+                     stay document-unique. DisclosureRow mints one per instance,
+                     which is the whole reason the id problem disappears here
+                     rather than being solved N times.
+                     NOTE: `title` lands on the component's wrapper div, not on
+                     the button — DisclosureRow spreads {...rest} onto the outer
+                     element. The tooltip still appears over the row; raised. -->
+                <DisclosureRow
+                  label="+ add URL manually"
+                  open={manualOpen}
+                  ontoggle={() => toggleManual(cr.row_id)}
+                  title="Paste a URL you found via your own search — bypasses Rule 1 same-host filter"
+                >
                   <div class="cr-manual-body">
                     <div class="cr-manual-input-row">
                       <input
@@ -2095,7 +2092,7 @@
                       </CardRow>
                     {/if}
                   </div>
-                {/if}
+                </DisclosureRow>
               </div>
 
               {#if cr.status.kind === 'has-content'}
@@ -2307,17 +2304,24 @@
                 {/if}
               </div>
               {#if current.structured.snippet}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onclick={() => (snippetExpanded = !snippetExpanded)}
-                  aria-expanded={snippetExpanded}
+                <!-- The shared disclosure. What it replaced got two things wrong,
+                     neither of them visible:
+                       - the ▾ / ▸ was TEXT in the button, so the accessible name
+                         was "▸ snippet" — a glyph a screen reader cannot
+                         pronounce, encoding a second time the state that
+                         aria-expanded already carries reliably.
+                       - no aria-controls, and .candidate-snippet had no id, so
+                         the announced state named no region.
+                     DisclosureRow owns the panel, so aria-controls can only ever
+                     point at an element that is in the document, and the chevron
+                     is an aria-hidden SVG that rotates rather than a glyph swap. -->
+                <DisclosureRow
+                  label="snippet"
+                  open={snippetExpanded}
+                  ontoggle={(o) => (snippetExpanded = o)}
                 >
-                  {snippetExpanded ? '▾' : '▸'} snippet
-                </Button>
-                {#if snippetExpanded}
                   <p class="candidate-snippet">{current.structured.snippet}</p>
-                {/if}
+                </DisclosureRow>
               {/if}
             </div>
           {/if}

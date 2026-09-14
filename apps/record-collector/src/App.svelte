@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import ConfidencePill from '@augment-it/shared-ui/ConfidencePill.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
@@ -12,18 +13,6 @@
   const WS_URL = resolveWsUrl();
 
   let status = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
-  // Chip tone is SEMANTIC. The old .status recipe painted `connecting` and
-  // `auth_required` with one neutral grey and collapsed `closed` into the same
-  // red as `error`; those are four different meanings, so four tones.
-  const wsTone = $derived(
-    status === 'open'
-      ? 'ok'
-      : status === 'error' || status === 'closed'
-        ? 'error'
-        : status === 'auth_required'
-          ? 'warn'
-          : 'info',
-  );
   let selectedId = $state<string | null>(null);
   let rowsForSelected = $state<Row[]>([]);
   let ingestStatus = $state<string>('Pick a CSV or XLSX and upload.');
@@ -373,7 +362,7 @@
 <div class="rc-status-bar">
   <span class="muted">
     consumes <code>@augment-it/workspace</code> · {WS_URL} ·
-    <Chip size="sm" tone={wsTone}>{status}</Chip>
+    <StatusIndicator state={status} of="workspace" />
   </span>
 </div>
 
