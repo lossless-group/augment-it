@@ -356,6 +356,24 @@ export function audit(root: HTMLElement, opts: AuditOptions): AuditReport {
       // app.css with prefixed classes — not one carries a <style> block, so the
       // audit had never met a scoped component. shared-ui Button is the first.
       if (/^svelte-[a-z0-9]+$/.test(cls)) continue;
+
+      // FEDERAL COMPONENT NAMESPACE. `ui-*` belongs to packages/shared-ui, and a
+      // member CANNOT prefix it — the class is emitted by the component, not by
+      // the member's stylesheet. Same category as the Svelte hash above, and the
+      // same reason exemptClasses is the wrong tool: enumerating them is busywork
+      // that goes stale the moment a primitive gains a child element.
+      //
+      // Deliberately a NAMESPACE RESERVATION rather than a shape match. Buttons,
+      // chips and cards are the highest-traffic paradigms in any design system,
+      // and they are EXPECTED to accumulate many classes — varieties that differ
+      // in look, in structural layout, in which params they take, in what actions
+      // they enable. That growth is the system working, not drift, so the check
+      // must not treat a new one as a finding.
+      //
+      // The trade: `ui-*` is now federal-only. A member that names its own class
+      // `ui-something` is silently exempted instead of flagged — accepted, since
+      // that convention is worth enforcing regardless.
+      if (/^ui-[a-z0-9_-]+$/.test(cls)) continue;
       if (seenLeak.has(cls)) continue;
       seenLeak.add(cls);
       report.leaks.push({ label: `.${cls}`, detail: describe(el) });

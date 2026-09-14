@@ -64,8 +64,6 @@ export default defineGallery({
   // status-{state}`, and the connection label is a <Chip tone> now, so the
   // generated class no longer exists to be exempted.
   exemptClasses: [
-    'ui-btn',
-    'ui-chip', 'ui-chip__label', 'ui-chip__dot', 'ui-chip__dismiss',
     'active', 'err',
   ],
 

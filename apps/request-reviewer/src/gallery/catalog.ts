@@ -57,7 +57,6 @@ export default defineGallery({
   //     this member, recorded rather than papered over; renaming ~25 classes is
   //     not this plan's job.
   exemptClasses: [
-    'ui-btn',
     'status', 'status-open', 'status-closed', 'status-error', 'status-connecting',
     'field', 'inline', 'muted', 'lede',
     'panel', 'json', 'bind', 'unbound', 'arrow', 'val', 'nobind',
