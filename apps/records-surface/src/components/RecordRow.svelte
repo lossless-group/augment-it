@@ -3,6 +3,7 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
+  import ExternalLink from '@augment-it/shared-ui/ExternalLink.svelte';
   import ConnectorButton from './ConnectorButton.svelte';
   import CandidatesPanel from './CandidatesPanel.svelte';
   import EditableField from './EditableField.svelte';
@@ -128,7 +129,7 @@
       {#each accepted as a (a)}
         <li class="record-row-accepted">
           <span class="record-row-accepted-label">accepted:</span>
-          <a href={a} target="_blank" rel="noopener noreferrer" class="record-row-accepted-url">{a}</a>
+          <ExternalLink href={a} />
           <Button
             variant="destructive"
             size="icon"
@@ -194,6 +195,17 @@
     border-radius: 3px;
     white-space: nowrap;
   }
+  /* NOT adopted into ExternalLink, and the reason is the component's API, not
+     this member. This is an icon-only external link: the visible content is the
+     ↗ glyph, so ExternalLink would either name it "north east arrow (opens in a
+     new tab)" or need an `aria-label` from the call site — and an aria-label
+     SUPPRESSES the component's visually-hidden new-tab notice, which is the one
+     thing it exists to add. On top of that, ExternalLink declares
+     `min-inline-size: 0` inside its own scoped style at (0,2,0), so a member
+     class at (0,1,0) cannot restore a width floor; reaching the 24px target
+     would take a rung-4 `style=`. This glyph measures 10x20 — 21% of the WCAG
+     2.2 SC 2.5.8 floor — and that stays RAISED, not chased: it is the
+     `ExternalLink` icon-mode gap, not a defect this migration can close. */
   .record-row-url-open {
     color: var(--color-text-muted);
     text-decoration: none;
@@ -212,10 +224,11 @@
     align-items: baseline;
   }
   .record-row-accepted-label { color: var(--color-ok-text, #2a8a3a); font-weight: 600; }
-  .record-row-accepted-url {
-    color: var(--color-text);
-    overflow-wrap: anywhere;
-  }
+  /* .record-row-accepted-url is GONE — ExternalLink owns the colour, and
+     `overflow-wrap: anywhere` is replaced by the component's truncation, which
+     keeps the full URL in `title` instead of reflowing the grid row to three
+     lines. The 1fr column plus the component's `min-inline-size: 0` is what
+     gives the ellipsis something to measure against. */
   /* Override-ladder rung 0 — layout only, so not a deviation. See
      CandidatesPanel for why the :global() nesting is required rather than a
      bare class rule. */

@@ -44,6 +44,7 @@
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import ExternalLink from '@augment-it/shared-ui/ExternalLink.svelte';
   import SearchBoxLiveFilter from '@augment-it/shared-ui/SearchBox--LiveFilter.svelte';
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { CONNECTION_TONE, type ConnStatus } from '../types';
@@ -256,9 +257,7 @@
       <span class="cc-attached-name">{String(p.filename ?? 'apprenticeship-at-scale-2026.pdf')}</span>
       <span class="cc-muted cc-mini">4.0 MB</span>
     </div>
-    <a class="cc-urllink" href="https://example.org/reports/apprenticeship-at-scale-2026.pdf"
-      >https://example.org/reports/apprenticeship-at-scale-2026.pdf</a
-    >
+    <ExternalLink href="https://example.org/reports/apprenticeship-at-scale-2026.pdf" />
   </div>
 {/snippet}
 

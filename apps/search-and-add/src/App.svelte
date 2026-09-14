@@ -13,6 +13,7 @@
   import { workspace, resolveWsUrl } from '@augment-it/workspace';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import ExternalLink from '@augment-it/shared-ui/ExternalLink.svelte';
   import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   import TermBar from './TermBar.svelte';
   import ProviderPalette from './ProviderPalette.svelte';
@@ -192,7 +193,7 @@
     {#if scanMode && req?.stream}
       <div class="saa-scanbar">
         <span class="saa-scan-label">scanning stream</span>
-        <a class="saa-scan-url" href={req.stream.url} target="_blank" rel="noreferrer">{req.stream.url}</a>
+        <ExternalLink class="saa-scan-url" href={req.stream.url} />
         {#if req.stream.kind}<Chip size="sm">{req.stream.kind}</Chip>{/if}
         <span class="saa-scan-fire">
           <Button variant="primary" size="lg" disabled={firing} onclick={scan}>

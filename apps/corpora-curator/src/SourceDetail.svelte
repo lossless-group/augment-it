@@ -1,6 +1,7 @@
 <script lang="ts">
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import ExternalLink from '@augment-it/shared-ui/ExternalLink.svelte';
   import { curation } from './curation.svelte';
   import { EXTRACT_KINDS, SOURCE_STATUS_TONE, type ExtractKind } from './types';
   import TagBar from './TagBar.svelte';
@@ -88,7 +89,7 @@
     </div>
     <div class="cc-field">
       <span class="cc-label">URL</span>
-      <a class="cc-urllink" href={s.url} target="_blank" rel="noopener noreferrer">{s.url}</a>
+      <ExternalLink href={s.url} />
     </div>
     <div class="cc-field">
       <span class="cc-label">Status</span>

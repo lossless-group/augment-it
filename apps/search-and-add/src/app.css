@@ -39,8 +39,13 @@
 .saa-results { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
 .saa-row { display: flex; gap: 0.75rem; align-items: flex-start; border: 1px solid var(--color-border, #2a2c33); border-radius: 8px; background: var(--color-surface, #1c1e25); padding: 0.6rem 0.8rem; }
 .saa-row-main { min-width: 0; flex: 1; }
-.saa-row-title { color: var(--color-link, #8ab4f8); text-decoration: none; font-size: 0.92rem; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.saa-row-title:hover { text-decoration: underline; }
+/* .saa-row-title is GONE. Both rules were ExternalLink's base recipe written
+   out by hand — link colour, no underline until hover, and the
+   overflow/ellipsis/nowrap triplet. `font-size: 0.92rem` went with them rather
+   than moving to a rung-0 wrapper: ExternalLink declares `font-size: inherit`
+   precisely so type comes from the row, and 0.92rem was a raw value against
+   the seven-step scale. The title now reads at the row's size, which is
+   larger — that is the migration working, not a regression. */
 .saa-row-host { color: var(--color-text-muted, #9aa0aa); font-size: 0.75rem; margin-left: 0.5rem; }
 .saa-row-date { color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; margin-left: 0.5rem; font-variant-numeric: tabular-nums; }
 .saa-row-snippet { margin: 0.25rem 0 0; font-size: 0.8rem; color: var(--color-text-muted, #b7bcc5); line-height: 1.35; }
@@ -48,8 +53,13 @@
 /* scan mode (Phase 5) */
 .saa-scanbar { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.6rem; flex-wrap: wrap; }
 .saa-scan-label { font-size: 0.78rem; color: var(--color-text-muted, #9aa0aa); }
-.saa-scan-url { color: var(--color-link, #8ab4f8); font-size: 0.85rem; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
-.saa-scan-url:hover { text-decoration: underline; }
+/* Colour, hover, truncation and type all deleted — ExternalLink's. What
+   survives is rung-0 layout: `.saa-scanbar` is `flex-wrap: wrap` with
+   `.saa-scan-fire { margin-inline-start: auto }`, so without a cap a long
+   stream URL wraps the Re-scan button onto its own line instead of shrinking.
+   `max-inline-size` is a property ExternalLink never sets, so this class does
+   not fight the component. */
+.saa-scan-url { max-inline-size: 60%; }
 .saa-scan-fire { margin-inline-start: auto; }
 .saa-known-slot { margin-inline-start: var(--space-sm); }
 

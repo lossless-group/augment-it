@@ -284,20 +284,18 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* ExternalLink owns the colour, the underline, the hover and the whole
+   truncation triplet — all of it deleted. `flex: 1` survives as rung-0 layout:
+   the component never sets `flex`, so this class does not fight it, and the
+   link still has to be the growing item in `.field-value-url` next to the chip
+   and the label. `min-width: 0` went too — ExternalLink declares
+   `min-inline-size: 0` itself. The `:visited` recolour went with the rest: a
+   link colour is the component's to own now.
+   RAISED, NOT CHASED: the visited state is no longer distinguishable here.
+   ExternalLink has no `:visited` rule at all, which is a federation-wide
+   question, not this member's to answer. */
 .rc-app .field-value-url-link {
   flex: 1;
-  min-width: 0;
-  color: var(--color-accent, var(--color-text));
-  text-decoration: none;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.rc-app .field-value-url-link:hover {
-  text-decoration: underline;
-}
-.rc-app .field-value-url-link:visited {
-  color: var(--color-accent-2, var(--color-accent, var(--color-text)));
 }
 
 .rc-app .field-value-empty {

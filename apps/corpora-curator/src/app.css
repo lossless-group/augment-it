@@ -163,8 +163,9 @@
 .cc-app .cc-attached-name { word-break: break-all; }
 .cc-app .cc-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.6rem; }
 
-.cc-app .cc-urllink { color: var(--color-accent); text-decoration: none; word-break: break-all; }
-.cc-app .cc-urllink:hover { text-decoration: underline; }
+/* .cc-urllink is GONE — colour, underline and the hover state are the whole
+   of ExternalLink's base recipe. `word-break: break-all` went with it: the
+   component truncates and carries the full URL in `title`. */
 
 /* ---- strategy picker ---- */
 /* .cc-strat-list is GONE — ListContainer, gap="2xs". */

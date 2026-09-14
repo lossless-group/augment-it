@@ -197,15 +197,14 @@
 }
 .row-main { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
 .row-name { font-weight: 500; }
-.row-url {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 36rem;
-}
-.row-url:hover { color: var(--color-accent); }
+/* .row-url is GONE — ExternalLink owns the colour, the truncation and the
+   hover. `max-width: 36rem` went with it rather than moving to a rung-0
+   wrapper: `.row-main` is already `min-width: 0` inside a flex `.row-head`
+   whose `.row-meta` is `flex-shrink: 0`, so the column absorbs the shrink and
+   the component truncates against a real constraint. The 11px muted type went
+   too — it was a raw px value against the seven-step scale, and the link now
+   inherits the row's size, which is the contract ExternalLink states by
+   declaring `font-size: inherit`. */
 
 /* --- inline URL edit per row --- */
 .row-url-row {

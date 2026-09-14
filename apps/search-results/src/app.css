@@ -95,7 +95,10 @@
 .srq-card-body { padding-top: var(--space-sm); border-top: 1px solid var(--color-border-strong); }
 .srq-progress { color: var(--color-text-muted, #9aa0aa); font-size: 0.76rem; }
 .srq-note { color: var(--color-text-muted, #9aa0aa); font-size: 0.74rem; line-height: 1.35; margin: 0.35rem 0; }
-.srq-note a { color: var(--color-link, #8ab4f8); }
+/* `.srq-note a` DELETED — it existed to colour the one source-URL link in
+   this paragraph, which is now an ExternalLink that brings its own colour. A
+   descendant `a` selector left behind here would style any future link the
+   component was supposed to own. */
 .srq-card-actions { display: flex; gap: 0.4rem; align-items: center; margin-top: 0.55rem; flex-wrap: wrap; }
 .srq-confirm { font-size: 0.74rem; color: var(--color-text-muted, #9aa0aa); display: inline-flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
 
@@ -104,8 +107,13 @@
 /* .srq-row is GONE — display/gap/align-items/border/radius/background/padding
    are the whole of CardRow's base recipe at density="compact". */
 .srq-row-main { min-width: 0; flex: 1; }
-.srq-row-title { color: var(--color-link, #8ab4f8); text-decoration: none; font-size: 0.82rem; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.srq-row-title:hover { text-decoration: underline; }
+/* .srq-row-title is GONE — every declaration was ExternalLink's base recipe
+   hand-copied: link colour, underline-on-hover, and the
+   overflow/ellipsis/nowrap triplet. `font-size: 0.82rem` went too rather than
+   moving to a rung-0 wrapper; the component says `font-size: inherit` so that
+   the row owns type, and 0.82rem was a raw value against the seven-step scale.
+   The title now reads at the row's size — larger than before, and correct
+   hierarchy against the 0.68rem host beside it. */
 .srq-row-host { color: var(--color-text-muted, #9aa0aa); font-size: 0.68rem; margin-left: 0.4rem; }
 .srq-row-name { color: var(--color-text-muted, #cfd3da); font-size: 0.72rem; margin-left: 0.4rem; }
 .srq-row-snippet { margin: 0.2rem 0 0; font-size: 0.72rem; color: var(--color-text-muted, #b7bcc5); line-height: 1.35; overflow-wrap: anywhere; }
@@ -117,8 +125,12 @@
 .srq-staged-main { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
 .srq-person-name { font-size: 0.82rem; font-weight: 600; }
 .srq-person-role { color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; }
-.srq-url { color: var(--color-link, #8ab4f8); font-size: 0.7rem; text-decoration: none; }
-.srq-url:hover { text-decoration: underline; }
+/* .srq-url is GONE. These were the "linkedin" / "bio" links in the staged-person
+   row — 0.7rem type with no padding, so their whole hit target was the height
+   of one 11px line. They are ExternalLinks with `noTruncate` now (short labels
+   in a wide wrapping row), which means they inherit `min-block-size:
+   var(--control-h-sm)` and clear the 24px floor by declaration instead of by
+   luck. */
 /* flex-wrap: <Button> is white-space:nowrap, so the gate's long label cannot
    shrink inside a narrow rail. */
 .srq-staged-actions { margin-left: auto; display: inline-flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; }

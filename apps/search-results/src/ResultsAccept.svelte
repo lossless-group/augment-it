@@ -9,6 +9,7 @@
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
+  import ExternalLink from '@augment-it/shared-ui/ExternalLink.svelte';
   import { addCrawlResult } from './lib/search-client';
   import type { ConnectorResult } from './lib/types';
 
@@ -84,9 +85,7 @@
            affordance inside a selection component. -->
       <CardRow as="li" density="compact">
         <div class="srq-row-main">
-          <a class="srq-row-title" href={row.result.url} target="_blank" rel="noreferrer">
-            {row.result.title || row.result.url}
-          </a>
+          <ExternalLink href={row.result.url} label={row.result.title || row.result.url} />
           <span class="srq-row-host">{host(row.result.url)}</span>
           {#if row.result.kind}<span class="srq-kind-slot"><Chip size="sm" tone="neutral">{row.result.kind}</Chip></span>{/if}
           {#if row.result.name}<span class="srq-row-name">{row.result.name}</span>{/if}

@@ -11,6 +11,7 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
+  import ExternalLink from '@augment-it/shared-ui/ExternalLink.svelte';
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import {
     addOrgObservation,
@@ -164,7 +165,7 @@
     {#if source_urls.length > 0}
       · from
       {#each source_urls.slice(0, 2) as u (u)}
-        <a href={u} target="_blank" rel="noreferrer">{new URL(u).hostname}</a>{' '}
+        <ExternalLink href={u} label={new URL(u).hostname} noTruncate />{' '}
       {/each}
     {/if}
   </p>
@@ -182,10 +183,10 @@
             <span class="srq-person-name">{row.person.name}</span>
             {#if row.person.role}<span class="srq-person-role">{row.person.role}</span>{/if}
             {#if row.person.linkedin_url}
-              <a class="srq-url" href={row.person.linkedin_url} target="_blank" rel="noreferrer">linkedin</a>
+              <ExternalLink href={row.person.linkedin_url} label="linkedin" noTruncate />
             {/if}
             {#if row.person.bio_url}
-              <a class="srq-url" href={row.person.bio_url} target="_blank" rel="noreferrer">bio</a>
+              <ExternalLink href={row.person.bio_url} label="bio" noTruncate />
             {/if}
             <span class="srq-staged-actions">
               {#if row.phase === 'writing'}

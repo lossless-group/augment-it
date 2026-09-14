@@ -163,6 +163,12 @@
      `.record-row-url-open`. That one is pre-existing and raised, not chased;
      this one is new, so it clears the floor on arrival rather than copying the
      defect. --control-h-sm IS 24px. */
+  /* Deliberately NOT adopted into ExternalLink: same icon-only reasoning as
+     `.record-row-url-open` in RecordRow — the glyph has no accessible name the
+     component can build, and ExternalLink's `min-inline-size: 0` at (0,2,0)
+     would REGRESS this rule's hard-won width floor back under 24px, since a
+     member class at (0,1,0) cannot win it back. Converting here would trade a
+     measured pass for a measured failure. */
   .candidate-open {
     flex: 0 0 auto;
     display: inline-flex;

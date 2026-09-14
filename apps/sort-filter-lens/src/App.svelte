@@ -13,6 +13,7 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ExternalLink from '@augment-it/shared-ui/ExternalLink.svelte';
   import SelectorListbox from '@augment-it/shared-ui/Selector--Listbox.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import {
@@ -721,7 +722,7 @@
                 {/if}
               {:else if u && u !== 'unknown'}
                 <div class="row-url-row">
-                  <a class="row-url" href={u} target="_blank" rel="noopener noreferrer">{u}</a>
+                  <ExternalLink href={u} />
                   <Button
                     variant="ghost"
                     size="icon"

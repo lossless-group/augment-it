@@ -5,6 +5,7 @@
   import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import ConfidencePill from '@augment-it/shared-ui/ConfidencePill.svelte';
+  import ExternalLink from '@augment-it/shared-ui/ExternalLink.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import RecordSetsList from './components/RecordSetsList.svelte';
   import { formatFieldValue } from './logic/format';
@@ -515,13 +516,11 @@
                         {#if entry.label}
                           <span class="field-value-url-label">{entry.label}</span>
                         {/if}
-                        <a
+                        <ExternalLink
                           class="field-value-url-link"
                           href={entry.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={entry.url}
-                        >{displayUrl(entry.url)}</a>
+                          label={displayUrl(entry.url)}
+                        />
                       </div>
                     {/each}
                   </div>
