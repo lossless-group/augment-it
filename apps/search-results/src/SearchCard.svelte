@@ -7,7 +7,12 @@
   // (spec open question — leaning yes, as specced).
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  // BEM filename, non-BEM tag — a Svelte component name must be a valid JS
+  // identifier, so the `rg 'SelectWrapper--'` rollup sees this import line and
+  // never the call site. Raised, not worked around.
+  import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import ResultsAccept from './ResultsAccept.svelte';
   import TeamAccept from './TeamAccept.svelte';
   import { dismissSearch, fetchSearchResults, fmtDuration, submitSearch } from './lib/search-client';
@@ -122,13 +127,48 @@
       retrying = false;
     }
   }
+
+  // ClickBody's `label` is the row's ONLY accessible name — the collapsed row
+  // used to have none at all (a <button> named by its own concatenated text,
+  // which read as "links PROBE Alpha Foundation 3 candidates · 0:40").
+  const rowLabel = $derived(
+    `${TARGET_LABEL[card.target]} search for ${orgLabel} — ${card.status}` +
+      (card.status === 'done' ? `, ${card.result_summary?.count ?? 0} candidates` : '') +
+      `. ${expanded ? 'Collapse' : 'Expand'}`,
+  );
+
+  // The queue's whole point is that a card signals on its EDGE while the operator
+  // is looking elsewhere. This was a rung-4 `style=` + data-deviation for exactly
+  // one night — CardRow's `tone` landed mid-run and the deviation is gone. Picked
+  // by what the row MEANS, the way Chip's tone works.
+  const tone = $derived(
+    card.status === 'done' ? 'ok' : card.status === 'failed' ? 'error' : 'neutral',
+  ) as 'ok' | 'error' | 'neutral';
 </script>
 
-<li class="srq-card status-{card.status}">
+<!-- as="li" — this list is a <ul>, which permits only <li>. Before the prop
+     existed this was a wrapper <li> around a CardRow div; one element now. -->
+<CardRow as="li" density="compact" direction="column" {tone}>
+  <!-- position: relative is LOAD-BEARING, and it is the reason the overlay is
+       safe on this card. ClickBody's ::after covers its nearest POSITIONED
+       ancestor; anchoring it here rather than on the CardRow keeps "click
+       anywhere" on the collapsed row and off the expanded body, where the
+       other five controls live — two of which write. -->
   <div class="srq-card-top">
-  <button type="button" class="srq-card-row" onclick={toggle} aria-expanded={expanded}>
-    <!-- rung 0 — the slot keeps the target label from shrinking inside the
-         card row's wrapping flex; the Chip itself is unmodified. -->
+  <!-- The row is no longer a raw <button>. It was a Button holdout because a
+       full-bleed, wrapping, variable-height disclosure surface (measured 68-84px
+       against Button's fixed 24/28/32px, nowrap, centred) is a different organ —
+       and that reasoning was right: the answer was never Button, it was CardRow
+       + a SelectWrapper. -->
+  <SelectWrapperClickBody
+    label={rowLabel}
+    onselect={toggle}
+    selected={expanded}
+    aria-expanded={expanded}
+  >
+    <!-- rung 0 — ClickBody is inline-flex/baseline with no flex-wrap, so the
+         wrapping line the raw <button> used to carry lives here. -->
+    <span class="srq-card-line">
     <span class="srq-chip-slot"><Chip size="sm" tone="neutral">{TARGET_LABEL[card.target]}</Chip></span>
     <span class="srq-org" title={card.entity.org_slug}>{orgLabel}</span>
     {#if inFlight}
@@ -146,7 +186,8 @@
     {:else}
       <span class="srq-status srq-status-failed">failed</span>
     {/if}
-  </button>
+    </span>
+  </SelectWrapperClickBody>
   <span class="srq-card-side">
     <!-- The confirm step was a font-size change on the same grey glyph; it is
          now a variant shift to destructive, which is a colour-token change
@@ -227,4 +268,4 @@
       </footer>
     </div>
   {/if}
-</li>
+</CardRow>

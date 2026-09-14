@@ -9,6 +9,8 @@
   // broadcast refreshes the org card's People list. Skip discards a row.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import {
     addOrgObservation,
     addPersonLink,
@@ -168,7 +170,9 @@
   <ul class="srq-staged-list">
     {#each rows as row (row.person.name)}
       {#if !row.consumed}
-        <li class="srq-staged-row">
+        <!-- No SelectWrapper: nothing here selects the row. Four controls and a
+             disclosure, all acting on their own. -->
+        <CardRow as="li" density="compact" direction="column">
           <div class="srq-staged-main">
             <span class="srq-person-name">{row.person.name}</span>
             {#if row.person.role}<span class="srq-person-role">{row.person.role}</span>{/if}
@@ -193,13 +197,25 @@
               <p class="srq-gate-note">Existing persons that might be “{row.person.name}” — pick one or create new:</p>
               <ul class="srq-gate-list">
                 {#each row.candidates as c (c.person_uuid)}
-                  <li>
-                    <button type="button" class="srq-gate-pick" onclick={() => write(row, 'match', c.person_uuid)}>
-                      <strong>{c.name ?? c.person_uuid}</strong>
-                      {#if c.headline}<span class="srq-gate-headline">{c.headline}</span>{/if}
-                      <span class="srq-gate-score">{c.score} · {c.match_reason.join(', ')}</span>
-                    </button>
-                  </li>
+                  <!-- The other declared Button holdout. Zero sibling controls
+                       inside this card, so the overlay has nothing to sit above —
+                       the clean end of the ClickBody range, against SearchCard's
+                       two siblings at the other. The hover cue this briefly spent
+                       a rung-4 class= on is CardRow's own now. -->
+                  <CardRow as="li" density="compact">
+                      <SelectWrapperClickBody
+                        label={`Match ${row.person.name} to ${c.name ?? c.person_uuid}, score ${c.score}`}
+                        onselect={() => write(row, 'match', c.person_uuid)}
+                      >
+                        <!-- rung 0 — ClickBody is inline-flex/baseline; the
+                             three-line stack is the member's own. -->
+                        <span class="srq-gate-pick-stack">
+                          <strong>{c.name ?? c.person_uuid}</strong>
+                          {#if c.headline}<span class="srq-gate-headline">{c.headline}</span>{/if}
+                          <span class="srq-gate-score">{c.score} · {c.match_reason.join(', ')}</span>
+                        </span>
+                      </SelectWrapperClickBody>
+                  </CardRow>
                 {/each}
               </ul>
               <span class="srq-staged-actions">
@@ -211,7 +227,7 @@
             </div>
           {/if}
           {#if row.error}<div class="srq-error">{row.error}</div>{/if}
-        </li>
+        </CardRow>
       {/if}
     {/each}
   </ul>

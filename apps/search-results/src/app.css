@@ -33,20 +33,30 @@
 
 /* the queue */
 .srq-list { list-style: none; margin: 0.75rem 0 0; padding: 0; display: grid; gap: 0.5rem; }
-.srq-card { border: 1px solid var(--color-border, #2a2c33); border-radius: 8px; background: var(--color-surface, #1c1e25); overflow: hidden; }
-.srq-card.status-done { border-color: color-mix(in srgb, var(--color-ok-text, #6ee7a8) 45%, var(--color-border, #2a2c33)); }
-.srq-card.status-failed { border-color: color-mix(in srgb, var(--color-error-text, #f3a3a3) 45%, var(--color-border, #2a2c33)); }
+/* .srq-card is GONE ENTIRELY — border, radius, background, overflow AND the
+   two status-* border-colour rules. CardRow draws the card, its `tone` prop
+   carries the done/failed edge, and `as="li"` means there is no wrapper <li>
+   left to carry a class. This member now declares ZERO deviations. */
 
-.srq-card-top { display: flex; align-items: stretch; }
-/* NOT a Button: a full-width wrapping disclosure SURFACE, where every Button
-   size is a fixed height with white-space:nowrap. Adopting it takes rung-4
-   overrides for five layout properties at once — a fork, not an adoption. */
-.srq-card-row { display: flex; align-items: center; gap: 0.45rem; flex: 1; min-width: 0; background: transparent; border: 0; color: inherit; font: inherit; padding: 0.5rem 0.6rem; cursor: pointer; text-align: left; flex-wrap: wrap; }
-.srq-card-row:hover { background: color-mix(in srgb, var(--color-border, #2a2c33) 40%, transparent); }
-/* the per-card controls column: × (dismiss this search) above the expand
-   caret. Both are size="icon" Buttons now — 28px, clearing the WCAG 2.2 2.5.8
-   target floor the hand-rolled pair was under, at +28px of card height. */
-.srq-card-side { display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 0.3rem 0.45rem 0.3rem 0; gap: 0.15rem; flex-shrink: 0; }
+/* The card's two regions are stacked by CardRow's own direction="column" — the
+   rung-0 wrapper this member briefly carried is deleted (two members wrote the
+   same wrapper; it became the prop).
+   position: relative is LOAD-BEARING: ClickBody's overlay covers its nearest
+   POSITIONED ancestor, so anchoring it here instead of on the CardRow keeps
+   "click anywhere to expand" on the collapsed row and off the expanded body. */
+.srq-card-top { position: relative; display: flex; align-items: stretch; min-width: 0; }
+.srq-card-top:hover { background: color-mix(in srgb, var(--color-border-strong) 40%, transparent); border-radius: var(--radius-sm); }
+/* The wrapping line. ClickBody is inline-flex with align-items:baseline and no
+   flex-wrap, so the chip/org/status group wraps here instead. The padding,
+   border, radius, background and control reset the old .srq-card-row recipe
+   hand-rolled are all CardRow's and ClickBody's now. */
+.srq-card-line { display: flex; align-items: center; gap: var(--space-xs); flex: 1; min-width: 0; flex-wrap: wrap; padding: var(--space-2xs) 0; }
+/* the per-card controls column: × (dismiss this search) above the expand caret.
+   Both are size="icon" Buttons — 28px, clearing the WCAG 2.2 2.5.8 target floor.
+   position: relative is the documented contract: it lifts the whole subtree
+   above ClickBody's overlay. A member cannot put position on a Button directly
+   without reaching into .ui-btn, so the wrapper IS the sanctioned remedy. */
+.srq-card-side { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 0.15rem; flex-shrink: 0; }
 /* Rung 0 — slots, not deviations. Each carries ONLY the placement declaration
    its deleted recipe used to hold (the target label must not shrink inside the
    card row's wrapping flex; the kind label keeps its inline offset). Chip
@@ -70,7 +80,7 @@
   .srq-dot { animation: none; }
 }
 
-.srq-card-body { padding: 0.3rem 0.6rem 0.6rem; border-top: 1px solid var(--color-border, #2a2c33); }
+.srq-card-body { padding-top: var(--space-sm); border-top: 1px solid var(--color-border-strong); }
 .srq-progress { color: var(--color-text-muted, #9aa0aa); font-size: 0.76rem; }
 .srq-note { color: var(--color-text-muted, #9aa0aa); font-size: 0.74rem; line-height: 1.35; margin: 0.35rem 0; }
 .srq-note a { color: var(--color-link, #8ab4f8); }
@@ -79,7 +89,8 @@
 
 /* links/streams accept rows */
 .srq-results { list-style: none; margin: 0.4rem 0 0; padding: 0; display: grid; gap: 0.45rem; }
-.srq-row { display: flex; gap: 0.5rem; align-items: flex-start; border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; background: var(--color-bg, #14151a); padding: 0.45rem 0.55rem; }
+/* .srq-row is GONE — display/gap/align-items/border/radius/background/padding
+   are the whole of CardRow's base recipe at density="compact". */
 .srq-row-main { min-width: 0; flex: 1; }
 .srq-row-title { color: var(--color-link, #8ab4f8); text-decoration: none; font-size: 0.82rem; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .srq-row-title:hover { text-decoration: underline; }
@@ -89,7 +100,8 @@
 
 /* team accept rows */
 .srq-staged-list { list-style: none; margin: 0.4rem 0 0; padding: 0; display: grid; gap: 0.45rem; }
-.srq-staged-row { border: 1px solid var(--color-border, #2a2c33); border-radius: 6px; background: var(--color-bg, #14151a); padding: 0.45rem 0.55rem; }
+/* .srq-staged-row is GONE — border/radius/background/padding are CardRow's,
+   and the column stack is its direction="column". */
 .srq-staged-main { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
 .srq-person-name { font-size: 0.82rem; font-weight: 600; }
 .srq-person-role { color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; }
@@ -105,11 +117,11 @@
 .srq-gate { margin-top: 0.45rem; border-top: 1px dashed var(--color-border, #2a2c33); padding-top: 0.4rem; }
 .srq-gate-note { font-size: 0.72rem; color: var(--color-text-muted, #9aa0aa); margin: 0 0 0.3rem; }
 .srq-gate-list { list-style: none; margin: 0 0 0.4rem; padding: 0; display: grid; gap: 0.3rem; }
-/* NOT a Button, same reason as .srq-card-row — a stacked three-line candidate
-   card. The federation's shape for this organ is text plus a separate "match"
-   Button (record-db-resolver's CandidateList); converging is a restructure. */
-.srq-gate-pick { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; width: 100%; text-align: left; background: var(--color-surface, #1c1e25); border: 1px solid var(--color-border, #2a2c33); border-radius: 5px; padding: 0.35rem 0.5rem; color: inherit; font: inherit; font-size: 0.74rem; cursor: pointer; }
-.srq-gate-pick:hover { border-color: var(--color-accent, #8ab4f8); }
+/* .srq-gate-pick is GONE — CardRow draws the card and ClickBody is the control.
+   All that survives is the three-line stack; the border, radius, background,
+   padding, control reset and hover cue it used to hand-roll belong to the
+   components now. */
+.srq-gate-pick-stack { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3xs); flex: 1; min-width: 0; font-size: var(--text-meta); }
 .srq-gate-headline { color: var(--color-text-muted, #9aa0aa); }
 .srq-gate-score { color: var(--color-text-muted, #9aa0aa); font-size: 0.66rem; }
 

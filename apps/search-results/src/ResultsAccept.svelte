@@ -6,6 +6,7 @@
   // through; added ✓ sticks (server-side dedup), errors stay on the row.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import { addCrawlResult } from './lib/search-client';
   import type { ConnectorResult } from './lib/types';
@@ -74,7 +75,11 @@
 {:else}
   <ul class="srq-results">
     {#each rows as row (row.result.url)}
-      <li class="srq-row">
+      <!-- No SelectWrapper: the row's primary is an <a href> that NAVIGATES.
+           Per the decision doc that is CardRow--Link, a different organ from
+           selection — wrapping it in a SelectWrapper would put a navigation
+           affordance inside a selection component. -->
+      <CardRow as="li" density="compact">
         <div class="srq-row-main">
           <a class="srq-row-title" href={row.result.url} target="_blank" rel="noreferrer">
             {row.result.title || row.result.url}
@@ -94,7 +99,7 @@
         >
           {row.added ? '✓' : row.adding ? '…' : '+'}
         </Button>
-      </li>
+      </CardRow>
     {/each}
   </ul>
 {/if}
