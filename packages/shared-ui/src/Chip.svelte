@@ -90,6 +90,13 @@
     radius?: string;
     /** Rung 4 — requires a data-deviation reason alongside it. */
     class?: string;
+    /**
+     * Rung 4, the one that actually overrides. See Button's header: a member
+     * class is (0,1,0) and loses to this component's (0,2,0) scoped rules, and
+     * `:where()` only converts the loss into a load-order-dependent tie. An
+     * inline style wins deterministically. Requires `data-deviation`.
+     */
+    style?: string;
     children?: Snippet;
     [key: string]: unknown;
   };
@@ -104,6 +111,7 @@
     revealOnHover = false,
     radius,
     class: klass = '',
+    style: styleProp,
     children,
     ...rest
   }: Props = $props();
@@ -151,8 +159,8 @@
   data-dismissible={dismissible || undefined}
   data-reveal={revealOnHover || undefined}
   data-a11y-error={a11yError}
-  style={radiusStyle}
   {...rest}
+  style={[radiusStyle, styleProp].filter(Boolean).join(' ') || undefined}
 >
   {#if dot}
     <span class="ui-chip__dot" aria-hidden="true"></span>

@@ -328,6 +328,38 @@ standalone clone by the owning team has no parent workspace and cannot resolve
 `@augment-it/theme` at all. Publish, git dependency, or vendor changes what
 "promote to `shared-ui`" *means*, and it is not an agent's call.
 
+## Rung 4 is `style=`, not `class=` — corrected 2026-09-13
+
+The ladder shipped saying rung 4 was `class=` + `data-deviation`. The first time
+anyone actually exercised it — building the federal gallery — it did not work, and
+the way it failed is the part worth keeping.
+
+Svelte compiles a component's scoped rules to `.ui-btn.svelte-<hash>`, specificity
+**(0,2,0)**. A member's rung-4 class is **(0,1,0)**. It loses every property the
+component sets, **while rendering perfectly and looking like a working override** —
+the gallery's first rung-4 fixture showed `justify-content: center` and read as a
+success.
+
+**Dropping our own selector to `:where(.ui-btn)` does not fix it.** Svelte still
+appends the hash, so the component lands at (0,1,0) and *ties* the member's class.
+A tie resolves by stylesheet order, which under Module Federation is chunk load
+order across independently deployed remotes — not decidable. **A nondeterministic
+override is worse than one that reliably loses**, because it will work in dev and
+differ in production.
+
+So rung 4 is an **inline `style=`**, which beats every class rule regardless of
+load order. It is still declared, still requires `data-deviation`, still surfaces
+in the member's catalog under Deviations, and is if anything uglier at the call
+site — appropriate for the last rung.
+
+`class=` still passes through and is still a declared deviation, but it can only
+win for properties the component does **not** set. Use it for a member hook; use
+`style=` to actually override.
+
+**Why nineteen members never hit this:** rung 4 has **zero real call sites**. The
+escape hatch we have been treating as the detection mechanism had never once been
+exercised — which is its own finding about escape hatches.
+
 ## Related
 
 - [[../refactors/The-Federal-Layer-Never-Shipped-Space-Radius-Or-Z]] — the measured gap this closes

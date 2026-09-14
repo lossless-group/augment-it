@@ -12,8 +12,28 @@
    *   1  variant + size                  the sanctioned API, covers the majority
    *   2  radius="lg"                     a TOKEN NAME, never a value
    *   3  radius="lg/60"                  calc(var(--radius-lg) * 0.6)
-   *   4  class=… + data-deviation=…      legal, declared, and surfaced in the
+   *   4  style=… + data-deviation=…      legal, declared, and surfaced in the
    *                                      member's catalog under Deviations (F9)
+   *
+   * RUNG 4 IS style=, NOT class=. Corrected 2026-09-13 after the first real
+   * measurement of it. Svelte compiles this component's rules to
+   * `.ui-btn.svelte-<hash>` — specificity (0,2,0). A member's rung-4 class is
+   * (0,1,0) and LOSES every property this component sets, while rendering
+   * perfectly and looking like a working override.
+   *
+   * Dropping our own selector to `:where(.ui-btn)` does not fix it: Svelte still
+   * appends the hash, giving (0,1,0), which TIES with the member's class — and a
+   * tie resolves by stylesheet order, which under Module Federation means chunk
+   * load order across independently deployed remotes. That is not decidable, and
+   * a nondeterministic override is worse than one that reliably loses.
+   *
+   * An inline style beats every class rule regardless of load order. It is still
+   * declared, still requires data-deviation, still appears in the catalog, and is
+   * if anything uglier at the call site — which is correct for the last rung.
+   *
+   * `class=` still passes through, and is still a declared deviation, but it can
+   * only win for properties this component does NOT set. Reach for it for a
+   * member hook; reach for `style=` to actually override.
    *
    * Rung 3 reads the Tailwind `/` convention ("this token, at N percent") for
    * dimension. It is deliberately COUNTABLE: `radius="lg/60"` appearing in six
@@ -109,7 +129,7 @@
   );
 
   const deviationError = $derived(
-    className && !rest['data-deviation']
+    (className || rest.style) && !rest['data-deviation']
       ? 'class="…" is override-ladder rung 4 and requires a data-deviation reason, which surfaces in the member catalog under Deviations (F9).'
       : null,
   );

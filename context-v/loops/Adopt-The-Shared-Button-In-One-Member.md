@@ -406,7 +406,7 @@ afterwards.
 - **Can a rung-4 override even reach it?** Mechanical test, check it before you
   start: a member's global class lands at `(0,1,0)`; anything `Button` declares
   inside its own scoped `<style>` lands at `(0,2,0)` after Svelte hashing. **If
-  the property you need to change is one `Button` sets, rung 4 cannot win** —
+  the property you need to change is one `Button` sets, rung 4 via `class=` cannot win (use `style=`)** —
   and the next move is `!important`, which is how a component becomes
   decorative. A control that needs to fight the component is a **missing organ**,
   not a deviation. Say so and move on.
