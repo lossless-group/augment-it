@@ -56,7 +56,13 @@
   }: Props = $props();
 
   // ONE source of truth for both the attribute and the render. See note 1.
-  let internal = $state(openProp ?? false);
+  //
+  // `internal` starts false rather than `openProp ?? false`: that initializer
+  // captures only the FIRST value of a prop, which Svelte warns about and which
+  // would quietly desync a controlled row whose parent changed `open` later.
+  // When `open` is passed the component is controlled and `internal` is unused;
+  // when it is not, this is the state.
+  let internal = $state(false);
   const isOpen = $derived(openProp ?? internal);
 
   // Stable per instance, so aria-controls always names this row's own panel.
