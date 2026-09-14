@@ -2,6 +2,7 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { curation, slugify, splitTags } from './curation.svelte';
 
@@ -76,7 +77,11 @@
   {#if curation.strategies.length === 0}
     <p class="cc-muted cc-mini">No corpora yet.</p>
   {:else}
-    <ul class="cc-strat-list">
+    <!-- `.cc-strat-list` DELETED — list-style, margin, padding, display,
+         flex-direction and gap are the whole of ListContainer's rows region.
+         No header slot: the h2/p above are prose, not controls, and the layout
+         is deliberately not asked to own them. -->
+    <ListContainer as="ul" gap="2xs" label="Corpora">
       {#each curation.strategies as s (s.slug)}
         <!-- The type rides along on the row rather than filtering the list
              (gh #88). Two corpora can share a slug across types, so the chip
@@ -105,7 +110,7 @@
           </span>
         </CardRow>
       {/each}
-    </ul>
+    </ListContainer>
   {/if}
 </section>
 

@@ -39,14 +39,17 @@
   }
 </script>
 
-<!-- The <li> stays, and CardRow sits INSIDE it rather than replacing it.
+<!-- RESOLVED: the API gap this comment used to describe is closed. CardRow now
+     takes `as="li"`, so the wrapper <li> and its `list-style: none` are both
+     gone and the row is one element. The historical note follows.
+
+     WAS: The <li> stays, and CardRow sits INSIDE it rather than replacing it.
      CardRow renders a hard-coded <div>; the three parents that render these
      cards are <ul> elements, and <ul> permits only <li>/<script>/<template>.
      Swapping the <li> for CardRow's <div> would trade one invalid nesting for
      another, so the <li> is reduced to a bare list slot and carries no paint.
      Raised as a CardRow API gap, not worked around in packages/. -->
-<li class="rs-card-item">
-  <CardRow density="compact" {selected}>
+<CardRow as="li" density="compact" {selected}>
     <div class="rs-card-main">
       <!-- SelectWrapper--ClickPrimary, NOT --ClickBody. Measured reasons, in
            order of weight:
@@ -98,16 +101,14 @@
         aria-label="delete {rs.name}"
       >×</Button>
     </div>
-  </CardRow>
-</li>
+</CardRow>
 
 <style>
   /* Rung 0 only. Every rule below places something; none of them re-draws a
      surface CardRow, Button or SelectWrapper already owns. The card's border,
      radius, padding, ground and selected tint all come from CardRow now. */
-  .rs-card-item {
-    list-style: none;
-  }
+  /* .rs-card-item is GONE — `as="li"` on CardRow, and the layout supplies
+     `list-style: none` on the rows region. */
   .rs-card-main {
     flex: 1 1 auto;
     min-width: 0;

@@ -8,6 +8,7 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import { addCrawlResult } from './lib/search-client';
   import type { ConnectorResult } from './lib/types';
 
@@ -73,7 +74,9 @@
 {#if rows.length === 0}
   <p class="srq-empty">zero candidates — retry, or work the entity's lists directly</p>
 {:else}
-  <ul class="srq-results">
+  <!-- The `.srq-results` recipe (list-style/margin/padding/display/gap) is
+       DELETED; ListContainer owns all five. -->
+  <ListContainer as="ul" gap="xs" label="Crawl results">
     {#each rows as row (row.result.url)}
       <!-- No SelectWrapper: the row's primary is an <a href> that NAVIGATES.
            Per the decision doc that is CardRow--Link, a different organ from
@@ -101,5 +104,5 @@
         </Button>
       </CardRow>
     {/each}
-  </ul>
+  </ListContainer>
 {/if}

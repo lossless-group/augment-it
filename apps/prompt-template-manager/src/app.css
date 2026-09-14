@@ -53,22 +53,20 @@
 .ptm-app .ptm-layout > section {
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  padding: 1rem;
+  padding: var(--space-xl);   /* was 1rem — exact token match; a pane is a layout */
   min-width: 0;
 }
 
-/* The list region. Rung 0 — spacing BETWEEN rows is the list's job, never the
- * row's; CardRow deliberately sets no margin. The old `li { margin-bottom }`
- * is gone in favour of a gap on a real space token. */
-.ptm-app ul.prompts {
-  list-style: none;
-  padding: 0;
-  margin: 0.5rem 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2xs);
-}
-.ptm-app ul.prompts li.empty { padding: 0.5rem; }
+/* The list region is GONE — `ul.prompts` carried list-style, padding, margin,
+ * display, flex-direction and gap, and ListContainer owns every one of them.
+ * The comment it used to carry said "spacing BETWEEN rows is the list's job";
+ * that is now true structurally rather than by convention.
+ *
+ * This member had already picked `--space-2xs` (4px) for its gap, and the
+ * layout's `gap="2xs"` is that exact token — names that look like the scale ARE
+ * the scale, so the gap is byte-for-byte what it was. */
+.ptm-app .ptm-head-title { margin: 0; }
+.ptm-app li.empty { padding: var(--space-sm); }
 
 /* DEVIATION (rung 4, declared at the call site with data-deviation).
  * CardRow ships no hover state, and hover was this member's only cue that a row
@@ -119,7 +117,7 @@
  *                   unbreakable token (`a_rather_long_output_column_name`)
  *                   pushed the sibling delete button clean out of the card —
  *                   measured at 0% of the row reachable for delete. */
-.ptm-app ul.prompts .ui-selectprimary {
+.ptm-app .ptm-prompt-row .ui-selectprimary {
   flex: 1 1 auto;
   min-inline-size: 0;
 }

@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import ConfidencePill from '@augment-it/shared-ui/ConfidencePill.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import RecordSetsList from './components/RecordSetsList.svelte';
@@ -447,7 +448,10 @@
           </div>
         </div>
       </div>
-      <div class="rows-list">
+      <!-- `.rows-list` DELETED WHOLE — display, flex-direction, gap, overflow
+           AND the cap. `maxBlockSize` means the layout owns the scroll region
+           end to end; the flex wrapper this needed an hour ago is gone. -->
+      <ListContainer gap="sm" maxBlockSize="70vh">
         {#each rowsForSelected as row (row.row_id)}
           {@const orderedFields = selectedRs.schema.fields
             .slice()
@@ -573,7 +577,7 @@
         {#if rowsForSelected.length === 0}
           <p class="muted">no rows</p>
         {/if}
-      </div>
+      </ListContainer>
     {/if}
   </section>
 </div>

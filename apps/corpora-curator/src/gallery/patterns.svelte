@@ -40,6 +40,7 @@
   // instance state — they read only their own parameter.
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { CONNECTION_TONE, type ConnStatus } from '../types';
@@ -170,8 +171,11 @@
 {/snippet}
 
 {#snippet sourceRow(p: Record<string, unknown>)}
-  <div class="cc-list">
-    <CardRow density="compact" selected={Boolean(p.active)}>
+  <!-- The specimen tracks the real surface: `.cc-list` is deleted from app.css
+       and SourceList now renders a ListContainer, so the specimen does too.
+       `as="li"` on the rows below, because the layout renders a <ul>. -->
+  <ListContainer as="ul" gap="2xs" label="Sources (specimen)">
+    <CardRow as="li" density="compact" selected={Boolean(p.active)}>
       <SelectWrapperClickBody
         label={String(p.title ?? 'The degree is not the job')}
         selected={Boolean(p.active)}
@@ -187,7 +191,7 @@
         </span>
       </SelectWrapperClickBody>
     </CardRow>
-    <CardRow density="compact">
+    <CardRow as="li" density="compact">
       <SelectWrapperClickBody label="Registered apprenticeship national guidelines">
         <span class="cc-dot err"></span>
         <span class="cc-row-body">
@@ -198,7 +202,7 @@
         </span>
       </SelectWrapperClickBody>
     </CardRow>
-  </div>
+  </ListContainer>
 {/snippet}
 
 {#snippet headerBar(p: Record<string, unknown>)}

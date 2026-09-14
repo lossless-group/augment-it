@@ -8,6 +8,7 @@
   // collapsed by default.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import type { RecordSet } from '@augment-it/workspace';
   import RecordSetCard from './RecordSetCard.svelte';
   import { buildFamilyGroups, type FamilyGroup, type FamilyMember } from '../logic/family';
@@ -111,13 +112,20 @@
   }
 </script>
 
-<div class="rs-list-wrap">
-  <header class="rs-list-head">
-    <h2>Record sets</h2>
-    <Button variant="secondary" size="sm" onclick={onrefresh}>refresh</Button>
-  </header>
+<!-- ListContainer. `.rs-list-wrap` (flex/direction/gap), `.rs-list-head`
+     (flex/justify/align/gap) and `.rs-list` (list-style/margin/padding/flex/
+     direction/gap) are ALL DELETED — three recipes, one layout. -->
+<ListContainer as="ul" gap="xs" label="Record sets">
+  {#snippet header()}
+    <h2 class="rs-head-title">Record sets</h2>
+    <!-- Rung 0 — `margin-inline-start: auto` is placement, and the loop names it
+         as rung 0 explicitly. It replaces the deleted `justify-content:
+         space-between`, which the layout's header does not set. -->
+    <span class="rs-head-end">
+      <Button variant="secondary" size="sm" onclick={onrefresh}>refresh</Button>
+    </span>
+  {/snippet}
 
-  <ul class="rs-list">
     {#each groups as g (g.group_id)}
       {#if g.kind === 'variant_family'}
         {@const isCollapsed = collapsed.has(g.group_id)}
@@ -154,7 +162,8 @@
             </div>
           </div>
           {#if !isCollapsed}
-            <ul class="rs-family-members">
+            <!-- `.rs-family-members` DELETED — ListContainer. Layouts nest. -->
+            <ListContainer as="ul" gap="xs" label={`${g.label} variants`}>
               {#each g.members as m (m.leaf.record_set_id)}
                 {@const archived = archivedAncestors(m)}
                 {@const mKey = memberKey(g, m)}
@@ -177,7 +186,11 @@
                       Earlier generations ({archived.length} archived)
                     </button>
                     {#if archiveOpen}
-                      <ul class="rs-archive-list">
+                      <!-- `.rs-archive-list` DELETED. Its `opacity` is the one
+                           declaration the layout does not own, and `class=`
+                           merges onto the rows element rather than replacing
+                           its own class, so it needs no wrapper. -->
+                      <ListContainer as="ul" gap="2xs" label="Earlier generations" class="rs-archive-dim">
                         {#each archived as ar (ar.record_set_id)}
                           <RecordSetCard
                             rs={ar}
@@ -186,12 +199,12 @@
                             ondelete={() => ondelete(ar)}
                           />
                         {/each}
-                      </ul>
+                      </ListContainer>
                     {/if}
                   </li>
                 {/if}
               {/each}
-            </ul>
+            </ListContainer>
           {/if}
         </li>
       {:else}
@@ -217,7 +230,7 @@
               Earlier generations ({archived.length} archived)
             </button>
             {#if archiveOpen}
-              <ul class="rs-archive-list">
+              <ListContainer as="ul" gap="2xs" label="Earlier generations" class="rs-archive-dim">
                 {#each archived as ar (ar.record_set_id)}
                   <RecordSetCard
                     rs={ar}
@@ -226,7 +239,7 @@
                     ondelete={() => ondelete(ar)}
                   />
                 {/each}
-              </ul>
+              </ListContainer>
             {/if}
           </li>
         {/if}
@@ -235,21 +248,15 @@
     {#if groups.length === 0}
       <li class="rs-list-empty">no record sets yet — upload below</li>
     {/if}
-  </ul>
-</div>
+</ListContainer>
 
 <style>
-  .rs-list-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
-  .rs-list-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
-  .rs-list-head h2 { margin: 0; }
-  .rs-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
+  /* .rs-list-wrap, .rs-list-head and .rs-list are GONE — between them a
+     `display: flex` x3, a `flex-direction`, a `justify-content`, an
+     `align-items`, two `gap`s, a `margin`, a `padding` and a `list-style`.
+     Every one belongs to ListContainer's header region or its rows region. */
+  .rs-head-title { margin: 0; }
+  .rs-head-end { margin-inline-start: auto; }   /* rung 0 — placement */
   .rs-list-empty {
     color: var(--color-text-muted);
     font-style: italic;
@@ -329,14 +336,7 @@
     font-size: 0.72rem;
     white-space: nowrap;
   }
-  .rs-family-members {
-    list-style: none;
-    margin: 0;
-    padding: 0.4rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
+  /* .rs-family-members is GONE — ListContainer, gap="sm". */
 
   /* Archive sub-section — shown either inside a family member or
      directly below an ungrouped (solo) card.
@@ -370,13 +370,9 @@
     font-size: 0.72rem;
   }
   .rs-archive-head:hover { color: var(--color-text); }
-  .rs-archive-list {
-    list-style: none;
-    margin: 0;
-    padding: 0.3rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    opacity: 0.7;
-  }
+  /* .rs-archive-list is GONE — ListContainer, gap="2xs", and its `opacity`
+     rides in on the merging `class` prop. The surviving rule lives in app.css
+     under the `.rc-app` prefix rather than as a `:global()` here: a scoped
+     style cannot reach a class it hands to a component, and an unprefixed
+     :global() is exactly the containment leak F2/F3 exist to catch. */
 </style>

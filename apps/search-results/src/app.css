@@ -7,24 +7,35 @@
   color: var(--color-text, #e7e7e7);
   padding: 0.5rem 0.75rem 2rem;
   height: 100%;
-  overflow-y: auto;
+  /* The RAIL no longer scrolls; the layout's rows region does. That is what
+     makes the header stay put with no `position: sticky` at all — the old
+     recipe's sticky/top/z-index/background existed only because the app was
+     the scroller. Rung 0: the parent places its one child. */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   overflow-x: hidden;
   box-sizing: border-box;
 }
+.srq-app > * { flex: 1; min-height: 0; }
 
-/* Grid/flex children default to min-width:auto and refuse to shrink below
-   their content — a long nowrap title then pushes the whole card wider than
-   the rail and shoves the ➕ off-screen. Zero the min-width down the chain
-   so ellipsis/wrap rules actually get to do their jobs. */
-.srq-list > *,
-.srq-results > *,
-.srq-staged-list > *,
-.srq-gate-list > *,
+/* The four `<list> > *` guards are GONE. They existed because every list was
+   `display: grid`, and a grid item's min-width:auto is content-based in the
+   inline axis — a long nowrap title pushed the card wider than the rail.
+   ListContainer's rows region is flex-column, where min-width:auto resolves to
+   0 on the cross axis, so the guard has nothing left to do. Only the card body,
+   which is not a list child, still needs it. */
 .srq-card-body {
   min-width: 0;
 }
 
-.srq-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0 0.65rem; border-bottom: 1px solid var(--color-border, #2a2c33); position: sticky; top: 0; z-index: 2; background: var(--color-bg, #14151a); }
+/* .srq-header is GONE — display, align-items, gap and padding are
+   ListContainer's __header. Its position:sticky / top / z-index / background
+   are gone too, and NOT replaced by `stickyHeader`: the rail stopped being the
+   scroll container (see .srq-app above), so the header is pinned structurally.
+   The one declaration with no home is `border-bottom`; see the report. */
+/* Rung 0 — placement inside the header's wrapping flex, not spacing. */
+.srq-header-line { flex-basis: 100%; }
 .srq-title { font-size: 0.95rem; margin: 0; }
 .srq-running-note { color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; }
 .srq-right { margin-left: auto; display: inline-flex; gap: 0.4rem; align-items: center; }
@@ -32,7 +43,8 @@
 .srq-empty { color: var(--color-text-muted, #9aa0aa); font-size: 0.8rem; line-height: 1.4; }
 
 /* the queue */
-.srq-list { list-style: none; margin: 0.75rem 0 0; padding: 0; display: grid; gap: 0.5rem; }
+/* .srq-list is GONE — list-style, margin, padding, display and gap are the
+   whole of ListContainer's rows region at gap="sm". */
 /* .srq-card is GONE ENTIRELY — border, radius, background, overflow AND the
    two status-* border-colour rules. CardRow draws the card, its `tone` prop
    carries the done/failed edge, and `as="li"` means there is no wrapper <li>
@@ -88,7 +100,7 @@
 .srq-confirm { font-size: 0.74rem; color: var(--color-text-muted, #9aa0aa); display: inline-flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
 
 /* links/streams accept rows */
-.srq-results { list-style: none; margin: 0.4rem 0 0; padding: 0; display: grid; gap: 0.45rem; }
+/* .srq-results is GONE — ListContainer, gap="xs". */
 /* .srq-row is GONE — display/gap/align-items/border/radius/background/padding
    are the whole of CardRow's base recipe at density="compact". */
 .srq-row-main { min-width: 0; flex: 1; }
@@ -99,7 +111,7 @@
 .srq-row-snippet { margin: 0.2rem 0 0; font-size: 0.72rem; color: var(--color-text-muted, #b7bcc5); line-height: 1.35; overflow-wrap: anywhere; }
 
 /* team accept rows */
-.srq-staged-list { list-style: none; margin: 0.4rem 0 0; padding: 0; display: grid; gap: 0.45rem; }
+/* .srq-staged-list is GONE — ListContainer, gap="xs". */
 /* .srq-staged-row is GONE — border/radius/background/padding are CardRow's,
    and the column stack is its direction="column". */
 .srq-staged-main { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
@@ -116,7 +128,7 @@
 /* the candidate gate */
 .srq-gate { margin-top: 0.45rem; border-top: 1px dashed var(--color-border, #2a2c33); padding-top: 0.4rem; }
 .srq-gate-note { font-size: 0.72rem; color: var(--color-text-muted, #9aa0aa); margin: 0 0 0.3rem; }
-.srq-gate-list { list-style: none; margin: 0 0 0.4rem; padding: 0; display: grid; gap: 0.3rem; }
+/* .srq-gate-list is GONE — ListContainer, gap="2xs". */
 /* .srq-gate-pick is GONE — CardRow draws the card and ClickBody is the control.
    All that survives is the three-line stack; the border, radius, background,
    padding, control reset and hover cue it used to hand-roll belong to the

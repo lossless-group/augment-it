@@ -10,6 +10,7 @@
   import { workspace, resolveWsUrl } from '@augment-it/workspace';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import SearchCard from './SearchCard.svelte';
   import { dismissSearch, listSearches } from './lib/search-client';
   import type { SearchCard as SearchCardT } from './lib/types';
@@ -137,36 +138,46 @@
 </script>
 
 <div class="srq-app">
-  <header class="srq-header">
-    <h1 class="srq-title">🔎 Search queue</h1>
-    {#if doneCount > 0}
-      <Chip size="sm" tone="accent" title="{doneCount} finished search{doneCount === 1 ? '' : 'es'} waiting for triage">{doneCount}</Chip>
-    {/if}
-    {#if runningCount > 0}
-      <span class="srq-running-note">{runningCount} in flight</span>
-    {/if}
-    <span class="srq-right">
-      {#if doneCount > 1}
-        <Button variant="secondary" size="sm" title="Dismiss every done card" onclick={clearDone}>
-          clear done
-        </Button>
+  <!-- ListContainer owns the header region, the scroll region and the gap
+       between rows. The `.srq-header` and `.srq-list` recipes it replaced are
+       DELETED from app.css — sticky/z-index/background/flex/gap/padding on the
+       header, and list-style/margin/padding/display/gap on the list. -->
+  <ListContainer as="ul" gap="sm" label="Search queue">
+    {#snippet header()}
+      <h1 class="srq-title">🔎 Search queue</h1>
+      {#if doneCount > 0}
+        <Chip size="sm" tone="accent" title="{doneCount} finished search{doneCount === 1 ? '' : 'es'} waiting for triage">{doneCount}</Chip>
       {/if}
-      <Chip size="sm" tone={statusTone(status)}>{status}</Chip>
-    </span>
-  </header>
+      {#if runningCount > 0}
+        <span class="srq-running-note">{runningCount} in flight</span>
+      {/if}
+      <span class="srq-right">
+        {#if doneCount > 1}
+          <Button variant="secondary" size="sm" title="Dismiss every done card" onclick={clearDone}>
+            clear done
+          </Button>
+        {/if}
+        <Chip size="sm" tone={statusTone(status)}>{status}</Chip>
+      </span>
 
-  {#if loadError}<div class="srq-error">{loadError}</div>{/if}
+      <!-- The error rides in the header because it describes the queue the
+           header controls, and because it must stay visible with rows present.
+           Rung 0: `flex-basis: 100%` is placement in the header's wrapping
+           flex, not spacing. -->
+      {#if loadError}<div class="srq-error srq-header-line">{loadError}</div>{/if}
+    {/snippet}
 
-  {#if cards.length === 0 && loaded}
-    <p class="srq-empty">
-      No searches in the queue. Fire a 🤖 on any org card — links, streams, or
-      team — and the search lands here while you keep working.
-    </p>
-  {/if}
+    {#snippet empty()}
+      {#if cards.length === 0 && loaded}
+        <p class="srq-empty">
+          No searches in the queue. Fire a 🤖 on any org card — links, streams, or
+          team — and the search lands here while you keep working.
+        </p>
+      {/if}
+    {/snippet}
 
-  <ul class="srq-list">
     {#each cards as card (card.search_id)}
       <SearchCard {card} {client} {now} ondismiss={() => dismiss(card)} />
     {/each}
-  </ul>
+  </ListContainer>
 </div>

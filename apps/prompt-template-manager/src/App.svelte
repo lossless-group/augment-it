@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import SelectWrapperClickPrimary from '@augment-it/shared-ui/SelectWrapper--ClickPrimary.svelte';
   import { workspace, type PromptTemplate, type PromptTool, resolveWsUrl } from '@augment-it/workspace';
 
@@ -205,11 +206,19 @@
 
   <div class="ptm-layout">
     <aside>
-      <h2>Prompts</h2>
-      <Button onclick={newPrompt}>+ new prompt</Button>
-      <!-- The list surface. <ul>/<li> stay: CardRow renders a <div> and takes no
-           `as`, so the only way to keep real list semantics ("list, 5 items") is
-           to nest it. selected= is passed to BOTH CardRow and SelectWrapper on
+      <!-- ListContainer. `ul.prompts` (list-style/padding/margin/display/
+           flex-direction/gap) is DELETED, and the h2 + Button that were bare
+           siblings of the list are now its header region — which is what made
+           them a header in the first place. -->
+      <ListContainer as="ul" gap="2xs" label="Prompts">
+        {#snippet header()}
+          <h2 class="ptm-head-title">Prompts</h2>
+          <Button onclick={newPrompt}>+ new prompt</Button>
+        {/snippet}
+      <!-- The list surface. The wrapper <li> is GONE: the comment it carried
+           said "CardRow renders a <div> and takes no `as`", and that API gap is
+           closed — `as="li"` keeps real list semantics ("list, 5 items") in one
+           element. selected= is passed to BOTH CardRow and SelectWrapper on
            purpose — they answer different questions. CardRow's `selected` PAINTS
            (border + tint); SelectWrapper's `selected` ANNOUNCES (aria-pressed).
            Neither can be derived from the other, and `selectedPromptId` above is
@@ -220,10 +229,9 @@
            Chromium 149 generates no box and is NOT FOCUSABLE — all five rows'
            select controls vanished from the tab order while still working with a
            mouse. Raised, not worked around. -->
-      <ul class="prompts">
         {#each prompts as p (p.prompt_id)}
-          <li>
             <CardRow
+              as="li"
               density="compact"
               selected={p.prompt_id === selectedPromptId}
               class="ptm-prompt-row"
@@ -266,12 +274,11 @@
                 </svg>
               </Button>
             </CardRow>
-          </li>
         {/each}
         {#if prompts.length === 0}
           <li class="muted empty">no prompts yet</li>
         {/if}
-      </ul>
+      </ListContainer>
     </aside>
 
     <section>

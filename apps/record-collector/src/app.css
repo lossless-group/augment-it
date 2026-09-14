@@ -175,13 +175,16 @@
   background: var(--color-danger-tint);
 }
 
-.rc-app .rows-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-height: 70vh;
-  overflow: auto;
-}
+/* De-emphasis for the archived-generations list. Passed to ListContainer as
+   `class="rs-archive-dim"`, which MERGES onto the rows element instead of
+   replacing its own class. Prefixed, so it stays inside this member.
+   NOTE: `opacity` standing in for a state on a region that contains real
+   controls is a recurring finding — PRE-EXISTING here, raised, not changed. */
+.rc-app .rs-archive-dim { opacity: 0.7; }
+
+/* .rc-app .rows-list is GONE ENTIRELY — display, flex-direction, gap, overflow
+   and max-height. The cap is `maxBlockSize="70vh"` at the call site, so the
+   layout owns the whole scroll region and this member declares nothing. */
 
 .rc-app .row-card {
   border: 1px solid var(--color-border);

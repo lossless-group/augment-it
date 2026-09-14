@@ -2,6 +2,7 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import { curation } from './curation.svelte';
   import { SOURCE_STATUS_TONE } from './types';
@@ -15,33 +16,43 @@
   }
 </script>
 
-<div class="cc-list-head">
-  <!-- link, not ghost: its only neighbour in this row is a full-width text
-       input, so a transparent control with no underline and no boundary would
-       have nothing to read as interactive against. link ships an underline and
-       --color-link, which is the same affordance the old .cc-link was reaching
-       for with accent text and no underline at all. -->
-  <Button
-    variant="link"
-    size="sm"
-    onclick={() => { curation.activeSlug = null; curation.activeType = null; }}>‹ corpora</Button
-  >
-  <input class="cc-filter" placeholder="filter sources… (coverage check)" bind:value={curation.listFilter} />
-</div>
+<!-- ListContainer. Three recipes came out of app.css for this one region:
+     `.cc-list-head` and `.cc-add` (display/align-items/gap/padding each) are the
+     header, and `.cc-list` (flex/overflow/display/flex-direction/gap/padding) is
+     the rows region. The two control rows merged into ONE wrapping header,
+     which is what the layout's `flex-wrap` is for — a toolbar that cannot wrap
+     clips its own controls. -->
+<ListContainer as="ul" gap="2xs" label="Sources">
+  {#snippet header()}
+    <!-- link, not ghost: its only neighbour in this row is a full-width text
+         input, so a transparent control with no underline and no boundary would
+         have nothing to read as interactive against. link ships an underline and
+         --color-link, which is the same affordance the old .cc-link was reaching
+         for with accent text and no underline at all. -->
+    <Button
+      variant="link"
+      size="sm"
+      onclick={() => { curation.activeSlug = null; curation.activeType = null; }}>‹ corpora</Button
+    >
+    <input class="cc-filter" placeholder="filter sources… (coverage check)" bind:value={curation.listFilter} />
+    <input
+      class="cc-addurl"
+      placeholder="paste a URL to add…"
+      bind:value={addUrl}
+      onkeydown={(e) => { if (e.key === 'Enter') add(); }}
+    />
+    <Button variant="primary" onclick={add}>+ Add</Button>
 
-<div class="cc-add">
-  <input
-    placeholder="paste a URL to add…"
-    bind:value={addUrl}
-    onkeydown={(e) => { if (e.key === 'Enter') add(); }}
-  />
-  <Button variant="primary" onclick={add}>+ Add</Button>
-</div>
+  {/snippet}
 
-<div class="cc-list">
-  {#if curation.sources.length === 0}
-    <p class="cc-muted cc-pad cc-mini">No sources yet. Paste a URL to add one.</p>
-  {:else}
+  <!-- The layout's `empty` slot: rendered OUTSIDE the rows element, which is
+       what makes a <p> legal under `as="ul"`. -->
+  {#snippet empty()}
+    {#if curation.sources.length === 0}
+      <p class="cc-muted cc-mini">No sources yet. Paste a URL to add one.</p>
+    {/if}
+  {/snippet}
+
     {#each curation.filtered as { source, index } (source.source_uuid)}
       <!-- Was the raw <button class="cc-row"> holdout from the Button rollout,
            whose stated reason was "the organ this wants is a selectable list
@@ -60,7 +71,7 @@
            `display: contents`, which Chromium gives no box, so Tab skipped every
            row — WCAG 2.1.1 Level A. That is fixed in the primitive and the
            tab-order walk is re-measured against HEAD. -->
-      <CardRow density="compact" selected={index === curation.focusIdx}>
+      <CardRow as="li" density="compact" selected={index === curation.focusIdx}>
         <SelectWrapperClickBody
           label={source.title || source.url}
           selected={index === curation.focusIdx}
@@ -80,5 +91,4 @@
         </SelectWrapperClickBody>
       </CardRow>
     {/each}
-  {/if}
-</div>
+</ListContainer>

@@ -10,6 +10,7 @@
 
   import Button from '@augment-it/shared-ui/Button.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
   import {
     addOrgObservation,
@@ -167,7 +168,11 @@
       {/each}
     {/if}
   </p>
-  <ul class="srq-staged-list">
+  <!-- `.srq-staged-list` DELETED — ListContainer owns it. NOTE: the CardRow
+       below still names `direction="column"` explicitly. `layout="list"`
+       publishes `row`, which is also CardRow's own default, so context could
+       not have removed this prop. -->
+  <ListContainer as="ul" gap="xs" label="Staged people">
     {#each rows as row (row.person.name)}
       {#if !row.consumed}
         <!-- No SelectWrapper: nothing here selects the row. Four controls and a
@@ -195,7 +200,8 @@
           {#if row.phase === 'gate'}
             <div class="srq-gate">
               <p class="srq-gate-note">Existing persons that might be “{row.person.name}” — pick one or create new:</p>
-              <ul class="srq-gate-list">
+              <!-- `.srq-gate-list` DELETED. Nested ListContainer: layouts nest. -->
+              <ListContainer as="ul" gap="2xs" label="Candidate matches">
                 {#each row.candidates as c (c.person_uuid)}
                   <!-- The other declared Button holdout. Zero sibling controls
                        inside this card, so the overlay has nothing to sit above —
@@ -217,7 +223,7 @@
                       </SelectWrapperClickBody>
                   </CardRow>
                 {/each}
-              </ul>
+              </ListContainer>
               <span class="srq-staged-actions">
                 <Button variant="primary" size="sm" onclick={() => write(row, 'create')}>
                   Create new person + affiliate
@@ -230,5 +236,5 @@
         </CardRow>
       {/if}
     {/each}
-  </ul>
+  </ListContainer>
 {/if}
