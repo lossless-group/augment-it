@@ -72,3 +72,9 @@ docker-compose.override.yml
 
 # Design canvas working files (seeded into a published Artifact)
 design-canvas/
+
+# Verification probes — throwaway rsbuild harnesses built during component
+# migrations. Always deleted before the final gate run; ignored so that a stray
+# one can never be swept into a commit by a directory-wide `git add` (it was, once).
+apps/*/probe/
+shell/probe/
