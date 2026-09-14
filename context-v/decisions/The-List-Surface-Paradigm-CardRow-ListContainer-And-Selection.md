@@ -33,9 +33,18 @@ publish: true
 > than normalizing it, per the skill.
 >
 > **How to use this file:** each decision below has options, a current leaning,
-> and what would settle it. The agent resolves them **as the work reaches them**,
-> writes the outcome into the *Decided* line, and does not stop to ask. The
-> operator overturns anything they disagree with.
+> and what would settle it.
+>
+> **Leaving one open is the correct outcome, not a debt.** An open decision is how
+> we know to come back to it; closing one early to tidy the file destroys exactly
+> the signal the file exists to carry. Resolve a decision when the *work forces
+> it* — when code cannot be written without an answer — and not before. Until
+> then a leaning is enough, and a leaning is not a decision.
+>
+> **Who closed it matters.** An entry marked *Decided* should say whether the
+> operator decided it or the agent did. An agent's judgement call recorded as
+> settled reads, six weeks later, like something the team agreed — and nobody
+> will know to revisit it.
 
 ## Why Care?
 
@@ -289,9 +298,24 @@ any and is not using the overlay, console-error and set `data-a11y-error`. Same
 mechanism `Button` uses for `size="icon"` without a name and `Chip` for
 `dismissible` without a label.
 
-**Decided:** name on axis A — `--ClickBody`, `--ClickPrimary`, `--Checkbox`.
-Axis B is enforced at runtime, not spelled in a name. `CardRow--Link` is separate.
-`--Radio` unbuilt until it has a consumer.
+**DECIDED — by the operator:** a `SelectWrapper` may not wrap a card that contains
+controls; the cases get distinct named variants rather than one component that
+switches strategy silently. That rule is settled.
+
+**STILL OPEN — agent leanings inside it, deliberately not closed:**
+
+- Name on axis A (`--ClickBody` / `--ClickPrimary` / `--Checkbox`) and enforce
+  axis B at runtime. *Leaning, not settled — the axis argument is sound but the
+  vocabulary is the team's to pick.*
+- Rename `--SingleControl` → `--ClickPrimary`. **A genuine coin-flip.** If the
+  team reasons about card composition rather than click target, `--SingleControl`
+  is the better name and this should be overturned.
+- `CardRow--Link` is a separate organ from selection. *Leaning — four sightings,
+  none examined closely yet.*
+- Do not build `--Radio`. *Leaning — zero sightings today, and that can change.*
+
+None of these blocks writing code. The first `--ClickBody` call site forces the
+first one; the rest can stay open indefinitely.
 
 ---
 
