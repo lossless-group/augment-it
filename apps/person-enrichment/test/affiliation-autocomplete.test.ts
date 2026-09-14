@@ -31,37 +31,30 @@
  * These do NOT re-test the component. packages/shared-ui/test/searchbox.test.ts
  * owns the SearchBox contract; these test that person-enrichment USES it.
  *
- * ── WHY THE DEFECTS ARE STILL HERE ─────────────────────────────────────────
+ * ── THESE EIGHT WERE `it.fails` FOR ONE COMMIT ─────────────────────────────
  *
- * THE ADOPTION IS BLOCKED, and the eight claims below are marked `it.fails`
- * rather than deleted or silenced. `it.fails` PASSES while the defect is
- * present and FAILS the moment it is fixed, so each one is a live tripwire: the
- * engineer who adopts SearchBox here cannot land it without coming back to this
- * file.
+ * The adoption was blocked and they were marked `it.fails` rather than deleted
+ * or silenced, because `it.fails` PASSES while a defect is present and FAILS
+ * the moment it is fixed — a live tripwire rather than a muted test.
  *
- * The blocker, measured with a throwaway probe and not inferred:
- * `SearchBox--Autocomplete` keeps its query in a PRIVATE `let query = $state('')`
- * and never exposes it. `value` passed as a prop is swallowed — the probe
- * mounted it with `value: 'Institute for Humane Studies'` and read back
- * `input.value === ''`.
+ * The blocker was measured, not inferred: SearchBox--Autocomplete kept its
+ * query in a private `let query = $state('')` and swallowed a `value` prop. A
+ * throwaway probe mounted it with `value: 'Institute for Humane Studies'` and
+ * read back `input.value === ''`. This member cannot live with that, because
+ * `affiliation.completeName` ARRIVES POPULATED — the card renders "✓ Pre-filled
+ * — matched email domain" over a name auto-detected from the person's email
+ * domain or carried from a previous affiliation, and adopting would have
+ * rendered that field empty and silently dropped a value the operator was shown.
  *
- * This member cannot live with that. `affiliation.completeName` ARRIVES
- * POPULATED: the card renders "✓ Pre-filled — matched email domain" over a name
- * auto-detected from the person's email domain or carried over from a previous
- * affiliation. Adopting today would render that field empty and silently drop a
- * value the operator was shown and expected to edit. That is a worse regression
- * than every defect below combined.
- *
- * What unblocks it, in packages/ and therefore NOT done here:
- *   `value = $bindable('')` on SearchBox--Autocomplete, forwarded to the core's
- *   existing `bind:value`. SearchBoxCore ALREADY has it; only the variant does
- *   not pass it through.
+ * `value` is `$bindable` on both variants now, so the tripwire fired and these
+ * are ordinary `it()` again. The history is kept because it is the argument for
+ * the marker: not one of these eight was re-derived by hand after the fix.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount, tick, flushSync } from 'svelte';
 import AffiliationCard from '../src/pulse-dimensions/AffiliationCard.svelte';
 import { affiliationFixture, ORGS } from './fixtures.svelte';
-import type { OrgSuggestion } from '../src/lib/types';
+import type { AffiliationState, OrgSuggestion } from '../src/lib/types';
 
 let host: HTMLElement;
 
@@ -89,8 +82,15 @@ type Mounted = {
   picked: () => OrgSuggestion[];
 };
 
-function card(lookup: (q: string) => Promise<OrgSuggestion[]>): Mounted {
-  const affiliation = affiliationFixture();
+function card(
+  lookup: (q: string) => Promise<OrgSuggestion[]>,
+  opts: { prefill?: string; onPick?: (a: AffiliationState, o: OrgSuggestion) => void } = {},
+): Mounted {
+  const affiliation = affiliationFixture(
+    opts.prefill === undefined
+      ? {}
+      : { completeName: opts.prefill, autoDetectedFrom: 'email_domain' },
+  );
   let saves = 0;
   const picks: OrgSuggestion[] = [];
   mount(AffiliationCard, {
@@ -104,7 +104,10 @@ function card(lookup: (q: string) => Promise<OrgSuggestion[]>): Mounted {
       onAppendOrgCorpus: async () => {},
       onAppendOrgDomain: async () => {},
       onLookupOrgs: lookup,
-      onPickOrg: (o: OrgSuggestion) => picks.push(o),
+      onPickOrg: (o: OrgSuggestion) => {
+        picks.push(o);
+        opts.onPick?.(affiliation, o);
+      },
       onRemove: () => {},
     },
   });
@@ -142,12 +145,12 @@ async function key(m: Mounted, k: string) {
 const all = async () => ORGS;
 
 describe('person-enrichment AffiliationCard — the role triad', () => {
-  it.fails('the org-name field is the combobox', async () => {
+  it('the org-name field is the combobox', async () => {
     const m = card(all);
     expect(m.input().getAttribute('role')).toBe('combobox');
   });
 
-  it.fails('announces whether the popup is open, and names one that exists', async () => {
+  it('announces whether the popup is open, and names one that exists', async () => {
     const m = card(all);
     await settle();
     expect(m.input().getAttribute('aria-expanded')).toBe('false');
@@ -160,7 +163,7 @@ describe('person-enrichment AffiliationCard — the role triad', () => {
     expect(document.getElementById(id!)).not.toBeNull();
   });
 
-  it.fails('the suggestions are options in a listbox', async () => {
+  it('the suggestions are options in a listbox', async () => {
     const m = card(all);
     await type(m, 'inst');
     await settle(DEBOUNCE_WAIT);
@@ -170,7 +173,7 @@ describe('person-enrichment AffiliationCard — the role triad', () => {
 });
 
 describe('person-enrichment AffiliationCard — the input keeps focus', () => {
-  it.fails('ArrowDown moves the ACTIVE OPTION and leaves the caret in the field', async () => {
+  it('ArrowDown moves the ACTIVE OPTION and leaves the caret in the field', async () => {
     const m = card(all);
     m.input().focus();
     await type(m, 'inst');
@@ -184,7 +187,7 @@ describe('person-enrichment AffiliationCard — the input keeps focus', () => {
     expect(options()[0].getAttribute('aria-selected')).toBe('true');
   });
 
-  it.fails('the SECOND suggestion is reachable from the keyboard', async () => {
+  it('the SECOND suggestion is reachable from the keyboard', async () => {
     // Today it is not reachable at all: Enter hard-picks suggestions[0] and
     // there is no arrow handler, so row 2 can only be had with a mouse.
     const m = card(all);
@@ -198,7 +201,7 @@ describe('person-enrichment AffiliationCard — the input keeps focus', () => {
     expect(document.activeElement).toBe(m.input());
   });
 
-  it.fails('no suggestion is a tab stop — the popup adds none', async () => {
+  it('no suggestion is a tab stop — the popup adds none', async () => {
     const m = card(all);
     await type(m, 'inst');
     await settle(DEBOUNCE_WAIT);
@@ -210,7 +213,7 @@ describe('person-enrichment AffiliationCard — the input keeps focus', () => {
     expect(focusable).toHaveLength(0);
   });
 
-  it.fails('Enter with NO active option is the MEMBER submit, not a hidden pick of row 1', async () => {
+  it('Enter with NO active option is the MEMBER submit, not a hidden pick of row 1', async () => {
     // The WAI-ARIA contract, and a real capability the surface does not have
     // today: while suggestions are showing, the name the operator typed cannot
     // be committed, because Enter always belongs to suggestions[0].
@@ -242,7 +245,7 @@ describe('person-enrichment AffiliationCard — the input keeps focus', () => {
 });
 
 describe('person-enrichment AffiliationCard — the async states', () => {
-  it.fails('reports a failed lookup instead of pretending there are no matches', async () => {
+  it('reports a failed lookup instead of pretending there are no matches', async () => {
     const m = card(async () => {
       throw new Error('resolver offline');
     });
@@ -292,5 +295,70 @@ describe('person-enrichment AffiliationCard — the hand-rolled stale guard', ()
     await settle(DEBOUNCE_WAIT + 250);
     expect(popupText()).toContain('Bedrock');
     expect(host.querySelector('[data-state="error"]')).toBeNull();
+  });
+});
+
+describe('person-enrichment AffiliationCard — the value round-trip', () => {
+  // THE BLOCKER, as a test. This is the one that kept the adoption parked: the
+  // widget swallowed a `value` prop, and this field ARRIVES POPULATED from
+  // email-domain detection or a previous affiliation. Rendering it empty would
+  // have silently dropped a name the operator was shown and told to edit.
+  it('renders a name that was pre-filled before the operator ever typed', async () => {
+    const m = card(all, { prefill: 'Institute for Humane Studies' });
+    await settle();
+    expect(m.input().value).toBe('Institute for Humane Studies');
+    // And the pre-fill banner the value belongs to is on screen with it.
+    expect(host.textContent).toContain('Pre-filled');
+  });
+
+  it('a pick writes the chosen name INTO the box — bind:value both ways', async () => {
+    // App.svelte's pickOrg() writes complete_name and conventional_name back
+    // onto the affiliation. The box has to show that, which only works because
+    // `value` is bindable rather than merely settable-once.
+    const m = card(all, {
+      onPick: (a, o) => {
+        a.completeName = String(o.complete_name);
+      },
+    });
+    m.input().focus();
+    await type(m, 'inst');
+    await settle(DEBOUNCE_WAIT);
+    await key(m, 'ArrowDown');
+    await key(m, 'Enter');
+    await settle();
+    expect(m.input().value).toBe('Institute for Humane Studies');
+  });
+
+  it('does NOT clear on select — this field is a value, not a search term', async () => {
+    // `clearOnSelect` is deliberately OFF here. It exists for surfaces that PICK
+    // (add a tag, leave the box empty for the next one); this box holds the
+    // organisation name being saved, so emptying it would discard the answer.
+    const m = card(all);
+    m.input().focus();
+    await type(m, 'inst');
+    await settle(DEBOUNCE_WAIT);
+    await key(m, 'ArrowDown');
+    await key(m, 'Enter');
+    await settle();
+    expect(m.picked()).toHaveLength(1);
+    expect(m.input().value).toBe('inst');
+  });
+
+  it('passes the widget no key it refuses — no console.error from shared-ui', async () => {
+    // `oninput`, `onkeydown` and `value` belong to the keyboard contract and are
+    // refused OUT LOUD. This card needs two of those keystrokes for its own
+    // dissociate-on-edit and save-on-Enter, and takes them on a WRAPPER. If
+    // someone moves them back onto the component, this catches it.
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const m = card(all);
+    m.input().focus();
+    await type(m, 'inst');
+    await settle(DEBOUNCE_WAIT);
+    await key(m, 'ArrowDown');
+    const refusals = spy.mock.calls
+      .map((c) => String(c[0]))
+      .filter((line) => line.includes('<SearchBox>'));
+    spy.mockRestore();
+    expect(refusals).toEqual([]);
   });
 });

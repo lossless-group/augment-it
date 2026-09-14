@@ -488,29 +488,24 @@
   color: var(--color-accent-2);
 }
 
-/* Org-name autocomplete dropdown
- * The complete_name input lives inside .pd-field; we make that container
- * position:relative so the suggestions list anchors right below the input.
- */
-.pe-org-name-field { position: relative; }
-.pe-org-suggest {
-  list-style: none;
-  margin: 0.2rem 0 0 0;
-  padding: 0.2rem 0;
-  background: var(--color-surface-2, var(--color-surface));
-  border: 1px solid var(--color-accent-2);
-  border-radius: 3px;
-  font: 12px var(--font-mono);
-  box-shadow: var(--fx-popover-shadow);
-  max-height: 14rem;
-  overflow-y: auto;
-  z-index: 10;
-}
-/* rung 0 — the suggestion line inside its <CardRow>. The row used to be a
-   <li onclick> with two svelte-ignore comments suppressing the a11y warnings;
-   it is a real <button> with a real accessible name now, via
-   <SelectWrapper--ClickBody>. Padding, cursor and the hover cue all come from
-   CardRow now — ZERO override rungs used on this surface. */
+/* Org-name autocomplete — layout only (rung 0).
+ *
+ * The dropdown box is GONE. It was .pe-org-suggest: its own surface, border,
+ * shadow, max-height, scroll and a raw stacking-order literal, all of which
+ * SearchBox--Autocomplete draws inside its own scoped <style> against the
+ * federal --z-* scale. (Spelling that literal out here re-tripped F4 — the
+ * check matches comment text too, so prose describing a deleted defect
+ * re-reports it. Raised.) The .pd-field no longer needs position:relative either,
+ * because the widget is its own positioning context.
+ *
+ * Also gone: .pe-org-suggest-enter, the `↵` badge on row 0. It advertised
+ * "Enter picks the first match", which was true and is now false — Enter with
+ * no active option is this card's own save. Leaving it would have been a
+ * keyboard hint that lies, which is the defect class this whole rollout exists
+ * to remove. */
+/* rung 0 — the suggestion line inside the widget's option row, which is a flex
+   container centring one child. This is that child, and it owns the name/shorthand
+   split. ZERO override rungs used on this surface. */
 .pe-org-suggest-row {
   display: flex;
   align-items: baseline;
@@ -526,18 +521,11 @@
   color: var(--color-text-muted);
   font-size: 11px;
 }
-.pe-org-suggest-enter {
-  color: var(--color-accent);
-  font-size: 11px;
-  font-weight: 600;
-}
-.pe-org-suggest-hint {
-  padding: 0.35rem 0.6rem;
-  font-size: 10px;
-  color: var(--color-text-muted);
-  border-top: 1px dashed var(--color-border);
-}
-.pe-org-suggest-hint kbd {
+/* The keyboard hint moved OUT of the popup and under the field. It used to be a
+   trailing <li> inside the <ul>, and the widget's popup renders options and its
+   own status rows only — there is no footer slot, and inventing one for a hint
+   would be the wrong shape of fix. */
+.pe-org-name-field kbd {
   font: inherit;
   padding: 0 0.25rem;
   border: 1px solid var(--color-border);

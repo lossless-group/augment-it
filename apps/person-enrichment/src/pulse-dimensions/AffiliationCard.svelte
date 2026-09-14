@@ -8,10 +8,26 @@
   // Collapsed: pill showing `role · conventional_name`.
   // Expanded: full card with role + name fields + autocomplete + links
   //           + corpus + domains.
+  //
+  // THE DEBOUNCE, THE STALE GUARD AND THE KEYBOARD ARE NO LONGER HERE.
+  // SearchBox--Autocomplete owns all three. The guard this file used to carry —
+  // `if (seq !== lookupSeq) return`, present in the catch as well as the success
+  // path — was the COMPLETE one of the two hand-rolls in the federation, and it
+  // is the reason the component has one. org-workbench's twin guarded only the
+  // success path. Both are gone; the component's is tested in
+  // packages/shared-ui/test/searchbox.test.ts.
+  //
+  // What this file never had: role="combobox", aria-expanded, aria-controls,
+  // aria-activedescendant, and any arrow key at all. Enter hard-picked
+  // suggestions[0], so the SECOND suggestion was unreachable without a mouse
+  // and — worse — the operator could not commit a name they had typed while any
+  // suggestion was on screen, because Enter was taken. Both are fixed by the
+  // contract rather than by more local code.
+  //
+  // Spec: context-v/specs/SearchBox-LiveFilter-And-Autocomplete.md
 
   import Button     from '@augment-it/shared-ui/Button.svelte';
-  import CardRow    from '@augment-it/shared-ui/CardRow.svelte';
-  import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
+  import SearchBoxAutocomplete from '@augment-it/shared-ui/SearchBox--Autocomplete.svelte';
   import LinkList   from './LinkList.svelte';
   import DomainList from './DomainList.svelte';
   import type { AffiliationState, Link, OrgDomain, OrgSuggestion } from '../lib/types';
@@ -44,36 +60,50 @@
   let saving = $state(false);
 
   // ---- Autocomplete -----------------------------------------------------
-  let suggestions  = $state<OrgSuggestion[]>([]);
-  let lookupSeq    = $state(0);                  // monotone — drops stale responses
-  let lookupTimer: ReturnType<typeof setTimeout> | null = null;
-  let suggestOpen  = $state(false);
+  // `byId` is how a SearchOption id gets back to its OrgSuggestion. Rebuilt per
+  // lookup, so it can only ever hold what is currently on screen.
+  type OrgOption = { id: string; label: string; conv: string | null };
+  let byId = new Map<string, OrgSuggestion>();
 
-  function scheduleLookup(q: string) {
-    if (lookupTimer) clearTimeout(lookupTimer);
-    const seq = ++lookupSeq;
-    if (!q || q.trim().length < 2) { suggestions = []; suggestOpen = false; return; }
-    lookupTimer = setTimeout(async () => {
-      try {
-        const r = await onLookupOrgs(q);
-        if (seq !== lookupSeq) return;           // a newer request landed first
-        suggestions = r;
-        suggestOpen = r.length > 0;
-      } catch {
-        if (seq === lookupSeq) { suggestions = []; suggestOpen = false; }
-      }
-    }, 180);
+  async function lookupOrgs(q: string): Promise<OrgOption[]> {
+    const found = await onLookupOrgs(q);
+    byId = new Map(found.map((o) => [String(o.id), o]));
+    return found.map((o) => ({
+      id: String(o.id),
+      label: o.complete_name ?? '(unnamed)',
+      conv: o.conventional_name && o.conventional_name !== o.complete_name
+        ? o.conventional_name
+        : null,
+    }));
   }
 
-  function pick(o: OrgSuggestion) {
-    onPickOrg(o);
-    suggestions = [];
-    suggestOpen = false;
+  function onSelectOrg(id: string) {
+    const org = byId.get(id);
+    // pickOrg() in App.svelte writes complete_name AND conventional_name back
+    // onto the affiliation, so `bind:value` carries the chosen name into the box.
+    // That is also why `clearOnSelect` is wrong here: this field is the value
+    // being saved, not a search term to be thrown away after use.
+    if (org) onPickOrg(org);
   }
-  function onCompleteInput() {
+
+  // THE DELEGATION RECIPE, not a workaround. `oninput`, `onkeydown` and `value`
+  // are refused by the component out loud — they are the keyboard contract — so
+  // a member that also wants the keystrokes listens on a WRAPPER. Both handlers
+  // below run in the bubble phase, after the widget has had the event.
+  function onNameInput(e: Event) {
+    if ((e.target as HTMLElement | null)?.tagName !== 'INPUT') return;
     savedFlash = false;
     affiliation.activeOrgId = null;              // user editing the name dissociates the picked org
-    scheduleLookup(affiliation.completeName);
+  }
+
+  function onNameKey(e: KeyboardEvent) {
+    // `defaultPrevented` is set IFF the widget picked an active option. Enter
+    // with nothing active is the MEMBER's submit — which is the capability this
+    // surface did not have, because Enter always belonged to suggestions[0].
+    if (e.key !== 'Enter' || e.defaultPrevented) return;
+    e.preventDefault();
+    e.stopPropagation();
+    commitName();
   }
 
   // ---- Save-name -------------------------------------------------------
@@ -88,18 +118,14 @@
       saving = false;
     }
   }
+  // The role and conventional_name fields are plain inputs — Enter commits.
+  // The org-name field is a combobox and uses onNameKey instead; Escape there
+  // belongs to the widget.
   function onKey(e: KeyboardEvent) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      e.stopPropagation();
-      if (suggestOpen && suggestions.length > 0) {
-        pick(suggestions[0]);                    // Enter on the input → first match
-        return;
-      }
-      commitName();
-    } else if (e.key === 'Escape' && suggestOpen) {
-      suggestOpen = false;
-    }
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    e.stopPropagation();
+    commitName();
   }
   async function expand() {
     affiliation.expanded = true;
@@ -159,42 +185,35 @@
           placeholder="primary · board · advisor · past CFO · investor · …"
         />
       </div>
-      <div class="pd-field pe-org-name-field">
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <!-- The wrapper carries the handlers because the widget refuses `oninput`
+           and `onkeydown` — they ARE its keyboard contract. This is the recipe
+           the component's own error message names, not a way around it. -->
+      <div class="pd-field pe-org-name-field" oninput={onNameInput} onkeydown={onNameKey}>
         <label for="aff_complete_{affiliation.uiId}">
-          complete_name <span class="pd-hint">— formal · type 2+ chars for suggestions</span>
+          complete_name <span class="pd-hint">— formal · 2+ chars to search · ↓ to choose</span>
         </label>
-        <input
+        <SearchBoxAutocomplete
           id="aff_complete_{affiliation.uiId}"
-          type="text"
-          autocomplete="off"
-          class:pd-flash={savedFlash}
           bind:value={affiliation.completeName}
-          onkeydown={onKey}
-          oninput={onCompleteInput}
-          onfocus={() => { if (suggestions.length > 0) suggestOpen = true; }}
+          lookup={lookupOrgs}
+          onselect={onSelectOrg}
+          label="complete_name"
           placeholder="The Institute for Humane Studies"
-        />
-        {#if suggestOpen && suggestions.length > 0}
-          <ul class="pe-org-suggest">
-            {#each suggestions as o, i (String(o.id))}
-              <CardRow as="li" density="compact">
-                  <SelectWrapperClickBody
-                    label="Use existing organization {o.complete_name ?? o.conventional_name ?? '(unnamed)'}"
-                    onselect={() => pick(o)}
-                  >
-                    <span class="pe-org-suggest-row">
-                      <span class="pe-org-suggest-name">{o.complete_name ?? '(unnamed)'}</span>
-                      {#if o.conventional_name && o.conventional_name !== o.complete_name}
-                        <span class="pe-org-suggest-conv">{o.conventional_name}</span>
-                      {/if}
-                      {#if i === 0}<span class="pe-org-suggest-enter">↵</span>{/if}
-                    </span>
-                </SelectWrapperClickBody>
-              </CardRow>
-            {/each}
-            <li class="pe-org-suggest-hint">Click or press <kbd>↵</kbd> to use existing · keep typing to create new</li>
-          </ul>
-        {/if}
+          minLength={2}
+          debounceMs={180}
+        >
+          {#snippet option(o)}
+            <span class="pe-org-suggest-row">
+              <span class="pe-org-suggest-name">{o.label}</span>
+              {#if o.conv}<span class="pe-org-suggest-conv">{o.conv}</span>{/if}
+            </span>
+          {/snippet}
+        </SearchBoxAutocomplete>
+        <div class="pd-hint">
+          <kbd>↓</kbd> then <kbd>↵</kbd> uses an existing org · <kbd>↵</kbd> on its own saves the
+          name you typed
+        </div>
         {#if affiliation.activeOrgId}
           <div class="pd-hint">
             → using existing org <code>{String(affiliation.activeOrgId).slice(0, 38)}…</code>
