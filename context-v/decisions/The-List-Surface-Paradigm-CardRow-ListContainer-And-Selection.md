@@ -497,6 +497,31 @@ CardRow--SearchResultItem
 Put the domain in the **block** and the second rollup still works while the first
 is lost. Structural role in the block, domain in the modifier, keeps both.
 
+### Context-passing shipped and is UNEXERCISED — recorded honestly, 2026-09-13
+
+`ListContainer` publishes `direction` and `CardRow` reads it. Across eight
+adopting members it removed the prop from **zero call sites**.
+
+Three still name `direction="column"` explicitly, and an explicit prop wins — so
+context changed nothing for them. Every other call site omits it, but
+`layout="list"` publishes `row`, **which is already `CardRow`'s own default**, so
+the context read is a no-op reproducing the fallback.
+
+It pays off only at `layout="grid"`, and exactly one member in the federation has
+a grid list. The 280px-track evidence that motivated it lives in a member shape
+that four of four pilots do not have.
+
+**So: correct, and premature.** It costs a `getContext` in the most-instantiated
+component in the federation, and it buys one call site today. Left in place
+because the one grid adopter does work, and because removing it would re-open a
+decision nothing is pressing — but it is **not** evidence that the mechanism was
+right, and it should be justified by a second grid adopter before anyone builds on
+it.
+
+Worth keeping as a pattern: *a mechanism that reproduces the default it replaced
+is indistinguishable from no mechanism.* The way to tell is to count call sites
+that actually changed, not call sites that now omit a prop.
+
 **Decided — by the operator:** layouts are components; nesting is expected; the
 examples given qualify.
 **Leaning — agent, open:** the does-it-know-its-children test, the token-ownership
