@@ -16,9 +16,7 @@
 .saa-context strong { color: var(--color-text, #e7e7e7); }
 .saa-context-none { font-style: italic; }
 .saa-context-warn { color: var(--color-error-text, #f3a3a3); }
-.saa-ws { margin-left: auto; font-size: 0.7rem; padding: 1px 7px; border-radius: 3px; background: var(--color-border, #2a2c33); }
-.saa-ws.status-open { background: var(--color-ok-bg, #173a26); color: var(--color-ok-text, #6ee7a8); }
-.saa-ws.status-closed, .saa-ws.status-error { background: var(--color-error-bg, #3a1717); color: var(--color-error-text, #f3a3a3); }
+.saa-ws-slot { margin-inline-start: auto; }
 
 /* term bar */
 .saa-termbar { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
@@ -49,9 +47,8 @@
 .saa-scan-label { font-size: 0.78rem; color: var(--color-text-muted, #9aa0aa); }
 .saa-scan-url { color: var(--color-link, #8ab4f8); font-size: 0.85rem; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
 .saa-scan-url:hover { text-decoration: underline; }
-.saa-scan-kind { font-size: 0.7rem; padding: 1px 6px; border-radius: 3px; background: var(--color-border, #2a2c33); color: var(--color-text-muted, #cfd3da); }
 .saa-scan-fire { margin-inline-start: auto; }
-.saa-known { font-size: 0.68rem; padding: 1px 6px; border-radius: 3px; margin-left: 0.5rem; background: var(--color-ok-bg, #173a26); color: var(--color-ok-text, #6ee7a8); }
+.saa-known-slot { margin-inline-start: var(--space-sm); }
 
 .saa-empty { color: var(--color-text-muted, #9aa0aa); font-size: 0.85rem; }
 .saa-error { color: var(--color-error-text, #f3a3a3); font-size: 0.8rem; margin-top: 0.35rem; }

@@ -5,6 +5,7 @@
   // errors stay localized to the row.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import type { ConnectorResult } from './lib/types';
 
   let {
@@ -55,7 +56,7 @@
   <div class="saa-row-main">
     <a class="saa-row-title" href={result.url} target="_blank" rel="noreferrer">{result.title}</a>
     <span class="saa-row-host">{host(result.url)}</span>
-    {#if known}<span class="saa-known">in corpus</span>{/if}
+    {#if known}<span class="saa-known-slot"><Chip size="sm" tone="ok">in corpus</Chip></span>{/if}
     {#if result.published_date}<span class="saa-row-date">{result.published_date.slice(0, 10)}</span>{/if}
     {#if result.content}<p class="saa-row-snippet">{result.content.slice(0, 220)}</p>{/if}
     {#if error}<div class="saa-error">{error}</div>{/if}
