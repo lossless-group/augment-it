@@ -21,9 +21,16 @@
   // `.cc-danger`, `.cc-back`, `.cc-tag-x` and the bare `.cc-app button` base
   // were deleted when this member adopted @augment-it/shared-ui's <Button>; the
   // `buttons` specimen below is now a usage catalog of that component's
-  // variants as this member spends them, not a catalog of local recipes. Three
-  // controls stayed raw — the two list rows and the suggestion option — and
-  // each carries its reasoning in app.css.
+  // variants as this member spends them, not a catalog of local recipes.
+  //
+  // The two list ROWS are no longer among them either. `.cc-strat` and `.cc-row`
+  // were the Button rollout's two holdouts, both left raw with the same note —
+  // "the organ this wants is a selectable list row; it does not exist yet" — and
+  // that organ shipped as <CardRow> + <SelectWrapper--ClickPrimary>. The `source-row`
+  // specimen below is now a usage catalog of those two components, which is why
+  // it still exists: the specimen that documented the holdout should be the one
+  // that documents its resolution. ONE control is still raw — the suggestion
+  // option — and it carries its reasoning in app.css.
   //
   // So they get catalogued as first-class entries, as markup rather than as
   // components. Each snippet takes the resolved props object, so the gallery's
@@ -32,7 +39,9 @@
   // Exported from `<script module>`: legal because none of these reference
   // instance state — they read only their own parameter.
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import SelectWrapperClickPrimary from '@augment-it/shared-ui/SelectWrapper--ClickPrimary.svelte';
   import { CONNECTION_TONE, type ConnStatus } from '../types';
 
   // Every connection state, in the order the divergence is easiest to read.
@@ -162,26 +171,33 @@
 
 {#snippet sourceRow(p: Record<string, unknown>)}
   <div class="cc-list">
-    <button class="cc-row" class:active={Boolean(p.active)}>
+    <CardRow density="compact" selected={Boolean(p.active)}>
       <span class="cc-dot"></span>
       <span class="cc-row-body">
-        <span class="cc-row-title">{String(p.title ?? 'The degree is not the job')}</span>
+        <SelectWrapperClickPrimary
+          label={String(p.title ?? 'The degree is not the job')}
+          selected={Boolean(p.active)}
+        >
+          <span class="cc-row-title">{String(p.title ?? 'The degree is not the job')}</span>
+        </SelectWrapperClickPrimary>
         <span class="cc-row-meta">
           <span>Brookings</span>
           <Chip size="sm" tone="ok">fetched</Chip>
           <Chip size="sm">Work-Based-Learning</Chip>
         </span>
       </span>
-    </button>
-    <button class="cc-row">
+    </CardRow>
+    <CardRow density="compact">
       <span class="cc-dot err"></span>
       <span class="cc-row-body">
-        <span class="cc-row-title"
-          >https://www.dol.gov/agencies/eta/apprenticeship/policy/registered-apprenticeship-national-guidelines</span
-        >
+        <SelectWrapperClickPrimary label="Registered apprenticeship national guidelines">
+          <span class="cc-row-title"
+            >https://www.dol.gov/agencies/eta/apprenticeship/policy/registered-apprenticeship-national-guidelines</span
+          >
+        </SelectWrapperClickPrimary>
         <span class="cc-row-meta"><Chip size="sm">metadata-only</Chip></span>
       </span>
-    </button>
+    </CardRow>
   </div>
 {/snippet}
 

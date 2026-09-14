@@ -84,7 +84,7 @@ export default defineGallery({
             'Not a recipe any more. Every control in this member is the federal <Button>, spent as five variant×size pairs: primary/md (fetch, create, add source, add extract), secondary/md (retry), destructive/md (remove source), secondary/sm (‹ All corpora in the header), link/sm (‹ corpora in the list head). It was six until the Chip adoption: ghost/icon existed solely for the tag ×, which is now the dismiss control INSIDE a <Chip dismissible> rather than a Button parked next to a label. The specimen imports the real component, so what renders is what ships.',
           usage: '<Button variant="primary">+ Add</Button>',
           deviation:
-            'None — zero override rungs. No radius=, no class= and no data-deviation anywhere in the member. Three controls were NOT adopted and stayed raw instead: .cc-strat, .cc-row and .cc-tag-suggest button, each of which would need every geometric property the component contributes overridden at once. Their reasoning lives in app.css beside each rule; the organs they want (a selectable list row, a combobox) do not exist yet.',
+            'None — zero override rungs. No radius=, no class= and no data-deviation anywhere in the member. Three controls were NOT adopted as Buttons. Two of them have since been adopted as something else: .cc-strat and .cc-row both wanted "a selectable list row", and that organ shipped as <CardRow> + <SelectWrapper--ClickBody> — see the Source row entry. One is still raw, .cc-tag-suggest button, whose organ (a combobox listbox option) does not exist yet.',
           a11y:
             'The floor moved. Every one of these is at least --control-h-sm (24px) tall, where the treatments they replaced were 19–26px. Boundaries are --color-border-strong (≈3.4:1) rather than --color-border (≈1.3:1, gate A22). disabled is a real attribute that shifts colour tokens, replacing the `opacity: 0.6` that used to stand in for state. The tag × is no longer catalogued here — see Tag bar recipe, which carries both the 12px → 28px → 24px history and the per-tag accessible name.',
           tokens: [
@@ -219,12 +219,12 @@ export default defineGallery({
           name: 'Source row',
           kind: 'pattern',
           status: 'stable',
-          source: 'apps/corpora-curator/src/app.css:167–188',
+          source: 'apps/corpora-curator/src/SourceList.svelte',
           summary:
-            'The hairline list row — status dot, title, meta line of publisher + status chip + tags. Selection is a tinted background plus a 3px accent rail, with the padding compensated so text does not shift. The chips in the meta line are <Chip size="sm">; the row itself is still a raw <button>, and the reason is below.',
+            'The source list row — status dot, title, meta line of publisher + status chip + tags. It is <CardRow density="compact"> with the title wrapped in <SelectWrapper--ClickPrimary>, and the selected state is CardRow\'s own `selected` prop (accent border + --color-accent-bg) rather than a tint plus a 3px rail. The dot, the title/meta stack and the chips are the member\'s; everything that draws the row is federal.',
           deviation:
-            'Deliberately NOT a <Button>, and the clearest example in this member of why. It is a <button> element, but it is full-bleed, left-aligned, two-line with a wrapping meta row, hairline-separated and of variable height — where Button is inline-flex, centred, nowrap and a fixed --control-h-*. Adopting it means overriding width, display, justify-content, text-align, white-space and height simultaneously, which negates the base recipe rather than adjusting it and leaves only a focus ring the federal *:focus-visible rule already supplies. The organ it wants is a selectable list row.',
-          tokens: ['--color-border', '--color-surface', '--color-selected-tint', '--color-accent', '--color-confidence-high', '--color-confidence-low', '--color-text-muted'],
+            'None any more, and this entry exists to record the reversal. It was the clearest holdout in this member — a raw <button> left un-adopted because it is full-bleed, left-aligned, two-line with a wrapping meta row and of variable height, where Button is inline-flex, centred, nowrap and a fixed --control-h-*. The note read "the organ it wants is a selectable list row." That organ now exists. --ClickPrimary rather than the --ClickBody this row actually wants: --ClickBody was built and measured on this member first and its <button> is `display: contents`, which removes it from Chromium\'s tab order — all seven rows in this member became keyboard-unreachable, a WCAG 2.1.1 Level A failure. Two known costs of the fallback: the click target is the title line rather than the whole row, and the row had a :hover background that CardRow has no state for.',
+          tokens: ['--color-border-strong', '--color-surface', '--color-accent-bg', '--color-primary', '--color-confidence-high', '--color-confidence-low', '--color-text-muted'],
           snippet: sourceRow,
           controls: {
             title: { kind: 'text', value: 'The degree is not the job' },

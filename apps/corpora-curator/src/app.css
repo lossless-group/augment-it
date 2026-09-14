@@ -134,8 +134,13 @@
    not set and therefore could not have overridden — appearance standing in for
    state, painted over a component that shifts colour tokens on purpose.
 
-   Three controls stayed raw. Each is a different organ from a button and says
-   so in its own rule below: .cc-strat, .cc-row and .cc-tag-suggest button. */
+   Three controls stayed raw at that point. TWO of them are raw no longer:
+   .cc-strat and .cc-row were both "a selectable list row, an organ that does
+   not exist yet", and that organ shipped as <CardRow> + <SelectWrapper
+   --ClickBody>. See their rules below for what each adoption deleted.
+
+   One is still raw: .cc-tag-suggest button. The organ it wants is a combobox
+   listbox option, which nobody has built. */
 
 .cc-app .cc-attached {
   display: flex;
@@ -156,31 +161,28 @@
 
 /* ---- strategy picker ---- */
 .cc-app .cc-strat-list { list-style: none; margin: 0.5rem 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
-/* Corpus row. NOT adopted as a Button, deliberately. It is full-bleed,
-   left-aligned, two-line and of variable height, where Button is inline-flex,
-   justify-content: center, white-space: nowrap and a fixed --control-h-*.
-   Adopting it needs width, display, flex-direction, justify-content,
-   text-align, white-space and height overridden AT ONCE — every geometric
-   property the component contributes — which negates the base recipe rather
-   than adjusting it, and leaves behind only a focus ring the federal
-   *:focus-visible rule already provides. The organ this wants is a selectable
-   list row; it does not exist yet. Values below are the ones it inherited from
-   the deleted `.cc-app button` base, moved here unchanged. */
-.cc-app .cc-strat {
-  width: 100%;
-  text-align: left;
+/* Corpus row — the holdout is GONE. It was left raw by the Button rollout with
+   the note "the organ this wants is a selectable list row; it does not exist
+   yet"; it is now <CardRow> + <SelectWrapper--ClickBody>. Deleted here: width,
+   text-align, display, flex-direction, font, color, background, border,
+   border-radius, padding, cursor and the :hover border — thirteen declarations,
+   every one of which the two components now contribute (cursor comes from
+   --ClickBody, the rest from CardRow).
+
+   `.cc-strat-body` replaces it: the row's title/meta STACK, which is one slot
+   inside CardRow's flex row. Rung 0 — a wrapper owning its own internal layout
+   is the parent's job and is not a deviation.
+
+   Known loss, raised not chased: `.cc-strat:hover` tinted the border on hover
+   and CardRow has no hover state, so the mouse affordance is gone. Keyboard is
+   unaffected — --ClickPrimary carries --focus-ring on a real box. */
+.cc-app .cc-strat-body {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font: inherit;
-  color: var(--color-text);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 0.35rem 0.7rem;
-  cursor: pointer;
 }
-.cc-app .cc-strat:hover { border-color: var(--color-accent); }
 .cc-app .cc-strat-title { font-weight: 600; }
 /* Slug + type on one line. The type chip is load-bearing: the list holds every
    type at once (gh #88) and (type, slug) is the real key. */
@@ -191,27 +193,18 @@
 .cc-app .cc-list-head { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--color-border); }
 .cc-app .cc-filter { flex: 1; font-size: 13px; }
 .cc-app .cc-add { display: flex; gap: 0.4rem; padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--color-border); }
-.cc-app .cc-list { flex: 1; overflow: auto; }
-/* Source row. Same holdout as .cc-strat and for the same reason — a hairline
-   list row with a wrapping meta line, not a control. `font`, `color` and
-   `cursor` moved here from the deleted `.cc-app button` base. */
-.cc-app .cc-row {
-  width: 100%;
-  text-align: left;
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
-  padding: 0.5rem 0.7rem;
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-  border-radius: 0;
-  background: none;
-  font: inherit;
-  color: var(--color-text);
-  cursor: pointer;
-}
-.cc-app .cc-row:hover { background: var(--color-surface); }
-.cc-app .cc-row.active { background: var(--color-selected-tint); border-left: 3px solid var(--color-accent); padding-left: calc(0.7rem - 3px); }
+.cc-app .cc-list { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 0.3rem; padding: 0.4rem; }
+/* Source row — the second holdout, also gone. <CardRow selected> +
+   <SelectWrapper--ClickBody>. Deleted here: the whole `.cc-row` rule (width,
+   text-align, display, gap, align-items, padding, border, border-bottom,
+   border-radius, background, font, color, cursor), `:hover`, and `.active`
+   with its tint, its 3px rail and the calc() that compensated the rail's width
+   so the text did not shift. `selected` on CardRow carries the selected state
+   now — accent border + --color-accent-bg — and needs no padding compensation
+   because it changes border COLOUR, not border width.
+
+   The list itself gains the rows' spacing: hairline separators belonged to the
+   row, card gaps belong to the container (rung 0). */
 .cc-app .cc-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 0.35em; flex: none; background: var(--color-confidence-high); }
 .cc-app .cc-dot.err { background: var(--color-confidence-low); }
 .cc-app .cc-row-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }

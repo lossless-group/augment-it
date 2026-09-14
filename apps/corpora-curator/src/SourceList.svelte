@@ -1,6 +1,8 @@
 <script lang="ts">
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import SelectWrapperClickPrimary from '@augment-it/shared-ui/SelectWrapper--ClickPrimary.svelte';
   import { curation } from './curation.svelte';
   import { SOURCE_STATUS_TONE } from './types';
 
@@ -41,13 +43,37 @@
     <p class="cc-muted cc-pad cc-mini">No sources yet. Paste a URL to add one.</p>
   {:else}
     {#each curation.filtered as { source, index } (source.source_uuid)}
-      <!-- Left raw. This is the list row, not a control: full-bleed, left
-           aligned, two lines with a wrapping meta line, hairline-separated and
-           of variable height. See the .cc-row rule in app.css. -->
-      <button class="cc-row" class:active={index === curation.focusIdx} onclick={() => curation.focus(index)}>
+      <!-- Was the raw <button class="cc-row"> holdout from the Button rollout,
+           whose stated reason was "the organ this wants is a selectable list
+           row; it does not exist yet." It exists now: CardRow draws the row and
+           a SelectWrapper carries the selection.
+
+           --ClickPrimary, and NOT the --ClickBody this surface actually wants.
+           --ClickBody was written, built and measured first: click-anywhere
+           worked, the overlay buried nothing (0 sibling controls on all 7 rows
+           in this member), and it is still WRONG here, because
+           `.ui-selectbody { display: contents }` takes the <button> out of
+           Chromium's sequential focus navigation entirely. Measured three ways
+           on the same page: at HEAD all four source rows and all three corpus
+           rows are tab-reachable; with --ClickBody, ZERO of the seven are;
+           forcing display:flex on the same element restores all seven in
+           document order. tabindex="0" does not help. That is WCAG 2.1.1
+           Keyboard, Level A, so --ClickBody cannot ship until the primitive is
+           fixed — see the migration report.
+
+           The cost of the fallback, stated plainly: the click target shrinks
+           from the whole 346x79 row to the title line. Still over the SC 2.5.8
+           floor, still keyboard-reachable, and honest. -->
+      <CardRow density="compact" selected={index === curation.focusIdx}>
         <span class="cc-dot" class:err={source.verdict_error}></span>
         <span class="cc-row-body">
-          <span class="cc-row-title">{source.title || source.url}</span>
+          <SelectWrapperClickPrimary
+            label={source.title || source.url}
+            selected={index === curation.focusIdx}
+            onselect={() => curation.focus(index)}
+          >
+            <span class="cc-row-title">{source.title || source.url}</span>
+          </SelectWrapperClickPrimary>
           <span class="cc-row-meta">
             {#if source.publisher}<span>{source.publisher}</span>{/if}
             <Chip size="sm" tone={SOURCE_STATUS_TONE[source.status ?? 'metadata-only']}
@@ -56,7 +82,7 @@
             {#each source.tags ?? [] as t}<Chip size="sm">{t}</Chip>{/each}
           </span>
         </span>
-      </button>
+      </CardRow>
     {/each}
   {/if}
 </div>

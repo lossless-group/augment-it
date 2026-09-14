@@ -1,6 +1,8 @@
 <script lang="ts">
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import SelectWrapperClickPrimary from '@augment-it/shared-ui/SelectWrapper--ClickPrimary.svelte';
   import { curation, slugify, splitTags } from './curation.svelte';
 
   // Mirrors content-ingest's DOMAIN_FOLDERS (services/content-ingest/src/
@@ -81,16 +83,28 @@
                (gh #88). Two corpora can share a slug across types, so the chip
                is also what makes them distinguishable.
 
-               NOT a shared-ui Button: this is a full-bleed, left-aligned, two-line row
-               of variable height. See the .cc-strat rule in app.css for the
-               override count that would be required. -->
-          <button class="cc-strat" onclick={() => curation.select(s.slug, s.type)}>
-            <span class="cc-strat-title">{s.title}</span>
-            <span class="cc-strat-meta">
-              <span class="cc-muted cc-mono cc-mini">{s.slug}</span>
-              {#if s.type}<Chip size="sm">{s.type}</Chip>{/if}
+               Was the raw <button class="cc-strat"> holdout. CardRow is a flex
+               ROW and this card stacks a title over a meta line, so the stack
+               moves into ONE slot — `.cc-strat-body` — which is rung 0: a
+               wrapper owning its own internal layout, not a deviation.
+               --ClickPrimary for the same reason as SourceList: --ClickBody is
+               what this row wants and is keyboard-dead as shipped
+               (`display: contents` removes its <button> from the tab order).
+               See the comment in SourceList.svelte for the measurement. -->
+          <CardRow density="compact">
+            <span class="cc-strat-body">
+              <SelectWrapperClickPrimary
+                label={`${s.title} — ${s.slug}${s.type ? ` (${s.type})` : ''}`}
+                onselect={() => curation.select(s.slug, s.type)}
+              >
+                <span class="cc-strat-title">{s.title}</span>
+              </SelectWrapperClickPrimary>
+              <span class="cc-strat-meta">
+                <span class="cc-muted cc-mono cc-mini">{s.slug}</span>
+                {#if s.type}<Chip size="sm">{s.type}</Chip>{/if}
+              </span>
             </span>
-          </button>
+          </CardRow>
         </li>
       {/each}
     </ul>

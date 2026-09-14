@@ -12,6 +12,7 @@
   import ConfidencePill from '@augment-it/shared-ui/ConfidencePill.svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import { MOCK_PACKS_FIXTURE } from './fixtures/mock-packs';
   import ConnectorPalette from './ConnectorPalette.svelte';
   import type { PaletteConnector, PalettePack } from './ConnectorPalette.svelte';
@@ -1548,7 +1549,7 @@
         {#each byRecord as group (group.row_id)}
           {@const accepted = acceptedPackIds(group)}
           {@const canRun = group.entity_name.trim().length > 0}
-          <article class="record-card">
+          <CardRow direction="column" density="compact">
             <header class="record-card-header">
               {#if group.entity_field}
                 <!-- Editable entity-name input. Looks like a heading until you
@@ -1762,7 +1763,7 @@
                 </li>
               {/each}
             </ul>
-          </article>
+          </CardRow>
         {/each}
       </div>
     {:else if viewMode === 'content-reader'}
@@ -1802,7 +1803,14 @@
             {@const manualPreview = manualPreviewByRowId[cr.row_id]}
             {@const manualErr = manualErrorByRowId[cr.row_id] ?? ''}
             {@const manualBusy = manualBusyRowId === cr.row_id}
-            <article class="record-card cr-card" class:cr-card-needs-fix={cr.status.kind === 'invalid-url'}>
+            <!-- `tone` + `direction`, zero override rungs. The first pass here
+                 spent rung-4 `style=` on the invalid-URL boundary and a rung-0
+                 `.cr-card` wrapper on the vertical stack; `tone="error"` and
+                 `direction="column"` retired both. -->
+            <CardRow
+              direction="column"
+              tone={cr.status.kind === 'invalid-url' ? 'error' : 'neutral'}
+            >
               <header class="cr-header">
                 <div class="cr-header-name">
                   <strong>{cr.entity_name || cr.row_id}</strong>
@@ -1959,9 +1967,10 @@
                       {@const sameHost = (manualPreview.extra_metadata as { same_host?: boolean } | undefined)?.same_host}
                       {@const isPdf = (manualPreview.extra_metadata as { is_pdf?: boolean } | undefined)?.is_pdf === true}
                       {@const inboxBound = manualSaveToInboxByRowId[cr.row_id] === true}
-                      <div
-                        class="cr-preview cr-manual-preview"
-                        class:cr-preview-failed={manualPreview.status === 'failed'}
+                      <CardRow
+                        density="compact"
+                        direction="column"
+                        tone={manualPreview.status === 'failed' ? 'error' : 'neutral'}
                       >
                         <div class="cr-preview-head">
                           <Chip size="sm" tone="neutral">manual</Chip>
@@ -2055,7 +2064,7 @@
                             <span>save to inbox instead{#if isPdf} <em>(recommended for PDF — downloads the binary)</em>{/if}</span>
                           </label>
                         {/if}
-                      </div>
+                      </CardRow>
                     {/if}
                   </div>
                 {/if}
@@ -2065,7 +2074,12 @@
                 {#if newPreviews.length > 0}
                   <ul class="cr-preview-list">
                     {#each newPreviews as p (p.response_id)}
-                      <li class="cr-preview" class:cr-preview-failed={p.status === 'failed'}>
+                      <CardRow
+                        as="li"
+                        density="compact"
+                        direction="column"
+                        tone={p.status === 'failed' ? 'error' : 'neutral'}
+                      >
                         <div class="cr-preview-head">
                           <Chip size="sm" tone="neutral">{p.pack_id ?? 'unknown'}</Chip>
                           {#if p.exact_url}
@@ -2128,7 +2142,7 @@
                             </Button>
                           </div>
                         {/if}
-                      </li>
+                      </CardRow>
                     {/each}
                   </ul>
                 {:else if !busy && previews.length > 0}
@@ -2143,7 +2157,7 @@
                   </p>
                 {/if}
               {/if}
-            </article>
+            </CardRow>
           {/each}
         </div>
       {/if}
@@ -2198,7 +2212,10 @@
 
           <ul class="links">
             {#each helpfulLinks as link (link.link_id)}
-              <li>
+              <!-- `as="li"` — the first pass here nested CardRow inside a bare
+                   <li> because a <div> is not a legal child of <ul>. The prop
+                   removes the wrapper level entirely. -->
+              <CardRow as="li" density="compact">
                 <a href={link.url} target="_blank" rel="noopener noreferrer">{linkLabel(link)}</a>
                 {#if link.note}<span class="link-note">{link.note}</span>{/if}
                 <span class="link-remove-slot">
@@ -2210,7 +2227,7 @@
                     title="Remove this link"
                   >×</Button>
                 </span>
-              </li>
+              </CardRow>
             {/each}
             {#if helpfulLinks.length === 0}
               <li class="muted empty">no links yet</li>

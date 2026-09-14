@@ -61,16 +61,11 @@
   flex-direction: column;
   gap: 0.3rem;
 }
-.resp-app ul.links li {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  padding: 0.3rem 0.5rem;
-  background: var(--color-field);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  font-size: 12px;
-}
+/* The helpful-links row is a <CardRow density="compact"> now. Deleted with the
+   adoption: display, align-items, gap, padding, background, border,
+   border-radius and font-size — every property that drew the row. The <li> is a
+   bare rung-0 wrapper and carries nothing. `.empty` below is the empty STATE,
+   not a row, and stays raw. */
 .resp-app ul.links li.empty {
   padding: 0.3rem 0.5rem;
   background: transparent;
@@ -709,14 +704,17 @@
 
 .resp-app .cr-record-list { gap: 0.7rem; }
 
-.resp-app .cr-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-.resp-app .cr-card-needs-fix {
-  border-color: var(--color-error-text, #d33);
-}
+/* The content-reader card is <CardRow direction="column" tone=…>. `.cr-card` is
+   GONE, not moved: the first pass kept it as a rung-0 column wrapper because
+   CardRow was horizontal-only, and `direction="column"` retired the wrapper
+   entirely. Deleted with the adoption: `.cr-card`'s display/flex-direction/gap,
+   the `.record-card` background / border / border-radius this card used to
+   borrow, and `.cr-card-needs-fix` — whose tint is `tone="error"` now, a prop
+   rather than the rung-4 `style=` the first pass spent on it.
+
+   Note the padding: these cards had NONE before — neither `.record-card` nor
+   `.cr-card` set any, so content sat flush against the border. CardRow's
+   density padding fixes that as a side effect. */
 
 .resp-app .cr-header {
   display: flex;
@@ -777,14 +775,10 @@
   list-style: none; margin: 0; padding: 0;
   display: flex; flex-direction: column; gap: 0.55rem;
 }
-.resp-app .cr-preview {
-  display: flex; flex-direction: column; gap: 0.35rem;
-  padding: 0.55rem 0.7rem;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: var(--color-surface, rgba(255, 255, 255, 0.02));
-}
-.resp-app .cr-preview-failed { border-color: var(--color-error-text, #d33); }
+/* Each preview is <CardRow as="li" density="compact" direction="column"
+   tone=…>. Deleted: display, flex-direction, gap, padding, border,
+   border-radius, background, and `.cr-preview-failed` — the failed boundary is
+   `tone="error"`. The <ul> keeps its own list layout below (rung 0). */
 .resp-app .cr-preview-head { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
 .resp-app .cr-fetched-at { font-size: 0.7rem; }
 
