@@ -7,6 +7,7 @@
   // (spec open question — leaning yes, as specced).
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import ResultsAccept from './ResultsAccept.svelte';
   import TeamAccept from './TeamAccept.svelte';
   import { dismissSearch, fetchSearchResults, fmtDuration, submitSearch } from './lib/search-client';
@@ -126,13 +127,15 @@
 <li class="srq-card status-{card.status}">
   <div class="srq-card-top">
   <button type="button" class="srq-card-row" onclick={toggle} aria-expanded={expanded}>
-    <span class="srq-chip srq-chip-{card.target}">{TARGET_LABEL[card.target]}</span>
+    <!-- rung 0 — the slot keeps the target label from shrinking inside the
+         card row's wrapping flex; the Chip itself is unmodified. -->
+    <span class="srq-chip-slot"><Chip size="sm" tone="neutral">{TARGET_LABEL[card.target]}</Chip></span>
     <span class="srq-org" title={card.entity.org_slug}>{orgLabel}</span>
     {#if inFlight}
       <span class="srq-status srq-status-running">
         {card.status === 'queued' ? 'queued' : 'running'}
         · {fmtDuration(elapsedMs)} <span class="srq-typical">/ typically ~{fmtDuration(card.typical_ms)}</span>
-        {#if overdue}<span class="srq-overdue" title="past 1.5× the typical duration — it may still land">slow</span>{/if}
+        {#if overdue}<Chip size="sm" tone="warn" title="past 1.5× the typical duration — it may still land">slow</Chip>{/if}
       </span>
     {:else if card.status === 'done'}
       <span class="srq-status srq-status-done">

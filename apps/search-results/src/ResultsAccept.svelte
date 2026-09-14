@@ -6,6 +6,7 @@
   // through; added ✓ sticks (server-side dedup), errors stay on the row.
 
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import { addCrawlResult } from './lib/search-client';
   import type { ConnectorResult } from './lib/types';
 
@@ -79,7 +80,7 @@
             {row.result.title || row.result.url}
           </a>
           <span class="srq-row-host">{host(row.result.url)}</span>
-          {#if row.result.kind}<span class="srq-kind">{row.result.kind}</span>{/if}
+          {#if row.result.kind}<span class="srq-kind-slot"><Chip size="sm" tone="neutral">{row.result.kind}</Chip></span>{/if}
           {#if row.result.name}<span class="srq-row-name">{row.result.name}</span>{/if}
           {#if row.result.content}<p class="srq-row-snippet">{row.result.content.slice(0, 220)}</p>{/if}
           {#if row.error}<div class="srq-error">{row.error}</div>{/if}

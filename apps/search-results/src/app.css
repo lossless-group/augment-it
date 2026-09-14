@@ -26,12 +26,8 @@
 
 .srq-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0 0.65rem; border-bottom: 1px solid var(--color-border, #2a2c33); position: sticky; top: 0; z-index: 2; background: var(--color-bg, #14151a); }
 .srq-title { font-size: 0.95rem; margin: 0; }
-.srq-badge { background: var(--color-accent, #8ab4f8); color: var(--color-on-accent, #10121a); font-size: 0.72rem; font-weight: 700; border-radius: 999px; min-width: 1.2rem; height: 1.2rem; display: inline-flex; align-items: center; justify-content: center; padding: 0 0.3rem; }
 .srq-running-note { color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; }
 .srq-right { margin-left: auto; display: inline-flex; gap: 0.4rem; align-items: center; }
-.srq-ws { font-size: 0.65rem; padding: 1px 6px; border-radius: 3px; background: var(--color-border, #2a2c33); }
-.srq-ws.status-open { background: var(--color-ok-bg, #173a26); color: var(--color-ok-text, #6ee7a8); }
-.srq-ws.status-closed, .srq-ws.status-error { background: var(--color-error-bg, #3a1717); color: var(--color-error-text, #f3a3a3); }
 
 .srq-empty { color: var(--color-text-muted, #9aa0aa); font-size: 0.8rem; line-height: 1.4; }
 
@@ -51,14 +47,18 @@
    caret. Both are size="icon" Buttons now — 28px, clearing the WCAG 2.2 2.5.8
    target floor the hand-rolled pair was under, at +28px of card height. */
 .srq-card-side { display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 0.3rem 0.45rem 0.3rem 0; gap: 0.15rem; flex-shrink: 0; }
-.srq-chip { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 1px 6px; border-radius: 3px; background: var(--color-border, #2a2c33); color: var(--color-text-muted, #cfd3da); flex-shrink: 0; }
-.srq-chip-team { background: color-mix(in srgb, var(--color-accent, #8ab4f8) 25%, var(--color-border, #2a2c33)); }
+/* Rung 0 — slots, not deviations. Each carries ONLY the placement declaration
+   its deleted recipe used to hold (the target label must not shrink inside the
+   card row's wrapping flex; the kind label keeps its inline offset). Chip
+   declares neither `flex` nor `margin`, so nothing the component owns is being
+   overridden. */
+.srq-chip-slot { display: inline-flex; flex: 0 0 auto; }
+.srq-kind-slot { margin-left: 0.4rem; }
 .srq-org { font-size: 0.84rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .srq-status { font-size: 0.72rem; color: var(--color-text-muted, #9aa0aa); display: inline-flex; align-items: center; gap: 0.3rem; font-variant-numeric: tabular-nums; }
 .srq-typical { opacity: 0.75; }
 .srq-status-done { color: var(--color-ok-text, #6ee7a8); }
 .srq-status-failed { color: var(--color-error-text, #f3a3a3); }
-.srq-overdue { font-size: 0.62rem; padding: 0 5px; border-radius: 3px; background: var(--color-error-bg, #3a1717); color: var(--color-error-text, #f3a3a3); }
 
 /* the arrival signal — a soft pulse on done cards */
 .srq-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--color-ok-text, #6ee7a8); animation: srq-pulse 2s ease-in-out infinite; }
@@ -84,7 +84,6 @@
 .srq-row-title { color: var(--color-link, #8ab4f8); text-decoration: none; font-size: 0.82rem; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .srq-row-title:hover { text-decoration: underline; }
 .srq-row-host { color: var(--color-text-muted, #9aa0aa); font-size: 0.68rem; margin-left: 0.4rem; }
-.srq-kind { font-size: 0.64rem; padding: 0 5px; border-radius: 3px; background: var(--color-border, #2a2c33); color: var(--color-text-muted, #cfd3da); margin-left: 0.4rem; }
 .srq-row-name { color: var(--color-text-muted, #cfd3da); font-size: 0.72rem; margin-left: 0.4rem; }
 .srq-row-snippet { margin: 0.2rem 0 0; font-size: 0.72rem; color: var(--color-text-muted, #b7bcc5); line-height: 1.35; overflow-wrap: anywhere; }
 
