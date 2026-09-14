@@ -257,7 +257,24 @@
   }
 
   /* Variant-family group — wraps its member cards in a bordered card.
-     Header is a button so the whole row toggles. */
+     Header is a button so the whole row toggles.
+
+     STILL A RAW <button>, AND DELIBERATELY SO — checked against CardRow and
+     SelectWrapper on 2026-09-13 and neither fits:
+
+       - It is a DISCLOSURE, not a selection. It carries aria-expanded and
+         toggles a region. Both SelectWrappers render aria-pressed, which is a
+         toggle-button contract, not a disclosure one; adopting either would
+         announce the wrong thing to a screen reader. A disclosure wrapper is a
+         separate organ and has been raised as one.
+       - It is a GROUP HEADER, not a row. Wrapping it in CardRow would mean
+         negating border (a header needs a bottom divider only), border-radius
+         (top corners only), background and padding — four of the five
+         properties CardRow contributes. Per the ladder: if the override negates
+         the base recipe rather than adjusts it, it is a different organ.
+
+     Measured raw: 70.9px tall with a wrapping label, against a 32px control.
+     Fixing the size by adopting Button would be the same mistake. */
   .rs-family {
     list-style: none;
     border: 1px solid var(--color-border);
@@ -322,7 +339,14 @@
   }
 
   /* Archive sub-section — shown either inside a family member or
-     directly below an ungrouped (solo) card. */
+     directly below an ungrouped (solo) card.
+
+     .rs-archive-head is a raw <button> for the same reason as .rs-family-head
+     above: a disclosure is not a selection, and a section header is not a row.
+     Measured raw at 27px — it clears the 24px WCAG 2.2 SC 2.5.8 floor, but only
+     by 3px, and only because its padding happens to add up. That is luck, not a
+     contract, and it is the argument for the disclosure organ rather than
+     against it. */
   .rs-archive-wrap {
     list-style: none;
     border: 1px dashed var(--color-border);
