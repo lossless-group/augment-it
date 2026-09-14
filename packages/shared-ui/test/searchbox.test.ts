@@ -191,3 +191,67 @@ describe('SearchBox--Autocomplete — the states LiveFilter does not have', () =
     expect(host.querySelector('[data-state="empty"]')).not.toBeNull();
   });
 });
+
+describe('SearchBox — the seams two adoptions were blocked on', () => {
+  it('Autocomplete accepts an initial value — a field that ARRIVES populated', async () => {
+    mount(Autocomplete, {
+      target: host,
+      props: { lookup: async () => [], label: 'Orgs', value: 'Institute for Humane Studies' },
+    });
+    await tick();
+    expect(input().value).toBe('Institute for Humane Studies');
+  });
+
+  it('LiveFilter accepts an initial value too', async () => {
+    mount(LiveFilter, { target: host, props: { options: OPTIONS, label: 'Fruit', value: 'ap' } });
+    await tick();
+    expect(input().value).toBe('ap');
+  });
+
+  it('clearOnSelect empties the box for surfaces that PICK rather than search', async () => {
+    mount(LiveFilter, {
+      target: host,
+      props: { options: OPTIONS, label: 'Fruit', clearOnSelect: true, onselect: () => {} },
+    });
+    await type('ap');
+    await key('ArrowDown');
+    await key('Enter');
+    expect(input().value).toBe('');
+  });
+
+  it('without clearOnSelect the text stays — you picked "Acme", the box says "acme"', async () => {
+    mount(LiveFilter, {
+      target: host,
+      props: { options: OPTIONS, label: 'Fruit', onselect: () => {} },
+    });
+    await type('ap');
+    await key('ArrowDown');
+    await key('Enter');
+    expect(input().value).toBe('ap');
+  });
+
+  it('refuses onkeydown rather than letting it REPLACE the keyboard contract', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mount(LiveFilter, {
+      target: host,
+      props: { options: OPTIONS, label: 'Fruit', onkeydown: () => {} },
+    });
+    await tick();
+    expect(err).toHaveBeenCalled();
+    expect(String(err.mock.calls[0][0])).toContain('onkeydown');
+    err.mockRestore();
+  });
+
+  it('and the contract still works when a member tried to pass one', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    mount(LiveFilter, {
+      target: host,
+      props: { options: OPTIONS, label: 'Fruit', onkeydown: () => {} },
+    });
+    input().focus();
+    await type('ap');
+    await key('ArrowDown');
+    expect(input().getAttribute('aria-activedescendant')).toBe(opts()[0].id);
+    vi.restoreAllMocks();
+  });
+});

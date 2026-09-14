@@ -36,6 +36,16 @@
     placeholder?: string;
     /** Popup is suppressed while true — Autocomplete uses it below minLength. */
     suppressed?: boolean;
+    /**
+     * Empty the input after a pick. OFF by default.
+     *
+     * Five of six members SEARCH — you picked "Acme Corp", the box should still
+     * say "acme". One PICKS: adding a tag leaves the fragment behind and the next
+     * tag is typed onto the end of it. That member worked around it by remounting
+     * the whole widget behind {#key} and re-focusing on tick(), six lines in two
+     * files, for want of this.
+     */
+    clearOnSelect?: boolean;
     oninput?: (text: string) => void;
     onselect?: (id: string) => void;
     /** Rendered inside the popup instead of options — loading, empty, error. */
@@ -51,6 +61,7 @@
     value = $bindable(''),
     placeholder,
     suppressed = false,
+    clearOnSelect = false,
     oninput,
     onselect,
     status,
@@ -58,6 +69,26 @@
     class: klass = '',
     ...rest
   }: Props = $props();
+
+  // A member passing `onkeydown` — the obvious spelling for "and also handle my
+  // Enter" — used to REPLACE the entire keyboard contract, because `{...rest}`
+  // was spread after the component's own handlers and a later attribute wins. No
+  // error, and it rendered identically. Same silent-clobber shape as the `class`
+  // bug in Button and both SelectWrappers.
+  //
+  // `rest` now spreads FIRST, so the contract always wins, and the three keys
+  // that would have fought it are refused out loud.
+  const RESERVED = ['onkeydown', 'oninput', 'value'] as const;
+  $effect(() => {
+    const taken = RESERVED.filter((k) => k in rest);
+    if (taken.length) {
+      console.error(
+        `[@augment-it/shared-ui] <SearchBox> ignoring ${taken.join(', ')} — these ` +
+          `belong to the widget's keyboard contract. To add your own Enter, listen ` +
+          `on a wrapper and read e.defaultPrevented, which is set iff the widget picked.`,
+      );
+    }
+  });
 
   const uid = `ui-searchbox-${Math.random().toString(36).slice(2, 10)}`;
   const listId = `${uid}-list`;
@@ -77,6 +108,10 @@
     if (!o) return;
     open = false;
     active = -1;
+    if (clearOnSelect) {
+      value = '';
+      oninput?.('');
+    }
     onselect?.(o.id);
   }
 
@@ -115,6 +150,7 @@
 
 <div class="ui-searchbox {klass}">
   <input
+    {...rest}
     type="text"
     role="combobox"
     aria-label={label}
@@ -129,7 +165,6 @@
     {onkeydown}
     onblur={() => queueMicrotask(() => { open = false; })}
     class="ui-searchbox__input"
-    {...rest}
   />
 
   {#if isOpen}

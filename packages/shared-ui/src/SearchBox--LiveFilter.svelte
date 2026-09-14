@@ -16,19 +16,31 @@
   type Props = {
     options: SearchOption[];
     label: string;
+    /** The text in the box. Bindable — see SearchBox--Autocomplete's note. */
+    value?: string;
     placeholder?: string;
     onselect?: (id: string) => void;
     /** Override the match. Default is case-insensitive substring on `label`. */
     match?: (option: SearchOption, query: string) => boolean;
+    /** Empty the box after a pick — for surfaces that PICK rather than search. */
+    clearOnSelect?: boolean;
     option?: Snippet<[SearchOption]>;
     class?: string;
     [key: string]: unknown;
   };
 
-  let { options, label, placeholder, onselect, match, option, class: klass = '', ...rest }: Props =
-    $props();
-
-  let query = $state('');
+  let {
+    options,
+    label,
+    value = $bindable(''),
+    placeholder,
+    onselect,
+    match,
+    clearOnSelect = false,
+    option,
+    class: klass = '',
+    ...rest
+  }: Props = $props();
 
   const defaultMatch = (o: SearchOption, q: string) =>
     o.label.toLowerCase().includes(q.toLowerCase());
@@ -36,17 +48,18 @@
   // An empty query shows everything. A member that wants "type before you see
   // anything" has an Autocomplete-shaped need, not a filter-shaped one.
   const shown = $derived(
-    !query.trim() ? options : options.filter((o) => (match ?? defaultMatch)(o, query.trim())),
+    !value.trim() ? options : options.filter((o) => (match ?? defaultMatch)(o, value.trim())),
   );
 </script>
 
 <SearchBoxCore
-  bind:value={query}
+  {...rest}
+  bind:value
   options={shown}
   {label}
   {placeholder}
   {onselect}
+  {clearOnSelect}
   {option}
   class={klass}
-  {...rest}
 />

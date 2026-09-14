@@ -26,6 +26,19 @@
     /** Queries the service. Rejections become the error state, never a silent empty. */
     lookup: (query: string) => Promise<SearchOption[]>;
     label: string;
+    /**
+     * The text in the box. BINDABLE, and it has to be.
+     *
+     * Three things break without it, all of them measured at real call sites:
+     * a member whose field ARRIVES POPULATED renders empty and silently drops a
+     * value the operator was shown; a member cannot read what was typed, which
+     * is how you seed a create-this-instead form; and picking cannot write the
+     * chosen label back, which is standard autocomplete behaviour.
+     *
+     * The core always had `bind:value`. The variant just failed to pass it
+     * through, which blocked one adoption outright.
+     */
+    value?: string;
     placeholder?: string;
     onselect?: (id: string) => void;
     /** Do not query below this length. Two members independently chose 2. */
@@ -39,6 +52,7 @@
   let {
     lookup,
     label,
+    value = $bindable(''),
     placeholder,
     onselect,
     minLength = 2,
@@ -48,7 +62,6 @@
     ...rest
   }: Props = $props();
 
-  let query = $state('');
   let results = $state<SearchOption[]>([]);
   // `phase`, not `state` — a variable called `state` SHADOWS the $state rune and
   // the component stops compiling with an error that names the rune rather than
@@ -60,7 +73,7 @@
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   function oninput(text: string) {
-    query = text;
+    value = text;
     clearTimeout(timer);
 
     if (text.trim().length < minLength) {
@@ -90,7 +103,8 @@
 </script>
 
 <SearchBoxCore
-  bind:value={query}
+  {...rest}
+  bind:value
   options={results}
   {label}
   {placeholder}
@@ -99,7 +113,6 @@
   {option}
   suppressed={phase === 'idle'}
   class={klass}
-  {...rest}
 >
   {#snippet status()}
     {#if phase === 'loading'}
