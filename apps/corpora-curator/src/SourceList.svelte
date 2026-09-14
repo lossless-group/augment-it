@@ -1,6 +1,8 @@
 <script lang="ts">
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import { curation } from './curation.svelte';
+  import { SOURCE_STATUS_TONE } from './types';
 
   let addUrl = $state('');
 
@@ -48,8 +50,10 @@
           <span class="cc-row-title">{source.title || source.url}</span>
           <span class="cc-row-meta">
             {#if source.publisher}<span>{source.publisher}</span>{/if}
-            <span class="cc-status-chip">{source.status ?? 'metadata-only'}</span>
-            {#each source.tags ?? [] as t}<span class="cc-tag-mini">{t}</span>{/each}
+            <Chip size="sm" tone={SOURCE_STATUS_TONE[source.status ?? 'metadata-only']}
+              >{source.status ?? 'metadata-only'}</Chip
+            >
+            {#each source.tags ?? [] as t}<Chip size="sm">{t}</Chip>{/each}
           </span>
         </span>
       </button>

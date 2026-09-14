@@ -9,7 +9,7 @@
 // match the workspace package's placement-invariant note about field lowering.
 
 import { workspace, WORKSPACE_CHANGED_EVENT, type WorkspaceSummary, resolveWsUrl } from '@augment-it/workspace';
-import type { ExtractKind, Source, Strategy } from './types';
+import type { ConnStatus, ExtractKind, Source, Strategy } from './types';
 
 const TOKEN_KEY = 'augment-it:session-token';
 // No `shared` block in federation (shell/rsbuild.config.ts) — this remote
@@ -56,8 +56,6 @@ export function splitTags(raw: string): string[] {
     .map(toDashed)
     .filter(Boolean);
 }
-
-type ConnStatus = 'idle' | 'connecting' | 'open' | 'closed' | 'error' | 'auth_required';
 
 class CurationState {
   connection: ConnStatus;

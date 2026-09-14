@@ -45,15 +45,28 @@ export default defineGallery({
     'Corpora Curator on screen. Pick a corpus, gather sources metadata-first, fetch them, tag and extract. Tier B in the member registry, debt: high.',
   // State hooks that legitimately carry no `cc-` prefix. They only ever appear
   // alongside a prefixed class, so the containment audit would otherwise report
-  // each of them as a leak. `status-*` is generated (`cc-conn status-{state}`).
+  // each of them as a leak.
   //
   // `ui-btn` is a different case and the reason it heads the list: it is the
   // FEDERAL Button's own class. A federal component's classes can never carry a
   // member's prefix — they would have to carry nineteen — so without this entry
   // every button specimen in every adopting catalog reports a permanent leak.
+  //
+  // Chip costs FOUR entries where Button costs one, and that is worth flagging
+  // rather than absorbing. Button deliberately carries a single class and rides
+  // its enums on data-* attributes, and the comment in Button.svelte says why:
+  // "each modifier class would be a permanent finding in all nineteen catalogs."
+  // Chip does the same for its enums but adds BEM element classes — __label
+  // always, __dot and __dismiss conditionally — so every adopting catalog has to
+  // list all four or read leaks in its Audit tab forever. Raised, not chased.
+  //
+  // The `status-*` entries are GONE: they only ever existed for `.cc-conn
+  // status-{state}`, and the connection label is a <Chip tone> now, so the
+  // generated class no longer exists to be exempted.
   exemptClasses: [
     'ui-btn',
-    'active', 'err', 'status-open', 'status-error', 'status-closed', 'status-idle', 'status-connecting',
+    'ui-chip', 'ui-chip__label', 'ui-chip__dot', 'ui-chip__dismiss',
+    'active', 'err',
   ],
 
   sections: [
@@ -61,7 +74,7 @@ export default defineGallery({
       id: 'recipes',
       title: 'Recipes',
       blurb:
-        'Class-based primitives from app.css. No component behind any of them — which is precisely why they need cataloguing: nothing stops a fourth badge treatment from being appended to the stylesheet. The one former resident that is no longer class-based is Buttons: it now catalogues how this member spends the federal component.',
+        'Class-based primitives from app.css. No component behind any of them — which is precisely why they need cataloguing: nothing stops a fourth badge treatment from being appended to the stylesheet. Two former residents are no longer class-based at all: Buttons and Pills & status chips now catalogue how this member SPENDS the federal <Button> and <Chip> rather than what it drew itself. The remaining recipes are a card, a field stack, a list row and a banner.',
       entries: [
         {
           id: 'buttons',
@@ -70,12 +83,12 @@ export default defineGallery({
           status: 'stable',
           source: 'packages/shared-ui/src/Button.svelte',
           summary:
-            'Not a recipe any more. Every control in this member is the federal <Button>, spent as six variant×size pairs: primary/md (fetch, create, add source, add extract), secondary/md (retry), destructive/md (remove source), secondary/sm (‹ All corpora in the header), link/sm (‹ corpora in the list head), ghost/icon (the tag ×). The specimen imports the real component, so what renders is what ships.',
+            'Not a recipe any more. Every control in this member is the federal <Button>, spent as five variant×size pairs: primary/md (fetch, create, add source, add extract), secondary/md (retry), destructive/md (remove source), secondary/sm (‹ All corpora in the header), link/sm (‹ corpora in the list head). It was six until the Chip adoption: ghost/icon existed solely for the tag ×, which is now the dismiss control INSIDE a <Chip dismissible> rather than a Button parked next to a label. The specimen imports the real component, so what renders is what ships.',
           usage: '<Button variant="primary">+ Add</Button>',
           deviation:
             'None — zero override rungs. No radius=, no class= and no data-deviation anywhere in the member. Three controls were NOT adopted and stayed raw instead: .cc-strat, .cc-row and .cc-tag-suggest button, each of which would need every geometric property the component contributes overridden at once. Their reasoning lives in app.css beside each rule; the organs they want (a selectable list row, a combobox) do not exist yet.',
           a11y:
-            'The floor moved. Every one of these is at least --control-h-sm (24px) tall and the icon size is 28×28, where the treatments they replaced were 19–26px and the tag × was a zero-padding 12px glyph — a live WCAG 2.2 SC 2.5.8 failure this member documented against itself. Boundaries are --color-border-strong (≈3.4:1) rather than --color-border (≈1.3:1, gate A22). disabled is a real attribute that shifts colour tokens, replacing the `opacity: 0.6` that used to stand in for state.',
+            'The floor moved. Every one of these is at least --control-h-sm (24px) tall, where the treatments they replaced were 19–26px. Boundaries are --color-border-strong (≈3.4:1) rather than --color-border (≈1.3:1, gate A22). disabled is a real attribute that shifts colour tokens, replacing the `opacity: 0.6` that used to stand in for state. The tag × is no longer catalogued here — see Tag bar recipe, which carries both the 12px → 28px → 24px history and the per-tag accessible name.',
           tokens: [
             '--control-h-sm', '--control-h-md', '--color-primary', '--color-primary-foreground',
             '--color-surface-raised', '--color-border-strong', '--color-error-bg', '--color-error-fg',
@@ -155,28 +168,41 @@ export default defineGallery({
           id: 'chips',
           name: 'Pills & status chips',
           kind: 'pattern',
-          status: 'legacy',
-          source: 'apps/corpora-curator/src/app.css:26–52',
+          status: 'stable',
+          source: 'packages/shared-ui/src/Chip.svelte',
           summary:
-            'Three unrelated small-badge treatments that coexist: .cc-pill (rounded, bordered), .cc-status-chip (square, bordered), .cc-conn (square, filled by state). Same job, three looks.',
+            'Not a recipe any more. Every label in this member is the federal <Chip>, spent at one size — sm everywhere, because every label here is chrome — across five of the six tones: neutral (workspace, corpus type, source count, metadata-only, tags), ok (fetched, connection open), info (connecting), warn (auth_required) and error (closed, error). accent is unspent; nothing in this member means "selected" as a label. The specimen imports the real component, so what renders is what ships.',
+          usage: '<Chip size="sm" tone={CONNECTION_TONE[curation.connection]}>{curation.connection}</Chip>',
           deviation:
-            'Not a deviation so much as an unresolved one — this member contributes three of the federation-wide 34 badge treatments. Any consolidation should start here.',
-          tokens: ['--color-border', '--color-surface-raised', '--color-ok-bg', '--color-ok-text', '--color-error-bg', '--color-error-text'],
+            'None — zero override rungs. No radius=, no class= and no data-deviation, the same as this member\'s Button adoption. What this entry used to say was "three of the federation-wide 34 badge treatments; any consolidation should start here," and .cc-pill, .cc-conn, .cc-status-chip, .cc-tag and .cc-tag-mini were all deleted to make it stop being true.',
+          a11y:
+            'The connection label is the measurable change. Colour was NEVER its only signal — the text always read "open" / "closed" — but the colour it carried was wrong for half the vocabulary: idle, connecting and auth_required all fell through to one grey, so three different conditions rendered identically. tone now comes from CONNECTION_TONE in types.ts, which is a semantic map rather than a palette. Text sits on the tone\'s own paired background (--color-ok-bg / --color-ok-fg and friends), not on the page, and every pair clears 4.5:1 in all three modes — where .cc-conn painted --color-ok-text on --color-ok-bg by hand and .cc-pill and .cc-status-chip both drew a --color-border boundary at ~1.3:1.',
+          tokens: [
+            '--color-surface-2', '--color-text-muted', '--color-border-strong', '--radius-pill', '--text-label',
+            '--color-ok-bg', '--color-ok-fg', '--color-warn-bg', '--color-warn-fg',
+            '--color-error-bg', '--color-error-fg', '--color-info-bg', '--color-info-fg',
+          ],
           snippet: chips,
           controls: { count: { kind: 'number', value: 4, min: 0, max: 99 } },
-          fixtures: [{ id: 'all', name: 'All treatments', note: 'Deliberately shown together. Apart, each looks fine.' }],
+          fixtures: [
+            {
+              id: 'all',
+              name: 'All treatments',
+              note: 'Was "deliberately shown together — apart, each looks fine." They are one treatment now; the second row is every connection state, which is where the old recipe collapsed three conditions into one grey.',
+            },
+          ],
         },
         {
           id: 'tags',
           name: 'Tag bar recipe',
           kind: 'pattern',
           status: 'stable',
-          source: 'apps/corpora-curator/src/app.css:189–212',
+          source: 'apps/corpora-curator/src/app.css:189–200',
           summary:
-            'Train-Case tag chips with a remove affordance, plus the absolutely-positioned autocomplete popover. The popover is the only z-index in the member.',
+            'Train-Case tag chips with a remove affordance, plus the absolutely-positioned autocomplete popover. Only .cc-tags and .cc-tag-suggest are recipes now — the chips themselves are <Chip dismissible>, and the read-only variant that used to be .cc-tag-mini is the same component without the boolean. The popover is the only z-index in the member.',
           a11y:
-            'Was: “the × is a 12px glyph in a zero-padding button — well under the 24×24 target floor.” Now a <Button size="icon">, which is 28×28 and carries aria-label="remove tag". The chip grew to fit it; that is the target floor being met rather than a regression.',
-          tokens: ['--color-selected-tint', '--color-border', '--color-surface-raised', '--fx-card-shadow'],
+            'Two steps, and the second one trades. First it was “a 12px glyph in a zero-padding button — well under the 24×24 floor”, then a <Button size="icon"> at 28×28. <Chip dismissible> is 24×24: still over the WCAG 2.2 SC 2.5.8 floor, but sitting exactly ON it where the Button sat 4px clear. What it buys is the name. Every × in this member announced the identical "remove tag"; dismissLabel now carries the tag itself, so a row of five tags is five distinguishable controls instead of five identical ones. The glyph is also an inline <svg> rather than a × character, which is the federal icon rule. The input still has no associated <label>.',
+          tokens: ['--color-surface-2', '--color-text-muted', '--color-border-strong', '--control-h-sm', '--icon-sm', '--fx-card-shadow'],
           snippet: tags,
           controls: { suggesting: { kind: 'boolean', label: 'show suggestions', value: false } },
           fixtures: [
@@ -197,7 +223,7 @@ export default defineGallery({
           status: 'stable',
           source: 'apps/corpora-curator/src/app.css:167–188',
           summary:
-            'The hairline list row — status dot, title, meta line of publisher + status chip + tag minis. Selection is a tinted background plus a 3px accent rail, with the padding compensated so text does not shift.',
+            'The hairline list row — status dot, title, meta line of publisher + status chip + tags. Selection is a tinted background plus a 3px accent rail, with the padding compensated so text does not shift. The chips in the meta line are <Chip size="sm">; the row itself is still a raw <button>, and the reason is below.',
           deviation:
             'Deliberately NOT a <Button>, and the clearest example in this member of why. It is a <button> element, but it is full-bleed, left-aligned, two-line with a wrapping meta row, hairline-separated and of variable height — where Button is inline-flex, centred, nowrap and a fixed --control-h-*. Adopting it means overriding width, display, justify-content, text-align, white-space and height simultaneously, which negates the base recipe rather than adjusting it and leaves only a focus ring the federal *:focus-visible rule already supplies. The organ it wants is a selectable list row.',
           tokens: ['--color-border', '--color-surface', '--color-selected-tint', '--color-accent', '--color-confidence-high', '--color-confidence-low', '--color-text-muted'],
@@ -315,8 +341,8 @@ export default defineGallery({
             'Tag editor for the focused source. Renders the current tags, removes on ×, adds on Enter, and suggests from the workspace vocabulary as you type.',
           usage: '<TagBar />   <!-- no props: reads curation.focused and curation.tagVocab -->',
           a11y:
-            'The remove control is a <Button size="icon"> carrying aria-label="remove tag" — 28×28, so it now clears the WCAG 2.2 SC 2.5.8 floor it used to fail at 12px. The input still has no associated <label>.',
-          tokens: ['--color-selected-tint', '--color-border', '--color-text-muted'],
+            'The remove control is <Chip dismissible> — a real nested <button> inside a <span>, 24×24, named per-tag via dismissLabel rather than the one shared "remove tag" every × used to announce. The input still has no associated <label>.',
+          tokens: ['--color-surface-2', '--color-text-muted', '--color-border-strong', '--control-h-sm'],
           component: TagBar,
           fixtures: [
             {
@@ -411,7 +437,8 @@ export default defineGallery({
           summary:
             'The right column: every editable field on the focused source, the fetch/retry actions, the tag bar, and the extract composer. The densest surface in the member.',
           usage: '<SourceDetail />',
-          a11y: 'Commits on blur or Enter and confirms with a 1.6s border flash — a visual-only confirmation with no live region behind it.',
+          a11y:
+            'Commits on blur or Enter and confirms with a 1.6s border flash — a visual-only confirmation with no live region behind it. Separately: the leading .cc-dot on each source row encodes verdict_error by hue alone (confidence-high green vs confidence-low red) with no text and no accessible name, which is a live WCAG 1.4.1 failure. It is NOT chip-shaped — a bare 8px circle in the row gutter is not a label — so the Chip rollout left it alone and raised it rather than inventing a chip to hold it.',
           tokens: ['--color-surface', '--color-border', '--color-field', '--color-accent', '--focus-ring'],
           component: SourceDetail,
           fixtures: [

@@ -27,18 +27,7 @@
 .cc-app .cc-brand { font-weight: 600; }
 .cc-app .cc-strategy { color: var(--color-accent); font-weight: 600; }
 .cc-app .cc-spacer { flex: 1; }
-.cc-app .cc-pill {
-  font-size: 12px;
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-raised);
-}
 .cc-app .cc-ws { width: auto; padding: 0.15rem 0.4rem; font-size: 12px; }
-.cc-app .cc-conn { font-size: 11px; padding: 1px 7px; border-radius: 3px; background: var(--color-border); }
-.cc-app .cc-conn.status-open { background: var(--color-ok-bg); color: var(--color-ok-text); }
-.cc-app .cc-conn.status-error,
-.cc-app .cc-conn.status-closed { background: var(--color-error-bg); color: var(--color-error-text); }
 
 .cc-app .cc-banner {
   padding: 0.4rem 1rem;
@@ -79,6 +68,15 @@
   color: var(--color-accent);
 }
 .cc-app .cc-field { display: flex; flex-direction: column; gap: 0.2rem; margin-bottom: 0.6rem; }
+/* Rung 0 — layout is the parent's job, and a field is a COLUMN flex container,
+   so anything in it stretches to the column's full width by default. That is
+   right for the inputs (which is why the field is a column in the first place)
+   and wrong for a label: the before/after probe measured the Status chip in
+   SourceDetail at 854px wide. It was 854px BEFORE this migration too — the old
+   .cc-status-chip stretched identically — but a 3px-radius rectangle spanning
+   the column merely looked like a band, where a --radius-pill one looks like a
+   mistake. Found by measuring, not by reading the diff. */
+.cc-app .cc-chip-slot { align-self: flex-start; }
 .cc-app .cc-field label,
 .cc-app .cc-field .cc-label { font-size: 12px; color: var(--color-text-muted); }
 .cc-app .cc-value { color: var(--color-text); }
@@ -219,16 +217,29 @@
 .cc-app .cc-row-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .cc-app .cc-row-title { overflow: hidden; text-overflow: ellipsis; }
 .cc-app .cc-row-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; font-size: 11px; color: var(--color-text-muted); align-items: center; }
-.cc-app .cc-status-chip { font-size: 11px; padding: 0 0.35rem; border-radius: 3px; background: var(--color-surface-raised); border: 1px solid var(--color-border); }
 
-/* ---- tags ---- */
-.cc-app .cc-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.3rem; }
-/* Vertical padding dropped to zero (rung 0 — layout is the parent's job). The
-   chip now wraps a <Button size="icon">, which owns a 28px target height of its
-   own; padding on top of that only made the chip taller than the control it
-   exists to hold. Matches .cc-tag-mini, which has been `padding: 0 …` all along. */
-.cc-app .cc-tag { display: inline-flex; align-items: center; gap: 0.2rem; font-size: 12px; padding: 0 0.45rem; border-radius: 999px; background: var(--color-selected-tint); border: 1px solid var(--color-border); }
-.cc-app .cc-tag-mini { font-size: 11px; padding: 0 0.35rem; border-radius: 999px; background: var(--color-selected-tint); }
+/* ---- labels ----
+   There are no badge recipes here any more either. Every pill, status chip and
+   tag in this member is <Chip> from @augment-it/shared-ui, at override-ladder
+   rung 1 (tone + size) — no radius override, no class passthrough, no
+   data-deviation. Deleted on adoption: .cc-pill; .cc-conn with its .status-open,
+   .status-error and .status-closed variants; .cc-status-chip; .cc-tag;
+   .cc-tag-mini.
+
+   Those five WERE this member's contribution to the federation's 34 badge
+   treatments, and the gallery's `chips` entry has carried the note "three
+   unrelated small-badge treatments that coexist … same job, three looks" since
+   the day it was written. There is one treatment now, and the only thing that
+   varies across it is `tone` — which is semantic. Worth naming what that
+   exposed: .cc-conn was the sole recipe of the five whose colour meant anything,
+   and it meant it in a member-local vocabulary (open green, error and closed
+   red, everything else grey) that no other surface in the federation could read.
+   `idle`, `connecting` and `auth_required` all fell through to the same grey,
+   which said they were the same condition. They are not.
+
+   .cc-tags survives because it is the wrapping flex row the chips sit IN, and
+   layout is the parent's job (rung 0), not a deviation. */
+.cc-app .cc-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; margin-bottom: 0.3rem; }
 .cc-app .cc-tag-input { position: relative; }
 .cc-app .cc-tag-suggest {
   position: absolute;

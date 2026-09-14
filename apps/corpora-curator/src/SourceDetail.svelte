@@ -1,7 +1,8 @@
 <script lang="ts">
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import { curation } from './curation.svelte';
-  import { EXTRACT_KINDS, type ExtractKind } from './types';
+  import { EXTRACT_KINDS, SOURCE_STATUS_TONE, type ExtractKind } from './types';
   import TagBar from './TagBar.svelte';
 
   let extractKind = $state<ExtractKind>('Quotes');
@@ -91,7 +92,9 @@
     </div>
     <div class="cc-field">
       <span class="cc-label">Status</span>
-      <span class="cc-status-chip">{s.status ?? 'metadata-only'}</span>
+      <span class="cc-chip-slot"
+        ><Chip size="sm" tone={SOURCE_STATUS_TONE[s.status ?? 'metadata-only']}>{s.status ?? 'metadata-only'}</Chip></span
+      >
     </div>
 
     <div class="cc-field">

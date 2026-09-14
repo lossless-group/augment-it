@@ -8,6 +8,15 @@
   // measurement that started all this counted 158 button rule-sets and 34 badge
   // treatments; none of them were components.)
   //
+  // The BADGE recipes are no longer among them either. `.cc-pill`, `.cc-conn`
+  // (with its three state variants), `.cc-status-chip`, `.cc-tag` and
+  // `.cc-tag-mini` were deleted when this member adopted <Chip>; the `chips` and
+  // `tags` specimens below are usage catalogs of that component too. The `chips`
+  // entry used to exist to SHOW a problem — three treatments of one job, side by
+  // side, with the note "apart, each looks fine." Keeping it as a tone catalog
+  // is deliberate: the specimen that documented the divergence should be the one
+  // that documents its resolution, rather than being quietly deleted.
+  //
   // The BUTTON recipes are no longer among them. `.cc-primary`, `.cc-link`,
   // `.cc-danger`, `.cc-back`, `.cc-tag-x` and the bare `.cc-app button` base
   // were deleted when this member adopted @augment-it/shared-ui's <Button>; the
@@ -23,6 +32,11 @@
   // Exported from `<script module>`: legal because none of these reference
   // instance state — they read only their own parameter.
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import { CONNECTION_TONE, type ConnStatus } from '../types';
+
+  // Every connection state, in the order the divergence is easiest to read.
+  const CONN_STATES: ConnStatus[] = ['open', 'connecting', 'auth_required', 'closed', 'error', 'idle'];
 
   export {
     buttons,
@@ -39,18 +53,19 @@
 </script>
 
 {#snippet buttons(p: Record<string, unknown>)}
-  <!-- Every variant x size this member spends, and nothing else. Six pairs, all
-       at ladder rung 1 — no radius override and no class passthrough anywhere in
-       corpora-curator. A seventh appearing here is now a change to the FEDERAL
-       component's API surface rather than a line appended to app.css, which is
-       the whole point of the swap. -->
+  <!-- Every variant x size this member spends, and nothing else. FIVE pairs now,
+       all at ladder rung 1 — no radius override and no class passthrough anywhere
+       in corpora-curator. ghost/icon left when the tag × became a
+       <Chip dismissible>; it was the member's only icon-only control and the
+       specimen has to shrink with it, because the entry's whole claim is that
+       what renders here is what ships. A sixth appearing is now a change to a
+       FEDERAL component's API surface rather than a line appended to app.css. -->
   <div class="cc-actions">
     <Button variant="primary" disabled={Boolean(p.disabled)}>{String(p.label ?? '↓ Fetch full content')}</Button>
     <Button variant="secondary" disabled={Boolean(p.disabled)}>⟳ Retry</Button>
     <Button variant="destructive" disabled={Boolean(p.disabled)}>🗑 Remove</Button>
     <Button variant="secondary" size="sm" disabled={Boolean(p.disabled)}>‹ All corpora</Button>
     <Button variant="link" size="sm" disabled={Boolean(p.disabled)}>‹ corpora</Button>
-    <Button variant="ghost" size="icon" aria-label="remove tag" disabled={Boolean(p.disabled)}>×</Button>
   </div>
 {/snippet}
 
@@ -96,16 +111,26 @@
 {/snippet}
 
 {#snippet chips(p: Record<string, unknown>)}
+  <!-- One treatment, six tones, and every tone here is picked by MEANING. The
+       top row is the member's plain labels: a workspace, a corpus type and a
+       count are facts, so all three are neutral even though .cc-pill drew them
+       with a border and .cc-status-chip drew them without one.
+
+       The bottom row is the one worth reading. All six connection states are
+       shown because the old recipe collapsed three of them — idle, connecting
+       and auth_required — into one grey, and the specimen that used to prove
+       the divergence should be the one that proves it is gone. -->
   <div class="cc-actions">
-    <span class="cc-pill">reach-edu</span>
-    <span class="cc-pill">strategy</span>
-    <span class="cc-pill">{String(p.count ?? 4)} sources</span>
-    <span class="cc-status-chip">metadata-only</span>
-    <span class="cc-status-chip">fetched</span>
-    <span class="cc-conn status-open">open</span>
-    <span class="cc-conn status-error">error</span>
-    <span class="cc-conn status-closed">closed</span>
-    <span class="cc-conn">connecting</span>
+    <Chip size="sm">reach-edu</Chip>
+    <Chip size="sm">strategy</Chip>
+    <Chip size="sm">{String(p.count ?? 4)} sources</Chip>
+    <Chip size="sm">metadata-only</Chip>
+    <Chip size="sm" tone="ok">fetched</Chip>
+  </div>
+  <div class="cc-actions">
+    {#each CONN_STATES as s}
+      <Chip size="sm" tone={CONNECTION_TONE[s]}>{s}</Chip>
+    {/each}
   </div>
 {/snippet}
 
@@ -113,13 +138,13 @@
   <div class="cc-field">
     <span class="cc-label">Tags <span class="cc-muted cc-mini">— Train-Case, workspace vocabulary</span></span>
     <div class="cc-tags">
-      <span class="cc-tag"
-        >Work-Based-Learning<Button variant="ghost" size="icon" aria-label="remove tag">×</Button></span
-      >
-      <span class="cc-tag"
-        >Credential-Attainment<Button variant="ghost" size="icon" aria-label="remove tag">×</Button></span
-      >
-      <span class="cc-tag-mini">Rural-Access</span>
+      <Chip size="sm" dismissible dismissLabel="remove tag Work-Based-Learning">Work-Based-Learning</Chip>
+      <Chip size="sm" dismissible dismissLabel="remove tag Credential-Attainment">Credential-Attainment</Chip>
+      <!-- The read-only tag from a source row, shown here beside its editable
+           twin on purpose: they were two recipes (.cc-tag and .cc-tag-mini) that
+           differed by 1px of type and a border, and they are now one component
+           differing by a boolean. -->
+      <Chip size="sm">Rural-Access</Chip>
     </div>
     {#if p.suggesting}
       <div class="cc-tag-input">
@@ -143,8 +168,8 @@
         <span class="cc-row-title">{String(p.title ?? 'The degree is not the job')}</span>
         <span class="cc-row-meta">
           <span>Brookings</span>
-          <span class="cc-status-chip">fetched</span>
-          <span class="cc-tag-mini">Work-Based-Learning</span>
+          <Chip size="sm" tone="ok">fetched</Chip>
+          <Chip size="sm">Work-Based-Learning</Chip>
         </span>
       </span>
     </button>
@@ -154,7 +179,7 @@
         <span class="cc-row-title"
           >https://www.dol.gov/agencies/eta/apprenticeship/policy/registered-apprenticeship-national-guidelines</span
         >
-        <span class="cc-row-meta"><span class="cc-status-chip">metadata-only</span></span>
+        <span class="cc-row-meta"><Chip size="sm">metadata-only</Chip></span>
       </span>
     </button>
   </div>
@@ -163,13 +188,15 @@
 {#snippet headerBar(p: Record<string, unknown>)}
   <header class="cc-header">
     <span class="cc-brand">Corpora Curator</span>
-    <span class="cc-pill">reach-edu</span>
-    <span class="cc-pill">strategy</span>
+    <Chip size="sm">reach-edu</Chip>
+    <Chip size="sm">strategy</Chip>
     <Button variant="secondary" size="sm">‹ All corpora</Button>
     <span class="cc-strategy">{String(p.strategy ?? 'Turning Jobs Into Degrees')}</span>
-    <span class="cc-pill">4 sources</span>
+    <Chip size="sm">4 sources</Chip>
     <span class="cc-spacer"></span>
-    <span class="cc-conn status-{String(p.status ?? 'open')}">{String(p.status ?? 'open')}</span>
+    <Chip size="sm" tone={CONNECTION_TONE[(p.status ?? 'open') as keyof typeof CONNECTION_TONE]}
+      >{String(p.status ?? 'open')}</Chip
+    >
   </header>
 {/snippet}
 

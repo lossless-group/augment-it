@@ -1,5 +1,6 @@
 <script lang="ts">
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import { curation, slugify, splitTags } from './curation.svelte';
 
   // Mirrors content-ingest's DOMAIN_FOLDERS (services/content-ingest/src/
@@ -87,7 +88,7 @@
             <span class="cc-strat-title">{s.title}</span>
             <span class="cc-strat-meta">
               <span class="cc-muted cc-mono cc-mini">{s.slug}</span>
-              {#if s.type}<span class="cc-status-chip">{s.type}</span>{/if}
+              {#if s.type}<Chip size="sm">{s.type}</Chip>{/if}
             </span>
           </button>
         </li>
@@ -123,9 +124,11 @@
     <span class="cc-label">Tags <span class="cc-muted cc-mini">— Train-Case, workspace vocabulary</span></span>
     <div class="cc-tags">
       {#each pendingTags as t}
-        <span class="cc-tag"
-          >{t}<Button variant="ghost" size="icon" onclick={() => removeTag(t)} aria-label="remove tag">×</Button></span
-        >
+        <!-- dismissLabel names the TAG, not the action. Every × in this member
+             used to announce the identical "remove tag", so a screen-reader user
+             tabbing a row of five got the same five words and no way to tell
+             which one they were about to delete. -->
+        <Chip size="sm" dismissible dismissLabel="remove tag {t}" onDismiss={() => removeTag(t)}>{t}</Chip>
       {/each}
     </div>
     <div class="cc-tag-input">

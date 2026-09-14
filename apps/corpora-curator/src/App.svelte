@@ -2,7 +2,9 @@
   import { onMount } from 'svelte';
   import { workspace, resolveWsUrl } from '@augment-it/workspace';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import { curation } from './curation.svelte';
+  import { CONNECTION_TONE } from './types';
   import CorpusPicker from './CorpusPicker.svelte';
   import SourceList from './SourceList.svelte';
   import SourceDetail from './SourceDetail.svelte';
@@ -70,23 +72,34 @@
         {#each curation.workspaces as w (w.client_id)}<option value={w.client_id}>{w.client_id}</option>{/each}
       </select>
     {:else if curation.connection !== 'open'}
-      <span class="cc-pill" title="Connecting to workspace-service">connecting…</span>
+      <Chip size="sm" tone="info" title="Connecting to workspace-service">connecting…</Chip>
     {:else}
-      <span class="cc-pill" title="Active workspace">{curation.clientSlug ?? '— no workspace —'}</span>
+      <Chip size="sm" title="Active workspace">{curation.clientSlug ?? '— no workspace —'}</Chip>
     {/if}
     <!-- The selected corpus's OWN type when there is one; otherwise this
          client's preferred vocabulary. It labels, it never filters (gh #88). -->
-    <span
-      class="cc-pill"
+    <Chip
+      size="sm"
       title={curation.active ? 'Type of the selected corpus' : 'This workspace’s preferred vocabulary for new corpora'}
-    >{curation.active?.type ?? curation.domainType}</span>
+    >{curation.active?.type ?? curation.domainType}</Chip>
     {#if curation.active}
-      <!-- secondary, not ghost: this sits in a row of .cc-pill spans that are
-           NOT interactive and carry the same border+raised-surface treatment the
-           old .cc-back did. secondary draws its boundary with
-           --color-border-strong where the pills use --color-border, so the one
-           control in the header is finally distinguishable from the four
-           labels around it. -->
+      <!-- STILL a Button — it is the only thing in this header you can press —
+           but the reason it reads as one has INVERTED, and that was worth
+           measuring rather than assuming.
+
+           Before: .cc-pill and Button/secondary painted the IDENTICAL fill
+           (--color-surface-raised, rgb(12,13,18) in dark) and were told apart
+           only by their boundaries — the pill's --color-border against the
+           button's --color-border-strong. That is the comment this one replaces.
+
+           Now: a neutral Chip carries --color-border-strong too, so the boundary
+           says nothing. What separates them is the fill — Chip sits on
+           --color-surface-2 (rgb(22,24,31)), a step LIGHTER than the button's
+           --color-surface-raised — plus --radius-pill against --radius-md and
+           17px against 24px. Measured in all three modes with the before/after
+           probe, because a chip rollout that quietly made the one control in a
+           header indistinguishable from its four labels is a regression no gate
+           in this repo can see. -->
       <Button
         variant="secondary"
         size="sm"
@@ -94,10 +107,14 @@
         title="Back to the corpora list / create form"
       >‹ All corpora</Button>
       <span class="cc-strategy">{curation.active.title}</span>
-      <span class="cc-pill">{curation.sources.length} sources</span>
+      <Chip size="sm">{curation.sources.length} sources</Chip>
     {/if}
     <span class="cc-spacer"></span>
-    <span class="cc-conn status-{curation.connection}">{curation.connection}</span>
+    <!-- tone is derived from the state, never from the string: see
+         CONNECTION_TONE in types.ts. The text still carries the meaning on its
+         own (WCAG 1.4.1) — it always did, which is why the colour could be
+         wrong for three of the six states without anyone noticing. -->
+    <Chip size="sm" tone={CONNECTION_TONE[curation.connection]}>{curation.connection}</Chip>
   </header>
 
   {#if curation.lastError}
