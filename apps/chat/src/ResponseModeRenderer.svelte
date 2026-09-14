@@ -14,6 +14,7 @@
   import { chatState } from './chat-state.svelte';
   import PromptDraftPanel from './PromptDraftPanel.svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
 
   type Props = { turn: ChatTurn };
   let { turn }: Props = $props();
@@ -89,7 +90,7 @@
         {#each turn.proposals as p, i (i)}
           <div class="proposal-card">
             <div class="proposal-line">
-              <strong>{p.capability}</strong>
+              <Chip size="sm">{p.capability}</Chip>
               <span class="proposal-hint">{p.hint}</span>
             </div>
             <div class="proposal-actions">
@@ -115,7 +116,7 @@
   <div class="turn assistant">
     <div class="bubble invoke">
       <em>{turn.text}</em>
-      <div class="invoke-tag">→ {turn.tool_call.capability}</div>
+      <div class="invoke-tag-row"><Chip size="sm">→ {turn.tool_call.capability}</Chip></div>
     </div>
     <div class="meta">{fmtTs(turn.ts)}</div>
   </div>

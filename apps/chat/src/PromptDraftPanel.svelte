@@ -12,6 +12,7 @@
 
   import { chatState } from './chat-state.svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
 
   type DraftResult = {
     ok?: boolean;
@@ -59,7 +60,7 @@
 <div class="turn assistant">
   <div class="bubble draft">
     <div class="draft-header">
-      <span class="draft-tag">{capability === 'prompt.improve' ? 'Refined draft' : 'Draft'}</span>
+      <Chip size="sm">{capability === 'prompt.improve' ? 'Refined draft' : 'Draft'}</Chip>
       {#if draft.output_column}
         <span class="draft-col">→ <strong>{draft.output_column}</strong></span>
       {/if}

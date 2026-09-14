@@ -37,8 +37,6 @@
   color: var(--color-text);
 }
 .chat-app .chat-status-sep { opacity: 0.5; }
-.chat-app .chat-status.open .chat-status-conn { color: var(--color-accent); }
-.chat-app .chat-status.closed .chat-status-conn { color: var(--color-warn-fg); }
 
 /* --- Character cast row --- */
 .chat-app .cast-row {
@@ -49,24 +47,7 @@
   background: var(--color-field, var(--color-bg));
   overflow-x: auto;
 }
-.chat-app .chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  font-size: 11px;
-  background: var(--color-bg);
-}
-.chat-app .chip .dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--color-accent);
-  animation: pulse 1.4s ease-in-out infinite;
-}
-.chat-app .chip .label { font-weight: 500; }
-.chat-app .chip .progress { color: var(--color-text-muted); font-family: var(--font-mono, monospace); }
-@keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+.chat-app .cast-progress { font-family: var(--font-mono, monospace); }
 
 /* --- ChatSurface frame --- */
 .chat-app .surface {
@@ -134,12 +115,7 @@
   background: var(--color-field, var(--color-bg));
   border: 1px dashed var(--color-accent);
 }
-.chat-app .invoke-tag {
-  font-family: var(--font-mono, monospace);
-  font-size: 11px;
-  color: var(--color-accent);
-  margin-top: 0.25rem;
-}
+.chat-app .invoke-tag-row { margin-top: var(--space-2xs); }
 .chat-app .bubble.result {
   background: transparent;
   border: 1px solid var(--color-border);
@@ -198,7 +174,6 @@
   border-radius: var(--radius-sm, 4px);
   background: var(--color-bg);
 }
-.chat-app .proposal-line strong { font-family: var(--font-mono, monospace); font-size: 12px; color: var(--color-accent); }
 .chat-app .proposal-hint { color: var(--color-text-muted); font-size: 12px; margin-left: 0.4rem; }
 
 /* --- Draft panel --- */
@@ -212,13 +187,6 @@
   align-items: baseline;
   gap: 0.5rem;
   margin-bottom: 0.35rem;
-}
-.chat-app .draft-tag {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-accent);
-  font-weight: 600;
 }
 .chat-app .draft-col { font-size: 12px; color: var(--color-text-muted); }
 .chat-app .draft-col strong { color: var(--color-text); }

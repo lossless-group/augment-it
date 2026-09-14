@@ -12,6 +12,7 @@
   // in v0.0.2.
 
   import { workspace } from '@augment-it/workspace';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
 
   // Subjects we care about — anything that hints at LLM/run/draft activity.
   const RUN_LIFECYCLE_SUBJECTS = [
@@ -52,13 +53,9 @@
 {#if openJobs.length > 0}
   <div class="cast-row">
     {#each openJobs as job, i (i)}
-      <div class="chip">
-        <span class="dot"></span>
-        <span class="label">{job.label}</span>
-        {#if job.total > 0}
-          <span class="progress">{job.progress} / {job.total}</span>
-        {/if}
-      </div>
+      <Chip tone="accent" size="sm" dot>
+        {job.label} {#if job.total > 0}<span class="cast-progress">{job.progress} / {job.total}</span>{/if}
+      </Chip>
     {/each}
   </div>
 {/if}

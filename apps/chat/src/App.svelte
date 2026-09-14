@@ -7,6 +7,7 @@
 
   import { onMount } from 'svelte';
   import { workspace, resolveWsUrl } from '@augment-it/workspace';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import CharacterCastRow from './CharacterCastRow.svelte';
   import ChatSurface from './ChatSurface.svelte';
 
@@ -18,6 +19,21 @@
   const WS_URL = resolveWsUrl();
 
   let connectionStatus = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
+
+  // Tone is chosen by what the status MEANS, not by the colour this member used
+  // to draw it (accent for open, warn for everything else). `open` is
+  // "connected, healthy" -> ok; `connecting` is an informational in-between ->
+  // info; `auth_required` is degraded-but-actionable -> warn; `closed` and
+  // `error` are both "disconnected / failed" -> error.
+  const connTone = $derived<'ok' | 'info' | 'warn' | 'error'>(
+    connectionStatus === 'open'
+      ? 'ok'
+      : connectionStatus === 'connecting'
+        ? 'info'
+        : connectionStatus === 'auth_required'
+          ? 'warn'
+          : 'error',
+  );
 
   onMount(() => {
     const TOKEN_KEY = 'augment_it_session_token';
@@ -36,13 +52,13 @@
 </script>
 
 <div class="chat-app">
-  <div class="chat-status" class:open={connectionStatus === 'open'} class:closed={connectionStatus !== 'open'}>
+  <div class="chat-status">
     <img class="didi-avatar" src="/didi-avatar.png" alt="" aria-hidden="true" />
     <span class="didi-name">didi</span>
     <span class="chat-status-sep">·</span>
     <span class="chat-status-app">augment-it</span>
     <span class="chat-status-sep">·</span>
-    <span class="chat-status-conn">{connectionStatus}</span>
+    <Chip size="sm" tone={connTone} dot>{connectionStatus}</Chip>
   </div>
   <CharacterCastRow />
   <ChatSurface />
