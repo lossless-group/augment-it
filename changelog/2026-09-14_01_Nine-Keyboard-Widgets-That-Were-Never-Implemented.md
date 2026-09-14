@@ -120,7 +120,7 @@ list because a grep hit a *code comment*. The ninth surface never existed.
 
 ## What a browser drive caught that 99 tests could not
 
- declares  **and** a fixed height. A Selector option
+`Button` declares `white-space: nowrap` **and** a fixed height. A Selector option
 declared **neither**. So every member that swapped Button rows for options
 **silently converted a clip into a wrap** — one real row measured **48px against
 its neighbours' 29px**, its label squeezed to the min-content of its first word.
