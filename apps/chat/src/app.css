@@ -297,41 +297,25 @@
   letter-spacing: 0.06em;
   color: var(--color-text-muted);
 }
-.chat-app .commands-popover ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-/* HOLDOUT — deliberately a raw <button>, twice over.
-   1. Button: full-bleed, left-aligned, wrapping, multi-line, variable height
-      against Button's inline-flex/centred/nowrap/fixed-height recipe. Eight
-      overrides to adopt; the override would negate the base recipe, not adjust
-      it, so it is a different organ.
-   2. CardRow (checked 2026-09-13, after CardRow shipped): still no. CardRow
-      paints a card — its own surface, its own 1px border, its own radius. A
-      popdown menu item must be FLUSH inside a container that already draws all
-      three, separated by a hairline rather than boxed. Adopting CardRow here
-      means overriding background, border, border-radius and padding on the
-      first try, which is rung 4 four times over.
-   This is the `Selector` organ in the decision doc's D4 (popdown-shaped and
-   column-shaped are the same widget rendered differently), not CardRow.
-   See context-v/decisions/The-List-Surface-Paradigm-CardRow-ListContainer-And-Selection.md */
-.chat-app .commands-popover .command-row {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 0.5rem 0.8rem;
-  background: transparent;
-  border: none;
-  color: var(--color-text);
-  cursor: pointer;
+/* HOLDOUT RESOLVED 2026-09-14. The note that stood here said this row was the
+   `Selector` organ of decision D4 and neither Button nor CardRow. That organ now
+   exists: the rows are Selector--Menu's menuitems, so the whole control recipe —
+   display/width/text-align/padding/background/border/colour/cursor, the hover,
+   and a `:focus-visible { outline: none }` that was SUPPRESSING the federal
+   focus ring and substituting a background change — is gone. What remains below
+   is content typography, which was never the component's business.
+
+   `.command-body` is the three-line stack inside one menuitem, and it carries
+   the hairline that used to live on `.command-row`. It is rung 0: how the
+   member's own content lays out inside a slot, not an override of anything
+   Selector--Menu declares. */
+.chat-app .commands-popover .command-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
   border-top: 1px solid var(--color-border);
-}
-.chat-app .commands-popover li:first-child .command-row { border-top: none; }
-.chat-app .commands-popover .command-row:hover,
-.chat-app .commands-popover .command-row:focus-visible {
-  background: var(--color-bg);
-  outline: none;
+  padding-top: var(--space-2xs);
 }
 .chat-app .commands-popover .command-verb {
   font-family: var(--font-mono, monospace);

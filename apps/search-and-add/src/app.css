@@ -22,13 +22,16 @@
 .saa-termbar { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
 .saa-term { flex: 1; min-width: 0; height: var(--control-h-lg); box-sizing: border-box; background: var(--color-surface, #1c1e25); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: var(--radius-md); padding: 0 var(--space-sm); font: inherit; }
 
-/* provider palette */
-.saa-palette { display: flex; gap: 0.4rem; margin-top: 0.55rem; flex-wrap: wrap; }
-.saa-chip { min-width: 2.2rem; padding: 0.2rem 0.55rem; border-radius: 999px; border: 1px solid var(--color-border, #2a2c33); background: var(--color-bg, #14151a); color: var(--color-text-muted, #cfd3da); font: inherit; font-size: 0.75rem; cursor: pointer; }
-.saa-chip:hover:not(:disabled) { background: var(--color-border, #2a2c33); }
-.saa-chip.active { border-color: var(--color-link, #8ab4f8); color: var(--color-link, #8ab4f8); }
-.saa-chip.tier-paid:not(.active) { border-style: dashed; }
-.saa-chip.dark, .saa-chip:disabled { opacity: 0.35; cursor: default; }
+/* provider palette — the chip recipe is gone. The whole control (box, border,
+   radius, hover, selected, disabled, focus ring) is Selector--Listbox's; what
+   the member still owns is where the palette sits and how the tier reads.
+   Deleted with it: `.saa-chip.active`, which carried selection in a class no
+   screen reader could hear, and `opacity: 0.35` standing in for a disabled
+   state — appearance where state belonged. */
+.saa-palette { margin-top: 0.55rem; }
+.saa-provider-label { font-variant-numeric: tabular-nums; }
+.saa-provider-tier { color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; }
+.saa-provider-status { color: var(--color-error-text, #f3a3a3); font-size: 0.72rem; }
 
 /* results */
 .saa-body { margin-top: 0.9rem; }

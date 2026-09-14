@@ -7,7 +7,7 @@
 
   import { onMount } from 'svelte';
   import { workspace, resolveWsUrl } from '@augment-it/workspace';
-  import Chip from '@augment-it/shared-ui/Chip.svelte';
+  import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   import CharacterCastRow from './CharacterCastRow.svelte';
   import ChatSurface from './ChatSurface.svelte';
 
@@ -19,21 +19,6 @@
   const WS_URL = resolveWsUrl();
 
   let connectionStatus = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
-
-  // Tone is chosen by what the status MEANS, not by the colour this member used
-  // to draw it (accent for open, warn for everything else). `open` is
-  // "connected, healthy" -> ok; `connecting` is an informational in-between ->
-  // info; `auth_required` is degraded-but-actionable -> warn; `closed` and
-  // `error` are both "disconnected / failed" -> error.
-  const connTone = $derived<'ok' | 'info' | 'warn' | 'error'>(
-    connectionStatus === 'open'
-      ? 'ok'
-      : connectionStatus === 'connecting'
-        ? 'info'
-        : connectionStatus === 'auth_required'
-          ? 'warn'
-          : 'error',
-  );
 
   onMount(() => {
     const TOKEN_KEY = 'augment_it_session_token';
@@ -58,7 +43,7 @@
     <span class="chat-status-sep">·</span>
     <span class="chat-status-app">augment-it</span>
     <span class="chat-status-sep">·</span>
-    <Chip size="sm" tone={connTone} dot>{connectionStatus}</Chip>
+    <StatusIndicator state={connectionStatus} />
   </div>
   <CharacterCastRow />
   <ChatSurface />

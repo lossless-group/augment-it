@@ -5,6 +5,7 @@
 
   import { workspace, suggest, type Suggestion } from '@augment-it/workspace';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import SelectorMenu from '@augment-it/shared-ui/Selector--Menu.svelte';
   import { chatState } from './chat-state.svelte';
   import ResponseModeRenderer from './ResponseModeRenderer.svelte';
 
@@ -60,6 +61,22 @@
 
   let commandsOpen = $state<boolean>(false);
   let commandsContainerEl = $state<HTMLDivElement | undefined>();
+
+  // Selector--Menu takes ITEMS, not markup — the roving tabindex and the arrow
+  // keys are the component's, and the verb registry above stays the single
+  // source of truth. `id` is the verb, which is already unique.
+  const commandItems = $derived(COMMANDS.map((c) => ({ id: c.verb, label: c.verb })));
+  const commandFor = (id: string): ChatCommand | undefined =>
+    COMMANDS.find((c) => c.verb === id);
+
+  // Escape must return focus to the TRIGGER, not to <body>, so Selector--Menu
+  // needs the trigger ELEMENT. Button does not forward its node (no bind:this,
+  // and `{...rest}` cannot carry one), so the member wraps it — rung 0, a
+  // wrapper with no CSS — and reads the button back out. Raised as a finding.
+  let commandsTriggerWrap = $state<HTMLElement | undefined>();
+  const commandsTrigger = $derived(
+    commandsTriggerWrap?.querySelector<HTMLElement>('button') ?? undefined,
+  );
 
   function toggleCommands(): void {
     commandsOpen = !commandsOpen;
@@ -239,41 +256,57 @@
   </div>
 
   <div class="commands-bar" bind:this={commandsContainerEl}>
-    <Button
-      variant={commandsOpen ? 'secondary' : 'outline'}
-      size="sm"
-      radius="pill"
-      aria-haspopup="menu"
-      aria-expanded={commandsOpen}
-      onclick={toggleCommands}
-      title="Browse slash commands"
-    >
-      <span class="caret">{commandsOpen ? '▾' : '▴'}</span>
-      <span>Commands</span>
-      <span class="muted">({COMMANDS.length})</span>
-    </Button>
+    <span class="commands-trigger-slot" bind:this={commandsTriggerWrap}>
+      <Button
+        variant={commandsOpen ? 'secondary' : 'outline'}
+        size="sm"
+        radius="pill"
+        aria-haspopup="menu"
+        aria-expanded={commandsOpen}
+        onclick={toggleCommands}
+        title="Browse slash commands"
+      >
+        <span class="caret">{commandsOpen ? '▾' : '▴'}</span>
+        <span>Commands</span>
+        <span class="muted">({COMMANDS.length})</span>
+      </Button>
+    </span>
     {#if commandsOpen}
-      <div class="commands-popover" role="menu">
+      <!-- The popover is a CONTAINER, not the menu. It carries the heading, and
+           a heading is not a `menuitem` — a role="menu" whose element children
+           were a headless div and a <ul> of <li> is exactly what this replaces.
+           The menu is now its own element with nothing but menuitems in it. -->
+      <div class="commands-popover">
         <div class="commands-popover-head">Slash commands</div>
-        <ul>
-          {#each COMMANDS as cmd (cmd.verb)}
-            <li>
-              <button
-                type="button"
-                class="command-row"
-                role="menuitem"
-                onclick={() => pickCommand(cmd)}
-              >
-                <div class="command-verb">{cmd.verb}</div>
-                <div class="command-summary">{cmd.summary}</div>
-                {#if cmd.example}
-                  <div class="command-example"><code>{cmd.example}</code></div>
-                {/if}
-              </button>
-            </li>
-          {/each}
-        </ul>
+        <SelectorMenu
+          items={commandItems}
+          label="Slash commands"
+          item={commandItem}
+          trigger={commandsTrigger}
+          onselect={(id) => {
+            const cmd = commandFor(id);
+            if (cmd) pickCommand(cmd);
+          }}
+          onclose={() => (commandsOpen = false)}
+        />
       </div>
     {/if}
   </div>
 </div>
+
+<!-- One command row. Appearance only: Selector--Menu owns the keyboard, exactly
+     the split MenuItem documents. MenuItem itself is a single line with an
+     optional right-aligned hint; a slash command is a three-line stack (verb /
+     summary / example), so this renders the stack instead of taking MenuItem. -->
+{#snippet commandItem(it: { id: string })}
+  {@const cmd = commandFor(it.id)}
+  {#if cmd}
+    <span class="command-body">
+      <span class="command-verb">{cmd.verb}</span>
+      <span class="command-summary">{cmd.summary}</span>
+      {#if cmd.example}
+        <span class="command-example"><code>{cmd.example}</code></span>
+      {/if}
+    </span>
+  {/if}
+{/snippet}

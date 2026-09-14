@@ -13,6 +13,7 @@
   import Button from '@augment-it/shared-ui/Button.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import SelectorListbox from '@augment-it/shared-ui/Selector--Listbox.svelte';
   import { workspace, type RecordSet, type Row, resolveWsUrl } from '@augment-it/workspace';
   import {
     type SortSpec,
@@ -68,6 +69,30 @@
   let urlEditingRowId = $state<string | null>(null);
   let urlSavingRowId = $state<string>('');
   let urlEditErrByRowId = $state<Record<string, string>>({});
+
+  // The picker is a LISTBOX, not a menu. It picks a record set and marks the
+  // current one — a thing with a selected state is a listbox even when it is
+  // drawn as a popdown. It shipped as role="menu" whose children were Buttons:
+  // a menu with zero menuitems.
+  const recordSetOptions = $derived(
+    recordSets.map((rs) => ({ id: rs.record_set_id, label: rs.name, rows: rs.row_ids.length })),
+  );
+
+  // Escape must return focus to the TRIGGER, not to <body>. Selector--Listbox
+  // has no `onclose`/`trigger` pair (only Selector--Menu does), so the close
+  // lives here — and Button does not forward its node either, so the trigger is
+  // read back out of the wrapper. Both raised as findings; neither is fought.
+  let pickerWrapEl = $state<HTMLElement | undefined>();
+  const pickerTrigger = $derived(pickerWrapEl?.querySelector<HTMLElement>('button') ?? undefined);
+  function closePicker(): void {
+    pickerOpen = false;
+    pickerTrigger?.focus();
+  }
+  function onPickerKey(e: KeyboardEvent): void {
+    if (!pickerOpen || e.key !== 'Escape') return;
+    e.preventDefault();
+    closePicker();
+  }
 
   const selectedRecordSet = $derived(
     selectedRecordSetId
@@ -486,7 +511,12 @@
       <h2>Sort &amp; Filter</h2>
       <span class="muted lens-sub">re-order the active record set; filter coming v0.0.0.4</span>
     </div>
-    <div class="record-set-picker">
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- The keydown is Escape-to-close for the popdown, which the listbox
+         itself does not own. It is on the WRAPPER, not on the options: one
+         handler for the whole widget is the same discipline the Selector
+         applies to its arrows. -->
+    <div class="record-set-picker" bind:this={pickerWrapEl} onkeydown={onPickerKey}>
       {#if selectedRecordSet}
         <Button
           onclick={() => (pickerOpen = !pickerOpen)}
@@ -504,19 +534,20 @@
         </Button>
       {/if}
       {#if pickerOpen}
-        <div class="picker-popover" role="menu">
-          {#each recordSets as rs (rs.record_set_id)}
-            <Button
-              variant={rs.record_set_id === selectedRecordSetId ? 'secondary' : 'ghost'}
-              aria-current={rs.record_set_id === selectedRecordSetId ? 'true' : undefined}
-              onclick={() => { selectRecordSet(rs.record_set_id); pickerOpen = false; }}
-            >
-              <span class="sfl-btn-content-row">
-                <span class="picker-row-name">{rs.name}</span>
-                <span class="picker-row-meta">{rs.row_ids.length} rows</span>
-              </span>
-            </Button>
-          {/each}
+        <!-- The popover is the CONTAINER — position, surface, shadow, scroll —
+             and the listbox is its one child. Rung 0: a component never
+             positions itself, so none of that goes on the Selector. -->
+        <div class="picker-popover">
+          <SelectorListbox
+            options={recordSetOptions}
+            label="Record set"
+            value={selectedRecordSetId ?? undefined}
+            option={recordSetOption}
+            onselect={(id) => {
+              selectRecordSet(id);
+              closePicker();
+            }}
+          />
         </div>
       {/if}
     </div>
@@ -792,3 +823,12 @@
     </ul>
   {/if}
 </div>
+
+<!-- One record-set option. Appearance only: Selector--Listbox owns the keyboard
+     and the selected state. Same split as ListContainer / CardRow. -->
+{#snippet recordSetOption(o: { id: string; label: string })}
+  <span class="sfl-btn-content-row">
+    <span class="picker-row-name">{o.label}</span>
+    <span class="picker-row-meta">{recordSets.find((rs) => rs.record_set_id === o.id)?.row_ids.length ?? 0} rows</span>
+  </span>
+{/snippet}

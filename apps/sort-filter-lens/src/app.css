@@ -84,7 +84,10 @@
 /* A column-flex container shrinks its items when it runs out of room, and both
    popovers cap their height — which silently crushed every item to 17px against
    a 24px WCAG floor. Measured in the probe, not reasoned about. Still rung 0:
-   how children flex is the container's business, never the control's. */
+   how children flex is the container's business, never the control's.
+   The child is now the Selector--Listbox rather than N Buttons; the rule holds
+   for the same reason, and the listbox itself caps nothing, so its options sit
+   at their natural height and the popover scrolls. */
 .picker-popover > * { flex: 0 0 auto; }
 .picker-row-name { font-weight: 500; }
 .picker-row-meta { color: var(--color-text-muted); font-size: 11px; }
