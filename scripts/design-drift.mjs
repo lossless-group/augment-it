@@ -273,8 +273,33 @@ function runMemberChecks(member, tokens) {
     if (!content) continue;
     const n = normaliseLineEndings(content);
 
-    if (n.includes('--color__') || n.includes('--font__')) {
-      const matches = n.match(/var\((--(?:color|font)__[\w-]+)/g);
+    // COMMENTS ARE NOT CODE, and treating them as code inverts the incentive.
+    //
+    // An engineer deleted a rule carrying `z-index: 5`, then wrote a comment
+    // explaining the deletion — and F4 re-reported the literal from the prose.
+    // The member sat at its old count until the sentence was reworded. So
+    // DOCUMENTING A REMOVED DEFECT RE-CREATED IT IN THE GATE, which is a direct
+    // incentive never to explain a deletion. F8 has the same blind spot on hex
+    // literals, already recorded as a finding twice.
+    //
+    // This file's own header warns about a checker that reports success because
+    // it failed to look. This is the inverse: a checker that reports failure
+    // because it looked somewhere it should not.
+    //
+    // Strip /* */ and // and <!-- --> before any per-file pattern check. Kept as
+    // a separate binding so a check that genuinely wants raw text still has `n`.
+    // `//` is stripped ONLY outside .css. In CSS it is not a comment, and
+    // `background: url(//cdn.example/x.png)` would have swallowed the rest of
+    // the line — hiding a real declaration behind a protocol-relative URL. The
+    // `[^:]` guard catches `https://` but not `url(//`.
+    const isCss = f.endsWith('.css');
+    let code = n
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/<!--[\s\S]*?-->/g, ' ');
+    if (!isCss) code = code.replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+
+    if (code.includes('--color__') || code.includes('--font__')) {
+      const matches = code.match(/var\((--(?:color|font)__[\w-]+)/g);
       if (matches) {
         for (const m of matches) {
           const token = m.replace('var(', '');
@@ -288,7 +313,7 @@ function runMemberChecks(member, tokens) {
       }
     }
 
-    const tier2Declared = n.match(/^\s*(--color-(?!__))[\w-]+\s*:/gm);
+    const tier2Declared = code.match(/^\s*(--color-(?!__))[\w-]+\s*:/gm);
     if (tier2Declared) {
       for (const d of tier2Declared) {
         const name = d.match(/--[\w-]+/)[0];
@@ -303,8 +328,8 @@ function runMemberChecks(member, tokens) {
       }
     }
 
-    if (/z-index\s*:\s*\d+/.test(n) && !/var\(--z-/.test(n)) {
-      const matches = n.match(/z-index\s*:\s*(\d+)/g);
+    if (/z-index\s*:\s*\d+/.test(code) && !/var\(--z-/.test(code)) {
+      const matches = code.match(/z-index\s*:\s*(\d+)/g);
       if (matches) {
         for (const m of matches) {
           const val = parseInt(m.match(/\d+/)[0]);
@@ -333,7 +358,9 @@ function runMemberChecks(member, tokens) {
     // Strip the block openers first. `{#if`, `{#await` and `{#key` do not produce
     // three hex digits and `{#each` is the only current culprit, but all are
     // stripped so a keyword added upstream cannot reintroduce this.
-    const hexSearchable = n.replace(/\{#[a-z]+/g, '{');
+    // `code`, not `n` — a comment explaining a deleted colour used to re-report
+    // it. Same inversion as F4 above. The {#each -> #eac guard stays.
+    const hexSearchable = code.replace(/\{#[a-z]+/g, '{');
     const hexHit = hexSearchable.match(/#[0-9a-fA-F]{3,8}/);
     if (hexHit && !f.includes('packages/theme')) {
       results.push({
@@ -344,7 +371,7 @@ function runMemberChecks(member, tokens) {
       });
     }
 
-    if (/box-shadow\s*:/.test(n) && !/var\(--fx-/.test(n) && !f.includes('packages/theme')) {
+    if (/box-shadow\s*:/.test(code) && !/var\(--fx-/.test(code) && !f.includes('packages/theme')) {
       results.push({
         check: 'F8',
         status: 'fail',
