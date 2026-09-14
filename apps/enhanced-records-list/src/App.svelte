@@ -14,6 +14,7 @@
 
   import { onMount } from 'svelte';
   import Button from '@augment-it/shared-ui/Button.svelte';
+  import Chip from '@augment-it/shared-ui/Chip.svelte';
   import { workspace } from '@augment-it/workspace';
   import {
     enhancedState,
@@ -22,8 +23,27 @@
     type EnhancedRecord,
   } from './state.svelte';
 
-  let connectionStatus = $state<'connecting' | 'open' | 'closed' | 'error' | 'auth_required'>('connecting');
+  type ConnectionStatus = 'connecting' | 'open' | 'closed' | 'error' | 'auth_required';
+  let connectionStatus = $state<ConnectionStatus>('connecting');
   let loadedOnce = $state<boolean>(false);
+
+  // connection_status in the federal tone vocabulary. Sixteen units observe this
+  // one value and render it eleven ways, precisely because tone gets picked by
+  // eye; this maps by MEANING, per the Chip contract:
+  //   open          -> ok      connected and healthy
+  //   connecting    -> info    a transient, informational state
+  //   auth_required -> warn    degraded and actionable, not a failure
+  //   closed        -> error   disconnected — the surface is not live
+  //   error         -> error   failed
+  // The word itself is always rendered next to the dot, so the tone is a second
+  // encoding and never the only one (WCAG 1.4.1).
+  const STATUS_TONE: Record<ConnectionStatus, 'ok' | 'info' | 'warn' | 'error'> = {
+    open: 'ok',
+    connecting: 'info',
+    auth_required: 'warn',
+    closed: 'error',
+    error: 'error',
+  };
 
   // ---- Connect + bootstrap data load ----
   onMount(() => {
@@ -235,8 +255,8 @@
 </script>
 
 <div class="erl-app">
-  <div class="erl-status" class:open={connectionStatus === 'open'}>
-    enhanced-records-list · {connectionStatus}
+  <div class="erl-status">
+    enhanced-records-list · <Chip size="sm" tone={STATUS_TONE[connectionStatus]} dot>{connectionStatus}</Chip>
     {#if parentSet}
       · {records.length} records · source: <strong>{parentSet.name}</strong>
     {/if}
@@ -331,7 +351,7 @@
               {#each enrichmentColumns as col (col)}
                 <td class="col-enriched" title={formatted(col)}>{formatted(col)}</td>
               {/each}
-              <td class="col-origin">{originBadge(rec)}</td>
+              <td class="col-origin"><Chip size="sm">{originBadge(rec)}</Chip></td>
             </tr>
           {/each}
         </tbody>

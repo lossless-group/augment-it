@@ -23,7 +23,6 @@
   border-bottom: 1px solid var(--color-border);
   color: var(--color-text-muted);
 }
-.erl-app .erl-status.open { color: var(--color-accent); }
 .erl-app .erl-status strong { color: var(--color-text); font-weight: 500; }
 
 .erl-app .erl-parent-picker {
