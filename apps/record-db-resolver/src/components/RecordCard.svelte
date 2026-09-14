@@ -4,6 +4,7 @@
   // facts that will land on a canonical org (name/url/socials → org_links,
   // official-updates → media_streams, helpful_links → org_corpus).
 
+  import ExternalLink from '@augment-it/shared-ui/ExternalLink.svelte';
   import type { NormRecord } from '../lib/types';
 
   let { record, fields }: { record: NormRecord; fields?: Record<string, unknown> } = $props();
@@ -53,7 +54,7 @@
   {#if record.url}
     <div class="rdr-field">
       <span class="rdr-label">url → org_links</span>
-      <a class="rdr-link" href={record.url} target="_blank" rel="noopener">{record.url}</a>
+      <ExternalLink class="rdr-link" href={record.url} noTruncate />
     </div>
   {/if}
 
@@ -62,7 +63,7 @@
       <span class="rdr-label">socials → org_links ({record.socials.length})</span>
       <ul class="rdr-urls">
         {#each record.socials as s (typeof s === 'string' ? s : s.url)}
-          <li><a class="rdr-link" href={typeof s === 'string' ? s : s.url} target="_blank" rel="noopener">{typeof s === 'string' ? s : s.url}</a></li>
+          <li><ExternalLink class="rdr-link" href={typeof s === 'string' ? s : s.url} noTruncate /></li>
         {/each}
       </ul>
     </div>
@@ -73,7 +74,7 @@
       <span class="rdr-label rdr-label-stream">official updates → media_streams ({record.streams.length})</span>
       <ul class="rdr-urls">
         {#each record.streams as s (typeof s === 'string' ? s : s.url)}
-          <li><a class="rdr-link" href={typeof s === 'string' ? s : s.url} target="_blank" rel="noopener">{typeof s === 'string' ? s : s.url}</a></li>
+          <li><ExternalLink class="rdr-link" href={typeof s === 'string' ? s : s.url} noTruncate /></li>
         {/each}
       </ul>
     </div>
@@ -84,7 +85,7 @@
       <span class="rdr-label">helpful links → org_corpus ({record.corpus.length})</span>
       <ul class="rdr-urls">
         {#each record.corpus as s (typeof s === 'string' ? s : s.url)}
-          <li><a class="rdr-link" href={typeof s === 'string' ? s : s.url} target="_blank" rel="noopener">{typeof s === 'string' ? s : s.url}</a></li>
+          <li><ExternalLink class="rdr-link" href={typeof s === 'string' ? s : s.url} noTruncate /></li>
         {/each}
       </ul>
     </div>

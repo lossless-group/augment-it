@@ -113,13 +113,11 @@
         save={saveUrl}
       />
       {#if url}
-        <a
-          class="record-row-url-open"
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          title="open in a new tab"
-        >↗</a>
+        <!-- iconOnly: the component composes the accessible name IN THE DOM
+             ("<the url> (opens in a new tab)") rather than via aria-label, so
+             the new-tab notice survives naming — and [data-icon] restores the
+             24px width floor this member could not reach from outside. -->
+        <ExternalLink href={url} label={url} iconOnly>↗</ExternalLink>
       {/if}
     </span>
   </header>
@@ -195,23 +193,14 @@
     border-radius: 3px;
     white-space: nowrap;
   }
-  /* NOT adopted into ExternalLink, and the reason is the component's API, not
-     this member. This is an icon-only external link: the visible content is the
-     ↗ glyph, so ExternalLink would either name it "north east arrow (opens in a
-     new tab)" or need an `aria-label` from the call site — and an aria-label
-     SUPPRESSES the component's visually-hidden new-tab notice, which is the one
-     thing it exists to add. On top of that, ExternalLink declares
-     `min-inline-size: 0` inside its own scoped style at (0,2,0), so a member
-     class at (0,1,0) cannot restore a width floor; reaching the 24px target
-     would take a rung-4 `style=`. This glyph measures 10x20 — 21% of the WCAG
-     2.2 SC 2.5.8 floor — and that stays RAISED, not chased: it is the
-     `ExternalLink` icon-mode gap, not a defect this migration can close. */
-  .record-row-url-open {
-    color: var(--color-text-muted);
-    text-decoration: none;
-    font-size: 0.85rem;
-  }
-  .record-row-url-open:hover { color: var(--color-text); }
+  /* `.record-row-url-open` is GONE, not merely unused. It was the refusal the
+     first pass recorded here: an icon-only link ExternalLink could not name
+     without an aria-label that would suppress its own new-tab notice, and whose
+     24px width floor a member class at (0,1,0) could not restore against the
+     component's `min-inline-size: 0` at (0,2,0). `iconOnly` closes both — it
+     composes the name in the DOM and makes the target square — so the rule has
+     nothing left to hold. This glyph measured 10x20, 21% of the WCAG 2.2 SC
+     2.5.8 floor; it is now 24x24 via --control-h-sm. */
   .record-row-accepted {
     padding: 0.4rem 0.6rem;
     background: var(--color-ok-bg, rgba(40, 160, 60, 0.1));

@@ -111,8 +111,12 @@
 .ow-add-kind { flex: 1; min-width: 0; background: var(--color-bg, #14151a); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 4px; padding: 0.35rem 0.5rem; font: inherit; }
 
 .ow-entry { display: flex; align-items: baseline; gap: 0.6rem; font-size: 0.85rem; min-width: 0; }
-.ow-url { color: var(--color-link, #8ab4f8); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 auto; }
-.ow-url:hover { text-decoration: underline; }
+/* rung 0 — layout only. Colour, hover, :visited and the
+   overflow/ellipsis/nowrap/min-width block all moved into ExternalLink, which
+   owns them federally. `flex: 1 1 auto` survives because the link is still the
+   growing item in the `.ow-entry` row and ExternalLink never sets `flex`, so
+   this rule does not fight the component. */
+.ow-url { flex: 1 1 auto; }
 .ow-date { margin-left: auto; flex-shrink: 0; color: var(--color-text-muted, #9aa0aa); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
 
 .ow-empty { color: var(--color-text-muted, #9aa0aa); font-size: 0.8rem; margin: 0.4rem 0 0; }

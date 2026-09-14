@@ -20,6 +20,7 @@
   // Spelled variant, per the decision doc: the file name says which axis this
   // picks (what you click), and `rg 'SelectWrapper--'` is the whole query.
   import SelectWrapperClickBody from '@augment-it/shared-ui/SelectWrapper--ClickBody.svelte';
+  import ExternalLink from '@augment-it/shared-ui/ExternalLink.svelte';
   import { FEDERAL_LIBRARY, MEMBER_LIBRARIES, type FederalLibrary, type MemberLibrary } from './members';
 
   type Selection =
@@ -89,9 +90,14 @@
     {#if selected.kind === 'federal'}
       <code>{selected.lib.source}</code>
     {:else}
-      <a class="lib-link" href={`${selected.lib.origin}/#/gallery`} target="_blank" rel="noopener noreferrer">
-        open on {selected.lib.origin} ↗
-      </a>
+      <ExternalLink
+        class="lib-link"
+        href={`${selected.lib.origin}/#/gallery`}
+        label={`open on ${selected.lib.origin}`}
+        noTruncate
+      >
+        open on {selected.lib.origin} <span aria-hidden="true">↗</span>
+      </ExternalLink>
     {/if}
   </div>
 
@@ -103,7 +109,12 @@
         <p class="note">
           The member has to be running for its library to mount. Start it with
           <code>pnpm --filter @augment-it/{selected.lib.name} dev</code>, or open
-          <a href={`${selected.lib.origin}/#/gallery`} target="_blank" rel="noopener noreferrer">{selected.lib.origin}</a>
+          <ExternalLink
+            class="lib-error-link"
+            href={`${selected.lib.origin}/#/gallery`}
+            label={selected.lib.origin}
+            noTruncate
+          />
           directly.
         </p>
       {:else}
@@ -180,9 +191,14 @@
                  position:relative so it sits ABOVE the click overlay and stays
                  clickable; the component hit-tests for exactly this and console-
                  errors if it is buried. -->
-            <a class="lib-link" href={`${member.origin}/#/gallery`} target="_blank" rel="noopener noreferrer">
-              {member.origin} ↗
-            </a>
+            <ExternalLink
+              class="lib-link"
+              href={`${member.origin}/#/gallery`}
+              label={member.origin}
+              noTruncate
+            >
+              {member.origin} <span aria-hidden="true">↗</span>
+            </ExternalLink>
           </CardRow>
         {/each}
       </ListContainer>

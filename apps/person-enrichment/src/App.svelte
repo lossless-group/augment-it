@@ -34,6 +34,7 @@
   import Button           from '@augment-it/shared-ui/Button.svelte';
   import CardRow          from '@augment-it/shared-ui/CardRow.svelte';
   import ListContainer    from '@augment-it/shared-ui/ListContainer.svelte';
+  import ExternalLink     from '@augment-it/shared-ui/ExternalLink.svelte';
   import NameFields       from './pulse-dimensions/NameFields.svelte';
   import EmailListField   from './pulse-dimensions/EmailListField.svelte';
   import LinkList         from './pulse-dimensions/LinkList.svelte';
@@ -826,7 +827,7 @@
           {#if event?.source_url}
             <div class="pe-meta-row">
               <span class="pe-label">source</span>
-              <a class="pe-link" href={event.source_url} target="_blank" rel="noopener">open source</a>
+              <ExternalLink href={event.source_url} label="open source" noTruncate />
             </div>
           {/if}
           {#if current.email}

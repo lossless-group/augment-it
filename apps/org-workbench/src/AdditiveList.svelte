@@ -14,6 +14,7 @@
   import CountBadge from '@augment-it/shared-ui/CountBadge.svelte';
   import Chip from '@augment-it/shared-ui/Chip.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
+  import ExternalLink from '@augment-it/shared-ui/ExternalLink.svelte';
   import type { ShapedLink } from './lib/types';
 
   type Entry = ShapedLink & { name?: string };
@@ -304,7 +305,7 @@
             {:else}
               <Chip size="sm">{e.kind}</Chip>
             {/if}
-            <a class="ow-url" href={e.url} target="_blank" rel="noreferrer">{e.name ?? display(e.url)}</a>
+            <ExternalLink class="ow-url" href={e.url} label={e.name ?? display(e.url)} />
             {#if onremove && removeUrl === e.url}
               <span class="ow-remove-confirm">
                 remove?{#if removenote?.(e)}&nbsp;<em class="ow-remove-note">{removenote(e)}</em>{/if}

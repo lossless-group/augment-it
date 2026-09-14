@@ -3,6 +3,7 @@
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
   import ListContainer from '@augment-it/shared-ui/ListContainer.svelte';
   import SelectWrapperClickPrimary from '@augment-it/shared-ui/SelectWrapper--ClickPrimary.svelte';
+  import ExternalLink from '@augment-it/shared-ui/ExternalLink.svelte';
   import type { FireResult } from '../types';
 
   type Props = {
@@ -76,13 +77,9 @@
                 <span class="candidate-title">"{c.anchor_text}"</span>
               {/if}
             </div>
-            <a
-              class="candidate-open"
-              href={c.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="open in a new tab"
-            >↗</a>
+            <!-- iconOnly — see RecordRow. The name is composed in the DOM, so
+                 naming the link does not cost it the new-tab notice. -->
+            <ExternalLink href={c.url} label={c.url} iconOnly>↗</ExternalLink>
             <Button
               variant="outline"
               size="sm"
@@ -158,29 +155,27 @@
     overflow-wrap: anywhere;
     font-size: 0.85rem;
   }
-  /* WCAG 2.2 SC 2.5.8. The ↗ glyph is 10x20 at its natural size — 21% of the
-     24x24 floor — which is what the probe measured on this member's existing
-     `.record-row-url-open`. That one is pre-existing and raised, not chased;
-     this one is new, so it clears the floor on arrival rather than copying the
-     defect. --control-h-sm IS 24px. */
-  /* Deliberately NOT adopted into ExternalLink: same icon-only reasoning as
-     `.record-row-url-open` in RecordRow — the glyph has no accessible name the
-     component can build, and ExternalLink's `min-inline-size: 0` at (0,2,0)
-     would REGRESS this rule's hard-won width floor back under 24px, since a
-     member class at (0,1,0) cannot win it back. Converting here would trade a
-     measured pass for a measured failure. */
-  .candidate-open {
-    flex: 0 0 auto;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-inline-size: var(--control-h-sm);
-    min-block-size: var(--control-h-sm);
-    color: var(--color-text-muted);
-    text-decoration: none;
-    font-size: 0.85rem;
-  }
-  .candidate-open:hover { color: var(--color-text); }
+  /* `.candidate-open` is GONE, and the reason is worth writing down because it
+     is not the same reason as the other deletions in this rollout.
+     TWO things killed it, and only the first is obvious:
+
+       1. Redundant. The 24x24 block it carried by hand is now ExternalLink's
+          `[data-icon]` rule, which declares --control-h-sm on BOTH axes. Even
+          `flex: 0 0 auto` had nothing left to do: a flex item cannot shrink
+          below its own `min-inline-size`, so the target floor holds against a
+          cramped row without flex-shrink: 0 to help it.
+
+       2. It could never have worked anyway. Svelte scopes a component's
+          `<style>` by hashing a class onto the elements IT renders — and a
+          `class` prop handed to a CHILD component gets no hash, because the
+          element it lands on belongs to the child. So a survivor rule sitting
+          in a component <style> block is silently dead on arrival.
+          `svelte-check` says so out loud: "Unused CSS selector".
+
+     Every first-group survivor (`.ow-url`, `.field-value-url-link`) lives in a
+     GLOBAL app.css, which is why the rollout had not met this yet. Anyone
+     keeping a rung-0 survivor next to an adopted ExternalLink must put it in
+     app.css or `:global()` it — or, as here, notice it was not needed. */
   .candidate-title { color: var(--color-text-muted); font-size: 0.75rem; }
   .candidates-custom {
     display: flex;

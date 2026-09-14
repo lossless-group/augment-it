@@ -73,16 +73,18 @@
   color: var(--color-text-muted);
   font-style: italic;
 }
-.resp-app ul.links li a {
-  flex: 0 1 auto;
-  min-width: 0;
-  color: var(--color-accent);
-  text-decoration: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.resp-app ul.links li a:hover { text-decoration: underline; }
+/* rung 0 — layout only, and named EXPLICITLY. This was `ul.links li a`, a
+   descendant selector on the bare element: a standing claim on every anchor
+   that ever lands in this list, including the one ExternalLink renders and any
+   future one the component is meant to own. An explicit class applies on
+   purpose or not at all.
+   The nowrap/overflow/ellipsis triplet is deleted because it is now the
+   component's DEFAULT — which is why this is the one call site in this member
+   that does NOT pass `noTruncate`. `min-width: 0` goes too: ExternalLink
+   already declares `min-inline-size: 0`. `flex: 0 1 auto` survives because the
+   link must stay the shrinking item beside `.link-note` and the remove slot,
+   and ExternalLink never sets `flex`. */
+.resp-app .link-url { flex: 0 1 auto; }
 .resp-app ul.links .link-note {
   flex: 1 1 auto;
   color: var(--color-text-muted);
@@ -303,12 +305,11 @@
   gap: 0.5rem;
 }
 
-.resp-app .candidate-url {
-  color: var(--color-accent);
-  text-decoration: none;
-  word-break: break-all;
-}
-.resp-app .candidate-url:hover { text-decoration: underline; }
+/* rung 0 — wrapping only, and the reason the call site passes `noTruncate`:
+   this is the candidate a pack produced, and the operator is judging it by
+   reading the URL whole. ExternalLink does not set `word-break`, so there is no
+   tie here. Colour, text-decoration and hover are the component's. */
+.resp-app .candidate-url { word-break: break-all; }
 
 .resp-app .candidate-name {
   color: var(--color-text);
@@ -627,20 +628,25 @@
   font-style: italic;
 }
 
+/* rung 1 — the BOX only. ExternalLink's [data-icon] owns the inline-flex
+   centring, the colour, the text-decoration and the --control-h-sm target
+   floor; what it does not own, and never sets, is a border. So the drawn
+   square survives and the rest is deleted.
+   1.6rem is 25.6px, already above the 24px floor, so keeping width/height is a
+   visual choice rather than an accessibility one and does not fight the
+   component's min-inline-size/min-block-size.
+   `font-size` and `color` are dropped rather than kept: ExternalLink declares
+   both at (0,2,0) and `.resp-app .record-url-open` is ALSO (0,2,0), so the
+   winner would have come down to stylesheet injection order — a coin-flip, not
+   a decision. Where this file genuinely must win, it qualifies the selector
+   with the element (see a.cr-url below) instead of relying on that tie. */
 .resp-app .record-url-open {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 1.6rem;
   height: 1.6rem;
-  color: var(--color-text-muted);
-  text-decoration: none;
   border: 1px solid var(--color-border);
   border-radius: 3px;
-  font-size: 0.9rem;
 }
 .resp-app .record-url-open:hover {
-  color: var(--color-accent);
   border-color: var(--color-accent);
 }
 
@@ -779,14 +785,27 @@
 }
 .resp-app .cr-title:focus { outline: 1px solid var(--color-accent); }
 
-.resp-app .cr-url {
+/* rung 2 — and the ONE place in this rollout that needed more than a class.
+   A Content Reader URL is monospaced 0.75rem on purpose: it is the exact string
+   the operator compares against what the fetch returned.
+   ExternalLink declares `font-family: var(--font-sans)` and `font-size:
+   inherit` in its own scoped style, which lands at (0,2,0). `.resp-app .cr-url`
+   is ALSO (0,2,0) — a specificity TIE, resolved only by stylesheet injection
+   order, which nothing here controls. Qualifying with the element ExternalLink
+   actually renders makes it (0,2,1) and the outcome deterministic.
+   This is rung 2, NOT rung 4: no `style=` and no `data-deviation`. Worth
+   recording anyway, because it means any member wanting a non-default face on
+   an adopted link has to know to qualify — the tie is silent and resolves the
+   RIGHT way roughly half the time, which is the worst kind of bug.
+   `overflow-wrap: anywhere` is untied (the component never sets it) and is why
+   `noTruncate` is safe at all four call sites: the URL wraps inside the card
+   instead of overflowing it. Colour, text-decoration and hover are the
+   component's. */
+.resp-app a.cr-url {
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  color: var(--color-accent);
-  text-decoration: none;
   overflow-wrap: anywhere;
 }
-.resp-app .cr-url:hover { text-decoration: underline; }
 
 .resp-app .cr-excerpt {
   margin: 0;

@@ -60,8 +60,19 @@
 .arr-link-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
 /* .arr-link-list li layout deleted — CardRow lays each link row out now. What is
    left is rung 0: the anchor is the child that stretches. */
-.arr-link-list a { color: var(--color-link, #6fb3ff); text-decoration: none; flex: 1; min-inline-size: 0; word-break: break-all; }
-.arr-link-list a:hover { text-decoration: underline; }
+/* rung 0 — layout and wrapping only, and named EXPLICITLY rather than reached
+   for as `.arr-link-list a`. The descendant-`a` form is the shape that bites:
+   it is a standing claim on any anchor that ever lands in this list, including
+   the one ExternalLink renders and every future one the component is supposed
+   to own. An explicit class is applied on purpose or not at all.
+   `flex: 1` survives because the link is still the growing item in the CardRow
+   beside the `.arr-kind` badge, and ExternalLink never sets `flex`.
+   `word-break: break-all` survives, and is why all four sites pass
+   `noTruncate`: these are the canonical links an operator is rating, so the
+   member's standing choice is to show each URL whole. `min-inline-size: 0` is
+   dropped as redundant — ExternalLink already declares it. Colour, hover and
+   :visited are the component's. */
+.arr-link { flex: 1; word-break: break-all; }
 .arr-kind { font-size: 0.65rem; color: var(--color-text-muted, #9aa0aa); border: 1px solid var(--color-border, #2a2c33); border-radius: 3px; padding: 0 0.3rem; white-space: nowrap; }
 .arr-add-row { display: flex; gap: 0.4rem; }
 .arr-add-row input { flex: 1; min-width: 0; background: var(--color-bg, #14151a); color: inherit; border: 1px solid var(--color-border, #2a2c33); border-radius: 4px; padding: 0.35rem 0.5rem; font-size: 0.8rem; }

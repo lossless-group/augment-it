@@ -135,11 +135,13 @@
   font: 12px var(--font-mono);
   color: var(--color-text);
 }
-.pe-link {
-  color: var(--color-accent-2);
-  text-decoration: none;
-}
-.pe-link:hover { text-decoration: underline; }
+/* `.pe-link` is GONE, not merely unused. It held colour, text-decoration and a
+   hover — all three federal now — so unlike `.ow-url` or `.rdr-link` there was
+   no rung-0 remainder to keep and no reason to keep the class on the element.
+   One visible consequence, stated rather than slipped in: the source link was
+   --color-accent-2 and is now --color-link, because ExternalLink declares the
+   federal link colour at (0,2,0). That is the rollout working, not a
+   regression — but it IS the one thing here a screenshot would show. */
 
 .pe-search-row {
   display: flex;

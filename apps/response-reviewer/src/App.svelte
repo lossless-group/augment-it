@@ -15,6 +15,7 @@
   import CountBadge from '@augment-it/shared-ui/CountBadge.svelte';
   import StatusIndicator from '@augment-it/shared-ui/StatusIndicator.svelte';
   import CardRow from '@augment-it/shared-ui/CardRow.svelte';
+  import ExternalLink from '@augment-it/shared-ui/ExternalLink.svelte';
   import DisclosureRow from '@augment-it/shared-ui/DisclosureRow.svelte';
   import SelectCheck from '@augment-it/shared-ui/SelectWrapper--Checkbox.svelte';
   import { MOCK_PACKS_FIXTURE } from './fixtures/mock-packs';
@@ -1670,13 +1671,12 @@
                         }}
                         title="Edit the URL — Enter or click away to save"
                       />
-                      <a
+                      <ExternalLink
                         class="record-url-open"
                         href={urlDrafts[resp.response_id] ?? resp.structured.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Open in new tab"
-                      >↗</a>
+                        label={urlDrafts[resp.response_id] ?? resp.structured.url}
+                        iconOnly
+                      >↗</ExternalLink>
                       <input
                         class="record-display-name-input"
                         type="text"
@@ -1720,13 +1720,12 @@
                         title="Type a URL — Enter or click away to save; promotes the response from {resp.outcome} → found"
                       />
                       {#if urlDrafts[resp.response_id]}
-                        <a
+                        <ExternalLink
                           class="record-url-open"
                           href={urlDrafts[resp.response_id]}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Open the URL you're typing in a new tab"
-                        >↗</a>
+                          label={urlDrafts[resp.response_id]}
+                          iconOnly
+                        >↗</ExternalLink>
                       {/if}
                     {:else if resp.response_text}
                       <span class="record-prose">{resp.response_text}</span>
@@ -2003,7 +2002,7 @@
                           <div class="cr-fail">
                             Jina fetch failed: {manualPreview.error ?? 'unknown error'}
                             {#if manualPreview.exact_url}
-                              <a href={manualPreview.exact_url} target="_blank" rel="noopener noreferrer">{manualPreview.exact_url}</a>
+                              <ExternalLink class="cr-url" href={manualPreview.exact_url} noTruncate />
                             {/if}
                           </div>
                         {:else if inCorpusAlready}
@@ -2023,7 +2022,7 @@
                             placeholder="Title"
                           />
                           {#if manualPreview.exact_url}
-                            <a class="cr-url" href={manualPreview.exact_url} target="_blank" rel="noopener noreferrer">{manualPreview.exact_url}</a>
+                            <ExternalLink class="cr-url" href={manualPreview.exact_url} noTruncate />
                           {/if}
                           {#if manualPreview.excerpt}
                             <p class="cr-excerpt">{manualPreview.excerpt}</p>
@@ -2119,7 +2118,7 @@
                           <div class="cr-fail">
                             Jina fetch failed: {p.error ?? 'unknown error'}
                             {#if p.exact_url}
-                              <a href={p.exact_url} target="_blank" rel="noopener noreferrer">{p.exact_url}</a>
+                              <ExternalLink class="cr-url" href={p.exact_url} noTruncate />
                             {/if}
                           </div>
                         {:else}
@@ -2137,7 +2136,7 @@
                             placeholder="Title"
                           />
                           {#if p.exact_url}
-                            <a class="cr-url" href={p.exact_url} target="_blank" rel="noopener noreferrer">{p.exact_url}</a>
+                            <ExternalLink class="cr-url" href={p.exact_url} noTruncate />
                           {/if}
                           {#if p.excerpt}
                             <p class="cr-excerpt">{p.excerpt}</p>
@@ -2241,7 +2240,7 @@
                    <li> because a <div> is not a legal child of <ul>. The prop
                    removes the wrapper level entirely. -->
               <CardRow as="li" density="compact">
-                <a href={link.url} target="_blank" rel="noopener noreferrer">{linkLabel(link)}</a>
+                <ExternalLink class="link-url" href={link.url} label={linkLabel(link)} />
                 {#if link.note}<span class="link-note">{link.note}</span>{/if}
                 <span class="link-remove-slot">
                   <Button
@@ -2292,12 +2291,7 @@
             <div class="candidate-card">
               <div class="candidate-row">
                 <ConfidencePill confidence={current.structured.confidence} />
-                <a
-                  class="candidate-url"
-                  href={current.structured.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >{current.structured.url}</a>
+                <ExternalLink class="candidate-url" href={current.structured.url} noTruncate />
                 <span class="candidate-name">{current.structured.display_name}</span>
                 {#if current.pack_id}
                   <Chip size="sm" tone="neutral" title="produced by this pack">{current.pack_id}</Chip>

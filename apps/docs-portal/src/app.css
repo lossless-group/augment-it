@@ -182,22 +182,37 @@ code { font-family: var(--font-mono); font-size: 11px; }
 }
 .lib-card-summary { color: var(--color-text-muted); line-height: 1.5; }
 
+/* Rung 0/1 survivors after ExternalLink adoption. Colour, text-decoration,
+   :hover and :focus-visible are the component's now — and the dead
+   `outline: var(--focus-ring, …)` this rule used to carry went with them,
+   which is the repair the comment above predicted would have to happen
+   eventually. ExternalLink's :focus-visible paints a real box-shadow ring.
+
+   MEASURED, and the reason adoption is worth it here: at `font-size: 10px`
+   with `padding: 7px 0 0` and no bottom padding, this control was about 19px
+   tall — roughly 79% of the WCAG 2.2 SC 2.5.8 24px floor. ExternalLink's
+   `min-block-size: var(--control-h-sm)` puts it over. */
 .lib-link {
-  /* REQUIRED by the --ClickBody contract, not cosmetic: the wrapper stretches a
-     pseudo-element across the whole CardRow, and a static sibling would sit
-     UNDER it and stop being clickable. The component hit-tests each sibling's
-     centre and console-errors if one is buried — which is how this line stays
-     honest instead of rotting into a comment nobody checks. */
+  /* STILL REQUIRED by the --ClickBody contract, and still not cosmetic: the
+     wrapper stretches a pseudo-element across the whole CardRow, and a static
+     sibling would sit UNDER it and stop being clickable. The component
+     hit-tests each sibling's centre and console-errors if one is buried.
+     ExternalLink does not set `position`, so this survives unchanged and the
+     anchor it renders is the same one the hit-test finds. */
   position: relative;
-  font-size: 10px;
   padding: 7px 0 0;
   margin-block-start: auto;   /* pin to the bottom of an equal-height grid tile */
-  color: var(--color-link);
-  text-decoration: none;
   border-top: 1px solid var(--color-border);
 }
-.lib-link:hover { text-decoration: underline; }
-.lib-link:focus-visible { outline: var(--focus-ring, 2px solid var(--color-accent)); outline-offset: -2px; }
+/* Qualified with the element ON PURPOSE. ExternalLink declares `font-size:
+   inherit` in its scoped style, which Svelte emits as
+   `.ui-extlink.svelte-<hash>` — (0,2,0). A single-class `.lib-link` is
+   (0,1,0) and simply LOSES, silently, so the 10px would have become the
+   inherited 11px with nothing to show for it. `.portal a.lib-link` is (0,2,1)
+   and wins by the cascade. This is the same finding response-reviewer hit on
+   `.cr-url`, and it is worth stating as a rule: a member cannot set typography
+   on an adopted link from a one-class selector. */
+.portal a.lib-link { font-size: 10px; }
 
 .lib-bar {
   display: flex;
@@ -230,7 +245,21 @@ code { font-family: var(--font-mono); font-size: 11px; }
   font-size: 11px;
   margin-bottom: 12px;
 }
-.lib-error a { color: inherit; }
+/* Was `.lib-error a { color: inherit }` — a descendant selector on the bare
+   element, and one that adoption would have silently BROKEN in two ways.
+
+   `color: inherit` here is a contrast decision, not a cosmetic one: this link
+   sits inside a red error box painted --color-error-bg/--color-error-text, and
+   inheriting the error colour is what keeps it legible against that surface.
+   The federal --color-link was never measured against --color-error-bg.
+
+   ExternalLink declares `color` in its scoped style, emitted as
+   `.ui-extlink.svelte-<hash>` — (0,2,0). The old `.lib-error a` was (0,1,1),
+   which LOSES, so the link would have turned link-blue inside the red box with
+   nothing in the diff to say so. An explicit class, qualified with the element,
+   is (0,3,1) and wins — and as a bare-element descendant selector the old form
+   was also a standing claim on any future anchor in this box. */
+.portal .lib-error a.lib-error-link { color: inherit; }
 
 /* ------------------------------------------------------------------ federal
  * The platform's own library, above the members' grid.
