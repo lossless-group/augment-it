@@ -47,27 +47,39 @@ const STYLE = `
   @media (max-width: 560px) { .archify-fs-label { display: none; } }
   @media print { .archify-fs-btn { display: none; } }
 
+  /* The page chrome is suppressed while the panel is fullscreened. --panel is
+     rgba(15,23,42,.5) — half transparent — so a panel painted with it alone
+     lets the header, the guided-view rail and the card rail show straight
+     through the fullscreen view. Paint the panel tint over the opaque page
+     ground instead, and fade the chrome as a second line of defence. */
+  html[data-archify-fullscreen="true"] > body > .toolbar,
+  html[data-archify-fullscreen="true"] .container > :not(.diagram-container) {
+    opacity: 0;
+    pointer-events: none;
+  }
+
   /* Separate rules on purpose: a prefixed selector in a group invalidates
      the whole group in engines that do not know it. */
   .diagram-container:fullscreen {
     width: 100vw; height: 100vh; box-sizing: border-box;
     display: flex; align-items: center; justify-content: center;
     padding: 1.25rem; border: 0; border-radius: 0;
-    background: var(--panel);
+    background: linear-gradient(var(--panel), var(--panel)), var(--bg);
   }
   .diagram-container:fullscreen > svg {
     flex: 1 1 auto; width: 100%; height: 100%; min-width: 0; min-height: 0;
   }
-  .diagram-container:fullscreen::backdrop { background: var(--panel); }
+  .diagram-container:fullscreen::backdrop { background: var(--bg); }
   .diagram-container:-webkit-full-screen {
     width: 100vw; height: 100vh; box-sizing: border-box;
     display: flex; align-items: center; justify-content: center;
     padding: 1.25rem; border: 0; border-radius: 0;
-    background: var(--panel);
+    background: linear-gradient(var(--panel), var(--panel)), var(--bg);
   }
   .diagram-container:-webkit-full-screen > svg {
     flex: 1 1 auto; width: 100%; height: 100%; min-width: 0; min-height: 0;
   }
+  .diagram-container:-webkit-full-screen::backdrop { background: var(--bg); }
 </style>`;
 
 const BUTTON = `
@@ -117,6 +129,10 @@ const SCRIPT = `
     expand.hidden = on;
     collapse.hidden = !on;
     label.textContent = on ? 'Exit' : 'Full screen';
+    // Drives the chrome-suppression rules above; removed again on exit so the
+    // page returns to exactly how it was.
+    if (on) document.documentElement.setAttribute('data-archify-fullscreen', 'true');
+    else document.documentElement.removeAttribute('data-archify-fullscreen');
     // The viewer sizes pan/zoom from measured client box; nudge it to re-read.
     window.dispatchEvent(new Event('resize'));
   }
