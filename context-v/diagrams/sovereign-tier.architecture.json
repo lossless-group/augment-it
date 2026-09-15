@@ -2,7 +2,7 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "Inside the sovereign tier — nineteen modules, no imports",
+    "title": "Inside the Sovereign Shell — nineteen modules, no imports",
     "output": "sovereign-tier.html",
     "quality_profile": "showcase",
     "viewBox": [
@@ -31,24 +31,23 @@
         "note": "One localStorage key names the record set everyone works on. Two modules write it; five read it on mount and again on the broadcast."
       },
       {
-        "id": "navigation",
-        "label": "How a surface changes",
+        "id": "where-state-lives",
+        "label": "Where the state lives",
         "focus": [
-          "review",
-          "bus",
-          "shell"
+          "worktarget",
+          "db",
+          "corpora"
         ],
-        "note": "Five modules dispatch augment-it:navigate. None of them can mount anything. The shell is the only listener, and the only thing that can."
+        "note": "Three stores, three jobs. A key for what is being worked on, SurrealDB for the canonical entities, and an on-disk mirror of every write."
       },
       {
-        "id": "chain",
-        "label": "The work, end to end",
+        "id": "windows",
+        "label": "Windows, not pages",
         "focus": [
-          "intake",
-          "fire",
-          "review"
+          "review",
+          "windows"
         ],
-        "note": "Rows enter, get resolved against the graph, get fired through a prompt pack, and come back for review before anything is promoted."
+        "note": "The shell is a window manager. A window is one feature or flow, and pair-mode tiles two modules side by side as a single task."
       }
     ]
   },
@@ -59,12 +58,12 @@
       "label": "Intake",
       "sublabel": "record-collector · search-and-add",
       "pos": [
-        60,
-        100
+        45,
+        88
       ],
       "size": [
-        230,
-        96
+        222,
+        92
       ]
     },
     {
@@ -73,12 +72,12 @@
       "label": "Resolvers",
       "sublabel": "person · record · affiliation",
       "pos": [
-        370,
-        100
+        367,
+        88
       ],
       "size": [
-        230,
-        96
+        222,
+        92
       ]
     },
     {
@@ -87,12 +86,12 @@
       "label": "Prompt firing",
       "sublabel": "template-manager · pack-runner",
       "pos": [
-        680,
-        100
+        689,
+        88
       ],
       "size": [
-        230,
-        96
+        222,
+        92
       ]
     },
     {
@@ -101,61 +100,77 @@
       "label": "Review and promote",
       "sublabel": "response-reviewer · records-surface",
       "pos": [
-        990,
-        100
+        1011,
+        88
       ],
       "size": [
-        230,
-        96
+        222,
+        92
+      ]
+    },
+    {
+      "id": "windows",
+      "type": "frontend",
+      "label": "Workspace Windows",
+      "sublabel": "flow-driven UIs over response data",
+      "tag": "pair-mode tiles two as one task",
+      "pos": [
+        997,
+        300
+      ],
+      "size": [
+        250,
+        104
       ]
     },
     {
       "id": "worktarget",
       "type": "database",
       "label": "active-record-set",
-      "sublabel": "one key in localStorage",
+      "sublabel": "localStorage · read by five",
       "pos": [
-        370,
-        340
+        45,
+        520
       ],
       "size": [
-        230,
-        92
+        222,
+        104
+      ],
+      "tag": "read by five modules on mount"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "Multi-Modal DB",
+      "sublabel": "SurrealDB · canonical entities",
+      "pos": [
+        367,
+        520
+      ],
+      "size": [
+        222,
+        104
       ]
     },
     {
-      "id": "shell",
-      "type": "frontend",
-      "label": "Shell",
-      "sublabel": "the only thing that can mount",
+      "id": "corpora",
+      "type": "database",
+      "label": "Local Corpora",
+      "sublabel": "markdown, yaml, json on disk",
       "pos": [
-        990,
-        560
+        689,
+        520
       ],
       "size": [
-        230,
-        92
-      ]
-    },
-    {
-      "id": "bus",
-      "type": "messagebus",
-      "label": "window events",
-      "sublabel": "ten named channels",
-      "pos": [
-        990,
-        340
-      ],
-      "size": [
-        230,
-        92
+        222,
+        104
       ]
     }
   ],
   "boundaries": [
     {
       "kind": "region",
-      "label": "The sovereign tier — nineteen modules in four families, none imports another",
+      "label": "Sovereign Shell — nineteen modules, none imports another",
       "wraps": [
         "intake",
         "resolve",
@@ -187,33 +202,37 @@
       "id": "intake-writes",
       "from": "intake",
       "to": "worktarget",
-      "label": "two modules write it"
-    },
-    {
-      "id": "target-read",
-      "from": "worktarget",
-      "to": "resolve",
-      "label": "five modules read it"
-    },
-    {
-      "id": "review-navigates",
-      "from": "review",
-      "to": "bus",
-      "label": "dispatches navigate",
+      "label": "two modules write it",
       "labelAt": [
-        1105,
-        268
+        156,
+        350
       ]
     },
     {
-      "id": "bus-shell",
-      "from": "bus",
-      "to": "shell",
-      "label": "the only listener",
+      "id": "resolve-db",
+      "from": "resolve",
+      "to": "db",
+      "label": "matched against the graph",
+      "labelAt": [
+        478,
+        350
+      ]
+    },
+    {
+      "id": "db-mirror",
+      "from": "db",
+      "to": "corpora",
+      "label": "mirrored to disk"
+    },
+    {
+      "id": "review-windows",
+      "from": "review",
+      "to": "windows",
+      "label": "tiled as one task view",
       "variant": "emphasis",
       "labelAt": [
-        1105,
-        496
+        1122,
+        240
       ]
     }
   ],
@@ -228,18 +247,18 @@
     },
     {
       "dot": "emerald",
-      "title": "So how do they coordinate",
+      "title": "Three places state lives",
       "items": [
-        "One key names the set everyone is working on",
-        "Ten window events; the shell owns every mount"
+        "One key names the record set everyone works on",
+        "SurrealDB is canonical; every write mirrors to disk"
       ]
     },
     {
       "dot": "rose",
-      "title": "What that buys",
+      "title": "The shell owns the mount",
       "items": [
-        "Rewrite one module, leave the other eighteen",
-        "A broken remote degrades its panel, not the page"
+        "Five modules dispatch navigate; only the shell listens",
+        "Pair-mode tiles two modules as a single task"
       ]
     }
   ]
