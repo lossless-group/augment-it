@@ -7,8 +7,8 @@
   "visualReview": "pending",
   "artifact": {
     "path": "/Users/mpstaton/code/lossless-monorepo/ai-labs/augment-it/context-v/diagrams/sovereign-tier.html",
-    "sha256": "aa7f3fe201934095b7f065c36d269b19ce46c7082d5c797cd391f723b63e23e0",
-    "bytes": 815898
+    "sha256": "5cc608e5fdb4cf349c181e1f9198fe165ee37168ee8bf1a7d7937bf1af9ef963",
+    "bytes": 818386
   },
   "state": {
     "detail": "read",

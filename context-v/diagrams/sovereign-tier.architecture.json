@@ -58,12 +58,12 @@
       "label": "Intake",
       "sublabel": "record-collector · search-and-add",
       "pos": [
-        45,
-        88
+        50,
+        132
       ],
       "size": [
-        222,
-        92
+        218,
+        88
       ]
     },
     {
@@ -72,12 +72,12 @@
       "label": "Resolvers",
       "sublabel": "person · record · affiliation",
       "pos": [
-        367,
-        88
+        370,
+        132
       ],
       "size": [
-        222,
-        92
+        218,
+        88
       ]
     },
     {
@@ -86,12 +86,12 @@
       "label": "Prompt firing",
       "sublabel": "template-manager · pack-runner",
       "pos": [
-        689,
-        88
+        690,
+        132
       ],
       "size": [
-        222,
-        92
+        200,
+        88
       ]
     },
     {
@@ -100,12 +100,12 @@
       "label": "Review and promote",
       "sublabel": "response-reviewer · records-surface",
       "pos": [
-        1011,
-        88
+        990,
+        132
       ],
       "size": [
-        222,
-        92
+        238,
+        88
       ]
     },
     {
@@ -116,11 +116,11 @@
       "tag": "what the operator does with a response",
       "pos": [
         460,
-        286
+        310
       ],
       "size": [
         360,
-        104
+        100
       ]
     },
     {
@@ -129,12 +129,12 @@
       "label": "active-record-set",
       "sublabel": "localStorage · read by five",
       "pos": [
-        529,
-        540
+        531,
+        550
       ],
       "size": [
-        222,
-        104
+        218,
+        100
       ],
       "tag": "read by five modules on mount"
     },
@@ -144,12 +144,12 @@
       "label": "Multi-Modal DB",
       "sublabel": "SurrealDB · canonical entities",
       "pos": [
-        104,
-        540
+        191,
+        550
       ],
       "size": [
-        222,
-        104
+        218,
+        100
       ]
     },
     {
@@ -158,12 +158,12 @@
       "label": "Local Corpora",
       "sublabel": "markdown, yaml, json on disk",
       "pos": [
-        954,
-        540
+        956,
+        550
       ],
       "size": [
-        222,
-        104
+        218,
+        100
       ]
     }
   ],
@@ -176,7 +176,19 @@
         "resolve",
         "fire",
         "review"
-      ]
+      ],
+      "pad": 44
+    },
+    {
+      "kind": "region",
+      "label": "Flow Selector + Window Loader — a flow picks the windows and their order",
+      "wraps": [
+        "intake",
+        "resolve",
+        "fire",
+        "review"
+      ],
+      "pad": 18
     }
   ],
   "connections": [
@@ -191,6 +203,14 @@
       "from": "resolve",
       "to": "fire",
       "label": "resolved"
+    },
+    {
+      "id": "resolve-windows",
+      "from": "resolve",
+      "to": "windows",
+      "label": "act on it now",
+      "fromSide": "bottom",
+      "toSide": "top"
     },
     {
       "id": "fire-review",
@@ -210,21 +230,17 @@
       "from": "resolve",
       "to": "db",
       "label": "straight to canonical",
-      "labelAt": [
-        215,
-        400
-      ],
-      "fromSide": "bottom",
+      "fromSide": "left",
       "toSide": "top",
       "via": [
         [
-          478,
-          235
-        ],
-        [
-          215,
-          235
+          300,
+          176
         ]
+      ],
+      "labelAt": [
+        300,
+        430
       ]
     },
     {
@@ -233,8 +249,8 @@
       "to": "db",
       "label": "write the entity",
       "labelAt": [
-        455,
-        470
+        470,
+        480
       ]
     },
     {
@@ -244,7 +260,7 @@
       "label": "re-target the set",
       "labelAt": [
         640,
-        465
+        480
       ]
     },
     {
@@ -254,7 +270,7 @@
       "label": "write a corpus file",
       "labelAt": [
         1065,
-        470
+        480
       ]
     }
   ],
