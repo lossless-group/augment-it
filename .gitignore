@@ -78,3 +78,10 @@ design-canvas/
 # one can never be swept into a commit by a directory-wide `git add` (it was, once).
 apps/*/probe/
 shell/probe/
+
+# Archify visual-check screenshots and contact sheets. Regenerated on every
+# `archify visual-check` run (~2MB a pass, and every diagram edit is a new pass).
+# The .visual-check.json receipt stays tracked — that is the evidence record;
+# the rasters are just what it was measured from.
+context-v/diagrams/*.visual-check.*.png
+context-v/diagrams/*.visual-check.html
