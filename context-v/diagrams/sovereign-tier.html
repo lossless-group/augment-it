@@ -4973,6 +4973,55 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       svg [data-node-id], svg [data-edge-from], svg [data-detail], svg [data-detail-anchor], svg [data-legend-hit], svg { transition: none !important; }
     }
   </style>
+
+<style id="archify-fullscreen-patch-style">
+  .archify-fs-btn {
+    position: absolute; top: .65rem; right: .65rem; z-index: 40;
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .34rem .62rem;
+    font: inherit; font-size: .72rem; line-height: 1; letter-spacing: .02em;
+    color: var(--text); background: var(--panel);
+    border: 1px solid var(--panel-border); border-radius: .5rem;
+    cursor: pointer; opacity: .5;
+    transition: opacity .15s ease;
+  }
+  .archify-fs-btn:hover, .archify-fs-btn:focus-visible { opacity: 1; }
+  /* The viewer ships a global `svg { width:100%; min-width:min(900px,100%) }`
+     for the diagram itself. min-width is not overridden by setting width, so
+     these icons inflate to the button's full content box without the reset. */
+  .archify-fs-btn svg {
+    flex: 0 0 auto;
+    width: 13px; height: 13px; min-width: 0; max-width: 13px;
+    fill: none; stroke: currentColor;
+    stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .archify-fs-btn svg[hidden] { display: none; }
+  .archify-fs-label { white-space: nowrap; }
+  @media (max-width: 560px) { .archify-fs-label { display: none; } }
+  @media print { .archify-fs-btn { display: none; } }
+
+  /* Separate rules on purpose: a prefixed selector in a group invalidates
+     the whole group in engines that do not know it. */
+  .diagram-container:fullscreen {
+    width: 100vw; height: 100vh; box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+    padding: 1.25rem; border: 0; border-radius: 0;
+    background: var(--panel);
+  }
+  .diagram-container:fullscreen > svg {
+    flex: 1 1 auto; width: 100%; height: 100%; min-width: 0; min-height: 0;
+  }
+  .diagram-container:fullscreen::backdrop { background: var(--panel); }
+  .diagram-container:-webkit-full-screen {
+    width: 100vw; height: 100vh; box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+    padding: 1.25rem; border: 0; border-radius: 0;
+    background: var(--panel);
+  }
+  .diagram-container:-webkit-full-screen > svg {
+    flex: 1 1 auto; width: 100%; height: 100%; min-width: 0; min-height: 0;
+  }
+</style>
 </head>
 <body>
   <!-- Toolbar: theme, live visual style, trace motion, presentation stage, and export.
@@ -5317,6 +5366,13 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           </g>
         </g>
       </svg>
+<button type="button" class="archify-fs-btn no-print" id="archify-fs-btn"
+        aria-pressed="false" title="Expand diagram to full screen"
+        aria-label="Expand diagram to full screen">
+  <svg viewBox="0 0 16 16" aria-hidden="true" data-fs-icon="expand"><path d="M6 1.5H1.5V6M10 14.5H14.5V10M14.5 6V1.5H10M1.5 10V14.5H6"/></svg>
+  <svg viewBox="0 0 16 16" aria-hidden="true" data-fs-icon="collapse" hidden><path d="M1.5 6H6V1.5M14.5 10H10V14.5M10 1.5V6H14.5M6 14.5V10H1.5"/></svg>
+  <span class="archify-fs-label">Full screen</span>
+</button>
       <p class="intent-trace-status no-print" id="intent-trace-status" role="status" aria-live="polite" aria-atomic="true"></p>
       <div class="share-chapter-cue no-print" id="share-chapter-cue" hidden role="status" aria-live="polite">
         <div class="share-chapter-index">
@@ -14961,5 +15017,55 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       }
     });
   </script>
+
+<script id="archify-fullscreen-patch-script">
+(function () {
+  var panel = document.querySelector('.diagram-container');
+  var btn = document.getElementById('archify-fs-btn');
+  if (!panel || !btn) return;
+
+  var expand = btn.querySelector('[data-fs-icon="expand"]');
+  var collapse = btn.querySelector('[data-fs-icon="collapse"]');
+  var label = btn.querySelector('.archify-fs-label');
+
+  function current() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+  function active() { return current() === panel; }
+
+  function enter() {
+    var fn = panel.requestFullscreen || panel.webkitRequestFullscreen;
+    if (!fn) return;
+    // Rejects when the gesture is stale or policy forbids it; nothing to do
+    // but leave the page as it was.
+    try { Promise.resolve(fn.call(panel)).catch(function () {}); } catch (e) {}
+  }
+  function leave() {
+    var fn = document.exitFullscreen || document.webkitExitFullscreen;
+    if (!fn) return;
+    try { Promise.resolve(fn.call(document)).catch(function () {}); } catch (e) {}
+  }
+
+  function sync() {
+    var on = active();
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    var text = on ? 'Exit full screen' : 'Expand diagram to full screen';
+    btn.setAttribute('aria-label', text);
+    btn.setAttribute('title', text);
+    expand.hidden = on;
+    collapse.hidden = !on;
+    label.textContent = on ? 'Exit' : 'Full screen';
+    // The viewer sizes pan/zoom from measured client box; nudge it to re-read.
+    window.dispatchEvent(new Event('resize'));
+  }
+
+  btn.addEventListener('click', function () { active() ? leave() : enter(); });
+  document.addEventListener('fullscreenchange', sync);
+  document.addEventListener('webkitfullscreenchange', sync);
+
+  // Proves to a headless check that this ran.
+  panel.setAttribute('data-fullscreen-ready', 'true');
+})();
+</script>
 </body>
 </html>

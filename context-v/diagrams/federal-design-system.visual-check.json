@@ -7,8 +7,8 @@
   "visualReview": "pending",
   "artifact": {
     "path": "/Users/mpstaton/code/lossless-monorepo/ai-labs/augment-it/context-v/diagrams/federal-design-system.html",
-    "sha256": "f98c5f4d983396228314b4768059883135ece33c2f1c3458c6ea4d176eabffe5",
-    "bytes": 811434
+    "sha256": "6a2b1b60233a32ef56414b12adebe049d78ba63a6f9dd72f20f0126d1de31655",
+    "bytes": 816035
   },
   "state": {
     "detail": "read",
