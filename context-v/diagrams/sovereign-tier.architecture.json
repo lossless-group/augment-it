@@ -21,14 +21,23 @@
         "note": "No module imports another. The only shared imports in the tier are three federal packages; grep a sibling's name and get nothing."
       },
       {
-        "id": "work-target",
-        "label": "The one shared fact",
+        "id": "what-operator-does",
+        "label": "What the operator does",
         "focus": [
-          "worktarget",
-          "intake",
-          "resolve"
+          "review",
+          "windows"
         ],
-        "note": "One localStorage key names the record set everyone works on. Two modules write it; five read it on mount and again on the broadcast."
+        "note": "The reviewer hands off to a window action. Nothing is committed by the pipeline itself — a person decides what the response data becomes."
+      },
+      {
+        "id": "three-places",
+        "label": "One or more of three",
+        "focus": [
+          "windows",
+          "worktarget",
+          "db"
+        ],
+        "note": "An action lands in one or more of three stores: the working set, the canonical entity graph, or a corpus file on disk."
       },
       {
         "id": "where-state-lives",
@@ -38,16 +47,7 @@
           "db",
           "corpora"
         ],
-        "note": "Three stores, three jobs. A key for what is being worked on, SurrealDB for the canonical entities, and an on-disk mirror of every write."
-      },
-      {
-        "id": "windows",
-        "label": "Windows, not pages",
-        "focus": [
-          "review",
-          "windows"
-        ],
-        "note": "The shell is a window manager. A window is one feature or flow, and pair-mode tiles two modules side by side as a single task."
+        "note": "Three stores, three jobs. A key for what is being worked on, SurrealDB for canonical entities, and an on-disk mirror of every write."
       }
     ]
   },
@@ -111,15 +111,15 @@
     {
       "id": "windows",
       "type": "frontend",
-      "label": "Workspace Windows",
-      "sublabel": "flow-driven UIs over response data",
-      "tag": "pair-mode tiles two as one task",
+      "label": "Workspace Window Actions",
+      "sublabel": "feature- and flow-driven UIs",
+      "tag": "what the operator does with a response",
       "pos": [
-        997,
-        300
+        460,
+        286
       ],
       "size": [
-        250,
+        360,
         104
       ]
     },
@@ -129,8 +129,8 @@
       "label": "active-record-set",
       "sublabel": "localStorage · read by five",
       "pos": [
-        45,
-        520
+        529,
+        540
       ],
       "size": [
         222,
@@ -144,8 +144,8 @@
       "label": "Multi-Modal DB",
       "sublabel": "SurrealDB · canonical entities",
       "pos": [
-        367,
-        520
+        104,
+        540
       ],
       "size": [
         222,
@@ -158,8 +158,8 @@
       "label": "Local Corpora",
       "sublabel": "markdown, yaml, json on disk",
       "pos": [
-        689,
-        520
+        954,
+        540
       ],
       "size": [
         222,
@@ -199,40 +199,62 @@
       "label": "responses"
     },
     {
-      "id": "intake-writes",
-      "from": "intake",
-      "to": "worktarget",
-      "label": "two modules write it",
-      "labelAt": [
-        156,
-        350
-      ]
+      "id": "review-windows",
+      "from": "review",
+      "to": "windows",
+      "label": "the operator acts",
+      "variant": "emphasis"
     },
     {
       "id": "resolve-db",
       "from": "resolve",
       "to": "db",
-      "label": "matched against the graph",
+      "label": "straight to canonical",
       "labelAt": [
-        478,
-        350
+        215,
+        400
+      ],
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          478,
+          235
+        ],
+        [
+          215,
+          235
+        ]
       ]
     },
     {
-      "id": "db-mirror",
-      "from": "db",
-      "to": "corpora",
-      "label": "mirrored to disk"
+      "id": "act-db",
+      "from": "windows",
+      "to": "db",
+      "label": "write the entity",
+      "labelAt": [
+        455,
+        470
+      ]
     },
     {
-      "id": "review-windows",
-      "from": "review",
-      "to": "windows",
-      "label": "tiled as one task view",
-      "variant": "emphasis",
+      "id": "act-worktarget",
+      "from": "windows",
+      "to": "worktarget",
+      "label": "re-target the set",
       "labelAt": [
-        1122,
-        240
+        640,
+        465
+      ]
+    },
+    {
+      "id": "act-corpora",
+      "from": "windows",
+      "to": "corpora",
+      "label": "write a corpus file",
+      "labelAt": [
+        1065,
+        470
       ]
     }
   ],
@@ -247,18 +269,18 @@
     },
     {
       "dot": "emerald",
-      "title": "Three places state lives",
+      "title": "The operator commits",
       "items": [
-        "One key names the record set everyone works on",
-        "SurrealDB is canonical; every write mirrors to disk"
+        "Review hands off to an action, not to a store",
+        "One action can land in all three at once"
       ]
     },
     {
       "dot": "rose",
-      "title": "The shell owns the mount",
+      "title": "Three places state lives",
       "items": [
-        "Five modules dispatch navigate; only the shell listens",
-        "Pair-mode tiles two modules as a single task"
+        "One key names the record set everyone works on",
+        "SurrealDB is canonical; every write mirrors to disk"
       ]
     }
   ]
