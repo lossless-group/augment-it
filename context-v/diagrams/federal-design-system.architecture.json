@@ -1,0 +1,279 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "The Federal Design System \u2014 one kit, nineteen front-ends",
+    "output": "federal-design-system.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1280,
+      720
+    ],
+    "views": [
+      {
+        "id": "shared-layer",
+        "label": "What everyone shares",
+        "focus": [
+          "tokens",
+          "primitives",
+          "gallery"
+        ],
+        "note": "Three packages. One set of values, one set of components, and a catalog that audits what actually rendered."
+      },
+      {
+        "id": "consumption",
+        "label": "How it gets consumed",
+        "focus": [
+          "primitives",
+          "members",
+          "portal"
+        ],
+        "note": "563 call sites across nineteen front-ends. A member imports the component; it never redraws it."
+      },
+      {
+        "id": "build-vs-runtime",
+        "label": "Build time vs run time",
+        "focus": [
+          "tokens",
+          "shell",
+          "members"
+        ],
+        "note": "The component is imported when a member is built. Its colours resolve when the browser loads it \u2014 from a stylesheet the host injects once."
+      },
+      {
+        "id": "honesty",
+        "label": "What keeps it honest",
+        "focus": [
+          "gate",
+          "gallery",
+          "members"
+        ],
+        "note": "Eleven checks that block the merge, plus a live catalog in every member that measures the rendered page."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "operator",
+      "type": "external",
+      "label": "Operator",
+      "sublabel": "one browser tab",
+      "pos": [
+        40,
+        56
+      ],
+      "size": [
+        150,
+        72
+      ]
+    },
+    {
+      "id": "shell",
+      "type": "frontend",
+      "label": "Shell",
+      "sublabel": "Module Federation host",
+      "tag": "injects the token layer once",
+      "pos": [
+        320,
+        48
+      ],
+      "size": [
+        230,
+        76
+      ]
+    },
+    {
+      "id": "tokens",
+      "type": "frontend",
+      "label": "@augment-it/theme",
+      "sublabel": "design tokens",
+      "tag": "3 modes \u00b7 46 values each",
+      "pos": [
+        320,
+        232
+      ],
+      "size": [
+        230,
+        70
+      ]
+    },
+    {
+      "id": "primitives",
+      "type": "frontend",
+      "label": "@augment-it/shared-ui",
+      "sublabel": "the federal components",
+      "tag": "15 components \u00b7 105 tests",
+      "pos": [
+        320,
+        378
+      ],
+      "size": [
+        230,
+        86
+      ]
+    },
+    {
+      "id": "gallery",
+      "type": "frontend",
+      "label": "@augment-it/gallery",
+      "sublabel": "living catalog + in-page audit",
+      "pos": [
+        320,
+        540
+      ],
+      "size": [
+        230,
+        68
+      ]
+    },
+    {
+      "id": "gate",
+      "type": "security",
+      "label": "design:drift",
+      "sublabel": "F1\u2013F11 \u00b7 blocks the merge",
+      "pos": [
+        700,
+        480
+      ],
+      "size": [
+        250,
+        68
+      ]
+    },
+    {
+      "id": "members",
+      "type": "frontend",
+      "label": "19 micro-frontends",
+      "sublabel": "independently built and deployed",
+      "tag": "563 call sites into the kit",
+      "pos": [
+        700,
+        244
+      ],
+      "size": [
+        250,
+        126
+      ]
+    },
+    {
+      "id": "portal",
+      "type": "frontend",
+      "label": "docs-portal",
+      "sublabel": "every member's catalog",
+      "pos": [
+        1090,
+        266
+      ],
+      "size": [
+        180,
+        86
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Federal layer \u2014 one version, everyone",
+      "wraps": [
+        "tokens",
+        "primitives",
+        "gallery"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Sovereign tier \u2014 diverge, then promote",
+      "wraps": [
+        "members"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "operator-opens",
+      "from": "operator",
+      "to": "shell",
+      "label": "opens the app"
+    },
+    {
+      "id": "tokens-injected",
+      "from": "tokens",
+      "to": "shell",
+      "label": "theme.css \u00b7 injected once",
+      "labelAt": [
+        435,
+        162
+      ]
+    },
+    {
+      "id": "tokens-feed-primitives",
+      "from": "tokens",
+      "to": "primitives",
+      "label": "every value, by name",
+      "labelAt": [
+        435,
+        340
+      ]
+    },
+    {
+      "id": "gallery-audits",
+      "from": "gallery",
+      "to": "primitives",
+      "label": "audits the rendered page",
+      "variant": "dashed"
+    },
+    {
+      "id": "primitives-consumed",
+      "from": "primitives",
+      "to": "members",
+      "label": "imported at build time",
+      "variant": "emphasis"
+    },
+    {
+      "id": "shell-mounts",
+      "from": "shell",
+      "to": "members",
+      "label": "loaded at run time",
+      "variant": "emphasis"
+    },
+    {
+      "id": "gate-checks",
+      "from": "gate",
+      "to": "members",
+      "label": "11 checks \u00b7 fails the build",
+      "variant": "security"
+    },
+    {
+      "id": "members-expose",
+      "from": "members",
+      "to": "portal",
+      "label": "exposes ./gallery"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "What every front-end shares",
+      "items": [
+        "One token layer \u2014 46 values, in three modes",
+        "15 components at 563 call sites across 19 units"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "The genuinely hard part",
+      "items": [
+        "Each front-end builds and deploys on its own schedule",
+        "Imported at build time; its colours resolve at run time"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "What keeps it honest",
+      "items": [
+        "11 named checks, and they block the merge",
+        "Each member audits what rendered, not what was intended"
+      ]
+    }
+  ]
+}
