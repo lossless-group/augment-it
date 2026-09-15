@@ -1,0 +1,246 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Inside the sovereign tier — nineteen modules, no imports",
+    "output": "sovereign-tier.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1280,
+      720
+    ],
+    "views": [
+      {
+        "id": "no-imports",
+        "label": "What they never do",
+        "focus": [
+          "intake",
+          "resolve",
+          "fire"
+        ],
+        "note": "No module imports another. The only shared imports in the tier are three federal packages; grep a sibling's name and get nothing."
+      },
+      {
+        "id": "work-target",
+        "label": "The one shared fact",
+        "focus": [
+          "worktarget",
+          "intake",
+          "resolve"
+        ],
+        "note": "One localStorage key names the record set everyone works on. Two modules write it; five read it on mount and again on the broadcast."
+      },
+      {
+        "id": "navigation",
+        "label": "How a surface changes",
+        "focus": [
+          "review",
+          "bus",
+          "shell"
+        ],
+        "note": "Five modules dispatch augment-it:navigate. None of them can mount anything. The shell is the only listener, and the only thing that can."
+      },
+      {
+        "id": "chain",
+        "label": "The work, end to end",
+        "focus": [
+          "intake",
+          "fire",
+          "review"
+        ],
+        "note": "Rows enter, get resolved against the graph, get fired through a prompt pack, and come back for review before anything is promoted."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "intake",
+      "type": "frontend",
+      "label": "Intake",
+      "sublabel": "record-collector · search-and-add",
+      "pos": [
+        60,
+        100
+      ],
+      "size": [
+        230,
+        96
+      ]
+    },
+    {
+      "id": "resolve",
+      "type": "frontend",
+      "label": "Resolvers",
+      "sublabel": "person · record · affiliation",
+      "pos": [
+        370,
+        100
+      ],
+      "size": [
+        230,
+        96
+      ]
+    },
+    {
+      "id": "fire",
+      "type": "frontend",
+      "label": "Prompt firing",
+      "sublabel": "template-manager · pack-runner",
+      "pos": [
+        680,
+        100
+      ],
+      "size": [
+        230,
+        96
+      ]
+    },
+    {
+      "id": "review",
+      "type": "frontend",
+      "label": "Review and promote",
+      "sublabel": "response-reviewer · records-surface",
+      "pos": [
+        990,
+        100
+      ],
+      "size": [
+        230,
+        96
+      ]
+    },
+    {
+      "id": "worktarget",
+      "type": "database",
+      "label": "active-record-set",
+      "sublabel": "one key in localStorage",
+      "pos": [
+        370,
+        340
+      ],
+      "size": [
+        230,
+        92
+      ]
+    },
+    {
+      "id": "shell",
+      "type": "frontend",
+      "label": "Shell",
+      "sublabel": "the only thing that can mount",
+      "pos": [
+        990,
+        560
+      ],
+      "size": [
+        230,
+        92
+      ]
+    },
+    {
+      "id": "bus",
+      "type": "messagebus",
+      "label": "window events",
+      "sublabel": "ten named channels",
+      "pos": [
+        990,
+        340
+      ],
+      "size": [
+        230,
+        92
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "The sovereign tier — nineteen modules in four families, none imports another",
+      "wraps": [
+        "intake",
+        "resolve",
+        "fire",
+        "review"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "intake-resolve",
+      "from": "intake",
+      "to": "resolve",
+      "label": "raw rows"
+    },
+    {
+      "id": "resolve-fire",
+      "from": "resolve",
+      "to": "fire",
+      "label": "resolved"
+    },
+    {
+      "id": "fire-review",
+      "from": "fire",
+      "to": "review",
+      "label": "responses"
+    },
+    {
+      "id": "intake-writes",
+      "from": "intake",
+      "to": "worktarget",
+      "label": "two modules write it"
+    },
+    {
+      "id": "target-read",
+      "from": "worktarget",
+      "to": "resolve",
+      "label": "five modules read it"
+    },
+    {
+      "id": "review-navigates",
+      "from": "review",
+      "to": "bus",
+      "label": "dispatches navigate",
+      "labelAt": [
+        1105,
+        268
+      ]
+    },
+    {
+      "id": "bus-shell",
+      "from": "bus",
+      "to": "shell",
+      "label": "the only listener",
+      "variant": "emphasis",
+      "labelAt": [
+        1105,
+        496
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Nineteen modules, zero imports",
+      "items": [
+        "The only shared imports are three federal packages",
+        "Each builds, tests and deploys on its own"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "So how do they coordinate",
+      "items": [
+        "One key names the set everyone is working on",
+        "Ten window events; the shell owns every mount"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "What that buys",
+      "items": [
+        "Rewrite one module, leave the other eighteen",
+        "A broken remote degrades its panel, not the page"
+      ]
+    }
+  ]
+}
