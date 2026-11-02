@@ -16,7 +16,7 @@ tags:
   - Pulse-Streams
   - Org-Workbench
   - Media-Streams
-status: Shipped
+status: Resolved
 date_first_published: 2026-07-24
 post_ship_note: "Shipped 2026-07-24 — name on ShapedStream + ➕ form, organization.streams.update (match-by-URL patch; the update-vs-additive question resolved as sparse patch per the updateOrg precedent), in-place kind/name editor, topic_hub in inferStreamKind. Kind confirmed descriptive-only (stream-scan ignores it). Per [[../plans/Workbench-Usability-Sweep-Corpus-Visibility-Stream-Editing-Affiliation-Promotion]]; gh #26 closed."
 site_uuid: b3711907-da20-4d49-b461-9935c1703a60

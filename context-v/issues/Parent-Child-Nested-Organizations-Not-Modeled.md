@@ -20,7 +20,8 @@ tags:
   - Canonical-Layer
   - Corpus-Triage
   - Data-Modeling
-status: "Partially-Resolved · Model + six capabilities + workbench surface + triage step 5b shipped and code-confirmed (2026-07-27) · Open: multi-hop nesting renders one hop only, corpus roll-up lenses deferred, bulk reconciliation worklist A-2..4 + B outstanding"
+status: Open
+status_note: "Partially-Resolved · Model + six capabilities + workbench surface + triage step 5b shipped and code-confirmed (2026-07-27) · Open: multi-hop nesting renders one hop only, corpus roll-up lenses deferred, bulk reconciliation worklist A-2..4 + B outstanding"
 site_uuid: 6ecf7cf2-5001-4bef-8f6b-3cffd7b313c8
 hex_code: 0l2tlc
 date_authored_initial_draft: 2026-07-25

@@ -16,13 +16,12 @@ status: Shipped
 post_ship_note: "Shipped the day it was written — changelog carries four entries on 2026-06-22 (v0.0.0.1 bridge, v0.0.0.2 round-trip bond + editable canonical, edit-with-traceability, v0.0.0.3 auto-minted opportunities). Live as apps/record-db-resolver (:3008) + services/record-surrealdb-resolver; the person-aware sibling followed 2026-07-07."
 tags:
   - Spec
-  - Augment-It
   - Record-DB-Resolver
   - Canonical-Entity-Registry
   - SurrealDB
   - Org-Enrichment
   - Media-Streams
-  - reach-edu
+  - Reach-Edu
 site_uuid: 5d7c93bb-c477-4da8-b590-563c30d55f63
 hex_code: 1y8qg4
 date_authored_initial_draft: 2026-06-22

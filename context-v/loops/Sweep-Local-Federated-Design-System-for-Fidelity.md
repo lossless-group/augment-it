@@ -4,6 +4,8 @@ type: Loops
 lede: "The repeatable procedure for checking a member's CSS against the federal contract. The one sanctioned exception to the two-file rule."
 date_created: 2026-08-01
 date_modified: 2026-08-01
+authors:
+  - Michael Staton
 semantic_version: 0.0.1.0
 status: Active
 tags:

@@ -17,7 +17,6 @@ revisions:
   - 2026-05-25 — Q7 resolved by reconstruction. User's original list was not recoverable from row-store/backups (those contain enriched entities, not DaaS providers). Tier-2 philanthropy expanded to 18 sources across five sub-groups; new open consideration for the blueprint: per-bundle source-selection discipline since 18 is too many for a default fan-out.
 tags:
   - Exploration
-  - Augment-It
   - Profile-Augmentation
   - Packs-and-Bundles
   - Multi-Agent-Fan-Out
@@ -25,7 +24,8 @@ tags:
   - Web-Search
   - Verification
   - Response-Reviewer
-status: Draft
+status: Partially-Shipped
+date_first_published: 2026-05-25
 site_uuid: 63e83f1b-7303-43ac-9ac9-674961ccc259
 hex_code: 9qq3wx
 date_authored_initial_draft: 2026-05-25

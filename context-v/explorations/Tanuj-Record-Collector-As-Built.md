@@ -12,7 +12,6 @@ augmented_with:
 semantic_version: 0.0.0.1
 tags:
   - Exploration
-  - Augment-It
   - Prior-Art
   - Record-Collector
   - As-Built

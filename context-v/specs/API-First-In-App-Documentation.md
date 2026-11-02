@@ -12,7 +12,6 @@ augmented_with:
 semantic_version: 0.0.0.1
 tags:
   - Spec
-  - Augment-It
   - API-First
   - Documentation
   - In-App-Docs
@@ -20,7 +19,7 @@ tags:
   - Microservices
   - Architecture-Demonstration
   - Discoverability
-status: Draft
+status: Stub
 site_uuid: 31271d5d-38a9-45ea-824a-e2b2eb7136db
 hex_code: b837f8
 date_authored_initial_draft: 2026-06-01

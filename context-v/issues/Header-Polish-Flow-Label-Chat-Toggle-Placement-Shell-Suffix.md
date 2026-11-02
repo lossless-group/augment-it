@@ -11,11 +11,10 @@ augmented_with:
 semantic_version: 0.0.0.2
 tags:
   - Issue
-  - Augment-It
   - Shell
   - Header
   - UX-Polish
-status: Active
+status: Open
 site_uuid: 1dd33727-44cd-4a47-9ff4-0e636c9455bf
 hex_code: 8amphh
 date_authored_initial_draft: 2026-07-28

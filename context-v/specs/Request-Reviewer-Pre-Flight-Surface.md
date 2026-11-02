@@ -15,13 +15,13 @@ revisions:
   - 2026-05-25 — Status swept to Shipped; remote went live per changelog 2026-05-22_02..03.
 tags:
   - Spec
-  - Augment-It
   - Request-Reviewer
   - Pre-Flight
   - Module-Federation
   - Model-Selection
   - Prompt-Runner
 status: Shipped
+date_first_published: 2026-05-22
 site_uuid: 93f1a10f-9ed1-44fa-94ee-16c1eded55d5
 hex_code: af1xbu
 date_authored_initial_draft: 2026-05-25

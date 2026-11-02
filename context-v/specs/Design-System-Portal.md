@@ -4,8 +4,11 @@ type: Specs
 lede: "Specification for the portal that renders the federated design system — the swatch page, the token catalogue, the member index."
 date_created: 2026-08-01
 date_modified: 2026-08-01
+authors:
+  - Steven Blake Casio
 semantic_version: 0.0.1.0
-status: Draft
+status: Partially-Shipped
+date_first_published: 2026-08-08
 tags:
   - Design-System
   - Portal

@@ -10,7 +10,8 @@ authors:
 augmented_with:
   - Claude Code on Claude Opus 4.7 (1M context)
 semantic_version: 0.0.0.1
-status: Draft
+status: Shipped
+date_first_published: 2026-06-15
 tags:
   - Spec
   - Augment-It

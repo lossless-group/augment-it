@@ -14,12 +14,12 @@ revisions:
   - "2026-07-27 — v0.0.0.2 — Open decision 1 SETTLED: the target is reach-edu's own self-hosted Twenty (deployed 2026-07-24, v2.24.1). Phase 3 rewritten for the API-batch path; target-instance block added."
 tags:
   - Plan
-  - Augment-It
   - CRM
   - Export
   - Canonical-Layer
   - Batch-Import
-status: Draft
+status: Shipped
+date_first_published: 2026-07-28
 site_uuid: 123d8eb2-f02a-418b-977d-c7138cbd38e8
 hex_code: vok1o2
 date_authored_initial_draft: 2026-07-27

@@ -21,7 +21,6 @@ revisions:
   - "2026-06-02 — Foundation-first sequencing locked (v0.0.0.5). User framing: *\"the first thing is to identify and pull in their own blog/press-releases, so that is first order of operations. Once that is true, run the different packs.\"* The bundle goes from two-pass to **four-phase DAG**: Phase 1 = OfficialUpdates source packs; Phase 2 = OfficialUpdates rollup-agent (gating; foundation); Phase 3 = MediaMentions + SocialsMentions source packs (with the OfficialUpdatesRollup as `prior_context` for relevance scoring + cross-category dedup); Phase 4 = MediaMentions + SocialsMentions rollup-agents. Bundle config gains per-member `depends_on` (for DAG edges) and `prior_context` (for carry-forward to scoring). Phase 2 errors block Phases 3 + 4 (with diagnostic); Phase 2 sparse/empty results are graceful — Phases 3 + 4 proceed with empty prior context, scoring falls back to `relevance_context` only. Migration plan re-sequenced as **officials-first**: ship `official-blog-pack` standalone → add the other two OfficialUpdates packs → add OfficialUpdates rollup-agent → add Pulse Curation Layer → THEN add MediaMentions Phase 3 + 4 (which exercises the four-phase orchestrator's gating + carry-forward for the first time) → add remaining MediaMentions packs → add SocialsMentions Phase 3 + 4. Connector palette spec ([[Connector-Inventory-and-Per-Record-Palette]]) lands in parallel."
 tags:
   - Spec
-  - Augment-It
   - Bundle
   - Packs
   - News-API

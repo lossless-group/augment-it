@@ -12,6 +12,7 @@ augmented_with:
   - Claude Code on Claude Opus 4.7
 semantic_version: 0.0.0.2
 status: Shipped
+date_first_published: 2026-05-22
 revisions:
   - 2026-05-25 — Status swept to Shipped; helpful_links landed in commit f1e9a80 per changelog 2026-05-22_04.
 tags:

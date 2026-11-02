@@ -11,11 +11,12 @@ augmented_with:
 semantic_version: 0.0.1.0
 tags:
   - Spec
-  - Augment-It
   - Org-Workbench
   - Workspace
   - Canonical-Layer
-status: Implemented (shipped 2026-07-24)
+status: Shipped
+status_note: "Implemented (shipped 2026-07-24)"
+date_first_published: 2026-07-24
 site_uuid: be6c36d7-edf5-44b6-93f2-5de33db8f5a3
 hex_code: v12fb2
 date_authored_initial_draft: 2026-07-24

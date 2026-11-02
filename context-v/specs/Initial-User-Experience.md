@@ -12,13 +12,12 @@ augmented_with:
 semantic_version: 0.0.0.1
 tags:
   - Spec
-  - Augment-It
   - Onboarding
   - Initial-User-Experience
   - First-Use
   - UX
   - Discoverability
-status: Draft
+status: Stub
 site_uuid: 761feca4-0447-4196-8045-70864ca091cc
 hex_code: v589ir
 date_authored_initial_draft: 2026-06-01

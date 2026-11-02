@@ -11,7 +11,6 @@ augmented_with:
 semantic_version: 0.0.0.1
 tags:
   - Exploration
-  - Augment-It
   - Augment-From-DB
   - Microfrontends
   - SurrealDB-Canonical-Layer
@@ -20,7 +19,8 @@ tags:
   - Pulse-Streams
   - Affiliations
   - Corpus-Building
-status: Draft
+status: Partially-Shipped
+date_first_published: 2026-07-22
 site_uuid: 74381fdb-5be5-43f2-995c-ba98a4f06428
 hex_code: 1q6nu4
 date_authored_initial_draft: 2026-07-21

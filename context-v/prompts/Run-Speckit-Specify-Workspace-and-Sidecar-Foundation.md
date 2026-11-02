@@ -14,10 +14,9 @@ tags:
   - Prompt
   - Spec-Kit
   - Specify
-  - Augment-It
   - Walking-Skeleton
   - First-Feature
-status: Draft
+status: Stale
 site_uuid: ce5d13fa-ea32-4bf5-bc0c-2eb0a2f167d7
 hex_code: gpvh2t
 date_authored_initial_draft: 2026-05-18

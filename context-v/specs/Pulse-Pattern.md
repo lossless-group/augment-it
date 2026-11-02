@@ -16,7 +16,6 @@ status: Shipped
 post_ship_note: "Shipped 2026-06-16 inside apps/person-enrichment (changelog 2026-06-16_01: 'Person-Enrichment-Surface-Ships-Pulse-Pattern'); the pulse-dimension components live in apps/person-enrichment/src/pulse-dimensions/ and gained many-per-person affiliations + org autocomplete 2026-06-17. Reuse on a second pulse-surface (org-workbench) is proposed in the Augment-From-DB exploration."
 tags:
   - Spec
-  - Augment-It
   - Pulse-Pattern
   - Pulse-Dimension
   - Pulse-Surface

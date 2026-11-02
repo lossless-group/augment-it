@@ -16,10 +16,10 @@ tags:
   - Packs-and-Bundles
   - Social-Packs
   - MCP-Servers
-  - Tavily
   - Pack-Runner
   - Confidence-Verification
-status: Draft
+status: Shipped
+date_first_published: 2026-05-25
 site_uuid: 6782c655-1e40-4bbf-8991-61dfdc57042d
 hex_code: qlzl2d
 date_authored_initial_draft: 2026-05-25

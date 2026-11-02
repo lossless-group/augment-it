@@ -12,14 +12,13 @@ augmented_with:
 semantic_version: 0.0.0.1
 tags:
   - Blueprint
-  - Augment-It
   - Astro-Knots
   - Auth
   - Session
   - Middleware
   - Module-Federation
   - Architecture
-status: Draft
+status: Stub
 site_uuid: 40f18f7e-a4e7-45df-a2df-ef72d7bb06ca
 hex_code: aspt35
 date_authored_initial_draft: 2026-06-01

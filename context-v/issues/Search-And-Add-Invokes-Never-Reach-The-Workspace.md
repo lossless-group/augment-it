@@ -15,7 +15,8 @@ tags:
   - Search-And-Add
   - Workspace-Transport
   - Debugging-Journey
-status: Resolved-Pending-Confirmation · Eternal-spinner symptom structurally fixed (120s invoke deadline, ce51eb7) + reconnect root-cause mitigated (899b144) · Silent-frame-loss cause mitigated + made grep-able, never pinned; needs an operator confirm on prod that the mount-time hang is gone
+status: Resolved
+status_note: Resolved-Pending-Confirmation · Eternal-spinner symptom structurally fixed (120s invoke deadline, ce51eb7) + reconnect root-cause mitigated (899b144) · Silent-frame-loss cause mitigated + made grep-able, never pinned; needs an operator confirm on prod that the mount-time hang is gone
 site_uuid: a62b75aa-217d-4a75-b1e5-debe2c4e6168
 hex_code: t1oias
 date_authored_initial_draft: 2026-08-02

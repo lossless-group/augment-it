@@ -22,7 +22,8 @@ tags:
   - Services
   - Refactor
   - Graphify
-status: Implemented
+status: Shipped
+date_first_published: 2026-09-13
 site_uuid: c7515b89-2512-4083-81ff-63276ada9e29
 hex_code: 0qq8zv
 date_authored_initial_draft: 2026-09-13

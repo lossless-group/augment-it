@@ -16,7 +16,6 @@ revisions:
   - "2026-06-09 — **Switched lenses from stackable to swappable.** Operator's actual UX instinct: *\"I want to change a lens on a step ... make the step counter in the Header allow me to swap one step from the default lens to another lens\"* + *\"a default list of named lenses that typically could show at each step ... I don't want to hardcode an architecture that prevents the addition of other lenses, or users thinking outside our boxes.\"* One lens active per step at any moment, not many. The step counter in the FLOW header is the swap UI (right-click → menu). The registry is open: dropping a manifest adds a lens. Today's step 2 UI is named the **Pack Firing Lens** and becomes the explicit default for step 2; sort and filter collapse into a single **Sort & Filter Lens** that ships as the second default (sort first per the operator's original ask, filter follows in v0.0.0.4 without changing the lens identity). The `/sort` verb still composes the sort-spec from natural language; a new `/lens` verb swaps which lens is active. The stackable-order machinery from v0.0.0.2 is removed (no `order` field on the manifest, no toolbar stacking)."
 tags:
   - Spec
-  - Augment-It
   - Records-Surface
   - Sort
   - Lens
@@ -24,7 +23,8 @@ tags:
   - Operator-UX
   - Augmentation-State
   - Tier-1
-status: Draft
+status: Partially-Shipped
+date_first_published: 2026-06-09
 site_uuid: 25f77a05-71f7-45d1-bf5e-01ff32b0bf06
 hex_code: nq3njl
 date_authored_initial_draft: 2026-06-09

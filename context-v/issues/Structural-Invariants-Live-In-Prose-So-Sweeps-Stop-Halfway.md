@@ -12,7 +12,6 @@ semantic_version: 0.0.1.0
 status: Resolved
 tags:
   - Issue
-  - Augment-It
   - TypeScript
   - Architecture
   - Drift

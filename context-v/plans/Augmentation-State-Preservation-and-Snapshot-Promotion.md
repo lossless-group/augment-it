@@ -22,7 +22,8 @@ tags:
   - Pipeline-Tracker
   - Corpus
   - Records-Surface
-status: Draft
+status: Shipped
+date_first_published: 2026-06-09
 site_uuid: f8be3583-c694-4431-a844-1debe1cea575
 hex_code: mwqjp3
 date_authored_initial_draft: 2026-06-09

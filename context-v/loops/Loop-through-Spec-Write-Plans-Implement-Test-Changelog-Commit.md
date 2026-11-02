@@ -15,12 +15,11 @@ revisions:
   - "2026-07-22 — v0.0.0.1 — initial codification, same day as the proving run."
 tags:
   - Loop
-  - Augment-It
   - Spec-Driven
   - Plans
   - Changelog-Conventions
   - Git-Conventions
-status: Proven-Once
+status: Active
 site_uuid: 771a131f-f8c4-43ff-8eae-49daa2e672de
 hex_code: dtd98i
 date_authored_initial_draft: 2026-07-22

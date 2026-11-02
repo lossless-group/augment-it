@@ -19,7 +19,9 @@ tags:
   - Team-Page
   - Persons
   - Affiliations
-status: Draft · Stub
+status: Partially-Shipped
+status_note: "Draft · Stub"
+date_first_published: 2026-07-24
 site_uuid: ec50c286-41d5-40c9-99ea-33ac82ea40af
 hex_code: zqlxl3
 date_authored_initial_draft: 2026-07-24

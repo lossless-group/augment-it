@@ -13,7 +13,6 @@ revisions:
   - 2026-06-11 — Initial draft, written immediately after the published_at lift + backfill landed (the corpus's first-class metadata surface is now load-bearing for retrieval; before tonight, dates lived in body text and a metadata-filtered retrieval would have missed 244 of 245 files). Captures the design space rather than picking a winner — the phased plan at the bottom is the recommended sequence but Phase 1 is the only step that doesn't depend on usage data we don't have yet.
 tags:
   - Exploration
-  - Augment-It
   - RAG
   - Retrieval
   - Vector-Store
@@ -24,7 +23,7 @@ tags:
   - Embeddings
   - MCP
   - Living-Roster
-status: Active
+status: Draft
 
 # Related cross-tree skills
 related_skills:

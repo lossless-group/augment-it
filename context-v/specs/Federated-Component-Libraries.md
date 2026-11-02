@@ -4,8 +4,11 @@ type: Specs
 lede: "One gallery runtime, seventeen sovereign catalogs — every member publishes what it is made of, at its own address."
 date_created: 2026-08-08
 date_modified: 2026-08-08
+authors:
+  - Michael Staton
 semantic_version: 0.0.1.0
-status: Draft
+status: Shipped
+date_first_published: 2026-08-14
 tags:
   - Design-System
   - Federation

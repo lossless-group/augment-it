@@ -12,13 +12,12 @@ semantic_version: 0.0.1.0
 proven_on: "[[../plans/Org-Relations-Parent-Child-Peer-Plus-Org-Tags]] — tickets #49–#57, init 570d0b6 → ship a89cb47, 2026-07-27, same day as authored. Human gate spawned one fix-ticket (#57) and a superseding pilot ruling — the gate earning its keep is the loop working, not a deviation."
 tags:
   - Loop
-  - Augment-It
   - Feature-Execution
   - GH-Issues
   - Git-Conventions
   - Changelog-Conventions
   - Browser-Drive
-status: Proven-Once
+status: Active
 site_uuid: e556fadc-ae70-4003-b055-d09fe60e98ca
 hex_code: ne4ysb
 date_authored_initial_draft: 2026-07-27

@@ -15,7 +15,6 @@ source_machine: "C:\\Users\\Blake\\Desktop\\Blake Lossless Design\\"
 tags:
   - Handoff
   - Design-System
-  - Augment-It
   - Federated-Architecture
   - Design-Tokens
   - Accessibility

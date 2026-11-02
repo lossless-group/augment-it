@@ -18,7 +18,7 @@ tags:
   - Multi-Client
   - Module-Federation
   - Person-Enrichment
-status: Draft
+status: Reference
 site_uuid: b83c9250-18f1-4ffc-9715-48d82b4bfe56
 hex_code: 7vqdeg
 date_authored_initial_draft: 2026-06-21

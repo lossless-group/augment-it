@@ -21,7 +21,8 @@ tags:
   - Quality-Bar
   - Goals
   - Reach-Edu
-status: Draft
+status: Shipped
+date_first_published: 2026-06-05
 site_uuid: 2a93da22-a94a-4f92-97de-19729266970f
 hex_code: d8bh8f
 date_authored_initial_draft: 2026-06-08

@@ -12,7 +12,6 @@ augmented_with:
 semantic_version: 0.0.0.1
 tags:
   - Spec
-  - Augment-It
   - CRM-Augmentation
   - Microfrontends
   - Microservices
@@ -22,7 +21,8 @@ tags:
   - Lead-Enrichment
   - Pipeline-as-UI
   - Applied-AI-Labs
-status: Draft
+status: Shipped
+date_first_published: 2026-05-21
 site_uuid: c3c973dd-a754-4e62-bb2c-e4409e1b310a
 hex_code: ekrrkk
 date_authored_initial_draft: 2026-05-18

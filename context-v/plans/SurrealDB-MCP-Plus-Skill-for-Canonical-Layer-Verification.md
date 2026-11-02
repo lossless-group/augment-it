@@ -3,13 +3,15 @@ title: "SurrealDB MCP + a verification skill — querying augment-it's canonical
 type: Plans
 date_created: 2026-07-07
 date_modified: 2026-07-07
+authors:
+  - Michael Staton
 status: Shipped
+date_first_published: 2026-07-07
 tags:
   - Plan
   - MCP
   - Agent-Skills
   - SurrealDB
-  - Augment-It
   - Canonical-Layer
   - FreedomFest
 site_uuid: f3630861-b70d-412e-b9cf-22fa1afd5a46

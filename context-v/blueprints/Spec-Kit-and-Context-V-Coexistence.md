@@ -16,9 +16,8 @@ tags:
   - Context-V
   - Spec-Driven-Development
   - Workflow
-  - Augment-It
   - AI-Co-Development
-status: Draft
+status: Reference
 site_uuid: bba54121-19b6-4b28-9222-cbca88421923
 hex_code: xs6zyp
 date_authored_initial_draft: 2026-05-18

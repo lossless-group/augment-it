@@ -16,7 +16,7 @@ tags:
   - Transport
   - Reliability
   - Didi-Crawl
-status: Shipped
+status: Resolved
 date_first_published: 2026-07-24
 post_ship_note: "Shipped 2026-07-24 — successor to [[Crawl-Replies-Can-Be-Lost-Eternal-Spinner-No-Client-Timeout]]'s mitigations, landing the root cure the same evening after the Atlas Network crawl reproduced the loss. gh #41 closed."
 site_uuid: f4cc6eef-8bff-44d1-9bc0-1e2246b6a4db

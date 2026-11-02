@@ -16,7 +16,6 @@ augmented_with:
 semantic_version: 0.0.0.2
 tags:
   - Plan
-  - Augment-It
   - Workspace-Package
   - Workspace-Service
   - Walking-Skeleton
@@ -26,6 +25,7 @@ tags:
   - NATS
   - Microservices-Demo
 status: Shipped
+date_first_published: 2026-05-21
 site_uuid: d3a1a564-4187-4d63-9cd1-aeedb4d4e404
 hex_code: ipba1c
 date_authored_initial_draft: 2026-05-25

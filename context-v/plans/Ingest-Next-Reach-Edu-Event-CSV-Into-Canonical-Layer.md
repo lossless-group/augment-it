@@ -9,12 +9,11 @@ authors:
 augmented_with:
   - Claude Code on Claude Sonnet 5
 semantic_version: 0.0.0.1
-status: Draft
+status: Ready
 tags:
   - Plan
-  - Stub
   - Augment-It
-  - reach-edu
+  - Reach-Edu
   - SurrealDB
   - Person-Org-Resolver
 site_uuid: 9ab8a5d8-903e-4a27-bd81-21af9ebf88b9

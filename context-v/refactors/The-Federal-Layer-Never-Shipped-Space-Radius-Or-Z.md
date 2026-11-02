@@ -9,10 +9,10 @@ authors:
 augmented_with:
   - Claude Code on Claude Opus 5 (1M context)
 semantic_version: 0.0.1.0
-status: Proposed
+status: Shipped
+date_first_published: 2026-09-13
 tags:
   - Refactor
-  - Augment-It
   - Design-System
   - Tokens
   - Federation

@@ -18,8 +18,9 @@ tags:
   - Workflow-Failure
   - Session-End-Failure
   - Reach-Edu
-  - URGENT
-status: Open · First Session Failed · Rebuild Unvalidated · Multiple Root Causes Outstanding
+  - Urgent
+status: Open
+status_note: Open · First Session Failed · Rebuild Unvalidated · Multiple Root Causes Outstanding
 site_uuid: e814af34-132c-4f27-bec2-913499133761
 hex_code: 4kyq9q
 date_authored_initial_draft: 2026-06-05

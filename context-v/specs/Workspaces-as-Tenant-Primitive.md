@@ -12,7 +12,6 @@ augmented_with:
 semantic_version: 0.0.0.2
 tags:
   - Spec
-  - Augment-It
   - Workspaces
   - Tenant-Boundary
   - Multi-Tenant
@@ -22,7 +21,8 @@ tags:
   - Cross-Cutting-Pillar-Contract
   - Humain-VC
   - Reach-Edu
-status: Draft
+status: Partially-Shipped
+date_first_published: 2026-06-11
 site_uuid: dbffa0a4-189b-420e-a29e-94faa0c8c6b0
 hex_code: 5ja6op
 date_authored_initial_draft: 2026-06-11

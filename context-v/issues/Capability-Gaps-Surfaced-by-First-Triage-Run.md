@@ -17,7 +17,7 @@ tags:
   - Capabilities
   - Corpus-Triage
   - SurrealDB
-status: Active
+status: Open
 site_uuid: a704f082-384b-4c55-9e9e-265c48e78c39
 hex_code: vdyn9p
 date_authored_initial_draft: 2026-07-25

@@ -17,7 +17,7 @@ tags:
   - Org-Workbench
   - Persons
   - Coverage
-status: Shipped
+status: Resolved
 date_first_published: 2026-07-24
 post_ship_note: "Layer 1 (per-card visibility) shipped 2026-07-24 AM — eager entries on organization.affiliations, AdditiveList render, no titles (content_items has none; the write-side is [[Corpus-Adds-Dont-Fetch-Metadata-No-Cue-No-Inspector]]). Layer 2 (coverage roster) shipped same day PM in 760e9fe as the OrgRoster column, gh #32 — un-deferring the earlier fold-into-#22 plan. gh #20 closed."
 site_uuid: 6cf8d893-bc23-4432-992f-be13da2b5019

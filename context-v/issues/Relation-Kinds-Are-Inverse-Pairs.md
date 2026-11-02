@@ -14,7 +14,7 @@ tags:
   - Augment-It
   - Org-Relations
   - Data-Modeling
-status: Active
+status: Open
 site_uuid: 2697e117-3a10-4832-a576-6693c51b3adc
 hex_code: wj23wc
 date_authored_initial_draft: 2026-07-28

@@ -13,14 +13,13 @@ revisions:
   - 2026-06-08 — Initial draft. Written alongside shipping the Content Reader's per-card manual-URL affordance. The affordance works but the operator's "open Google, search, find a result, copy URL, switch back to Content Reader, expand the right card, paste" loop is ~7 explicit actions per add. This doc explores how to shrink it.
 tags:
   - Exploration
-  - Augment-It
   - Content-Reader
   - Funder-Corpus
   - Per-Record-Augmentation
   - Browser-Plugin
   - In-App-Browser
   - Operator-UX
-status: Active
+status: Draft
 site_uuid: 6a5ce0dc-e4f8-4515-978e-06547e0b0413
 hex_code: h14os1
 date_authored_initial_draft: 2026-06-08

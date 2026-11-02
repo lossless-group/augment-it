@@ -11,15 +11,14 @@ augmented_with:
 semantic_version: 0.0.1.0
 tags:
   - Exploration
-  - Augment-It
   - JuiceFS
   - Storage-Substrate
   - Path-Off-Local
   - Object-Storage
   - Cloudflare-R2
-  - rclone
+  - Rclone
   - Corpus
-status: Deferred
+status: Superseded
 deferral_note: "JuiceFS works and the R2 storage under it is verified, but it's the wrong access pattern for one-person local-first content development (network-drive semantics, no real local files, breaks offline, needs the macFUSE kernel extension). Superseded by automated rclone sync to R2 — same bucket, local-first, no kernel extension. JuiceFS stays relevant only if we later need a many-machine shared POSIX filesystem or datasets too big for local disk."
 site_uuid: 194b8746-106b-40bc-8e47-cad15b01d641
 hex_code: 9jwg3b

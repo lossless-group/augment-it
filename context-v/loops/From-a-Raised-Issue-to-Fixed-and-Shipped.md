@@ -12,12 +12,11 @@ semantic_version: 0.0.1.0
 proven_on: "[[../issues/Fetch-Full-Content-Clobbers-Operator-Metadata]] — gh #77, milestone d997c63, 2026-08-02, same day as authored. Sibling run the same day: [[../issues/Tag-Input-Swallows-Commas-Into-One-Mega-Tag]] (gh #76, fix 6a0a64e)."
 tags:
   - Loop
-  - Augment-It
   - Bug-Fix
   - GH-Issues
   - Git-Conventions
   - Changelog-Conventions
-status: Proven-Once
+status: Active
 site_uuid: 4e8898ba-f69b-4266-b00d-5847881aa4b1
 hex_code: 6t91bu
 date_authored_initial_draft: 2026-08-02

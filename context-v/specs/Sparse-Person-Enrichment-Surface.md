@@ -18,7 +18,6 @@ revisions:
 status: Shipped
 tags:
   - Spec
-  - Augment-It
   - Per-Record-Iteration
   - Person-Enrichment
   - Org-Resolution

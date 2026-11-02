@@ -24,14 +24,14 @@ revisions:
   - "2026-06-01 — **Spike resolved: Option C — composite slot in the shell + shared toggle component.** Trying Phase 2b's intra-remote off-mode- hide in the browser made the architectural error visible — both remotes stayed mounted side-by-side; one just rendered empty. The correct shape is one slot in the shell that hosts one-of-N remotes based on shared state. Phase 2b is superseded by a new Phase 2c that (a) reverts the intra-remote mode UI in PTM and Pack Runner, (b) introduces a `CompositeEntry` concept in the shell, (c) adds a shared-ui `ToggleHeader__PromptOrPackage--Icons.svelte`, (d) defines `ENRICHMENT_COMPOSITE` ({ PTM, Pack Runner }) and a `recordCollector+enrichment` pairing that replaces the now-obsolete `packRunner+promptTemplateManager` and `recordCollector+promptTemplateManager` pairings. The spike no longer gates Phase 5."
 tags:
   - Plan
-  - Augment-It
   - Shell
   - Micro-Frontends
   - Refactor
   - UX
   - Flow-Widget
   - Discoverability
-status: Draft
+status: Shipped
+date_first_published: 2026-06-01
 site_uuid: fc500c1f-8d66-459b-b4da-dc1c3a834cb8
 hex_code: abczj9
 date_authored_initial_draft: 2026-06-01

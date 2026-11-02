@@ -20,7 +20,6 @@ post_ship_note: >-
   never checks out. GH_REPO on both gh steps closed it. First green run ever.
 tags:
   - Plan
-  - Augment-It
   - Railway
   - Observability
   - CI

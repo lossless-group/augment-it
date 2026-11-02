@@ -16,7 +16,6 @@ revisions:
   - 2026-06-15 — Initial draft. Captures the network-first pivot, the joined-UI three-thing requirement (filter / tag / rank), and an open-questions list (storage scope, tag vocabulary, corpus-type status of the LinkedIn pipeline, table-first vs tag-editor-first slicing).
 tags:
   - Exploration
-  - Augment-It
   - Network-First
   - Org-People-Join
   - Canonical-Vs-Proprietary

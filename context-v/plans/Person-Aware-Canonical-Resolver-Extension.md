@@ -13,7 +13,8 @@ semantic_version: 0.0.0.2
 revisions:
   - "2026-07-07 — Resolved §3/§4: separate person-db-resolver remote (not a mode-toggle), per-record-set column mapping. Prompted by a live test writing a bad organizations row + opportunity from a person record; both deleted from SurrealDB Cloud after the fact."
   - 2026-07-07 — Initial draft.
-status: Implementing
+status: Shipped
+date_first_published: 2026-07-07
 tags:
   - Plan
   - Augment-It

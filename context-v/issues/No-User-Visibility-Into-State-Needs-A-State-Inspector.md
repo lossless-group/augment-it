@@ -14,11 +14,10 @@ tags:
   - Issue
   - Oversight
   - Usability
-  - Augment-It
   - State-Inspector
   - Observability
   - Microfrontends
-status: Open · Jotted
+status: Open
 site_uuid: 52ff4460-797a-4d46-964b-74afd3176689
 hex_code: pk0w3a
 date_authored_initial_draft: 2026-07-24

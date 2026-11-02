@@ -16,7 +16,7 @@ tags:
   - Railway
   - CI-CD
   - Observability
-status: Open
+status: Resolved
 site_uuid: e5e99013-fe48-440f-bbe7-47d51917b0b2
 hex_code: sndhkh
 date_authored_initial_draft: 2026-08-15

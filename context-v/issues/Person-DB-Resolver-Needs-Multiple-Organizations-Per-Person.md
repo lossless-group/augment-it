@@ -9,7 +9,8 @@ authors:
 augmented_with:
   - Claude Code on Claude Sonnet 5
 semantic_version: 0.0.0.1
-status: Open · Stub
+status: Open
+status_note: Open · Stub
 tags:
   - Issue
   - Augment-It

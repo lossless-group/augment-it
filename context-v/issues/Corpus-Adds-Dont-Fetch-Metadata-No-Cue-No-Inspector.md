@@ -17,7 +17,7 @@ tags:
   - Org-Workbench
   - Content-Items
   - Metadata
-status: Open · Jotted
+status: Open
 site_uuid: 9f6e1135-59b2-4bd3-9dbe-d7bd491d45bc
 hex_code: jt03b7
 date_authored_initial_draft: 2026-07-24

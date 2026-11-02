@@ -8,11 +8,11 @@ authors:
   - Michael Staton
 augmented_with:
   - Claude Code on Claude Opus 4.7 (1M context)
-status: Active · Invariant
+status: Active
+status_note: "Active · Invariant"
 tags:
   - Reminder
   - Invariant
-  - Augment-It
   - Data-Integrity
   - Record-Set
   - Row-Count

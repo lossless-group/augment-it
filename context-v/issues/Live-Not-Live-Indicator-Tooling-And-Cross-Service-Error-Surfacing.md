@@ -18,7 +18,7 @@ tags:
   - Liveness
   - Error-Surfacing
   - Shell
-status: Open · Jotted
+status: Open
 site_uuid: 6b25472d-3441-41d8-9d46-2b3a5e7461f5
 hex_code: bep4f8
 date_authored_initial_draft: 2026-07-24

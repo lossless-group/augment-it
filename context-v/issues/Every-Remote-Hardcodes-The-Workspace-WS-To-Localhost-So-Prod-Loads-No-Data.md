@@ -18,7 +18,8 @@ tags:
   - WebSocket
   - Reach-Edu
   - Module-Federation
-status: Open · Diagnosed · Root cause pinned to a one-line source defect
+status: Resolved
+status_note: Open · Diagnosed · Root cause pinned to a one-line source defect
 site_uuid: c85ae72b-182a-4d7a-b8b7-ac47e8ffb3de
 hex_code: 3jweyu
 date_authored_initial_draft: 2026-08-21

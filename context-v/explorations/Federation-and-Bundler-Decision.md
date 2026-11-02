@@ -12,7 +12,6 @@ augmented_with:
 semantic_version: 0.0.1.0
 tags:
   - Exploration
-  - Augment-It
   - Module-Federation
   - Rsbuild
   - Bun

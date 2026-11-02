@@ -15,7 +15,6 @@ revisions:
   - 2026-05-25 — Status swept to Shipped; prompt-template-manager UI + prompt-store + prompt-runner landed per changelog 2026-05-21_04..05.
 tags:
   - Plan
-  - Augment-It
   - Prompt-Template-Manager
   - Prompt-Runner
   - Prompt-Store
@@ -25,6 +24,7 @@ tags:
   - Module-Federation
   - Anthropic-API
 status: Shipped
+date_first_published: 2026-05-21
 site_uuid: a724b530-d1b5-4845-94f7-41aff5c97bf2
 hex_code: 9r21lc
 date_authored_initial_draft: 2026-05-25

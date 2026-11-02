@@ -22,7 +22,8 @@ tags:
   - Agent-Chat
   - Content-Reader
   - Git-LFS
-status: Draft
+status: Shipped
+date_first_published: 2026-06-09
 site_uuid: e46491c9-639b-49df-bf34-8d2a41dd5650
 hex_code: qhzaau
 date_authored_initial_draft: 2026-06-08

@@ -13,7 +13,6 @@ augmented_with:
 semantic_version: 0.1.0.0
 tags:
   - Blueprint
-  - Augment-It
   - Architecture
   - Dual-Identity
   - Microservices

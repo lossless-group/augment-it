@@ -24,7 +24,8 @@ tags:
   - Job-Manifest
   - Co-Existence-Pairing
   - Architecture
-status: Draft
+status: Partially-Shipped
+date_first_published: 2026-05-25
 site_uuid: 2fa5f400-1e7b-4c85-a38a-62a9fdf1390f
 hex_code: ocki8w
 date_authored_initial_draft: 2026-05-25

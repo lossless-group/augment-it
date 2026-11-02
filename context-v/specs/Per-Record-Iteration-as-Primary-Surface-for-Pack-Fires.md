@@ -15,7 +15,6 @@ revisions:
   - 2026-06-02 — Added §"Request inspection — pre-fire preview + post-fire receipt" (0.0.0.2). Per-row, per-connector request shape must be inspectable both before firing (preview) and after firing (receipt). If SerpApi + Firecrawl + GDELT all fail across 96 records, the problem is almost certainly in the REQUEST shape — query construction, URL normalization, max_results cap, site-restrict operator — not in the connectors themselves. Without surfacing the actual request the user has no way to diagnose whether to fix the pack, the row data, or their own expectations. Extends Decision §10's Adaptive Request Reviewer concept from "per-fire pre-flight" to "per-row × per-connector inspection at any time."
 tags:
   - Spec
-  - Augment-It
   - Per-Record-Iteration
   - Pack-Fires
   - Bundle-Fires
@@ -24,7 +23,8 @@ tags:
   - Inline-Results
   - Records-Surface
   - UX-Rearchitecture
-status: Draft
+status: Partially-Shipped
+date_first_published: 2026-06-02
 site_uuid: cb0ba020-5da6-4230-a1dc-0d41a707e71f
 hex_code: 2omskw
 date_authored_initial_draft: 2026-06-02

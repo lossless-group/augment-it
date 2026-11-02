@@ -16,7 +16,7 @@ tags:
   - Testing
   - TDD
   - Agentic-Development
-status: Shipped
+status: Resolved
 date_first_published: 2026-08-02
 post_ship_note: "Resolved by the corpora-builder test suite — 43 tests across ten MECE groups (augment-it Vitest + id-didi-sh ExUnit), merged via PR #75. Vitest chosen for TS/Svelte, ExUnit for the identity service. See [[Corpora-Builder-Harmony-Test-Registry]]. One command: pnpm test:all."
 site_uuid: f218550e-a243-4e24-9c75-5908d37aae3b

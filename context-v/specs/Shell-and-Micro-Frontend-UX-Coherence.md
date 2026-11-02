@@ -20,14 +20,14 @@ revisions:
   - "2026-06-01 — Patch 0.0.1.3: **two new decisions surfaced by the refactor**, not created by it. Added evidence #14 (Request Reviewer doesn't adapt to the request type — bundle/pack fires skip RR entirely) and Decision §10 (RR becomes a **request-driven composite slot** with two adaptive members: PromptRequestReview stays human-readable, BundleRequestReview is intimidating-but-recognizable JSON that names the translation Augment-It is doing on the user's behalf). Added evidence #15 (composite slot doesn't announce itself + \"Enrichment\" was data-engineering-speak that didn't match the product's verb) and Decision §11 (composite slots render their `label` in chrome + rename `Enrichment` → `Augment`). §11 is partially shipped in this patch (the rename + label rendering in `ToggleHeader`); §10 is locked-but-pending. Per-surface audit row for Request Reviewer updated to point at Decision §10 instead of generic `needs-audit`."
 tags:
   - Spec
-  - Augment-It
   - Shell
   - Micro-Frontends
   - Module-Federation
   - Interaction-Model
   - Triage-UX
   - Discoverability
-status: Draft
+status: Partially-Shipped
+date_first_published: 2026-06-01
 site_uuid: c54a3e2c-a6e3-4014-a1f3-be6c5c0d3380
 hex_code: deee1i
 date_authored_initial_draft: 2026-06-01

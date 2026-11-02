@@ -12,7 +12,6 @@ semantic_version: 0.0.1.0
 status: Active
 tags:
   - Pattern
-  - Augment-It
   - Microfrontends
   - Design-System
   - Module-Federation

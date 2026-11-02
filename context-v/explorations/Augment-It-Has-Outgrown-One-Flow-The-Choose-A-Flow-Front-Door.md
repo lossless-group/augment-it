@@ -15,7 +15,6 @@ status: Shipped
 post_ship_note: "The front door shipped 2026-07-07 as the FLOWS registry (shell/src/flows.svelte.ts) + dynamic bubble strip — see changelog 2026-07-07_02_ROTATION-Becomes-N-Flows. Five flows registered as of 2026-07-21."
 tags:
   - Exploration
-  - Augment-It
   - Shell
   - Rotation
   - Flow

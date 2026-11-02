@@ -11,7 +11,6 @@ augmented_with:
 semantic_version: 0.0.0.1
 tags:
   - Exploration
-  - Augment-It
   - Records-Augmentation
   - Operator-Built-Flows
   - View-Specs

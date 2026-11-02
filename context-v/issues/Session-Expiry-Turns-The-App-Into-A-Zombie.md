@@ -11,12 +11,11 @@ augmented_with:
 semantic_version: 0.0.0.2
 tags:
   - Issue
-  - Augment-It
   - Identity
   - Workspace-Transport
   - Shell
   - Session-Expiry
-status: Shipped
+status: Resolved
 date_first_published: 2026-07-28
 post_ship_note: "The fix landed in `9fc2543` (hourly + on-focus token refresh; transport treats 4401/4403 as auth-death — fail fast, one silent refresh, glacial retry) and is now guarded by the Group C transport tests. CAVEAT: this is the CODE fix; whether production augment.didi.sh was redeployed to carry it is a separate open question — see [[Workspace-And-Corpora-Connection-Slow-To-Hanging-And-Auth-Wont-Persist]]."
 site_uuid: 691764f6-153c-4878-944a-7b639522c4b2

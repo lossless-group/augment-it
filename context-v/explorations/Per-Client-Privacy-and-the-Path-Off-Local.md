@@ -13,7 +13,6 @@ revisions:
   - 2026-06-05 — Initial draft.
 tags:
   - Exploration
-  - Augment-It
   - Ai-Labs-Architecture
   - Per-Client-Privacy
   - Multi-Tenancy

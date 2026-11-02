@@ -26,7 +26,8 @@ tags:
   - Provider-Plurality
   - Iteration-Loop
   - Social-Search
-status: Resolved · Provider Plurality Shipped 2026-06-01 · Registry 2026-06-02 · Smoke Metric + Blueprint Skipped
+status: Resolved
+status_note: Resolved · Provider Plurality Shipped 2026-06-01 · Registry 2026-06-02 · Smoke Metric + Blueprint Skipped
 site_uuid: 4e75401b-b169-4757-9395-bee3567bd922
 hex_code: ywq1cg
 date_authored_initial_draft: 2026-05-26

@@ -17,7 +17,6 @@ augmented_with:
 semantic_version: 0.0.0.4
 tags:
   - Plan
-  - Augment-It
   - In-App-Agent-Chat
   - Walking-Skeleton
   - Prompt-Drafting-Triad
@@ -25,6 +24,7 @@ tags:
   - Client-Demo
   - Strict-Alignment
 status: Shipped
+date_first_published: 2026-05-23
 site_uuid: c923b898-4a8d-47d0-9670-b86718f99eef
 hex_code: a782lv
 date_authored_initial_draft: 2026-05-22

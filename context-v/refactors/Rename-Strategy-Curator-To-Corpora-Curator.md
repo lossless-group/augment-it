@@ -10,10 +10,10 @@ authors:
 augmented_with:
   - Claude Code on Claude Opus 5
 semantic_version: 0.0.2.0
-status: Partially-Shipped
+status: Shipped
+date_first_published: 2026-08-15
 tags:
   - Refactor
-  - Augment-It
   - Naming
   - Module-Federation
   - Deployment

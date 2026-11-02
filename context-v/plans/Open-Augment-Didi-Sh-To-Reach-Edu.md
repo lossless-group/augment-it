@@ -15,11 +15,11 @@ revisions:
   - "2026-07-28 — v0.0.1.0 — REWRITTEN after rechecking the id-didi-sh spec of record (operator: 'the idea was it create an auth token that carried the workspace'). The spec confirms the intent: the token stays minimal (didi_id + sid) but /api/me supplies org memberships and augment-it is designed to map org ↔ workspace per session. The per-client-instance recommendation (v0.0.0.1's Option A) demoted to fallback; the designed org↔workspace session binding is now the plan."
 tags:
   - Plan
-  - Augment-It
   - Deployment
   - Multi-Tenancy
   - Reach-Edu
-status: Implementing
+status: Shipped
+date_first_published: 2026-07-28
 site_uuid: feab1d70-5163-4653-a8ad-d486c967d95d
 hex_code: m5xf0c
 date_authored_initial_draft: 2026-07-28

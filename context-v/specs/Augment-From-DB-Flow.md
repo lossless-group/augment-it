@@ -23,7 +23,6 @@ revisions:
   - "2026-07-22 — v0.0.0.1: initial draft from the exploration of record, grounded in a same-day code read (flows registry, capability dispatcher, resolver handlers, connector registry). Six exploration open questions locked as decisions D1–D6."
 tags:
   - Spec
-  - Augment-It
   - Augment-From-DB
   - Org-Workbench
   - Search-And-Add

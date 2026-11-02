@@ -11,7 +11,6 @@ augmented_with:
 semantic_version: 0.0.1.0
 tags:
   - Plan
-  - Augment-It
   - API-First
   - Documentation-First
   - Design-System-First
@@ -20,7 +19,7 @@ tags:
   - Microfrontends
   - Design-System
   - Client-Recommendations
-status: Proposed
+status: Draft
 site_uuid: f9a91970-482f-40b8-bfa8-6cc06b2f3a27
 hex_code: 8krefg
 date_authored_initial_draft: 2026-09-12

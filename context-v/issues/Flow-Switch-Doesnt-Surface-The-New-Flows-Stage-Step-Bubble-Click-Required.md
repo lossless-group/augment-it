@@ -16,7 +16,7 @@ tags:
   - Shell
   - Flows
   - Tiling-Host
-status: Open · Jotted
+status: Open
 site_uuid: 1180b8b1-e2b3-4617-bf8f-fc80be21b1bb
 hex_code: ae44wb
 date_authored_initial_draft: 2026-07-24

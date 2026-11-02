@@ -11,14 +11,14 @@ augmented_with:
 semantic_version: 0.0.0.1
 tags:
   - Issue
-  - Augment-It
   - Design-System
   - Component-Library
   - Usability
   - Microfrontends
   - Org-Workbench
   - Theme-System
-status: Open · Diagnosed · Scoped from a live prod screenshot + drift audit
+status: Open
+status_note: Open · Diagnosed · Scoped from a live prod screenshot + drift audit
 site_uuid: e862574a-3e21-4ee3-b3f7-bf99ce83f28f
 hex_code: 03hrzx
 date_authored_initial_draft: 2026-08-21

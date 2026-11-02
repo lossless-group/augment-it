@@ -15,7 +15,6 @@ revisions:
   - "2026-06-08 — Added Vector 2b: conversational paste-without-verb. Operator pastes a raw URL into the agent-chat (no `/inbox` prefix) and the agent recognizes the inbox-worthy shape, asks \"save this to your inbox?\" with optional note/tag prompts, then runs `corpus.inbox.add` on yes. The verb-less path is friction-minimum for the \"I just want to dump this without remembering the command\" rhythm; the verb stays for operators who prefer explicit-command muscle memory. Backend is identical to Vector 2a — same capability, same on-disk shape. Operator framing: *\"copy and paste a link directly into the agent-chat and have it ask if this should go to the inbox, if so, the agent runs the commands on the backend.\"*"
 tags:
   - Spec
-  - Augment-It
   - Corpus-Inbox
   - Capture-Layer
   - Funder-Corpus
@@ -23,7 +22,8 @@ tags:
   - Agent-Chat
   - Per-Client
   - Operator-UX
-status: Draft
+status: Partially-Shipped
+date_first_published: 2026-06-08
 site_uuid: ae0e40eb-5a3d-47cb-91c8-160b03324d06
 hex_code: 314zyu
 date_authored_initial_draft: 2026-06-08

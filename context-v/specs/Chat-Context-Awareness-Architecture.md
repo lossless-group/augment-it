@@ -14,14 +14,14 @@ revisions:
   - "2026-06-08 — Initial draft. Written immediately after shipping the `/inbox` verb (the first non-prompt chat verb), which exposed the v0.0.1 design holes: hardcoded `active_client_id: \"reach-edu\"` in the context slab, hand-written verb roster prose, no awareness of the operator's current view-mode beyond record_set. This spec is the cleanup target."
 tags:
   - Spec
-  - Augment-It
   - Chat
   - Agent-Chat
   - Context-Awareness
   - Architecture
   - Workspace
   - Verb-Registry
-status: Draft
+status: Partially-Shipped
+date_first_published: 2026-06-11
 site_uuid: d0a80b9c-67fe-4c49-8edd-f7494ec5afce
 hex_code: lw2dof
 date_authored_initial_draft: 2026-06-08

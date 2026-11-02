@@ -4,6 +4,8 @@ type: Specs
 lede: "The organising specification for augment-it's two-tier, seventeen-member design system."
 date_created: 2026-08-01
 date_modified: 2026-08-01
+authors:
+  - Steven Blake Casio
 semantic_version: 0.0.2.1
 status: Reference
 tags:

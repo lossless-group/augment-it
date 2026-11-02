@@ -20,7 +20,8 @@ tags:
   - URL-Curation
   - Records-Surface
   - Record-Collector
-status: Open · Audit Complete · Awaiting Curation Affordance
+status: Open
+status_note: Open · Audit Complete · Awaiting Curation Affordance
 site_uuid: d99c1ac2-cdfb-4e22-a230-85bac97c014a
 hex_code: jum43e
 date_authored_initial_draft: 2026-06-05

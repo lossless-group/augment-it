@@ -13,11 +13,11 @@ tags:
   - Issue
   - Oversight
   - Usability
-  - Augment-It
   - Component-Library
   - Design-System
   - Microfrontends
-status: Open · Jotted
+status: Resolved
+status_note: Open · Jotted
 site_uuid: 1ead2815-e5a6-4b4e-88ec-72eb64845aea
 hex_code: 6kkh1d
 date_authored_initial_draft: 2026-07-24

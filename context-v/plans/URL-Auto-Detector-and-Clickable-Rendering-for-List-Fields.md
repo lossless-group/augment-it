@@ -23,7 +23,8 @@ tags:
   - Helpful-Links
   - Official-Updates-Index-Urls
   - Audit-Affordance
-status: Draft
+status: Shipped
+date_first_published: 2026-06-05
 site_uuid: be33495c-dd37-4f37-b8e4-d18e158e61a7
 hex_code: dlrdzb
 date_authored_initial_draft: 2026-06-05

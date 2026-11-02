@@ -16,7 +16,8 @@ tags:
   - Architecture
   - Refactor
   - Boot-Latency
-status: Open · Diagnosed · Refactor Backlog
+status: Open
+status_note: Open · Diagnosed · Refactor Backlog
 site_uuid: f4909703-caf5-4b1d-96f5-ce78be3f9eba
 hex_code: wemu7u
 date_authored_initial_draft: 2026-08-02

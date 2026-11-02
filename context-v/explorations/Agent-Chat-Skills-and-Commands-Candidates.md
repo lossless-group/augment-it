@@ -13,7 +13,6 @@ revisions:
   - 2026-05-26 — Initial draft. Seeded with `backup-stores.sh` (the nominating commit), the cleanup script `scrap-pack-artifacts.ts` (already exists as a ScriptCapability candidate), and a broader brainstorm across five categories — data safety, inspection, enrichment flow, record-set lifecycle, triage assist. Categories are scaffolding; promote individual items out as specs land.
 tags:
   - Exploration
-  - Augment-It
   - Agent-Chat
   - Capabilities
   - Verb-Surface

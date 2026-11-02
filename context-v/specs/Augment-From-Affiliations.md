@@ -20,7 +20,6 @@ revisions:
 status: Shipped
 tags:
   - Spec
-  - Augment-It
   - Affiliations
   - Canonical-Layer
   - Relevance-Rating

@@ -15,7 +15,6 @@ revisions:
   - 2026-05-25 — Status swept to Shipped; foundation built per changelog 2026-05-21_01..02. Note: Decision 2 (Transport — HTTP fetch) was revised mid-flight by [[Augment-It-Workspace-Walking-Skeleton]] to WebSocket + NATS for the 26-product client demo. All other decisions held.
 tags:
   - Spec
-  - Augment-It
   - Walking-Skeleton
   - Pre-Flight
   - State-Management
@@ -24,6 +23,7 @@ tags:
   - Auth
   - Bun-Sidecar
 status: Shipped
+date_first_published: 2026-05-21
 site_uuid: baa60859-b0c8-4fed-8d1b-ef14ccccf4a5
 hex_code: zfhtul
 date_authored_initial_draft: 2026-05-25

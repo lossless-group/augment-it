@@ -11,11 +11,12 @@ augmented_with:
   - Claude Code on Claude Fable 5
   - Claude Code on Claude Sonnet 5
 semantic_version: 0.0.4.0
-status: Ready
+status: Partially-Shipped
+date_first_published: 2026-07-06
 tags:
   - Plan
   - Build-Order
-  - humain-vc
+  - Humain-VC
   - Didi-Platform
   - Auth
   - Deployment

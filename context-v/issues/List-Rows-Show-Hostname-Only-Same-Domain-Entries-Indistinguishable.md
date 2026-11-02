@@ -16,7 +16,7 @@ tags:
   - Org-Workbench
   - Pulse-Streams
   - Identity-Links
-status: Shipped
+status: Resolved
 date_first_published: 2026-07-24
 post_ship_note: "Shipped 2026-07-24 in 15c5cb8 — AdditiveList fallback display is host+path (60-char cap); every list inherits. gh #27 closed."
 site_uuid: 95970243-fd4d-4f4a-9378-7f1744863ed3

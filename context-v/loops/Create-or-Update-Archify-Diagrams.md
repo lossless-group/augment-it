@@ -4,15 +4,15 @@ type: Loops
 lede: "The repeatable procedure for turning a unit — or the whole system — into a validated, explorable Archify diagram that reflects real code rather than a plausible story."
 date_created: 2026-09-12
 date_modified: 2026-09-12
+authors:
+  - Michael Staton
 semantic_version: 0.0.0.1
 status: Stub
 tags:
   - Loop
-  - Augment-It
   - Archify
   - Visual-Engineering
   - Architecture-Diagrams
-  - Mermaid
   - Client-Presentation
 site_uuid: 8d055f66-546f-45fd-8842-8a5e31c5b56b
 hex_code: bf9j8e

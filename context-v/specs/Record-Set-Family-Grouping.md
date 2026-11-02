@@ -10,10 +10,10 @@ authors:
 augmented_with:
   - Claude Code on Claude Opus 4.7
 semantic_version: 0.0.0.1
-status: Draft
+status: Shipped
+date_first_published: 2026-06-05
 tags:
   - Spec
-  - Augment-It
   - Record-Collector
   - Record-Set
   - Lineage

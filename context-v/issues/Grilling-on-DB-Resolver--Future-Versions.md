@@ -12,7 +12,6 @@ semantic_version: 0.0.0.1
 status: Open
 tags:
   - Issue
-  - Augment-It
   - Record-DB-Resolver
   - Open-Questions
   - Canonical-Entity-Registry

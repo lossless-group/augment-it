@@ -21,7 +21,8 @@ tags:
   - Dependency-Migration
   - Services
   - Deprecation
-status: Implemented
+status: Shipped
+date_first_published: 2026-07-01
 site_uuid: 6e8e09a9-0e44-474b-b6df-a6ed901c7869
 hex_code: emiaxu
 date_authored_initial_draft: 2026-07-01
