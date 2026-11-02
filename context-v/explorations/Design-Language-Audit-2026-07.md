@@ -15,6 +15,8 @@ site_uuid: 8467231d-ddd1-412e-95e2-0574d9f54eb3
 hex_code: b7qnin
 date_authored_initial_draft: 2026-07-16
 date_authored_current_draft: 2026-07-16
+authors:
+  - Steven Blake Casio
 publish: true
 ---
 
