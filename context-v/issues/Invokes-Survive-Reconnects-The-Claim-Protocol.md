@@ -1,5 +1,6 @@
 ---
 title: "Invokes survive reconnects — the claim protocol closes the eternal-spinner root cause"
+type: Issues
 lede: "Two crawls finished server-side while the tab spun forever. Pending invokes now survive a socket drop and re-attach by id via claim frames."
 date_created: 2026-07-24
 date_modified: 2026-07-24

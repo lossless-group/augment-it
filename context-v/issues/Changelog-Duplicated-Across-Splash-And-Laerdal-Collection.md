@@ -1,5 +1,6 @@
 ---
 title: "Changelog entries duplicated across augment-it/changelog/ and content/changelog--laerdal/"
+type: Issues
 lede: "Eleven backfilled augment-it changelog entries currently live in two places. Either location can be the source of truth — but right now both are, and updates have to be made twice."
 date_created: 2026-05-12
 date_modified: 2026-05-12

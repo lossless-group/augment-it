@@ -1,5 +1,6 @@
 ---
 title: "No user visibility into state — the app needs a State-Inspector surface"
+type: Issues
 lede: "State lives in five places and none are inspectable from inside the app — nothing shows which remote currently believes what."
 date_created: 2026-07-24
 date_modified: 2026-07-24

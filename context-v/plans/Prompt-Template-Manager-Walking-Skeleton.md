@@ -1,5 +1,6 @@
 ---
 title: "Prompt-Template-Manager — Walking Skeleton Plan"
+type: Plans
 lede: >-
   Author `{{column}}` templates and run them per row — `prompt-runner` is the only container that calls the Anthropic API.
 date_created: 2026-05-21

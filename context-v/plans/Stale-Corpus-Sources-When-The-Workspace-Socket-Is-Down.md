@@ -1,5 +1,6 @@
 ---
 title: "Stale Corpus Sources When the Workspace Socket Is Down — the header moves, the list doesn't"
+type: Plans
 lede: >-
   Switching corpora on a dead socket silently shows another corpus's sources under the new name — a wrong answer wearing a confident label.
 date_created: 2026-09-10

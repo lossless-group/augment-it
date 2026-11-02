@@ -1,5 +1,6 @@
 ---
 title: "Migrate off the deprecated `nats` package to the `@nats-io/*` scoped v3 client — swap `nats@2` for `@nats-io/transport-node@3` across all 10 services, drop the removed `JSONCodec` in favor of `JSON.stringify` + `msg.json()`, and prove the inter-service bus still round-trips live before committing"
+type: Plans
 lede: >-
   `nats` → `@nats-io/transport-node` v3 across 27 files: mechanical, except the removed `JSONCodec` rewrites every encode and decode.
 date_created: 2026-07-01

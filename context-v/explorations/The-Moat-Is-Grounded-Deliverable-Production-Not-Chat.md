@@ -1,5 +1,6 @@
 ---
 title: "The Moat Is Grounded Deliverable Production, Not Chat"
+type: Explorations
 lede: "Chat-over-documents is commoditizing; the moat is the last mile — a shippable deck or memo with every claim traceable to source."
 date_created: 2026-06-18
 date_modified: 2026-06-18

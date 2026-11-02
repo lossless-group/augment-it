@@ -1,5 +1,6 @@
 ---
 title: "Didi chat joins the Org Workbench — first agent action: verify a team page and turn it into approved people objects"
+type: Plans
 lede: >-
   Point didi at an org's team page: people objects land in state, not the DB — only on approval does it write persons and affiliations.
 date_created: 2026-07-24

@@ -1,5 +1,6 @@
 ---
 title: "Walking-Skeleton Pre-Flight Decisions — Augment-It Rewrite"
+type: Specs
 lede: >-
   Five substrate decisions — state, transport, persistence, auth, agent scaffolding — settled before code so no session re-walks the tree.
 date_created: 2026-05-18

@@ -1,5 +1,6 @@
 ---
 title: "API-First In-App Documentation — Each Surface Reveals Its Own Docs Inline"
+type: Specs
 lede: >-
   Every remote and service ships its own docs inline — an icon-CTA reveals the data flowing in, the calls fired, the response shapes.
 date_created: 2026-06-01

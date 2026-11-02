@@ -1,5 +1,6 @@
 ---
 title: "Didi crawl — three targets (links, streams, team members), the relevance brief, and staged team ingest"
+type: Plans
 lede: >-
   One `organization.crawl` capability over Anthropic's server-side web_search, driven by a per-workspace, operator-editable relevance brief.
 date_created: 2026-07-24

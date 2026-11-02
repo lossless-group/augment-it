@@ -1,5 +1,6 @@
 ---
 title: "Per-Record Iteration as the Primary Surface for Pack and Bundle Fires — The Flow Rearranges Per Fire Type"
+type: Specs
 lede: >-
   A pack fired across 96 rows returned 0 found — so per-record iteration becomes primary and bulk fan-out waits until a chain is proven.
 date_created: 2026-06-02

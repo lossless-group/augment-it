@@ -1,5 +1,6 @@
 ---
 title: "Parent-Child Nested Organizations Are Not Modeled — Initiatives, Funds, and Sub-Orgs Have Nowhere Canonical to Hang"
+type: Issues
 lede: "`upmobility-foundation-urban-institute` welds a parent org to its initiative, so triaged content has no honest folder to land in."
 date_created: 2026-07-25
 date_modified: 2026-08-02

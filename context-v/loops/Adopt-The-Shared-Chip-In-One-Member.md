@@ -1,5 +1,6 @@
 ---
 title: "Adopt the shared Chip in one member"
+type: Loops
 lede: "The per-member executor for the Chip rollout. Inherits every probe and verification rule from the Button loop; what differs is the judgement about what a chip even is."
 date_created: 2026-09-13
 date_modified: 2026-09-13

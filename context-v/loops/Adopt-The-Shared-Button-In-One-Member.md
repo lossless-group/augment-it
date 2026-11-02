@@ -1,5 +1,6 @@
 ---
 title: "Adopt the shared Button in one member — the per-member executor for the Button rollout"
+type: Loops
 lede: "One member per run, never a sweep. Replace the buttons, delete the recipes they made redundant, raise everything else."
 date_created: 2026-09-13
 date_modified: 2026-09-13

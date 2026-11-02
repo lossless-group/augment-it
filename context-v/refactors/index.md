@@ -1,0 +1,7 @@
+# Refactors
+
+* [Rename the corpora curator — finishing a rename that only ever reached the label](Rename-Strategy-Curator-To-Corpora-Curator.md) - Four naming layers were tangled here and only three moved — the fourth is a data value living in two external client repos.
+* [Structural refactors surfaced by the codebase graph — the deadweight, the boilerplate, and the CSS convergence problem](Structural-Refactors-Surfaced-by-the-Codebase-Graph.md) - A zero-token graph over 490 files found ~500 lines that delete cleanly, 11 near-identical `mount.ts` files, and no duplicate CSS after all.
+* [The federal layer never shipped --space-*, --radius-* or --z-* — so ten members invented token names and let the fallback carry the value](The-Federal-Layer-Never-Shipped-Space-Radius-Or-Z.md) - 170 declarations across the federation reference tokens that do not exist. Each one silently ships its literal in all three modes.
+* [sort-filter-lens leaks 61 unnamespaced classes into every other remote — and .error, .row and .muted are live collisions today](The-Sort-Filter-Lens-Containment-Breach.md) - One member ships 511 lines of global CSS with no root-class containment. Sixteen other surfaces render a class it restyles.
+* [Two palette steps share one hex, so dark-mode borders measure 1.00:1](Two-Palette-Steps-Share-One-Hex-So-Dark-Mode-Borders-Vanish.md) - graphite-700 and graphite-800 are both #232634. Four federal boundary findings came out of one member's probe; three survive adjudication and one does not.

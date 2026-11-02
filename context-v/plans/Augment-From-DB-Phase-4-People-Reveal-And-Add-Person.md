@@ -1,5 +1,6 @@
 ---
 title: "Augment from DB · Phase 4 — people reveal, person cards, add-person with automatic affiliation"
+type: Plans
 lede: "The org card grows its people: every affiliated person revealed with role + relevance, nested identity links with their own ➕ and 🔍, and an inline add-person where the affiliation edge materializes without the operator ever managing it."
 date_created: 2026-07-22
 date_modified: 2026-07-22

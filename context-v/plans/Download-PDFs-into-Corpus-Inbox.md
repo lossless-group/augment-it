@@ -1,5 +1,6 @@
 ---
 title: "Download PDFs into Corpus Inbox — preserve the original binary alongside Jina-extracted markdown; wire both inbox vectors (UI and agent-chat) so the operator's PDF discoveries land as commit-able evidence, not just summarized text"
+type: Plans
 lede: >-
   Jina gives the inbox text and throws the PDF away — nothing to cite by page or hand to a co-researcher. Save the binary alongside it.
 date_created: 2026-06-08

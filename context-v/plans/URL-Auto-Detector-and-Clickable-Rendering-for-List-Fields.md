@@ -1,5 +1,6 @@
 ---
 title: "URL Auto-Detector and Clickable Rendering for List Fields — make socials, helpful_links, and official_updates_index_urls open-in-tab links instead of opaque JSON"
+type: Plans
 lede: >-
   `socials` and its list-shaped siblings render as 12px JSON; a shape-detecting extractor makes every URL clickable and drops the clutter.
 date_created: 2026-06-05

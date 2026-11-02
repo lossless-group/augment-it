@@ -1,5 +1,6 @@
 ---
 title: "Module Federation + Rsbuild — Dev Loop Gotchas"
+type: Blueprints
 lede: >-
   Five Rsbuild + Module Federation gotchas, cross-origin HMR first: none block adoption, all cost time if you don't see them coming.
 date_created: 2026-05-18

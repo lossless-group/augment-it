@@ -1,5 +1,6 @@
 ---
 title: "Bolt Monolith As Built — The archive/bolt-code Branch"
+type: Explorations
 lede: "The earliest augment-it is a Vite + React monolith on `archive/bolt-code`: feature-richer than the federated repos, architecture we discard."
 date_created: 2026-05-18
 date_modified: 2026-05-25

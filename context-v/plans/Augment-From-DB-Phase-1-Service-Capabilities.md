@@ -1,5 +1,6 @@
 ---
 title: "Augment from DB · Phase 1 — service capabilities + Exa, no UI"
+type: Plans
 lede: "Four service-side deliverables that make the whole flow provable from a script before any remote exists: org detail + org affiliations reads, a registry-resolved search.fire, and Exa as a peer connector."
 date_created: 2026-07-22
 date_modified: 2026-07-22

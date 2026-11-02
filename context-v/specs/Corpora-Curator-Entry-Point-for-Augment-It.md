@@ -1,5 +1,6 @@
 ---
 title: "Strategy Curator — An Entry-Point App for augment-it"
+type: Specs
 lede: >-
   A canonical source registry in SurrealDB owns identity, the client's filesystem owns usage, and a shared UUID is the only bond.
 date_created: 2026-06-29

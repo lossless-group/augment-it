@@ -1,5 +1,6 @@
 ---
 title: "Design Language Audit — July 2026"
+type: Explorations
 lede: "The hand-counted baseline audit that measured the state of augment-it's CSS before the design system shipped. Superseded as the counting mechanism by design-drift.mjs."
 date_created: 2026-07-16
 date_modified: 2026-08-01

@@ -1,5 +1,6 @@
 ---
 title: "Troubleshooting UI for Official Blogs — The Bundle Fire Path Doesn't Fit the Flow That Was Built for Prompt Templates"
+type: Issues
 lede: "Bundles fire end-to-end, but the Flow assumes every fire routes through a prompt template — so every step past 2 is wrong for a bundle."
 date_created: 2026-06-02
 date_modified: 2026-06-02

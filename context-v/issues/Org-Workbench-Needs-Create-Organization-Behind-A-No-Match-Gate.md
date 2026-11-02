@@ -1,5 +1,6 @@
 ---
 title: "The Org Workbench can't create an organization — and creation must sit behind a 'be sure there is no match' gate"
+type: Issues
 lede: "The workbench can only find orgs that exist. Creation must sit behind the same show-every-match gate that already governs adding a person."
 date_created: 2026-07-24
 date_modified: 2026-07-24

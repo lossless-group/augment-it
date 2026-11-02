@@ -1,5 +1,6 @@
 ---
 title: "Prove the component API end-to-end on request-reviewer — ship the scales, build Button, migrate one member, and verify by measurement"
+type: Plans
 lede: "If this loop closes once it closes eighteen more times. One member, nine buttons, and a measurable accessibility delta."
 date_created: 2026-09-13
 date_modified: 2026-09-13

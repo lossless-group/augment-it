@@ -1,5 +1,6 @@
 ---
 title: "Per-Client Privacy and the Path Off Local — when does single-operator-local-only stop scaling, what stack do we reach for, and how do we architect today so the move is cheap when it comes"
+type: Explorations
 lede: "Per-client corpus privacy and a client wanting login hit the same week. Not a stack decision — which choices keep the move off local cheap."
 date_created: 2026-06-05
 date_modified: 2026-06-05

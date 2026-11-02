@@ -1,5 +1,6 @@
 ---
 title: "Records Surface sort step and UI — sort ships as part of the **Sort & Filter Lens**, the second lens in step 2's default set (alongside the existing **Pack Firing Lens**); `lens` is the architectural primitive this spec introduces and lenses are *swappable* (one active per step at a time), not stackable; each step ships with a small curated default lens set and the registry stays *open* so new lenses can join without architecture changes"
+type: Specs
 lede: >-
   Sort ships as the second swappable lens on step 2 — and the lens registry is open, so a new lens is a manifest drop, not an enum edit.
 date_created: 2026-06-09

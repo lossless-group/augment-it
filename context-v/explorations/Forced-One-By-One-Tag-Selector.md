@@ -1,5 +1,6 @@
 ---
 title: "Forced One-By-One Tag Selector — a pulse-dimension pattern for deliberate triage instead of lazy bulk-tick"
+type: Explorations
 lede: "Bulk checkboxes produce uniform half-considered tags. Present one tag at a time — apply / skip / skip-rest — and each decision gets made."
 date_created: 2026-06-16
 date_modified: 2026-06-16

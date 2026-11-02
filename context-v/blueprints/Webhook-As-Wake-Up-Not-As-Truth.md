@@ -1,5 +1,6 @@
 ---
 title: "Webhook as Wake-Up, Not as Truth — relaying platform events into CI without trusting them"
+type: Blueprints
 lede: >-
   Polling gets throttled and push payloads are unsigned. Forward the interrupt, not the claim, and both problems stop mattering at once.
 date_created: 2026-09-10

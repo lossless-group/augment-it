@@ -1,5 +1,6 @@
 ---
 title: "Open augment.didi.sh to reach-edu — a second tenant instance, and Stephenie Tesoro as the first client user"
+type: Plans
 lede: >-
   The data is already deployed; only the door is single-tenant. Open it with a per-client instance, not a relaxed org check.
 date_created: 2026-07-28

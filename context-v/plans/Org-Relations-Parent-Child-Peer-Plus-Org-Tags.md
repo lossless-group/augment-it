@@ -1,5 +1,6 @@
 ---
 title: "Org Relations (parent/child/peer) + Org Tags — model, capabilities, and the Org Workbench surface"
+type: Plans
 lede: "Organizations finally get edges to each other — parent, child, or peer, with a typed flavor and free-text human context — plus their first tag mechanism (Initiative, Program, Funder), all workable from the Org Workbench card."
 date_created: 2026-07-27
 date_modified: 2026-07-27

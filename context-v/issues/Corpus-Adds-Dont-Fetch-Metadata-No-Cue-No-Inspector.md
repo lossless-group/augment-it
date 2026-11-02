@@ -1,5 +1,6 @@
 ---
 title: "Corpus adds don't fetch metadata — and the row gives no cue either way, and there's no inspector to see or fix it"
+type: Issues
 lede: "`organization.corpus.add` writes url, kind, and domain then stops — the Jina metadata fetch never fires, and nothing on the row says so."
 date_created: 2026-07-24
 date_modified: 2026-07-24

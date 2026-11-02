@@ -1,5 +1,6 @@
 ---
 title: "Initial User Experience — From Landing to a Productive First Action"
+type: Specs
 lede: >-
   What the first thirty seconds of augment-it feel like: a productive first action without a lecture, skippable and never re-shown.
 date_created: 2026-06-01

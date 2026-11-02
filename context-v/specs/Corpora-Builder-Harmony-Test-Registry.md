@@ -1,5 +1,6 @@
 ---
 title: "Corpora Builder Harmony — the evolving test registry"
+type: Specs
 lede: "Every proposed and implemented test guarding the corpora builder and the systems it must harmonize with — identity, workspace connector, transport, state, canonical layer, files — in human language, MECE, one ✓-phrase each."
 date_created: 2026-07-30
 date_modified: 2026-08-01

@@ -1,5 +1,6 @@
 ---
 title: "Augment from DB · Phase 5 — stream-scan mode: scan a pulse stream, badge the already-known, one-click the new into the corpus"
+type: Plans
 lede: >-
   Stream scan is a mode of search-and-add, not a third remote: the stream URL is the authoritative index, deduped against `content_items`.
 date_created: 2026-07-22

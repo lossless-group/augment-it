@@ -1,5 +1,6 @@
 ---
 title: "Chat Context-Awareness Architecture — three layers (workspace as context broker, slab-assembly contract, verb registry) that grow the in-app chat from prompt-only to surface-aware verb router"
+type: Specs
 lede: >-
   Chat's verb roster is a hand-written prose block and its context slab carries only `record_set_id`; this closes both holes.
 date_created: 2026-06-08

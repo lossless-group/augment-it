@@ -1,5 +1,6 @@
 ---
 title: "Sharing code without breaking microfrontend autonomy: build-time import IS the copy"
+type: Notes
 lede: "With no `shared` block, a workspace import is inlined into all seventeen bundles. The cost isn't runtime coupling, it's redeploy fan-out."
 date_created: 2026-08-06
 date_modified: 2026-08-06

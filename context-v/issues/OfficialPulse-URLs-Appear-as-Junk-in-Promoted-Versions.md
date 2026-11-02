@@ -1,5 +1,6 @@
 ---
 title: "OfficialPulse URLs Appear as Junk in Promoted Versions — operator believes promote v6 → v7 → v8 wrote bad data into the array column; audit shows promote is clean and v6 itself already contained every URL"
+type: Issues
 lede: "Promote added nothing — v5 through v8 carry identical 122-URL arrays. The new renderer just made them visible, and no UI can remove one."
 date_created: 2026-06-05
 date_modified: 2026-06-05

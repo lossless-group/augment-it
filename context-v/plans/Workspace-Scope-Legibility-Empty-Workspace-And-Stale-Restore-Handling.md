@@ -1,5 +1,6 @@
 ---
 title: "Workspace-scope legibility — empty workspaces and stale org restores should explain themselves, not look broken"
+type: Plans
 lede: >-
   Switching to a workspace with 0 orgs made the workbench look dead — the visibility rules were right, only the messaging failed.
 date_created: 2026-07-24

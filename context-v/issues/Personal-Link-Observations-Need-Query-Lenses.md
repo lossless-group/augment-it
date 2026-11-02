@@ -1,5 +1,6 @@
 ---
 title: "Personal-link observations need named query lenses — without them, an accumulating fact log goes uninspected"
+type: Issues
 lede: "`has_personal_link` observations carry rich qualifiers and no queries. One thought leader can contribute 50+ before anyone can look."
 date_created: 2026-06-15
 date_modified: 2026-06-15

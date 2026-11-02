@@ -1,5 +1,6 @@
 ---
 title: "Header polish — the FLOW label and shell suffix have outlived their jobs, and the chat toggle sits on the wrong side"
+type: Issues
 lede: "Four findings from the first production walk-through — including a chat toggle on the right that opens a rail pinned to the left."
 date_created: 2026-07-28
 date_modified: 2026-07-28

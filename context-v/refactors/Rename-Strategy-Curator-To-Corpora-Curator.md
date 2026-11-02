@@ -1,5 +1,6 @@
 ---
 title: "Rename the corpora curator — finishing a rename that only ever reached the label"
+type: Refactors
 lede: >-
   Four naming layers were tangled here and only three moved — the fourth is a data value living in two external client repos.
 date_created: 2026-08-08

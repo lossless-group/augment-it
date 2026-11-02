@@ -1,5 +1,6 @@
 ---
 title: "Tag input swallows commas into one mega-tag — commas should split into separate tags"
+type: Issues
 lede: "`toDashed` splits on every non-alphanumeric, so commas behave like spaces and three intended tags fuse into one mega-tag."
 date_created: 2026-08-02
 date_modified: 2026-08-02

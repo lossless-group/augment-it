@@ -75,6 +75,8 @@ function localLoader(options: LocalLoaderOptions) {
 
       try {
         for await (const file of fsGlob('**/*.md', { cwd: options.dir })) {
+          // OKF folder indexes are navigation for agents, not pages.
+          if (file.split('/').pop() === 'index.md') continue;
           const abs = resolve(options.dir, file);
           const text = await readFile(abs, 'utf8');
           const { data, body } = parseFrontmatter(text);

@@ -1,5 +1,6 @@
 ---
 title: "Augment Transformations Not Reliably Persisting — Hand-Curated Field Edits and Whole-Row Augmentations Are Disappearing Across Record-Set Versions"
+type: Issues
 lede: "98 hand-curated URLs across 45 records with no save or promote affordance — only the row-store's auto-persisted JSON keeps them alive."
 date_created: 2026-06-02
 date_modified: 2026-06-02

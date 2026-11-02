@@ -1,5 +1,6 @@
 ---
 title: "Spec-Kit and Context-V Coexistence — How They Work Together in Augment-It"
+type: Blueprints
 lede: >-
   context-v holds the project's living memory; spec-kit drives per-feature implementation flow. Complementary, not competing.
 date_created: 2026-05-18

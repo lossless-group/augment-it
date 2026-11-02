@@ -1,5 +1,6 @@
 ---
 title: "Augment from DB · Phase 2 — the org-workbench remote: flow registration, org search, org card"
+type: Plans
 lede: >-
   Autocomplete to a canonical org and work its card with a live ➕ on every list — plus the verb the spec missed, `organization.streams.add`.
 date_created: 2026-07-22

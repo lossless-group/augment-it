@@ -1,5 +1,6 @@
 ---
 title: "Org Workbench in a narrow pane — the roster doesn't collapse, and the org card's contents spill out of their container"
+type: Issues
 lede: "In a narrow pane the roster keeps its 300px and the card's link rows overflow — the flexbox `min-width: auto` trap, twice."
 date_created: 2026-07-24
 date_modified: 2026-07-24

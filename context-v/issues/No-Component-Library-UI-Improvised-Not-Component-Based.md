@@ -1,5 +1,6 @@
 ---
 title: "No component library — the UI is improvised per-remote instead of component-based, and it's starting to show"
+type: Issues
 lede: "Fourteen remotes improvised their own UI, so status pills and candidate pickers now exist in parallel dialects. The bill is arriving."
 date_created: 2026-07-24
 date_modified: 2026-07-24

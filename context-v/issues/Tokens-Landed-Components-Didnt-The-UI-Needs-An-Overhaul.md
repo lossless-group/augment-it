@@ -1,5 +1,6 @@
 ---
 title: "Tokens landed, components didn't — the UI needs an overhaul, and the drift linter can't see the problem"
+type: Issues
 lede: "19 of 20 apps consume the theme package; shared-ui ships exactly two components. Every remote hand-rolls its own buttons, pills, and empty states against shared colours."
 date_created: 2026-08-21
 date_modified: 2026-08-21

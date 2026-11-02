@@ -1,5 +1,6 @@
 ---
 title: "Build Selector and close the keyboard contract"
+type: Plans
 lede: "Nine surfaces declare a keyboard widget. Zero implement one. This is the first component whose whole substance is behaviour, so it is the first one with real tests."
 date_created: 2026-09-14
 date_modified: 2026-09-14

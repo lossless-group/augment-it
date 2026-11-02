@@ -1,5 +1,6 @@
 ---
 title: "Original and Enhanced Record Instances — the Record-Instance Model"
+type: Blueprints
 lede: >-
   No mutation, no derived set per run: one immutable original plus one mutable enhanced instance per round, promoted to seed the next.
 date_created: 2026-05-21

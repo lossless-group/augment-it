@@ -1,5 +1,6 @@
 ---
 title: "Agent-Chat Skills and Commands — Candidates List"
+type: Explorations
 lede: "The chat's verb roster is four prompt-focused capabilities. A running list of shell scripts that should graduate into chat-callable verbs."
 date_created: 2026-05-26
 date_modified: 2026-05-26

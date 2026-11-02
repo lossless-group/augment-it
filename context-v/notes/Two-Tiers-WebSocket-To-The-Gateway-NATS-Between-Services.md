@@ -1,5 +1,6 @@
 ---
 title: "Two tiers: WebSocket to the gateway, NATS between services"
+type: Notes
 lede: "The browser talks WebSocket to one gateway; the gateway talks NATS to every service. They aren't alternatives — they're two legs of one design, and the gateway between them is where tenancy lives."
 date_created: 2026-07-30
 date_modified: 2026-07-30

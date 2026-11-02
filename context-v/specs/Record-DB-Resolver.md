@@ -1,5 +1,6 @@
 ---
 title: "Record ↔ DB Resolver — operator-driven match/create bridge from row-store records to canonical organizations"
+type: Specs
 lede: >-
   Row-store records and canonical SurrealDB orgs were never bridged; the resolver closes the gap one record at a time, operator driving.
 date_created: 2026-06-22

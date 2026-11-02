@@ -1,5 +1,6 @@
 ---
 title: "Fetch full content clobbers the operator's metadata — resets the title to a URL approximation"
+type: Issues
 lede: "`fetchSourceContent` never consulted the saved title, so Jina's guess — or the raw URL on failure — overwrote what the operator typed."
 date_created: 2026-08-02
 date_modified: 2026-08-02

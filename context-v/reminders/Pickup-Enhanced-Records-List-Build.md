@@ -1,5 +1,6 @@
 ---
 title: "Pickup — Build the Enhanced Records List + Promotion Checkpoint"
+type: Reminders
 lede: "The enhanced-records-list spec is finished; next session's first build step is the `record_uuid` plumbing and backfill."
 date_created: 2026-05-22
 date_modified: 2026-05-25

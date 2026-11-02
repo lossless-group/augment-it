@@ -1,5 +1,6 @@
 ---
 title: "Augment from DB · Phase 3 — the search-and-add remote: editable term, provider palette, one-click add"
+type: Plans
 lede: >-
   Launched from any 🔍 on the org card: an always-editable term bar, a provider palette, one-click add back to the launching list.
 date_created: 2026-07-22

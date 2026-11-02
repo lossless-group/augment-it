@@ -1,5 +1,6 @@
 ---
 title: "No test coverage — TDD keeps getting deferred, despite being exactly the right fit for agentic development"
+type: Issues
 lede: "Agents rewrite this codebase with zero automated tests — and the iterate-until-green loop is exactly what agents are best at. Pick a runner."
 date_created: 2026-07-24
 date_modified: 2026-08-02

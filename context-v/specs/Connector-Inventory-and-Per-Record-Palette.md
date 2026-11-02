@@ -1,5 +1,6 @@
 ---
 title: "Connector Inventory & Per-Record Palette — Hot-Swap Providers, Re-Fire One Record at a Time"
+type: Specs
 lede: >-
   Per-record connector palette: click `f` to re-fire one row through the next Facebook provider, over a registry that resolves by capability.
 date_created: 2026-06-02

@@ -1,5 +1,6 @@
 ---
 title: "Augment from DB — the Org Workbench + Search-and-Add flow: two new microfrontends over capabilities that mostly exist"
+type: Specs
 lede: >-
   Start from a canonical org, not a CSV row: an org workbench over links, streams, corpus and people, plus provider-pluggable search-and-add.
 date_created: 2026-07-22

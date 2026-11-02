@@ -1,5 +1,6 @@
 ---
 title: "Response Reviewer and Response Store — the Post-Flight Surface"
+type: Specs
 lede: >-
   No review surface until a fired response is a first-class stored object — so response-store and response-reviewer are specced as one.
 date_created: 2026-05-22

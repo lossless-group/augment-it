@@ -1,5 +1,6 @@
 ---
 title: "Run /speckit-constitution — Seed Augment-It's Constitution from Context-V"
+type: Prompts
 lede: >-
   The directive to paste with /speckit-constitution so the principles synthesize from our own context-v docs, not from training data.
 date_created: 2026-05-18

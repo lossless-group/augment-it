@@ -1,5 +1,6 @@
 ---
 title: "Give the services a shared tsconfig base — fold ten byte-identical service configs onto a new `tsconfig.services.json`, reconcile `decile-mcp`'s real delta, fold two duplicated package configs onto the existing `tsconfig.base.json`, and correct the root fallback's stale exclude list"
+type: Plans
 lede: >-
   Ten service tsconfigs are byte-identical and extend nothing. The fix already
   exists one directory away — `tsconfig.base.json` did this for the apps and works.

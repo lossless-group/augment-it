@@ -1,5 +1,6 @@
 ---
 title: "Tooltip System — A Versatile First-Class Family, Plus a Walkthrough for New and Returning Users"
+type: Specs
 lede: >-
   Apps fail at orientation, not functionality — so tooltips become a first-class family, not the browser's half-working `title=`.
 date_created: 2026-06-01

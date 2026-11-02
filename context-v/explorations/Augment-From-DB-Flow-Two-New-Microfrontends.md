@@ -1,5 +1,6 @@
 ---
 title: "Augment from DB — the org-first workbench flow, and the two new microfrontends it needs"
+type: Explorations
 lede: "A flow that starts from SurrealDB, not a CSV: pick an org, reveal its people and pulse streams, augment through pluggable search packs."
 date_created: 2026-07-21
 date_modified: 2026-07-21

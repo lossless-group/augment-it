@@ -1,5 +1,6 @@
 ---
 title: "Funder Corpus First Session Failed — 75 markdown files across 15 of 96 funders, 81 records unprocessable, hours spent layering filters on stale data instead of producing clean fresh data, rebuild against the goals spec exists in code but was never validated against a real pack fire because the session ended"
+type: Issues
 lede: "Six hours produced 75 corpus files across 15 of 96 funders — 81 records still have nothing. This is the failure-mode list for morning-self."
 date_created: 2026-06-05
 date_modified: 2026-06-05

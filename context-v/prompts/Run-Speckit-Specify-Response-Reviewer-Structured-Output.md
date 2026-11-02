@@ -1,5 +1,6 @@
 ---
 title: "Run /speckit-specify — Response Reviewer Structured-Output Extension (Packs-and-Bundles Feature 1)"
+type: Prompts
 lede: >-
   Feature 1 of the packs-and-bundles series: the structured-output surface every pack will land on. Zero packs, zero bundles implemented.
 date_created: 2026-05-25

@@ -1,5 +1,6 @@
 ---
 title: "Bolt-Era Record Collector Analysis"
+type: Explorations
 lede: "Cross-reference against `Tanuj-Record-Collector-As-Built` — the diff between bolt-era and forked shows which patterns survived federation."
 date_created: 2026-05-18
 date_modified: 2026-05-25

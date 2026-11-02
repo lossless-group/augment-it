@@ -1,5 +1,6 @@
 ---
 title: "Handoff — the retrofit arc, and the cheapest item it produced"
+type: Handoffs
 lede: "Everything is committed and pushed. Start with the services tsconfig: ten byte-identical files, fix already proven one directory away."
 date_created: 2026-09-13
 date_modified: 2026-09-13

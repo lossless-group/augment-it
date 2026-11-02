@@ -1,5 +1,6 @@
 ---
 title: "The four layers: pnpm, Turbo, rsbuild Module Federation, and where Bun would fit"
+type: Notes
 lede: "There isn't one 'monorepo' system — there are four independent ones, and the word 'federation' means two different things across them. Untangling which tool owns which job, and what Bun would actually replace."
 date_created: 2026-07-30
 date_modified: 2026-07-30

@@ -1,5 +1,6 @@
 ---
 title: "First-Pass Corpus Quality Scan for reach-edu — a measured before/after baseline of the RAG corpus"
+type: Plans
 lede: >-
   A read-only baseline of 517 markdown files across 57 funder dirs, taken before RAG is wired, so 'after' has a 'before' to compare to.
 date_created: 2026-06-18

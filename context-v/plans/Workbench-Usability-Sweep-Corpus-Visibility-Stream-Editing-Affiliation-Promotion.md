@@ -1,5 +1,6 @@
 ---
 title: "Workbench usability sweep — corpus visibility, stream editing, and promote-to-affiliation (issues #20 · #26 · #25)"
+type: Plans
 lede: "Today's scope from the first real workbench session: make the person card's three invisible corpus items visible, let the operator fix a stream's kind and give it its real name, and turn a bio-page link row into a three-click affiliation."
 date_created: 2026-07-24
 date_modified: 2026-07-24

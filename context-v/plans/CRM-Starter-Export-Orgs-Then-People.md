@@ -1,5 +1,6 @@
 ---
 title: "CRM Starter Export — the pipeline shape, enriched from the canonical layer: orgs first, then people attached"
+type: Plans
 lede: >-
   Two CSVs seed the empty CRM from the canonical layer: organizations first, people second, attached by a stable key. Corpora excluded.
 date_created: 2026-07-27

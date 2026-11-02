@@ -1,5 +1,6 @@
 ---
 title: "Troubleshooting workspace ↔ DB state alignment — humain-vc's corpora don't load, and the canonical layer holds fewer than the operator created"
+type: Issues
 lede: "The humain-vc workspace renders empty-or-wrong corpora while the canonical layer itself holds fewer humain-vc domains than the operator remembers creating — four suspects, each with a discriminating signature."
 date_created: 2026-07-30
 date_modified: 2026-08-02

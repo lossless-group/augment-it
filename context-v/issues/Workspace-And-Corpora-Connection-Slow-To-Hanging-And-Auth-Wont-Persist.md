@@ -1,5 +1,6 @@
 ---
 title: "Workspace + corpora connection is slow-to-hanging, and the auth token won't persist"
+type: Issues
 lede: "The Corpora Curator sits at 'connecting…' and the workspace switcher at 'loading…' — corpora never arrive — while the didi session drops within a minute of signing in, forcing a re-login. Two symptoms that most likely share one root cause."
 date_created: 2026-08-02
 date_modified: 2026-08-02

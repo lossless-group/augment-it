@@ -1,5 +1,6 @@
 ---
 title: "Funder↔strategy is tags for now — whether it deserves a real edge is deferred"
+type: Issues
 lede: "140 strategy tags landed on 69 funders, but a tag can't carry evidence counts, gift sizes, or recency. The edge question comes due later."
 date_created: 2026-07-28
 date_modified: 2026-07-28

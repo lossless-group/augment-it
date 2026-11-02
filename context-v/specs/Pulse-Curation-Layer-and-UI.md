@@ -1,5 +1,6 @@
 ---
 title: "Pulse Curation Layer & UI — Three Layers per Category, Triage Per Item, Finalize on Demand"
+type: Specs
 lede: >-
   Three layers per category: immutable `raw_output`, live `curated_output`, and a `finalized_output` snapshot locked when triage is done.
 date_created: 2026-06-02

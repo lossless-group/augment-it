@@ -1,5 +1,6 @@
 ---
 title: "Packs and Bundles — The Two-Tier Pattern for Entity-Profile Augmentation (and Beyond)"
+type: Blueprints
 lede: >-
   Two tiers: a pack is one source, one remote, one schema; a bundle is a named composition of packs fired by a single chat verb.
 date_created: 2026-05-25

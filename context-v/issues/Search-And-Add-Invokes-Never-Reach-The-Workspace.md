@@ -1,5 +1,6 @@
 ---
 title: "Search & Add's invokes never reach the workspace — the pane hangs at 'searching…' while every backend rung is green"
+type: Issues
 lede: "SearXNG answers, `search.fire` answers, the org card loads — yet the 🔍 pane hangs forever. The frame dies inside the client transport."
 date_created: 2026-07-28
 date_modified: 2026-08-02

@@ -1,5 +1,6 @@
 ---
 title: "Refactoring for API Speed — a single-user app should boot in milliseconds, not a minute"
+type: Issues
 lede: "Measured: shell mount to workspaces ready is ~543ms. The perceived minute was a stale deploy plus remotes hanging on `localhost:3XXX`."
 date_created: 2026-08-02
 date_modified: 2026-08-02

@@ -1,5 +1,6 @@
 ---
 title: "Jina metadata parser is blog-only — needs two profiles + fuzzy routing (academic sources lose their date/publisher)"
+type: Issues
 lede: "The parser only reads OpenGraph keys, so scholarly sources lose date and publisher to `citation_*` / `dc.*` / `prism.*` it never looks at."
 date_created: 2026-08-02
 date_modified: 2026-08-02

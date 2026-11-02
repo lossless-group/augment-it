@@ -1,0 +1,6 @@
+# Notes
+
+* [Sharing code without breaking microfrontend autonomy: build-time import IS the copy](Sharing-Code-Without-Breaking-Microfrontend-Autonomy.md) - With no `shared` block, a workspace import is inlined into all seventeen bundles. The cost isn't runtime coupling, it's redeploy fan-out.
+* [The four layers: pnpm, Turbo, rsbuild Module Federation, and where Bun would fit](The-Four-Layers-pnpm-Turbo-rsbuild-Federation-Bun.md) - There isn't one 'monorepo' system — there are four independent ones, and the word 'federation' means two different things across them. Untangling which tool owns which job, and what Bun would actually replace.
+* [Two tiers: WebSocket to the gateway, NATS between services](Two-Tiers-WebSocket-To-The-Gateway-NATS-Between-Services.md) - The browser talks WebSocket to one gateway; the gateway talks NATS to every service. They aren't alternatives — they're two legs of one design, and the gateway between them is where tenancy lives.
+* [Why this monorepo does not need Turbo: a task graph with no edges](Why-This-Monorepo-Does-Not-Need-Turbo.md) - Turbo's core directive is `dependsOn: ["^build"]` — build my dependencies first. No package in packages/ has a build step, so it resolves to nothing. We adopted a best practice for an architecture we then didn't build.

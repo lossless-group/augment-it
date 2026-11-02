@@ -1,5 +1,6 @@
 ---
 title: "Bolt-Era API Provider Widget Analysis"
+type: Explorations
 lede: "The bolt widget picked Claude, GPT, or Perplexity per prompt section. The widget dies in the rewrite; the multi-provider shape stays."
 date_created: 2025-08-08
 date_modified: 2026-05-25

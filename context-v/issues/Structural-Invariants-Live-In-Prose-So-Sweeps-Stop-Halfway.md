@@ -1,5 +1,6 @@
 ---
 title: "Structural invariants live in prose, so sweeps stop halfway and nothing notices"
+type: Issues
 lede: "Three units have now been found whose typecheck had never once passed. Each was found by accident, five weeks apart, by someone tidying something else."
 date_created: 2026-09-13
 date_modified: 2026-09-13

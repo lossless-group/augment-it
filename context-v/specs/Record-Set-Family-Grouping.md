@@ -1,5 +1,6 @@
 ---
 title: "Record-Set Family Grouping — internal lineage vs. external-variant families in the Record Collector sidebar"
+type: Specs
 lede: >-
   The sidebar shows a tracker uploaded as v4–v8 as five unrelated CSVs. Two family kinds — promotion lineage and external variant — fix that.
 date_created: 2026-06-05

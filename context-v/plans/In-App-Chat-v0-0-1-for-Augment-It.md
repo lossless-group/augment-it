@@ -1,5 +1,6 @@
 ---
 title: "In-App Chat v0.0.1 for Augment-It — The Prompt-Drafting Triad as the Demo Affordance"
+type: Plans
 lede: >-
   Gated enhancement made conversational: `prompts.draft` → `improve` → `apply`, with postconditions that check what the prompt promised.
 date_created: 2026-05-22

@@ -1,5 +1,6 @@
 ---
 title: "Issue: How People, Organizations, and Their Relationships Actually Enter SurrealDB"
+type: Issues
 lede: "Not a bug — a verified trace of the canonical write path, because the DB already does more than the UI or the operator's memory shows."
 date_created: 2026-07-17
 date_modified: 2026-07-17

@@ -1,5 +1,6 @@
 ---
 title: "Workspaces as Tenant Primitive — toggling, tenant-aware microservices, per-tenant env-var pickup, and the seam that lets MCPs and connectors vary per client"
+type: Specs
 lede: >-
   `workspace` is the tenant boundary — humain-vc vs reach-edu. The vision is stated once, then step 1 is cut down to filesystem-only bones.
 date_created: 2026-06-11

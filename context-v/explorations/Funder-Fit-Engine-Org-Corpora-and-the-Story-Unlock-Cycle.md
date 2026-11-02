@@ -1,5 +1,6 @@
 ---
 title: "Funder-Fit Engine — Org-Anchored Corpora and the Bidirectional Story↔Funder Cycle"
+type: Explorations
 lede: "Fundraising matches both ways — funder→story and story→funder — on one org-anchored corpus. The differentiator is KAG, not plain RAG."
 date_created: 2026-06-17
 date_modified: 2026-06-17

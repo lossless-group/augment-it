@@ -1,5 +1,6 @@
 ---
 title: "Concurrent agent searches queue into a search-results column — fire many, deal with them as they come"
+type: Issues
 lede: "Agent searches run 60–210s and each one hijacks a single column. Wanted: a rightmost queue where every fired search appends its own card."
 date_created: 2026-07-24
 date_modified: 2026-08-02

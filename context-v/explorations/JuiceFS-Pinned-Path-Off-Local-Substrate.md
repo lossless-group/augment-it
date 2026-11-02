@@ -1,5 +1,6 @@
 ---
 title: "JuiceFS — POSIX-Over-Object-Storage (Explored, Then Set Aside for rclone-to-R2)"
+type: Explorations
 lede: "JuiceFS is a network drive needing a kernel extension, not Dropbox — wrong shape for local-first corpus work. Superseded by rclone-to-R2."
 date_created: 2026-06-18
 date_modified: 2026-06-18

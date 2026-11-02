@@ -1,5 +1,6 @@
 ---
 title: "Enhanced Records List — the Triage Checkpoint and the Promotion Loop"
+type: Specs
 lede: >-
   One record-grained view of a whole enrichment round: select the good rows, promote them to canonical, and the predecessors archive.
 date_created: 2026-05-22

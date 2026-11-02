@@ -1,5 +1,6 @@
 ---
 title: "Libraries We Do Not Use — Ever"
+type: Reminders
 lede: "A hard denylist of packages this codebase has removed on purpose. Do not import them, do not assume they are installed, do not re-add them."
 date_created: 2026-08-02
 date_modified: 2026-08-02

@@ -1,5 +1,6 @@
 ---
 title: "Flow for Bundles & Packs — The Simplest Possible Thing"
+type: Specs
 lede: >-
   For 67 rows with a website URL, find each one's blog index. Two surfaces, no reviewers — this spec deliberately ignores the five before it.
 date_created: 2026-06-02

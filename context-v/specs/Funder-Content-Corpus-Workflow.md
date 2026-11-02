@@ -1,5 +1,6 @@
 ---
 title: "Funder Content Corpus Workflow — what the system has to do, ranked by quality bar, with no implementation prescribed"
+type: Specs
 lede: >-
   Written so a future agent resists the pull to filter yesterday's bad data tighter instead of firing fresh for today's good data.
 date_created: 2026-06-05

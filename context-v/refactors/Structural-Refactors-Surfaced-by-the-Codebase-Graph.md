@@ -1,5 +1,6 @@
 ---
 title: "Structural refactors surfaced by the codebase graph — the deadweight, the boilerplate, and the CSS convergence problem"
+type: Refactors
 lede: >-
   A zero-token graph over 490 files found ~500 lines that delete cleanly, 11 near-identical `mount.ts` files, and no duplicate CSS after all.
 date_created: 2026-08-06

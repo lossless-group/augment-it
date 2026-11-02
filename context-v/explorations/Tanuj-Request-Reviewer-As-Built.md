@@ -1,5 +1,6 @@
 ---
 title: "Tanuj's Request-Reviewer As Built — The Module Federation Proof"
+type: Explorations
 lede: "The only place Tanuj got federation working — a shared `RecordCard` — while the augmentation logic sits copy-pasted from record-collector."
 date_created: 2026-05-18
 date_modified: 2026-05-25

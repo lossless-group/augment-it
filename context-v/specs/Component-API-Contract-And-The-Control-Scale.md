@@ -1,5 +1,6 @@
 ---
 title: "The component API contract and the control scale — inspired by shadcn, with sprinkles of Tailwind, derived from what members already built"
+type: Specs
 lede: "Members were already converging on Tailwind's radius scale by instinct. They just had no token to spell it with."
 date_created: 2026-09-13
 date_modified: 2026-09-13

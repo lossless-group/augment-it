@@ -1,5 +1,6 @@
 ---
 title: "Tanuj's Record-Collector As Built"
+type: Explorations
 lede: "The most-finished of Tanuj's three splits. One idea survives: the prompt template auto-generates from the imported CSV's columns."
 date_created: 2026-05-18
 date_modified: 2026-05-25

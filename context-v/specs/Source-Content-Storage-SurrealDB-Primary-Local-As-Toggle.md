@@ -1,5 +1,6 @@
 ---
 title: "Source Content Storage — SurrealDB-Primary, Local as a Per-User Toggle"
+type: Specs
 lede: >-
   Flip the content store: the article body moves onto the canonical `sources` row and the local filesystem write demotes to a toggle.
 date_created: 2026-08-02

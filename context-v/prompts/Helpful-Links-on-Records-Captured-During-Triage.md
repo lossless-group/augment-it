@@ -1,5 +1,6 @@
 ---
 title: "Helpful Links on Records — Captured During Response-Reviewer Triage"
+type: Prompts
 lede: >-
   The adjacent links a human finds while triaging die in the clipboard; `helpful_links` catches them in one click and survives derivations.
 date_created: 2026-05-22

@@ -1,5 +1,6 @@
 ---
 title: "Bolt-Era Prompt Section Analysis"
+type: Explorations
 lede: "Prompt templates as MDX-rich, variable-aware, edit-toggle-preview blocks — the pattern prompt-template-manager should probably adopt."
 date_created: 2025-08-08
 date_modified: 2026-05-25

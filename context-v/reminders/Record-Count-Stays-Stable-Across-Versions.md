@@ -1,5 +1,6 @@
 ---
 title: "Record Count Stays Stable Across Versions — Augmenting Adds Columns, Never Rows"
+type: Reminders
 lede: "One dataset, one row count, forever — augmenting adds columns, not rows. 231 rows in the store for a 96-record dataset is a symptom."
 date_created: 2026-06-02
 date_modified: 2026-06-02

@@ -1,5 +1,6 @@
 ---
 title: "Response–Row Identity Across Promote — Why Responses Outlive Their Rows, and the `record_uuid`-on-Response Fix"
+type: Blueprints
 lede: >-
   Promote deletes parent rows, leaving responses pointed at dead `row_id`s; carrying `record_uuid` on the response resolves them by identity.
 date_created: 2026-05-26

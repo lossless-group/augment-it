@@ -1,5 +1,6 @@
 ---
 title: "Implement-Feature Loop — plan → gh tickets → code/verify/changelog/commit per ticket → human browser test → ship"
+type: Loops
 lede: "The generic feature-execution cadence: a signed-off plan becomes gh tickets, each ticket lands as verified code + a changelog beat + a conventions-clean commit, and the run closes with a human browser test and a ship() commit."
 date_created: 2026-07-27
 date_modified: 2026-07-27

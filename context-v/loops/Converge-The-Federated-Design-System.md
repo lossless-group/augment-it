@@ -1,5 +1,6 @@
 ---
 title: "Converge the federated design system — scan members for organs, fingerprint them, and triage divergence into five verdicts"
+type: Loops
 lede: "Creativity is the default and stays the default. The loop's job is to notice when two teams solved the same problem twice without meaning to."
 date_created: 2026-09-13
 date_modified: 2026-09-13

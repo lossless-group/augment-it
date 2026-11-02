@@ -1,5 +1,6 @@
 ---
 title: "sort-filter-lens leaks 61 unnamespaced classes into every other remote — and .error, .row and .muted are live collisions today"
+type: Refactors
 lede: "One member ships 511 lines of global CSS with no root-class containment. Sixteen other surfaces render a class it restyles."
 date_created: 2026-09-13
 date_modified: 2026-09-13

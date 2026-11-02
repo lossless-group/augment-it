@@ -1,5 +1,6 @@
 ---
 title: "Tags Are Two Projections — Frontmatter `tags:` on Files, `has_tag` Observations in SurrealDB"
+type: Reminders
 lede: "Files say `tags:` because Obsidian reads files; the DB says `has_tag` because its predicates are verb-shaped. Same fact, two projections."
 date_created: 2026-07-25
 date_modified: 2026-07-25

@@ -1,0 +1,9 @@
+# Prompts
+
+* [Build the Shell Tiling & Peek-Deck — Window the Federated Frontends](Build-the-Shell-Tiling-and-Peek-Deck.md) - The shell stops being a tab switcher: a peek-deck at 90% width with neighbours peeking, plus a two-remote split with a draggable seam.
+* [Common-Six Social Packs — First Real Packs on the Structured-Output Surface](Common-Six-Social-Packs.md) - Six pack identities — linkedin, x, bluesky, youtube, facebook, wikipedia — on one backend routing by `pack_id`, no microfrontend per pack.
+* [Helpful Links on Records — Captured During Response-Reviewer Triage](Helpful-Links-on-Records-Captured-During-Triage.md) - The adjacent links a human finds while triaging die in the clipboard; `helpful_links` catches them in one click and survives derivations.
+* [Response Reviewer — Structured-Output Extension (Packs-and-Bundles Foundation)](Response-Reviewer-Structured-Output-Extension.md) - Build the surface every pack lands on — candidate cards, confidence pills, outcome enum — against mock fixtures. Zero packs ship here.
+* [Run /speckit-constitution — Seed Augment-It's Constitution from Context-V](Run-Speckit-Constitution.md) - The directive to paste with /speckit-constitution so the principles synthesize from our own context-v docs, not from training data.
+* [Run /speckit-specify — Response Reviewer Structured-Output Extension (Packs-and-Bundles Feature 1)](Run-Speckit-Specify-Response-Reviewer-Structured-Output.md) - Feature 1 of the packs-and-bundles series: the structured-output surface every pack will land on. Zero packs, zero bundles implemented.
+* [Run /speckit-specify — Workspace + Sidecar Foundation (Feature 001)](Run-Speckit-Specify-Workspace-and-Sidecar-Foundation.md) - The workspace package and bun sidecar, plus exactly one capability — `records.import` — end to end to prove the pipe. No federation yet.

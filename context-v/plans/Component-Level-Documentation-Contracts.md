@@ -1,5 +1,6 @@
 ---
 title: "Component-Level Documentation Contracts — Giving All Forty Units Their Own Four Firsts"
+type: Plans
 lede: "Forty deployable units, fourteen READMEs, zero DESIGN.md files. The contract set each kind of unit owes, and the order to pay it down in."
 date_created: 2026-09-12
 date_modified: 2026-09-12

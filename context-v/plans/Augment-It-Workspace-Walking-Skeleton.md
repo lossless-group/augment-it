@@ -1,5 +1,6 @@
 ---
 title: "Augment-It Workspace — Walking Skeleton Plan"
+type: Plans
 lede: >-
   Browser ↔ Workspace Service over WebSocket, Workspace Service ↔ row-store over NATS, and two real spreadsheets as the proof-of-life payload.
 date_created: 2026-05-21

@@ -1,5 +1,6 @@
 ---
 title: "Augment-It as a CRM-Augmentation Pipeline (Microfrontends + Microservices)"
+type: Specs
 lede: >-
   memopop makes memos, dididecks makes slides, augment-it makes information that lands back in a CRM it doesn't own.
 date_created: 2026-05-18

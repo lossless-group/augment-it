@@ -1,5 +1,6 @@
 ---
 title: "Endow a Component With Its Own Contracts"
+type: Loops
 lede: "The repeatable procedure for giving one unit — service, remote, package, or shell — the four firsts it owes. One unit per run, never a sweep."
 date_created: 2026-09-12
 date_modified: 2026-09-12

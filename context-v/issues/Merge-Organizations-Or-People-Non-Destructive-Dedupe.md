@@ -1,5 +1,6 @@
 ---
 title: "Merging organizations or people — when two objects turn out to be the same entity, dedupe non-destructively"
+type: Issues
 lede: "Two rows are sometimes the same entity and nothing merges them — no edge re-pointing, no list union, no slug absorbed into `aliases[]`."
 date_created: 2026-07-24
 date_modified: 2026-07-24

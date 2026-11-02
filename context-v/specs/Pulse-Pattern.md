@@ -1,5 +1,6 @@
 ---
 title: "Pulse pattern — one operator burst against one entity, expressed as N independent pulse-dimensions composed in a pulse-surface, each dimension potentially owning its own microservice"
+type: Specs
 lede: >-
   Operators enrich in bursts, not steps: one search fills name, socials, emails, and org, and a pulse-surface commits all of it in one save.
 date_created: 2026-06-15

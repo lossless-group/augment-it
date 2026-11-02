@@ -1,5 +1,6 @@
 ---
 title: "Team-crawl accept drops the crawled links and leaves the staged row — double-save risk"
+type: Issues
 lede: "`person.apply` writes `linkedin_profile_url` as a scalar only, so accept discards the crawl's links — and the staged row lingers."
 date_created: 2026-07-24
 date_modified: 2026-07-24

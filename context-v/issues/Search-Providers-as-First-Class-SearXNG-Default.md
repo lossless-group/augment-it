@@ -1,5 +1,6 @@
 ---
 title: "Search Providers as First-Class — Stand Up SearXNG as the New Default for Social Packs; Tavily Stays as a Peer; Per-Row Iteration as the Workflow We're Building Toward"
+type: Issues
 lede: "Tavily is a content-RAG index — wrong substrate for social-profile pages. The fix isn't a swap — it's making provider plural per-fire."
 date_created: 2026-05-26
 date_modified: 2026-07-21

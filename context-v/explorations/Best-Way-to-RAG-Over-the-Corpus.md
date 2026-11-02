@@ -1,5 +1,6 @@
 ---
 title: "Best Way to RAG Over the Corpus — design space for retrieval-augmented operations on augment-it's per-client corpus, given the structured frontmatter we just earned"
+type: Explorations
 lede: "245 corpus files carry `funder_slug` and `published_at`, so retrieval is facet-filter-first — embeddings handle the residual about-ness."
 date_created: 2026-06-11
 date_modified: 2026-06-11

@@ -1,5 +1,6 @@
 ---
 title: "Build order: the humain-vc unlock flow, step by step"
+type: Plans
 lede: >-
   The execution sequence for Flow 1 — each step names its repo, files, and verification, so a fresh session can pick up mid-sequence.
 date_created: 2026-07-06

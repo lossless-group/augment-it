@@ -1,5 +1,6 @@
 ---
 title: "Joined People UI and the Network-First Pivot — augment-it's sibling-flow to org-first augmentation, and the canonical/proprietary layer split underneath it"
+type: Explorations
 lede: "Org-first and people-first are two pivots on one join — and the split that matters is canonical (shareable) vs proprietary (client-only)."
 date_created: 2026-06-15
 date_modified: 2026-06-15

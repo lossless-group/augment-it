@@ -1,5 +1,6 @@
 ---
 title: "Augment-It as Working App and Architecture Demonstration"
+type: Blueprints
 lede: >-
   Augment-it is a working product and a live architecture showcase at once; every decision answers to both lenses so neither quietly wins.
 date_created: 2026-06-01

@@ -1,5 +1,6 @@
 ---
 title: "A person's bio page on another org's site is an affiliation signal, not just an identity link — the UI should offer the promotion"
+type: Issues
 lede: "A bio on another org's domain is three facts — identity link, affiliation evidence, observation. The card captures one and drops two."
 date_created: 2026-07-24
 date_modified: 2026-07-24

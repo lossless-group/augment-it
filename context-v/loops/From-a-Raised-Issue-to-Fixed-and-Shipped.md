@@ -1,5 +1,6 @@
 ---
 title: "From a Raised Issue to Fixed-and-Shipped — the bug-to-ship loop"
+type: Loops
 lede: "A raised issue becomes a context-v issue doc, a gh issue, then an attempt→verify cycle that safety-commits every failed try and milestone-commits the win — closing with a changelog beat and an offer to bump semver + tag."
 date_created: 2026-08-02
 date_modified: 2026-08-02

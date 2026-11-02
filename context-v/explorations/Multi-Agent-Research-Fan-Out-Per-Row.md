@@ -1,5 +1,6 @@
 ---
 title: "Multi-Agent Research Fan-Out Per Row — The Real Shape of Augment-It's Capability Runtime"
+type: Explorations
 lede: "Capabilities aren't LLM calls — five research agents run per row in parallel, so the runtime needs (rows × agents) fan-out."
 date_created: 2026-05-18
 date_modified: 2026-05-18

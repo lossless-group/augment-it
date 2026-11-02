@@ -1,5 +1,6 @@
 ---
 title: "A silently ignored alias pointed a verification probe at production"
+type: Issues
 lede: "rsbuild accepts source.alias and ignores it. Three agents rendered live data believing it was a fixture; one wrote a file into client corpus."
 date_created: 2026-09-13
 date_modified: 2026-09-13

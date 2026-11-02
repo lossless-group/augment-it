@@ -1,5 +1,6 @@
 ---
 title: "Bolt-Era Main Container UI Analysis"
+type: Explorations
 lede: "The bolt shell's five-column layout and auth gate — prior art for the rewrite's open question: one host shell, or a host per app?"
 date_created: 2025-08-08
 date_modified: 2026-05-25

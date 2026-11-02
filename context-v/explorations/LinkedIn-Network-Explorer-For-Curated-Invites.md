@@ -1,5 +1,6 @@
 ---
 title: "LinkedIn Network Explorer — slicing your own connection graph by geography for curated invites, when LinkedIn won't let you query it directly"
+type: Explorations
 lede: "LinkedIn won't tell you which of your own connections live in Manhattan. The data export plus augment-it's enrichment cascade is the path."
 date_created: 2026-06-11
 date_modified: 2026-06-14

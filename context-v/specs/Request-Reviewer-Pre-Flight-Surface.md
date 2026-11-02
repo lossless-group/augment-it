@@ -1,5 +1,6 @@
 ---
 title: "Request Reviewer — the Pre-Flight Surface"
+type: Specs
 lede: >-
   See exactly what is about to leave the building — and guarantee the request you reviewed is byte-identical to the one that fires.
 date_created: 2026-05-21

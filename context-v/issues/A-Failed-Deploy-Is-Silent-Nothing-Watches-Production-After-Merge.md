@@ -1,5 +1,6 @@
 ---
 title: "A failed deploy is silent, so nothing watches production after merge"
+type: Issues
 lede: "Every frontend Docker build failed for twelve days unnoticed: the old container keeps serving and the health check keeps passing."
 date_created: 2026-08-15
 date_modified: 2026-08-15

@@ -1,5 +1,6 @@
 ---
 title: "Response Reviewer Shell and Content-Reader Mode — Response Reviewer becomes a wrapper whose inner review UI swaps based on what the bundle that fired actually produced"
+type: Specs
 lede: >-
   1,109 OfficialPulse responses, 3 accepts: 'is this URL right?' is the wrong question for content packs, so review mode becomes swappable.
 date_created: 2026-06-05

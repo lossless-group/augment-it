@@ -1,5 +1,6 @@
 ---
 title: "Crawl progress is a black box — 'crawling the web, this takes a minute…' needs traces the operator can watch"
+type: Issues
 lede: "The model narrates as it crawls — `extractText` skips straight past it to the final answer, so the operator gets a minute of ellipsis."
 date_created: 2026-07-24
 date_modified: 2026-07-24

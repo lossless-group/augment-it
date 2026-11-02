@@ -1,5 +1,6 @@
 ---
 title: "One stuck message kills a NATS subject until restart — `domain.list: timeout` and the sequential handler loop"
+type: Issues
 lede: "Every handler in `domains.ts` consumes its subject with a `for await` loop, so one unsettled request blocks the subject until a restart."
 date_created: 2026-08-08
 date_modified: 2026-08-08

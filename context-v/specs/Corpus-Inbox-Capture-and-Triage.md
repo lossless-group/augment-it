@@ -1,5 +1,6 @@
 ---
 title: "Corpus Inbox — capture first, triage later; a zero-friction save destination for URLs without a home yet, with a future triage layer that sorts inbox content into the right places"
+type: Specs
 lede: >-
   A URL with no home yet shouldn't cost a filing decision: `corpus/inbox/` captures the page, its body, and a drive-by note, then waits.
 date_created: 2026-06-08

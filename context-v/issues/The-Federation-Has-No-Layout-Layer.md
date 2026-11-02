@@ -1,5 +1,6 @@
 ---
 title: "The federation has no layout layer, so seven of its eight deviations are about placement"
+type: Issues
 lede: "The design system standardised everything that goes inside a box and nothing about the boxes. Consumers keep their freedom for now — deliberately, and on the record."
 date_created: 2026-09-13
 date_modified: 2026-09-13

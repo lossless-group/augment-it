@@ -1,5 +1,6 @@
 ---
 title: "Grilling on the DB Resolver — questions to settle before v0.0.0.2 / v0.0.0.3"
+type: Issues
 lede: "Three decisions before v0.0.0.2: where the join key lives, whether a slug can be renamed safely, and whether opportunities reopens Decile."
 date_created: 2026-06-22
 date_modified: 2026-06-22

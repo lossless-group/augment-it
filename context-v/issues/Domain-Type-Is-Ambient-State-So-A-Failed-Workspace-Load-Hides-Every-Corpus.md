@@ -1,5 +1,6 @@
 ---
 title: "Domain type is ambient state, so a failed workspace load hides every corpus"
+type: Issues
 lede: "humain-vc opened the Corpora Curator and saw 'strategy' and 'No corpora yet' — it has theses, and plenty of them. One guessed value at load time silently filtered the whole surface, and the same symptom was debugged out once already on 2026-07-07."
 date_created: 2026-08-08
 date_modified: 2026-08-08

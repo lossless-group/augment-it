@@ -1,5 +1,6 @@
 ---
 title: "Some records show empty corpus in the Sort & Filter Lens despite per-funder directories existing on disk — the lineage join is healthy but the workspace-service capability has no timeout override (defaults to 5000ms), the content-ingest handler processes requests serially, and each call walks every funder directory under clients/<id>/corpus/, so late requests in the 96-row fan-out time out and the lens swallows the error silently; the durable fix is to make corpus_funder_slug (a column the records sheet already populates) the primary join key, which limits each call to one small directory and dissolves the timeout race — this supersedes the originally-proposed corpus-overrides.yaml because the override surface is now the records-sheet cell"
+type: Issues
 lede: "No `CAPABILITY_TIMEOUTS_MS` entry for `corpus.list_for_record` — 96 parallel calls hit the 5000ms default and the lens swallows the error."
 date_created: 2026-06-10
 date_modified: 2026-06-10

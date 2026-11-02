@@ -1,5 +1,6 @@
 ---
 title: "The list-surface paradigm — CardRow, ListContainer, and where selection lives"
+type: Decisions
 lede: "Sixteen of eighteen members are the same shape: controls up top, a generated list below. Five decisions are open; the BEM rollup makes most of them reversible."
 date_created: 2026-09-13
 date_modified: 2026-09-13

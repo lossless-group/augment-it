@@ -1,5 +1,6 @@
 ---
 title: "Two palette steps share one hex, so dark-mode borders measure 1.00:1"
+type: Refactors
 lede: "graphite-700 and graphite-800 are both #232634. Four federal boundary findings came out of one member's probe; three survive adjudication and one does not."
 date_created: 2026-09-13
 date_modified: 2026-09-13

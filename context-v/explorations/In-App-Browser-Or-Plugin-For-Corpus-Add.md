@@ -1,5 +1,6 @@
 ---
 title: "In-App Browser vs Browser Plugin for Corpus Add — bridging the operator's own search into the per-record corpus without leaving the cockpit"
+type: Explorations
 lede: "Adding one operator-found URL to a funder's corpus is a ten-step round-trip out to Google and back. In-app browser, or browser plugin?"
 date_created: 2026-06-08
 date_modified: 2026-06-08

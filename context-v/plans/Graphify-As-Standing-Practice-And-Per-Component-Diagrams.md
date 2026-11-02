@@ -1,5 +1,6 @@
 ---
 title: "Graphify as Standing Practice and Per-Component Diagrams — Visual Engineering That Doesn't Go Stale"
+type: Plans
 lede: "The graph ran once, on 2026-08-06, and still names an app that was renamed two days later. Turning a snapshot into an instrument, and giving each unit its own picture."
 date_created: 2026-09-12
 date_modified: 2026-09-12

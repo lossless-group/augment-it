@@ -1,5 +1,6 @@
 ---
 title: "Corpus items aren't visible on person cards — and corpus coverage across entities is hard to assess anywhere"
+type: Issues
 lede: "The person card says 'Corpus items 3' and shows nothing — the operator can add a fourth without ever seeing the three that exist."
 date_created: 2026-07-24
 date_modified: 2026-07-24

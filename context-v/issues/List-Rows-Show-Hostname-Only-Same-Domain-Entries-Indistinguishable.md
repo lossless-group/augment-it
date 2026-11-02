@@ -1,5 +1,6 @@
 ---
 title: "List rows show hostname only — the path is hidden, so same-domain entries are indistinguishable"
+type: Issues
 lede: "`AdditiveList`'s `host()` drops the pathname, so two Gates Foundation links both render as `gatesfoundation.org` and can't be told apart."
 date_created: 2026-07-24
 date_modified: 2026-07-24

@@ -1,5 +1,6 @@
 ---
 title: "Crawl replies can be lost — the eternal 'crawling…' spinner (no client timeout, reconnect-dropped invokes, tight dispatch ceiling)"
+type: Issues
 lede: "The Curry Foundation crawl finished in 87s and the tab spun forever: no client deadline, reconnect-dropped invokes, a 300s ceiling."
 date_created: 2026-07-24
 date_modified: 2026-07-24

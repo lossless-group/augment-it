@@ -1,5 +1,6 @@
 ---
 title: "Augmentation-state preservation and snapshot promotion — the operator's CSV is the system of record, the filesystem is the truth, and `/promote-snapshot` is the verb that walks the corpus and emits the next CSV with system columns appended so flow-switches don't erase the prior cycle's work"
+type: Plans
 lede: >-
   One verb: `/promote-snapshot` joins the corpus filesystem into a fresh CSV version with system columns. No register, no write-hooks.
 date_created: 2026-06-09

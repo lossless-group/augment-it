@@ -1,5 +1,6 @@
 ---
 title: "Design System Portal"
+type: Specs
 lede: "Specification for the portal that renders the federated design system — the swatch page, the token catalogue, the member index."
 date_created: 2026-08-01
 date_modified: 2026-08-01

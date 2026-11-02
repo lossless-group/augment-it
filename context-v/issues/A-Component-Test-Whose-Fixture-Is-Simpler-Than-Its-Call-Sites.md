@@ -1,5 +1,6 @@
 ---
 title: "A component test whose fixture is simpler than its call sites"
+type: Issues
 lede: "Selector--Menu's suite was green while both of its first two adopters were broken in exactly the way its header promises to prevent."
 date_created: 2026-09-14
 date_modified: 2026-09-14

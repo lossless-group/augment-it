@@ -1,5 +1,6 @@
 ---
 title: "Tanuj's Prompt-Manager As Built"
+type: Explorations
 lede: "Full CRUD-shaped prompt UI over a hardcoded `samplePrompts` array — no store, no data flow. Keep the schema, throw away the implementation."
 date_created: 2026-05-18
 date_modified: 2026-05-25

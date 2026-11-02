@@ -1,5 +1,6 @@
 ---
 title: "Augment-It Prior Art Survey — What's Already Been Built, and What It Tells Us"
+type: Explorations
 lede: "Two prior attempts exist — Tanuj's three federated repos and Michael's bolt monolith. Both cover the core; neither is what we ship."
 date_created: 2026-05-18
 date_modified: 2026-05-25

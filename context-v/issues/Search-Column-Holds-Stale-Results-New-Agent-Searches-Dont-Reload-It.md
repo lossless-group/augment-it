@@ -1,5 +1,6 @@
 ---
 title: "The search column holds stale results — a new agent search doesn't reload it"
+type: Issues
 lede: "The team crawl bypasses the Search & Add envelope, so the column sits frozen on the last search's candidates, masquerading as current."
 date_created: 2026-07-24
 date_modified: 2026-07-24

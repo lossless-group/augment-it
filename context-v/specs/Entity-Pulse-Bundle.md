@@ -1,5 +1,6 @@
 ---
 title: "Entity-Pulse Bundle — Press Releases, News Mentions, and the Social Voice of a Record"
+type: Specs
 lede: >-
   Official Updates fires first; its rollup becomes the relevance prior for Media and Socials Mentions — a foundation-first four-phase DAG.
 date_created: 2026-06-01

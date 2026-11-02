@@ -1,5 +1,6 @@
 ---
 title: "Entity-Profile Augmentation Workflow — Common Social + Vertical-Specific Sources, Per Entity Type"
+type: Explorations
 lede: "Two tiers replace prompt-by-prompt column filling: packs as atomic source-bound units, bundles as workflow-shaped compositions of packs."
 date_created: 2026-05-25
 date_modified: 2026-05-25

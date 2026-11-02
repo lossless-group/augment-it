@@ -1,5 +1,6 @@
 ---
 title: "Shell & Micro-Frontend UX Coherence — Refactor Plan"
+type: Plans
 lede: >-
   Eight locked UX decisions sequenced into five phases — the Deck→Flow rename first, so every later phase speaks the right vocabulary.
 date_created: 2026-06-01

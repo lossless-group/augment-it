@@ -1,5 +1,6 @@
 ---
 title: "Syncthing for Collaborator Access to the Corpus (R2 Backup Already Decided)"
+type: Explorations
 lede: "R2 already won the backup leg — rclone, not a live mount. This is the separate, still-open question: could Syncthing give other humans live access to the same corpus, without breaking the single-writer discipline that's kept things sane so far?"
 date_created: 2026-07-17
 date_modified: 2026-07-17

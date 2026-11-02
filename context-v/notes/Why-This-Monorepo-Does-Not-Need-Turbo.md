@@ -1,5 +1,6 @@
 ---
 title: "Why this monorepo does not need Turbo: a task graph with no edges"
+type: Notes
 lede: "Turbo's core directive is `dependsOn: [\"^build\"]` — build my dependencies first. No package in packages/ has a build step, so it resolves to nothing. We adopted a best practice for an architecture we then didn't build."
 date_created: 2026-08-06
 date_modified: 2026-08-06

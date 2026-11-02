@@ -1,5 +1,6 @@
 ---
 title: "Shell & Micro-Frontend UX Coherence — Affordances That Are Found, Consistent, and Talk Back"
+type: Specs
 lede: >-
   A demo-prep chain of 'I can't find / reach / trigger X' is a verdict: the shell's affordances hide, die, or mismatch. Fix the pattern.
 date_created: 2026-05-28

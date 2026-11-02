@@ -1,5 +1,6 @@
 ---
 title: "Sparse-Person Enrichment Surface — per-email triage where the operator finds the human behind the address, picks or creates the org they belong to, and writes both back to the canonical layer"
+type: Specs
 lede: >-
   177 event attendees landed as 177 bare emails — the opposite shape from the URL-bearing records every other augment-it flow assumes.
 date_created: 2026-06-15

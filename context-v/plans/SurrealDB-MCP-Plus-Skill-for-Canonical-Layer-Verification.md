@@ -1,5 +1,6 @@
 ---
 title: "SurrealDB MCP + a verification skill — querying augment-it's canonical layer directly, starting with FreedomFest 2026"
+type: Plans
 date_created: 2026-07-07
 date_modified: 2026-07-07
 status: Shipped

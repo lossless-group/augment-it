@@ -1,5 +1,6 @@
 ---
 title: "Create or Update Archify Diagrams"
+type: Loops
 lede: "The repeatable procedure for turning a unit — or the whole system — into a validated, explorable Archify diagram that reflects real code rather than a plausible story."
 date_created: 2026-09-12
 date_modified: 2026-09-12

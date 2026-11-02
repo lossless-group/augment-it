@@ -1,5 +1,6 @@
 ---
 title: "Bolt-Era Highlight Collector Analysis"
+type: Explorations
 lede: "The only existing description of the highlight-collector stage — one of two that never got split into Tanuj's microfrontend repos."
 date_created: 2025-08-08
 date_modified: 2026-05-25

@@ -1,5 +1,6 @@
 ---
 title: "Adopt Selector in one member"
+type: Loops
 lede: "The test comes before the refactor. This is the first organ whose defects are invisible — a broken keyboard renders perfectly."
 date_created: 2026-09-14
 date_modified: 2026-09-14

@@ -1,5 +1,6 @@
 ---
 title: "Bolt-Era Codebase Analysis"
+type: Explorations
 lede: "A faithful architectural map of the bolt monolith — React + TS + Vite + Supabase + zustand — lifted from its own `specs/` folder."
 date_created: 2025-07-25
 date_modified: 2026-05-25

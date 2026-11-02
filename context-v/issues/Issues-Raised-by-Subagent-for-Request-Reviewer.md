@@ -1,5 +1,6 @@
 ---
 title: "Issues raised by the migration subagent while converging request-reviewer"
+type: Issues
 lede: "Findings surfaced while doing something else. Raised, not chased — the diff stays clean and the finding stays reviewable."
 date_created: 2026-09-13
 date_modified: 2026-09-13

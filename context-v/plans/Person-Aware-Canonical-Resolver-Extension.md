@@ -1,5 +1,6 @@
 ---
 title: "Person-aware canonical resolver — closing the gap between the proven scripts and the shell-reachable capability"
+type: Plans
 lede: >-
   The resolver only knows organizations; every person and affiliation ever written came from CLI scripts no UI can reach.
 date_created: 2026-07-07

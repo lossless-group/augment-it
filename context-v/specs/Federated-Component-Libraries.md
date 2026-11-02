@@ -1,5 +1,6 @@
 ---
 title: "Federated Component Libraries"
+type: Specs
 lede: "One gallery runtime, seventeen sovereign catalogs — every member publishes what it is made of, at its own address."
 date_created: 2026-08-08
 date_modified: 2026-08-08

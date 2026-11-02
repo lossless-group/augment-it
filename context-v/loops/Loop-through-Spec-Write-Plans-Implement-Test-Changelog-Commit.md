@@ -1,5 +1,6 @@
 ---
 title: "Loop through a spec — write the plan, implement, test, changelog, commit, repeat until Shipped"
+type: Loops
 lede: "The phase loop that took Augment-From-DB-Flow from Signed-Off to Shipped in one day: plan, implement, prove, changelog, commit — per phase."
 date_created: 2026-07-22
 date_modified: 2026-07-22

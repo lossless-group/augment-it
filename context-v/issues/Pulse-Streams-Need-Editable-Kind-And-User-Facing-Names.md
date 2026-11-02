@@ -1,5 +1,6 @@
 ---
 title: "Pulse streams need an editable kind and a user-facing name — 'Today's Credentials' is not an 'updates_index'"
+type: Issues
 lede: "The operator can neither fix a stream's inferred kind nor record its name — `media_streams[]` has no title field for Today's Credentials."
 date_created: 2026-07-24
 date_modified: 2026-07-24

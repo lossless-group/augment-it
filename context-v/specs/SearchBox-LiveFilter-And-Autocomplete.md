@@ -1,5 +1,6 @@
 ---
 title: "SearchBox — LiveFilter and Autocomplete"
+type: Specs
 lede: "A subsidiary spec. Two named variants over one private core, because the keyboard contract must exist exactly once and the two differ only in where options come from."
 date_created: 2026-09-14
 date_modified: 2026-09-14

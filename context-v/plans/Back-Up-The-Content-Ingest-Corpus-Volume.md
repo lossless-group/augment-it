@@ -1,5 +1,6 @@
 ---
 title: "Back Up the Content-Ingest Corpus Volume — the corpus has no second copy"
+type: Plans
 lede: >-
   Every fetch writes to a single Railway volume that nothing backs up, nothing mirrors, and only one process can even read.
 date_created: 2026-09-10

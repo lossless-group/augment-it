@@ -1,5 +1,6 @@
 ---
 title: "Auth Patterns — Following Astro Knots Conventions in a Rsbuild + Module-Federation Shell"
+type: Blueprints
 lede: >-
   Astro Knots auth rules translated to Rsbuild + NATS: the middleware gate becomes a WS token check, and silent bypass is the shared risk.
 date_created: 2026-06-01

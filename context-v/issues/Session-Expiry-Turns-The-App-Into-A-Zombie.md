@@ -1,5 +1,6 @@
 ---
 title: "Session expiry turns the app into a zombie — the 12h JWT dies mid-use, the UI stays up, and every invoke times out"
+type: Issues
 lede: "The `didi_session` cookie lives 30 days, the JWT inside ~12h, and nothing calls `/api/session/refresh` — the transport 4401-loops at 2/sec."
 date_created: 2026-07-28
 date_modified: 2026-08-02

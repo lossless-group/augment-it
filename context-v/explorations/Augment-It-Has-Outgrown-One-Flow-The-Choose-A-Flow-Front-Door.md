@@ -1,5 +1,6 @@
 ---
 title: "augment-it has outgrown one flow — ROTATION is the CSV-augmentation pipeline's shape wearing a general-purpose name, and corpora-curator's promotion to its head is a splice, not a fit"
+type: Explorations
 lede: "ROTATION (`shell/src/remotes.ts`) is the CSV-augmentation flow hardcoded as THE nav — every other use case gets spliced onto it."
 date_created: 2026-07-06
 date_modified: 2026-07-21

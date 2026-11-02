@@ -1,5 +1,6 @@
 ---
 title: "Plan stub: ingest the next reach-edu event CSV into the canonical layer"
+type: Plans
 lede: "The mechanism already exists and is proven twice over (turning-jobs, FreedomFest) — this is the sequence to run the moment the next event CSV lands, so it's 'follow the stub' instead of 're-derive the pipeline.'"
 date_created: 2026-07-17
 date_modified: 2026-07-17
