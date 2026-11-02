@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.2",
   "private": true,
-  "description": "GitHub Pages splash for augment-it — a module-federation web app for AI-driven data augmentation.",
+  "description": "GitHub Pages splash for augment-it \u2014 a module-federation web app for AI-driven data augmentation.",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
@@ -12,8 +12,13 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.2",
+    "@lossless-group/lfm": "npm:@jsr/lossless-group__lfm@^0.6.1",
     "astro": "^7.0.5",
     "astro-pagefind": "^2.0.0",
+    "mdast-util-to-string": "^4.0.0",
     "pagefind": "^1.5.2"
+  },
+  "devDependencies": {
+    "@types/mdast": "^4.0.4"
   }
 }

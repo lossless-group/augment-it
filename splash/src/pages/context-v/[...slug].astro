@@ -1,6 +1,9 @@
 ---
-import { getCollection, render } from 'astro:content';
+import { getCollection } from 'astro:content';
 import BaseLayout from '@layouts/BaseLayout.astro';
+import AstroMarkdown from '@components/markdown/AstroMarkdown.astro';
+import Sources from '@components/markdown/Sources.astro';
+import { renderable } from '@lib/markdown';
 import { formatDate, toDate } from '@lib/date';
 
 export async function getStaticPaths() {
@@ -14,7 +17,7 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
-const { Content } = await render(entry);
+const { tree, citations } = await renderable(entry.body, `context-v/${entry.id}.md`);
 
 const d = toDate(entry.data.date_modified ?? entry.data.date_updated ?? entry.data.date_created ?? entry.data.date_authored_current_draft ?? entry.data.date_authored_initial_draft ?? entry.data.date_authored_current_draft ?? entry.data.date_authored_initial_draft ?? entry.data.date_authored_current_draft ?? entry.data.date_authored_initial_draft);
 const created = toDate(entry.data.date_created ?? entry.data.date_authored_initial_draft);
@@ -69,7 +72,8 @@ const base = import.meta.env.BASE_URL;
       </header>
 
       <article class="prose entry__body">
-        <Content />
+        <AstroMarkdown node={tree} />
+        {citations.length > 0 && <Sources citations={citations} />}
       </article>
     </div>
   </main>

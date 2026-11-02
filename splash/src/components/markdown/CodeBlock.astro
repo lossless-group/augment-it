@@ -1,0 +1,70 @@
+---
+/* Mirrors the canonical lfm-astro/components/CodeBlock.astro shape from
+ * astro-knots/packages/lfm-astro/ — kept structurally identical so this
+ * file can be deleted in favour of an `import { CodeBlock } from
+ * '@lossless-group/lfm-astro'` line once that sibling JSR package ships.
+ *
+ * NO direct shiki import here on purpose. Markdown-related libraries
+ * (parser, highlighter, OG fetcher, citation resolver) belong inside the
+ * LFM ecosystem packages (@lossless-group/lfm and the not-yet-published
+ * @lossless-group/lfm-astro), not pulled in per-site. When syntax
+ * highlighting lands upstream, every consuming site picks it up via the
+ * dep version bump — no per-site duplication of the highlighter wiring,
+ * no theme-choice drift across the family.
+ *
+ * Until lfm-astro is published with built-in Shiki, code blocks render as
+ * monochrome <pre><code> on content-farm splash. The tokens still come
+ * from content-farm's palette so the block reads as part of the page;
+ * the colored-token coverage is the upstream LFM follow-up.
+ */
+export interface Props {
+  language?: string;
+  code: string;
+  meta?: string;
+}
+
+const { language, code } = Astro.props as Props;
+
+const langLabel = language ? language.toUpperCase() : undefined;
+---
+
+<div class="ak-codeblock-wrap">
+  {langLabel && <div class="ak-codeblock-lang">{langLabel}</div>}
+  <pre class="ak-codeblock"><code>{code}</code></pre>
+</div>
+
+<style>
+  .ak-codeblock-wrap {
+    position: relative;
+    margin-bottom: 1.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+  }
+
+  .ak-codeblock-lang {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-dim);
+    pointer-events: none;
+  }
+
+  .ak-codeblock {
+    padding: 1rem;
+    background: var(--color-bg-elevated);
+    color: var(--color-text);
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .ak-codeblock code {
+    font-family: var(--font__mono);
+  }
+</style>
